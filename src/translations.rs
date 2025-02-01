@@ -3,24 +3,24 @@ use mdbook::MDBook;
 use mdbook_i18n_helpers::preprocessors::Gettext;
 use mdbook_i18n_helpers::renderers::Xgettext;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use tera::Tera;
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Translations {
-    pub books: HashMap<String, Book>,
+    pub books: BTreeMap<String, Book>,
     #[serde(skip)]
     base: PathBuf,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Book {
     pub translations: Vec<Translation>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Translation {
     pub id: String,
     pub name: String,
@@ -39,6 +39,15 @@ impl Translations {
         Ok(toml)
     }
 
+    pub fn save(&self) -> Result<()> {
+        let mut text = String::new();
+        text.push_str(&toml::to_string(&self)?);
+
+        let toml = self.base.join("translations.toml");
+        std::fs::write(&toml, text.as_bytes())?;
+        Ok(())
+    }
+
     pub fn build(&self) -> Result<()> {
         update_submodule()?;
 
@@ -52,17 +61,17 @@ impl Translations {
         Ok(())
     }
 
-    pub fn add(&self, name: &str, id: &str) -> Result<()> {
-        let src_path = self.src_path(name);
-        let po_path = self.po_path(name);
+    pub fn add(&mut self, book: &str, lang_id: &str, lang_name: &str) -> Result<()> {
+        let src_path = self.src_path(book);
+        let po_path = self.po_path(book);
 
         update_submodule()?;
         extract_pot(&src_path, &po_path)?;
 
-        let lang_po = po_path.join(format!("{id}.po"));
+        let lang_po = po_path.join(format!("{lang_id}.po"));
 
         if lang_po.exists() {
-            bail!("Language {id} for {name} alreay exists");
+            bail!("Language {lang_id} for {book} alreay exists");
         }
 
         Command::new("msginit")
@@ -70,25 +79,41 @@ impl Translations {
             .arg("-i")
             .arg(po_path.join("messages.pot"))
             .arg("-l")
-            .arg(id)
+            .arg(lang_id)
             .arg("-o")
             .arg(&lang_po)
             .output()?;
 
+        let new_trans = Translation {
+            id: lang_id.to_string(),
+            name: lang_name.to_string(),
+        };
+
+        let new_book = Book {
+            translations: vec![new_trans.clone()],
+        };
+
+        self.books
+            .entry(book.to_string())
+            .and_modify(|x| x.translations.push(new_trans))
+            .or_insert(new_book);
+
+        self.save()?;
+
         Ok(())
     }
 
-    pub fn update(&self, name: &str, id: &str) -> Result<()> {
-        let src_path = self.src_path(name);
-        let po_path = self.po_path(name);
+    pub fn update(&self, book: &str, lang_id: &str) -> Result<()> {
+        let src_path = self.src_path(book);
+        let po_path = self.po_path(book);
 
         update_submodule()?;
         extract_pot(&src_path, &po_path)?;
 
-        let lang_po = po_path.join(format!("{id}.po"));
+        let lang_po = po_path.join(format!("{lang_id}.po"));
 
         if !lang_po.exists() {
-            bail!("Language {id} for {name} is not found");
+            bail!("Language {lang_id} for {book} is not found");
         }
 
         Command::new("msgmerge")

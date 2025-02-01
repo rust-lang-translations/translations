@@ -28,8 +28,10 @@ pub struct OptBuild {}
 pub struct OptAdd {
     /// Book name
     book: String,
-    /// Language ID
-    lang: String,
+    /// Language ID (ISO 639 language codes)
+    lang_id: String,
+    /// Language name
+    lang_name: String,
 }
 
 /// Update the translation
@@ -37,19 +39,19 @@ pub struct OptAdd {
 pub struct OptUpdate {
     /// Book name
     book: String,
-    /// Language ID
-    lang: String,
+    /// Language ID (ISO 639 language codes)
+    lang_id: String,
 }
 
 fn main() -> Result<()> {
     let opt = Opt::parse();
 
-    let trans = Translations::load()?;
+    let mut trans = Translations::load()?;
 
     match opt.command {
         Commands::Build(_) => trans.build()?,
-        Commands::Add(x) => trans.add(&x.book, &x.lang)?,
-        Commands::Update(x) => trans.update(&x.book, &x.lang)?,
+        Commands::Add(x) => trans.add(&x.book, &x.lang_id, &x.lang_name)?,
+        Commands::Update(x) => trans.update(&x.book, &x.lang_id)?,
     }
 
     Ok(())
