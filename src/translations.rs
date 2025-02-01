@@ -40,6 +40,8 @@ impl Translations {
     }
 
     pub fn build(&self) -> Result<()> {
+        update_submodule()?;
+
         for (name, book) in &self.books {
             let src_path = self.src_path(name);
             let dst_path = PathBuf::from(format!("../../build/{}", name));
@@ -54,6 +56,7 @@ impl Translations {
         let src_path = self.src_path(name);
         let po_path = self.po_path(name);
 
+        update_submodule()?;
         extract_pot(&src_path, &po_path)?;
 
         let lang_po = po_path.join(format!("{id}.po"));
@@ -79,6 +82,7 @@ impl Translations {
         let src_path = self.src_path(name);
         let po_path = self.po_path(name);
 
+        update_submodule()?;
         extract_pot(&src_path, &po_path)?;
 
         let lang_po = po_path.join(format!("{id}.po"));
@@ -103,6 +107,17 @@ impl Translations {
     fn po_path(&self, name: &str) -> PathBuf {
         self.base.join("translations").join(name)
     }
+}
+
+fn update_submodule() -> Result<()> {
+    Command::new("git")
+        .arg("submodule")
+        .arg("update")
+        .arg("--init")
+        .arg("--recursive")
+        .output()?;
+
+    Ok(())
 }
 
 fn extract_pot(src_path: &Path, po_path: &Path) -> Result<()> {
