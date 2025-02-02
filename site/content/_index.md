@@ -17,7 +17,7 @@ All documentation has a language selector, so users can easily refer to the orig
 ## Translator-friendly workflow
 We provide the workflow necessary for translators, such as automatic updates of the original version and measurement of translation rate (planned). Unlike when each translator works in their own repository, workflow improvements reach all translators.
 
-If you are interesting in document translation, please see [the project on GitHub](https://github.com/rust-lang-translations/doc).
+If you are interesting in document translation, please see [the project on GitHub](https://github.com/rust-lang-translations/project).
 
 # Usage
 
@@ -32,6 +32,6 @@ All the documents have a language selector at the top right of the pages.
 * [The Rust Reference](https://rust-lang-translations.org/reference)
 * [Rust By Example](https://doc.rust-lang.org/rust-by-example) : The official site
 
-If you want to add other documents, please open a [issue](https://github.com/rust-lang-translations/doc/issues).
+If you want to add other documents, please open a [issue](https://github.com/rust-lang-translations/project/issues).
 
 The official [Rust By Example](https://doc.rust-lang.org/rust-by-example) already has some translations, so this project doesn't include it.
