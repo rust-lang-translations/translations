@@ -3,13 +3,19 @@ title: Rust Translations
 ---
 
 This is an **unofficial** document translation project for [Rust Programming Language](https://rust-lang.org).
-By aggrigating Rust document translations from the web, the following benefits are achieved.
+The following advantages are provided by this project:
 
-* As Users
-  * can find translations easily from this page
-  * can check the original English contents through the language selector in each documents
-* As Translators
-  * can work for translation with pre-defined workflow
+## All documentation
+All documentation hosted under https://doc.rust-lang.org is supported, so users can easily find translated documentation. Other documentation can also be added.
+
+## Always up to date
+In conventional translations, the content becomes outdated as the original is updated. With this site, the content is always up to date, but untranslated parts are displayed in English. Users who notice the English display can contribute to the translation.
+
+## Language selector
+All documentation has a language selector, so users can easily refer to the original English version.
+
+## Translator-friendly workflow
+We provide the workflow necessary for translators, such as automatic updates of the original version and measurement of translation rate (planned). Unlike when each translator works in their own repository, workflow improvements reach all translators.
 
 If you are interesting in document translation, please see [the project on GitHub](https://github.com/rust-lang-translations/doc).
 
