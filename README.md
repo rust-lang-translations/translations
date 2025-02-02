@@ -2,7 +2,7 @@
 
 This is an unofficial document translation project for Rust.
 
-# For users
+## For users
 
 The website is here:
 
