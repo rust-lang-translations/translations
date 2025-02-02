@@ -1,11 +1,14 @@
 # rust-lang-translations
 
 This is an unofficial document translation project for Rust.
+
+# For users
+
 The website is here:
 
 https://rust-lang-translations.org
 
-## Usage
+## For translators
 
 If you want to add a new translation or update the existing translations.
 Please follow the following instruction.
