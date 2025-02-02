@@ -13,6 +13,10 @@ By aggrigating Rust document translations from the web, the following benefits a
 
 If you are interesting in document translation, please see [the project on GitHub](https://github.com/rust-lang-translations/doc).
 
+# Usage
+
+All the documents have a language selector at the top right of the pages.
+
 # Documents
 
 * [The Rust Programming Language](https://rust-lang-translations.org/book)
