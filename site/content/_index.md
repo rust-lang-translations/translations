@@ -11,7 +11,7 @@ All documentation hosted under https://doc.rust-lang.org is supported, so users 
 ## Always up to date
 In conventional translations, the content becomes outdated as the original is updated. With this site, the content is always up to date, but untranslated parts are displayed in English. Users who notice the English display can contribute to the translation.
 
-## Language selector
+## Selectable language
 All documentation has a language selector, so users can easily refer to the original English version.
 
 ## Translator-friendly workflow
