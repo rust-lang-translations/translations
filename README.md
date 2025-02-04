@@ -13,6 +13,8 @@ https://rust-lang-translations.org
 If you want to add a new translation or update the existing translations.
 Please follow the following instruction.
 
+To avoid duplicated works, we recommend to open an [issue](https://github.com/rust-lang-translations/project/issues) before starting your work.
+
 ### Requirement
 
 The following commands are required:
@@ -59,7 +61,8 @@ So you can update the translation DB like below:
 $ cargo run --release -- update [book name] [language ID]
 ```
 
-After it, newly added texts are inserted to the DB, and modified texts are marked by `fuzzy`.
+By this command, newly added texts are inserted to the DB, and modified texts are marked by `fuzzy`.
+The text marked by `fuzzy` are ignored at the next build, so please remove the `fuzzy` string after completing to modify translations.
 
 ### Serve
 
