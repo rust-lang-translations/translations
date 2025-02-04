@@ -26,6 +26,7 @@ All the documents have a language selector at the top right of the pages.
 # Documents
 
 * [The Rust Programming Language](https://rust-lang-translations.org/book)
+* [The Cargo Book](https://rust-lang-translations.org/cargo)
 * [The Rust Edition Guide](https://rust-lang-translations.org/edition-guide)
 * [The Embedded Rust Book](https://rust-lang-translations.org/embedded-book)
 * [The Rustonomicon](https://rust-lang-translations.org/nomicon)
