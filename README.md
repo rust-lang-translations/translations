@@ -61,9 +61,18 @@ $ cargo run --release -- update [book name] [language ID]
 
 After it, newly added texts are inserted to the DB, and modified texts are marked by `fuzzy`.
 
+### Serve
+
+The following command provides a Web server to check the translated website.
+If you update the translation DB, the website is automatically reloaded.
+
+```
+$ cargo run --release -- serve [book name] [language ID]
+```
+
 ### Build
 
-After editing the DB, you can check the rendered website by the following command:
+After editing the DB, you can check the whole rendered website by the following command:
 
 ```
 $ cargo run --release -- build
