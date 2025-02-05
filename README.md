@@ -15,7 +15,19 @@ Please follow the following instruction.
 
 To avoid duplicated works, we recommend to open an [issue](https://github.com/rust-lang-translations/project/issues) before starting your work.
 
-### Requirement
+There are two way to manage translations.
+
+* Use Web UI
+* Edit locally
+
+### Use Web UI
+
+[POEditor](https://poeditor.com) can be used.
+If you want it, please request through [issue](https://github.com/rust-lang-translations/project/issues).
+
+### Edit locally
+
+#### Requirement
 
 The following commands are required:
 
@@ -30,7 +42,7 @@ After releasing Rust 1.85, this workaround becomes to be unnecessary.
 $ rustup override set beta
 ```
 
-### Add a new translation
+#### Add a new translation
 
 First of all, create a file and entry for a new translation like below:
 
@@ -52,7 +64,7 @@ After it, a translation DB will be created at `translations/[book name]/[languag
 In the DB, `msgid` is the original English text, and `msgstr` is the corresponding translated text.
 You can add translations to the `msgstr` entries.
 
-### Update the existing translation
+#### Update the existing translation
 
 Even if once the translation is completed, it becomes outdated by the update of the original documents. 
 So you can update the translation DB like below:
@@ -64,7 +76,7 @@ $ cargo run --release -- update [book name] [language ID]
 By this command, newly added texts are inserted to the DB, and modified texts are marked by `fuzzy`.
 The text marked by `fuzzy` are ignored at the next build, so please remove the `fuzzy` string after completing to modify translations.
 
-### Serve
+#### Serve
 
 The following command provides a Web server to check the translated website.
 If you update the translation DB, the website is automatically reloaded.
@@ -73,7 +85,7 @@ If you update the translation DB, the website is automatically reloaded.
 $ cargo run --release -- serve [book name] [language ID]
 ```
 
-### Build
+#### Build
 
 After editing the DB, you can check the whole rendered website by the following command:
 
