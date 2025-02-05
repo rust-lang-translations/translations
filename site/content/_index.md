@@ -31,6 +31,8 @@ All the documents have a language selector at the top right of the pages.
 * [The Embedded Rust Book](https://rust-lang-translations.org/embedded-book)
 * [The Rustonomicon](https://rust-lang-translations.org/nomicon)
 * [The Rust Reference](https://rust-lang-translations.org/reference)
+* [The rustc book](https://rust-lang-translations.org/rustc)
+* [The rustdoc book](https://rust-lang-translations.org/rustdoc)
 * [Rust By Example](https://doc.rust-lang.org/rust-by-example) : The official site
 
 If you want to add other documents, please open a [issue](https://github.com/rust-lang-translations/project/issues).
