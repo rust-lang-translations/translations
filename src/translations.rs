@@ -1,6 +1,7 @@
 use crate::build::build_book;
 use crate::serve::serve;
 use anyhow::{bail, Result};
+use log::info;
 use mdbook::MDBook;
 use mdbook_i18n_helpers::renderers::Xgettext;
 use serde::{Deserialize, Serialize};
@@ -10,6 +11,7 @@ use std::process::Command;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Translations {
+    pub submodules: Vec<Vec<PathBuf>>,
     pub books: BTreeMap<String, Book>,
     #[serde(skip)]
     base: PathBuf,
@@ -17,7 +19,7 @@ pub struct Translations {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Book {
-    pub path: Option<PathBuf>,
+    pub path: PathBuf,
     pub translations: Vec<Translation>,
 }
 
@@ -50,10 +52,10 @@ impl Translations {
     }
 
     pub fn build(&self) -> Result<()> {
-        update_submodule()?;
+        self.update_submodule()?;
 
         for (name, book) in &self.books {
-            let src_path = self.src_path(name, &book.path);
+            let src_path = self.src_path(&book.path);
             let dst_path = self.dst_path(name);
             let po_path = self.po_path(name);
 
@@ -64,10 +66,10 @@ impl Translations {
 
     pub fn add(&mut self, name: &str, lang_id: &str, lang_name: &str) -> Result<()> {
         if let Some(book) = self.books.get(name) {
-            let src_path = self.src_path(name, &book.path);
+            let src_path = self.src_path(&book.path);
             let po_path = self.po_path(name);
 
-            update_submodule()?;
+            self.update_submodule()?;
             extract_pot(&src_path, &po_path)?;
 
             let lang_po = po_path.join(format!("{lang_id}.po"));
@@ -91,15 +93,9 @@ impl Translations {
                 name: lang_name.to_string(),
             };
 
-            let new_book = Book {
-                path: None,
-                translations: vec![new_trans.clone()],
-            };
-
             self.books
                 .entry(name.to_string())
-                .and_modify(|x| x.translations.push(new_trans))
-                .or_insert(new_book);
+                .and_modify(|x| x.translations.push(new_trans));
 
             self.save()?;
         }
@@ -109,10 +105,10 @@ impl Translations {
 
     pub fn update(&self, name: &str, lang_id: &str) -> Result<()> {
         if let Some(book) = self.books.get(name) {
-            let src_path = self.src_path(name, &book.path);
+            let src_path = self.src_path(&book.path);
             let po_path = self.po_path(name);
 
-            update_submodule()?;
+            self.update_submodule()?;
             extract_pot(&src_path, &po_path)?;
 
             let lang_po = po_path.join(format!("{lang_id}.po"));
@@ -133,7 +129,7 @@ impl Translations {
 
     pub fn serve(&self, name: &str, lang_id: &str, hostname: &str, port: &str) -> Result<()> {
         if let Some(book) = self.books.get(name) {
-            let src_path = self.src_path(name, &book.path);
+            let src_path = self.src_path(&book.path);
             let dst_path = self.dst_path(name);
             let po_path = self.po_path(name);
 
@@ -145,12 +141,8 @@ impl Translations {
         Ok(())
     }
 
-    fn src_path(&self, name: &str, path: &Option<PathBuf>) -> PathBuf {
-        if let Some(path) = path {
-            self.base.join("repos").join(name).join(path)
-        } else {
-            self.base.join("repos").join(name)
-        }
+    fn src_path(&self, path: &Path) -> PathBuf {
+        self.base.join(path)
     }
 
     fn dst_path(&self, name: &str) -> PathBuf {
@@ -160,17 +152,40 @@ impl Translations {
     fn po_path(&self, name: &str) -> PathBuf {
         self.base.join("translations").join(name)
     }
-}
 
-fn update_submodule() -> Result<()> {
-    Command::new("git")
-        .arg("submodule")
-        .arg("update")
-        .arg("--init")
-        .arg("--recursive")
-        .output()?;
+    fn update_submodule(&self) -> Result<()> {
+        for submodule in &self.submodules {
+            let mut base: Option<PathBuf> = None;
+            for path in submodule {
+                if let Some(base) = &base {
+                    info!(
+                        "Update submodule {} from {}",
+                        path.to_string_lossy(),
+                        base.to_string_lossy()
+                    );
+                    Command::new("git")
+                        .arg("-C")
+                        .arg(base)
+                        .arg("submodule")
+                        .arg("update")
+                        .arg("--init")
+                        .arg(path)
+                        .output()?;
+                } else {
+                    info!("Update submodule {}", path.to_string_lossy());
+                    Command::new("git")
+                        .arg("submodule")
+                        .arg("update")
+                        .arg("--init")
+                        .arg(path)
+                        .output()?;
+                }
+                base = Some(base.map_or(path.clone(), |x: PathBuf| x.join(path)));
+            }
+        }
 
-    Ok(())
+        Ok(())
+    }
 }
 
 fn extract_pot(src_path: &Path, po_path: &Path) -> Result<()> {

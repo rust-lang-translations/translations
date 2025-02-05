@@ -38,7 +38,7 @@ First of all, create a file and entry for a new translation like below:
 $ cargo run --release -- add [book name] [language ID] [language name]
 ```
 
-`[book name]` is a directory name of the book in `repos`,
+`[book name]` is a entry name in `translations.toml`,
 `[language ID]` is one of [ISO 639](https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes) language codes,
 and `[language name]` is a display name in the website.
 
