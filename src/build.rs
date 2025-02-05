@@ -4,6 +4,8 @@ use anyhow::Result;
 use log::info;
 use mdbook::MDBook;
 use mdbook_i18n_helpers::preprocessors::Gettext;
+use std::fs::OpenOptions;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use tera::Tera;
 
@@ -20,10 +22,13 @@ pub fn build_book(
 
     let mut tmpl = Tera::default();
     tmpl.add_raw_template("lang-picker-js", LANG_PICKER_JS)?;
+    tmpl.add_raw_template("head-hbs", HEAD_HBS)?;
 
     let mut context = tera::Context::new();
+    context.insert("name", name);
     context.insert("langs", &book.translations);
     let lang_picker_js = tmpl.render("lang-picker-js", &context)?;
+    let head_hbs = tmpl.render("head-hbs", &context)?;
 
     let theme_dir = mdbook.theme_dir();
     if !theme_dir.exists() {
@@ -31,9 +36,19 @@ pub fn build_book(
     }
     let js_path = theme_dir.join("language-picker.js");
     let css_path = theme_dir.join("language-picker.css");
+    let head_path = theme_dir.join("head.hbs");
+    let head_backup = theme_dir.join("head.hbs.bak");
 
     std::fs::write(&js_path, lang_picker_js)?;
     std::fs::write(&css_path, LANG_PICKER_CSS)?;
+
+    if head_path.exists() {
+        std::fs::copy(&head_path, &head_backup)?;
+        let mut file = OpenOptions::new().append(true).open(&head_path)?;
+        file.write(head_hbs.as_bytes())?;
+    } else {
+        std::fs::write(&head_path, head_hbs)?;
+    }
 
     let js_file: toml::Value = "theme/language-picker.js".into();
     let css_file: toml::Value = "theme/language-picker.css".into();
@@ -87,6 +102,13 @@ pub fn build_book(
 
     std::fs::remove_file(&js_path)?;
     std::fs::remove_file(&css_path)?;
+
+    if head_backup.exists() {
+        std::fs::copy(&head_backup, &head_path)?;
+        std::fs::remove_file(&head_backup)?;
+    } else {
+        std::fs::remove_file(&head_path)?;
+    }
 
     Ok(())
 }
@@ -157,4 +179,66 @@ const LANG_PICKER_CSS: &str = r#"
 #language-list a {
   color: inherit;
 }
+"#;
+
+const HEAD_HBS: &str = r#"
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-L455DH98TK"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-L455DH98TK');
+</script>
+
+{% raw %}
+<script>
+    (function () {
+        // See these pages for details:
+        // https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls
+        // https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics
+
+        function gen_canonical_href(lang) {
+{% endraw %}
+            let base = "https://rust-lang-translations.org/{{ name }}";
+{% raw %}
+            let canonical_href;
+            if (lang == "en") {
+                canonical_href = `${base}/{{ path }}`;
+            } else {
+                canonical_href = `${base}/${lang}/{{ path }}`;
+            }
+            canonical_href = canonical_href.slice(0, -"md".length) + "html";
+            if (canonical_href.endsWith("/index.html")) {
+                canonical_href = canonical_href.slice(0, -"index.html".length);
+            }
+            return canonical_href;
+        }
+
+        {{#if (eq language "en")}}
+        const canonical_href = gen_canonical_href("en");
+        {{else}}
+        const canonical_href = gen_canonical_href("{{ language }}");
+        {{/if}}
+
+        let link = document.createElement("link");
+        link.rel = "canonical";
+        link.href = canonical_href;
+        document.head.appendChild(link);
+
+{% endraw %}
+        const langs = ["en" {% for lang in langs %} , "{{ lang.id }}" {% endfor %}];
+{% raw %}
+        for (const lang of langs) {
+            const canonical_href = gen_canonical_href(lang);
+
+            let link = document.createElement("link");
+            link.rel = "alternate";
+            link.hreflang = lang;
+            link.href = canonical_href;
+            document.head.appendChild(link);
+        }
+    })()
+</script>
+{% endraw %}
 "#;

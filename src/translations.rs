@@ -44,7 +44,7 @@ impl Translations {
 
     pub fn save(&self) -> Result<()> {
         let mut text = String::new();
-        text.push_str(&toml::to_string(&self)?);
+        text.push_str(&toml::to_string_pretty(&self)?);
 
         let toml = self.base.join("translations.toml");
         std::fs::write(&toml, text.as_bytes())?;
