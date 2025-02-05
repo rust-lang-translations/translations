@@ -1,0 +1,572 @@
+<!DOCTYPE HTML>
+<html lang="ja" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Applying Concurrency with Async - The Rust Programming Language</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="ferris.css">
+        <link rel="stylesheet" href="theme/2018-edition.css">
+        <link rel="stylesheet" href="theme/semantic-notes.css">
+        <link rel="stylesheet" href="theme/listing.css">
+        <link rel="stylesheet" href="theme/language-picker.css">
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rust Programming Language</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/rust-lang/book" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h2 id="applying-concurrency-with-async"><a class="header" href="#applying-concurrency-with-async">Applying Concurrency with Async</a></h2>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="concurrency-with-async"></a></p>
+<p>In this section, we’ll apply async to some of the same concurrency challenges we tackled with threads in chapter 16. Because we already talked about a lot of the key ideas there, in this section we’ll focus on what’s different between threads and futures.</p>
+<p>In many cases, the APIs for working with concurrency using async are very similar to those for using threads. In other cases, they end up being quite different. Even when the APIs <em>look</em> similar between threads and async, they often have different behavior—and they nearly always have different performance characteristics.</p>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="counting"></a></p>
+<h3 id="creating-a-new-task-with-spawn_task"><a class="header" href="#creating-a-new-task-with-spawn_task">Creating a New Task with <code>spawn_task</code></a></h3>
+<p>The first operation we tackled in <a href="ch16-01-threads.html#creating-a-new-thread-with-spawn">Creating a New Thread with Spawn</a><!-- ignore --> was counting up on two separate threads. Let’s do the same using async. The <code>trpl</code> crate supplies a <code>spawn_task</code> function that looks very similar to the <code>thread::spawn</code> API, and a <code>sleep</code> function that is an async version of the <code>thread::sleep</code> API. We can use these together to implement the counting example, as shown in Listing 17-6.</p>
+<Listing number="17-6" caption="Creating a new task to print one thing while the main task prints something else" file-name="src/main.rs">
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">extern crate trpl; // required for mdbook test
+</span><span class="boring">
+</span>use std::time::Duration;
+
+fn main() {
+    trpl::run(async {
+        trpl::spawn_task(async {
+            for i in 1..10 {
+                println!("hi number {i} from the first task!");
+                trpl::sleep(Duration::from_millis(500)).await;
+            }
+        });
+
+        for i in 1..5 {
+            println!("hi number {i} from the second task!");
+            trpl::sleep(Duration::from_millis(500)).await;
+        }
+    });
+}</code></pre></pre>
+</Listing>
+<p>As our starting point, we set up our <code>main</code> function with <code>trpl::run</code> so that our top-level function can be async.</p>
+<blockquote>
+<p>Note: From this point forward in the chapter, every example will include this exact same wrapping code with <code>trpl::run</code> in <code>main</code>, so we’ll often skip it just as we do with <code>main</code>. Don’t forget to include it in your code!</p>
+</blockquote>
+<p>Then we write two loops within that block, each containing a <code>trpl::sleep</code> call, which waits for half a second (500 milliseconds) before sending the next message. We put one loop in the body of a <code>trpl::spawn_task</code> and the other in a top-level <code>for</code> loop. We also add an <code>await</code> after the <code>sleep</code> calls.</p>
+<p>This code behaves similarly to the thread-based implementation—including the fact that you may see the messages appear in a different order in your own terminal when you run it:</p>
+<!-- Not extracting output because changes to this output aren't significant;
+the changes are likely to be due to the threads running differently rather than
+changes in the compiler -->
+<pre><code class="language-text">hi number 1 from the second task!
+hi number 1 from the first task!
+hi number 2 from the first task!
+hi number 2 from the second task!
+hi number 3 from the first task!
+hi number 3 from the second task!
+hi number 4 from the first task!
+hi number 4 from the second task!
+hi number 5 from the first task!
+</code></pre>
+<p>This version stops as soon as the <code>for</code> loop in the body of the main async block finishes, because the task spawned by <code>spawn_task</code> is shut down when the <code>main</code> function ends. If you want it to run all the way to the task’s completion, you will need to use a join handle to wait for the first task to complete. With threads, we used the <code>join</code> method to “block” until the thread was done running. In Listing 17-7, we can use <code>await</code> to do the same thing, because the task handle itself is a future. Its <code>Output</code> type is a <code>Result</code>, so we also unwrap it after awaiting it.</p>
+<Listing number="17-7" caption="Using `await` with a join handle to run a task to completion" file-name="src/main.rs">
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">extern crate trpl; // required for mdbook test
+</span><span class="boring">
+</span><span class="boring">use std::time::Duration;
+</span><span class="boring">
+</span><span class="boring">fn main() {
+</span><span class="boring">    trpl::run(async {
+</span>        let handle = trpl::spawn_task(async {
+            for i in 1..10 {
+                println!("hi number {i} from the first task!");
+                trpl::sleep(Duration::from_millis(500)).await;
+            }
+        });
+
+        for i in 1..5 {
+            println!("hi number {i} from the second task!");
+            trpl::sleep(Duration::from_millis(500)).await;
+        }
+
+        handle.await.unwrap();
+<span class="boring">    });
+</span><span class="boring">}</span></code></pre></pre>
+</Listing>
+<p>This updated version runs until <em>both</em> loops finish.</p>
+<!-- Not extracting output because changes to this output aren't significant;
+the changes are likely to be due to the threads running differently rather than
+changes in the compiler -->
+<pre><code class="language-text">hi number 1 from the second task!
+hi number 1 from the first task!
+hi number 2 from the first task!
+hi number 2 from the second task!
+hi number 3 from the first task!
+hi number 3 from the second task!
+hi number 4 from the first task!
+hi number 4 from the second task!
+hi number 5 from the first task!
+hi number 6 from the first task!
+hi number 7 from the first task!
+hi number 8 from the first task!
+hi number 9 from the first task!
+</code></pre>
+<p>So far, it looks like async and threads give us the same basic outcomes, just with different syntax: using <code>await</code> instead of calling <code>join</code> on the join handle, and awaiting the <code>sleep</code> calls.</p>
+<p>The bigger difference is that we didn’t need to spawn another operating system thread to do this. In fact, we don’t even need to spawn a task here. Because async blocks compile to anonymous futures, we can put each loop in an async block and have the runtime run them both to completion using the <code>trpl::join</code> function.</p>
+<p>In the section <a href="ch16-01-threads.html#waiting-for-all-threads-to-finish-using-join-handles">Waiting for All Threads to Finishing Using <code>join</code> Handles</a><!-- ignore -->, we showed how to use the <code>join</code> method on the <code>JoinHandle</code> type returned when you call <code>std::thread::spawn</code>. The <code>trpl::join</code> function is similar, but for futures. When you give it two futures, it produces a single new future whose output is a tuple containing the output of each future you passed in once they <em>both</em> complete. Thus, in Listing 17-8, we use <code>trpl::join</code> to wait for both <code>fut1</code> and <code>fut2</code> to finish. We do <em>not</em> await <code>fut1</code> and <code>fut2</code> but instead the new future produced by <code>trpl::join</code>. We ignore the output, because it’s just a tuple containing two unit values.</p>
+<Listing number="17-8" caption="Using `trpl::join` to await two anonymous futures" file-name="src/main.rs">
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">extern crate trpl; // required for mdbook test
+</span><span class="boring">
+</span><span class="boring">use std::time::Duration;
+</span><span class="boring">
+</span><span class="boring">fn main() {
+</span><span class="boring">    trpl::run(async {
+</span>        let fut1 = async {
+            for i in 1..10 {
+                println!("hi number {i} from the first task!");
+                trpl::sleep(Duration::from_millis(500)).await;
+            }
+        };
+
+        let fut2 = async {
+            for i in 1..5 {
+                println!("hi number {i} from the second task!");
+                trpl::sleep(Duration::from_millis(500)).await;
+            }
+        };
+
+        trpl::join(fut1, fut2).await;
+<span class="boring">    });
+</span><span class="boring">}</span></code></pre></pre>
+</Listing>
+<p>When we run this, we see both futures run to completion:</p>
+<!-- Not extracting output because changes to this output aren't significant;
+the changes are likely to be due to the threads running differently rather than
+changes in the compiler -->
+<pre><code class="language-text">hi number 1 from the first task!
+hi number 1 from the second task!
+hi number 2 from the first task!
+hi number 2 from the second task!
+hi number 3 from the first task!
+hi number 3 from the second task!
+hi number 4 from the first task!
+hi number 4 from the second task!
+hi number 5 from the first task!
+hi number 6 from the first task!
+hi number 7 from the first task!
+hi number 8 from the first task!
+hi number 9 from the first task!
+</code></pre>
+<p>Now, you’ll see the exact same order every time, which is very different from what we saw with threads. That is because the <code>trpl::join</code> function is <em>fair</em>, meaning it checks each future equally often, alternating between them, and never lets one race ahead if the other is ready. With threads, the operating system decides which thread to check and how long to let it run. With async Rust, the runtime decides which task to check. (In practice, the details get complicated because an async runtime might use operating system threads under the hood as part of how it manages concurrency, so guaranteeing fairness can be more work for a runtime—but it’s still possible!) Runtimes don’t have to guarantee fairness for any given operation, and they often offer different APIs to let you choose whether or not you want fairness.</p>
+<p>Try some of these variations on awaiting the futures and see what they do:</p>
+<ul>
+<li>Remove the async block from around either or both of the loops.</li>
+<li>Await each async block immediately after defining it.</li>
+<li>Wrap only the first loop in an async block, and await the resulting future after the body of second loop.</li>
+</ul>
+<p>For an extra challenge, see if you can figure out what the output will be in each case <em>before</em> running the code!</p>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="message-passing"></a></p>
+<h3 id="counting-up-on-two-tasks-using-message-passing"><a class="header" href="#counting-up-on-two-tasks-using-message-passing">Counting Up on Two Tasks Using Message Passing</a></h3>
+<p>Sharing data between futures will also be familiar: we’ll use message passing again, but this time with async versions of the types and functions. We’ll take a slightly different path than we did in <a href="ch16-02-message-passing.html">Using Message Passing to Transfer Data Between Threads</a><!-- ignore --> to illustrate some of the key differences between thread-based and futures-based concurrency. In Listing 17-9, we’ll begin with just a single async block—<em>not</em> spawning a separate task as we spawned a separate thread.</p>
+<Listing number="17-9" caption="Creating an async channel and assigning the two halves to `tx` and `rx`" file-name="src/main.rs">
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">extern crate trpl; // required for mdbook test
+</span><span class="boring">
+</span><span class="boring">fn main() {
+</span><span class="boring">    trpl::run(async {
+</span>        let (tx, mut rx) = trpl::channel();
+
+        let val = String::from("hi");
+        tx.send(val).unwrap();
+
+        let received = rx.recv().await.unwrap();
+        println!("Got: {received}");
+<span class="boring">    });
+</span><span class="boring">}</span></code></pre></pre>
+</Listing>
+<p>Here, we use <code>trpl::channel</code>, an async version of the multiple-producer, single-consumer channel API we used with threads back in Chapter 16. The async version of the API is only a little different from the thread-based version: it uses a mutable rather than an immutable receiver <code>rx</code>, and its <code>recv</code> method produces a future we need to await rather than producing the value directly. Now we can send messages from the sender to the receiver. Notice that we don’t have to spawn a separate thread or even a task; we merely need to await the <code>rx.recv</code> call.</p>
+<p>The synchronous <code>Receiver::recv</code> method in <code>std::mpsc::channel</code> blocks until it receives a message. The <code>trpl::Receiver::recv</code> method does not, because it is async. Instead of blocking, it hands control back to the runtime until either a message is received or the send side of the channel closes. By contrast, we don’t await the <code>send</code> call, because it doesn’t block. It doesn’t need to, because the channel we’re sending it into is unbounded.</p>
+<blockquote>
+<p>Note: Because all of this async code runs in an async block in a <code>trpl::run</code> call, everything within it can avoid blocking. However, the code <em>outside</em> it will block on the <code>run</code> function returning. That’s the whole point of the <code>trpl::run</code> function: it lets you <em>choose</em> where to block on some set of async code, and thus where to transition between sync and async code. In most async runtimes, <code>run</code> is actually named <code>block_on</code> for exactly this reason.</p>
+</blockquote>
+<p>Notice two things about this example. First, the message will arrive right away. Second, although we use a future here, there’s no concurrency yet. Everything in the listing happens in sequence, just as it would if there were no futures involved.</p>
+<p>Let’s address the first part by sending a series of messages and sleeping in between them, as shown in Listing 17-10.</p>
+<!-- We cannot test this one because it never stops! -->
+<Listing number="17-10" caption="Sending and receiving multiple messages over the async channel and sleeping with an `await` between each message" file-name="src/main.rs">
+<pre><code class="language-rust ignore"><span class="boring">extern crate trpl; // required for mdbook test
+</span><span class="boring">
+</span><span class="boring">use std::time::Duration;
+</span><span class="boring">
+</span><span class="boring">fn main() {
+</span><span class="boring">    trpl::run(async {
+</span>        let (tx, mut rx) = trpl::channel();
+
+        let vals = vec![
+            String::from("hi"),
+            String::from("from"),
+            String::from("the"),
+            String::from("future"),
+        ];
+
+        for val in vals {
+            tx.send(val).unwrap();
+            trpl::sleep(Duration::from_millis(500)).await;
+        }
+
+        while let Some(value) = rx.recv().await {
+            println!("received '{value}'");
+        }
+<span class="boring">    });
+</span><span class="boring">}</span></code></pre>
+</Listing>
+<p>In addition to sending the messages, we need to receive them. In this case, because we know how many messages are coming in, we could do that manually by calling <code>rx.recv().await</code> four times. In the real world, though, we’ll generally be waiting on some <em>unknown</em> number of messages, so we need to keep waiting until we determine that there are no more messages.</p>
+<p>In Listing 16-10, we used a <code>for</code> loop to process all the items received from a synchronous channel. Rust doesn’t yet have a way to write a <code>for</code> loop over an <em>asynchronous</em> series of items, however, so we need to use a loop we haven’t seen before: the <code>while let</code> conditional loop. This is the loop version of the <code>if let</code> construct we saw back in the section <a href="ch06-03-if-let.html">Concise Control Flow with <code>if let</code> and <code>let else</code></a><!-- ignore -->. The loop will continue executing as long as the pattern it specifies continues to match the value.</p>
+<p>The <code>rx.recv</code> call produces a future, which we await. The runtime will pause the future until it is ready. Once a message arrives, the future will resolve to <code>Some(message)</code> as many times as a message arrives. When the channel closes, regardless of whether <em>any</em> messages have arrived, the future will instead resolve to <code>None</code> to indicate that there are no more values and thus we should stop polling—that is, stop awaiting.</p>
+<p>The <code>while let</code> loop pulls all of this together. If the result of calling <code>rx.recv().await</code> is <code>Some(message)</code>, we get access to the message and we can use it in the loop body, just as we could with <code>if let</code>. If the result is <code>None</code>, the loop ends. Every time the loop completes, it hits the await point again, so the runtime pauses it again until another message arrives.</p>
+<p>The code now successfully sends and receives all of the messages. Unfortunately, there are still a couple of problems. For one thing, the messages do not arrive at half-second intervals. They arrive all at once, 2 (2,000 milliseconds) after we start the program. For another, this program also never exits! Instead, it waits forever for new messages. You will need to shut it down using <span
+class="keystroke">ctrl-c</span>.</p>
+<p>Let’s start by examining why the messages come in all at once after the full delay, rather than coming in with delays between each one. Within a given async block, the order in which <code>await</code> keywords appear in the code is also the order in which they’re executed when the program runs.</p>
+<p>There’s only one async block in Listing 17-10, so everything in it runs linearly. There’s still no concurrency. All the <code>tx.send</code> calls happen, interspersed with all of the <code>trpl::sleep</code> calls and their associated await points. Only then does the <code>while let</code> loop get to go through any of the <code>await</code> points on the <code>recv</code> calls.</p>
+<p>To get the behavior we want, where the sleep delay happens between each message, we need to put the <code>tx</code> and <code>rx</code> operations in their own async blocks, as shown in Listing 17-11. Then the runtime can execute each of them separately using <code>trpl::join</code>, just as in the counting example. Once again, we await the result of calling <code>trpl::join</code>, not the individual futures. If we awaited the individual futures in sequence, we would just end up back in a sequential flow—exactly what we’re trying <em>not</em> to do.</p>
+<!-- We cannot test this one because it never stops! -->
+<Listing number="17-11" caption="Separating `send` and `recv` into their own `async` blocks and awaiting the futures for those blocks" file-name="src/main.rs">
+<pre><code class="language-rust ignore"><span class="boring">extern crate trpl; // required for mdbook test
+</span><span class="boring">
+</span><span class="boring">use std::time::Duration;
+</span><span class="boring">
+</span><span class="boring">fn main() {
+</span><span class="boring">    trpl::run(async {
+</span><span class="boring">        let (tx, mut rx) = trpl::channel();
+</span><span class="boring">
+</span>        let tx_fut = async {
+            let vals = vec![
+                String::from("hi"),
+                String::from("from"),
+                String::from("the"),
+                String::from("future"),
+            ];
+
+            for val in vals {
+                tx.send(val).unwrap();
+                trpl::sleep(Duration::from_millis(500)).await;
+            }
+        };
+
+        let rx_fut = async {
+            while let Some(value) = rx.recv().await {
+                println!("received '{value}'");
+            }
+        };
+
+        trpl::join(tx_fut, rx_fut).await;
+<span class="boring">    });
+</span><span class="boring">}</span></code></pre>
+</Listing>
+<p>With the updated code in Listing 17-11, the messages get printed at 500-millisecond intervals, rather than all in a rush after 2 seconds.</p>
+<p>The program still never exits, though, because of the way <code>while let</code> loop interacts with <code>trpl::join</code>:</p>
+<ul>
+<li>The future returned from <code>trpl::join</code> completes only once <em>both</em> futures passed to it have completed.</li>
+<li>The <code>tx</code> future completes once it finishes sleeping after sending the last message in <code>vals</code>.</li>
+<li>The <code>rx</code> future won’t complete until the <code>while let</code> loop ends.</li>
+<li>The <code>while let</code> loop won’t end until awaiting <code>rx.recv</code> produces <code>None</code>.</li>
+<li>Awaiting <code>rx.recv</code> will return <code>None</code> only once the other end of the channel is closed.</li>
+<li>The channel will close only if we call <code>rx.close</code> or when the sender side, <code>tx</code>, is dropped.</li>
+<li>We don’t call <code>rx.close</code> anywhere, and <code>tx</code> won’t be dropped until the outermost async block passed to <code>trpl::run</code> ends.</li>
+<li>The block can’t end because it is blocked on <code>trpl::join</code> completing, which takes us back to the top of this list.</li>
+</ul>
+<p>We could manually close <code>rx</code> by calling <code>rx.close</code> somewhere, but that doesn’t make much sense. Stopping after handling some arbitrary number of messages would make the program shut down, but we could miss messages. We need some other way to make sure that <code>tx</code> gets dropped <em>before</em> the end of the function.</p>
+<p>Right now, the async block where we send the messages only borrows <code>tx</code> because sending a message doesn’t require ownership, but if we could move <code>tx</code> into that async block, it would be dropped once that block ends. In the Chapter 13 section <a href="ch13-01-closures.html#capturing-references-or-moving-ownership">Capturing References or Moving Ownership</a><!-- ignore -->, you learned how to use the <code>move</code> keyword with closures, and, as discussed in the Chapter 16 section <a href="ch16-01-threads.html#using-move-closures-with-threads">Using <code>move</code> Closures with Threads</a><!-- ignore
+-->, we often need to move data into closures when working with threads. The same basic dynamics apply to async blocks, so the <code>move</code> keyword works with async blocks just as it does with closures.</p>
+<p>In Listing 17-12, we change the block used to send messages from <code>async</code> to <code>async move</code>. When we run <em>this</em> version of the code, it shuts down gracefully after the last message is sent and received.</p>
+<Listing number="17-12" caption="A  revision of the code from Listing 17-11 that correctly shuts down when complete" file-name="src/main.rs">
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">extern crate trpl; // required for mdbook test
+</span><span class="boring">
+</span><span class="boring">use std::time::Duration;
+</span><span class="boring">
+</span><span class="boring">fn main() {
+</span><span class="boring">    trpl::run(async {
+</span>        let (tx, mut rx) = trpl::channel();
+
+        let tx_fut = async move {
+            let vals = vec![
+                String::from("hi"),
+                String::from("from"),
+                String::from("the"),
+                String::from("future"),
+            ];
+
+            for val in vals {
+                tx.send(val).unwrap();
+                trpl::sleep(Duration::from_millis(500)).await;
+            }
+        };
+
+        let rx_fut = async {
+            while let Some(value) = rx.recv().await {
+                println!("received '{value}'");
+            }
+        };
+
+        trpl::join(tx_fut, rx_fut).await;
+<span class="boring">    });
+</span><span class="boring">}</span></code></pre></pre>
+</Listing>
+<p>This async channel is also a multiple-producer channel, so we can call <code>clone</code> on <code>tx</code> if we want to send messages from multiple futures, as shown in Listing 17-13.</p>
+<Listing number="17-13" caption="Using multiple producers with async blocks" file-name="src/main.rs">
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">extern crate trpl; // required for mdbook test
+</span><span class="boring">
+</span><span class="boring">use std::time::Duration;
+</span><span class="boring">
+</span><span class="boring">fn main() {
+</span><span class="boring">    trpl::run(async {
+</span>        let (tx, mut rx) = trpl::channel();
+
+        let tx1 = tx.clone();
+        let tx1_fut = async move {
+            let vals = vec![
+                String::from("hi"),
+                String::from("from"),
+                String::from("the"),
+                String::from("future"),
+            ];
+
+            for val in vals {
+                tx1.send(val).unwrap();
+                trpl::sleep(Duration::from_millis(500)).await;
+            }
+        };
+
+        let rx_fut = async {
+            while let Some(value) = rx.recv().await {
+                println!("received '{value}'");
+            }
+        };
+
+        let tx_fut = async move {
+            let vals = vec![
+                String::from("more"),
+                String::from("messages"),
+                String::from("for"),
+                String::from("you"),
+            ];
+
+            for val in vals {
+                tx.send(val).unwrap();
+                trpl::sleep(Duration::from_millis(1500)).await;
+            }
+        };
+
+        trpl::join3(tx1_fut, tx_fut, rx_fut).await;
+<span class="boring">    });
+</span><span class="boring">}</span></code></pre></pre>
+</Listing>
+<p>First, we clone <code>tx</code>, creating <code>tx1</code> outside the first async block. We move <code>tx1</code> into that block just as we did before with <code>tx</code>. Then, later, we move the original <code>tx</code> into a <em>new</em> async block, where we send more messages on a slightly slower delay. We happen to put this new async block after the async block for receiving messages, but it could go before it just as well. The key is the order in which the futures are awaited, not in which they’re created.</p>
+<p>Both of the async blocks for sending messages need to be <code>async move</code> blocks so that both <code>tx</code> and <code>tx1</code> get dropped when those blocks finish. Otherwise, we’ll end up back in the same infinite loop we started out in. Finally, we switch from <code>trpl::join</code> to <code>trpl::join3</code> to handle the additional future.</p>
+<p>Now we see all the messages from both sending futures, and because the sending futures use slightly different delays after sending, the messages are also received at those different intervals.</p>
+<!-- Not extracting output because changes to this output aren't significant;
+the changes are likely to be due to the threads running differently rather than
+changes in the compiler -->
+<pre><code class="language-text">received 'hi'
+received 'more'
+received 'from'
+received 'the'
+received 'messages'
+received 'future'
+received 'for'
+received 'you'
+</code></pre>
+<p>This is a good start, but it limits us to just a handful of futures: two with <code>join</code>, or three with <code>join3</code>. Let’s see how we might work with more futures.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="ch17-01-futures-and-syntax.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="ch17-03-more-futures.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="ch17-01-futures-and-syntax.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="ch17-03-more-futures.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="ferris.js"></script>
+        <script src="theme/language-picker.js"></script>
+
+
+    </div>
+    </body>
+</html>
