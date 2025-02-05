@@ -713,7 +713,7 @@ This isn't always the case in Rust.</p>
 <p>Rust supports Dynamically Sized Types (DSTs): types without a statically
 known size or alignment. On the surface, this is a bit nonsensical: Rust <em>must</em>
 know the size and alignment of something in order to correctly work with it! In
-this regard, DSTs are not normal types. Because they lack a statically known
+this regard, DSTs are not normal types. Since they lack a statically known
 size, these types can only exist behind a pointer. Any pointer to a
 DST consequently becomes a <em>wide</em> pointer consisting of the pointer and the
 information that "completes" them (more on this below).</p>
@@ -741,7 +741,7 @@ struct MySuperSlice {
     data: [u8],
 }
 <span class="boring">}</span></code></pre></pre>
-<p>Although such a type is largely useless without a way to construct it. Currently the
+<p>Unfortunately, such a type is largely useless without a way to construct it. Currently the
 only properly supported way to create a custom DST is by making your type generic
 and performing an <em>unsizing coercion</em>:</p>
 <pre><pre class="playground"><code class="language-rust edition2021">struct MySuperSliceable&lt;T: ?Sized&gt; {
@@ -961,24 +961,27 @@ assert_eq!(8, size_of::&lt;MyOption&lt;&amp;u16&gt;&gt;());
 assert_eq!(16, size_of::&lt;MyReprOption&lt;&amp;u16&gt;&gt;());
 <span class="boring">}</span></code></pre></pre>
 <p>This optimization still applies to fieldless enums with an explicit <code>repr(u*)</code>, <code>repr(i*)</code>, or <code>repr(C)</code>.</p>
-<h2 id="reprpacked"><a class="header" href="#reprpacked">repr(packed)</a></h2>
-<p><code>repr(packed)</code> forces Rust to strip any padding, and only align the type to a
-byte. This may improve the memory footprint, but will likely have other negative
-side-effects.</p>
-<p>In particular, most architectures <em>strongly</em> prefer values to be aligned. This
-may mean the unaligned loads are penalized (x86), or even fault (some ARM
-chips). For simple cases like directly loading or storing a packed field, the
-compiler might be able to paper over alignment issues with shifts and masks.
-However if you take a reference to a packed field, it's unlikely that the
-compiler will be able to emit code to avoid an unaligned load.</p>
+<h2 id="reprpacked-reprpackedn"><a class="header" href="#reprpacked-reprpackedn">repr(packed), repr(packed(n))</a></h2>
+<p><code>repr(packed(n))</code> (where <code>n</code> is a power of two) forces the type to have an
+alignment of <em>at most</em> <code>n</code>. Most commonly used without an explicit <code>n</code>,
+<code>repr(packed)</code> is equivalent to <code>repr(packed(1))</code> which forces Rust to strip
+any padding, and only align the type to a byte. This may improve the memory
+footprint, but will likely have other negative side-effects.</p>
+<p>In particular, most architectures <em>strongly</em> prefer values to be naturally
+aligned. This may mean that unaligned loads are penalized (x86), or even fault
+(some ARM chips). For simple cases like directly loading or storing a packed
+field, the compiler might be able to paper over alignment issues with shifts
+and masks. However if you take a reference to a packed field, it's unlikely
+that the compiler will be able to emit code to avoid an unaligned load.</p>
 <p><a href="https://github.com/rust-lang/rust/issues/27060">As this can cause undefined behavior</a>, the lint has been implemented
 and it will become a hard error.</p>
-<p><code>repr(packed)</code> is not to be used lightly. Unless you have extreme requirements,
-this should not be used.</p>
-<p>This repr is a modifier on <code>repr(C)</code> and <code>repr(Rust)</code>.</p>
+<p><code>repr(packed)/repr(packed(n))</code> is not to be used lightly. Unless you have
+extreme requirements, this should not be used.</p>
+<p>This repr is a modifier on <code>repr(C)</code> and <code>repr(Rust)</code>. For FFI compatibilty
+you most likely always want to be explicit: <code>repr(C, packed)</code>.</p>
 <h2 id="repralignn"><a class="header" href="#repralignn">repr(align(n))</a></h2>
 <p><code>repr(align(n))</code> (where <code>n</code> is a power of two) forces the type to have an
-alignment of <em>at least</em> n.</p>
+alignment of <em>at least</em> <code>n</code>.</p>
 <p>This enables several tricks, like making sure neighboring elements of an array
 never share the same cache line with each other (which may speed up certain
 kinds of concurrent code).</p>
@@ -7046,13 +7049,13 @@ void bar(struct Bar *arg);
 <p>To do this in Rust, let’s create our own opaque types:</p>
 <pre><pre class="playground"><code class="language-rust edition2021">#[repr(C)]
 pub struct Foo {
-    _data: [u8; 0],
+    _data: (),
     _marker:
         core::marker::PhantomData&lt;(*mut u8, core::marker::PhantomPinned)&gt;,
 }
 #[repr(C)]
 pub struct Bar {
-    _data: [u8; 0],
+    _data: (),
     _marker:
         core::marker::PhantomData&lt;(*mut u8, core::marker::PhantomPinned)&gt;,
 }

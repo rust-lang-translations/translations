@@ -2831,7 +2831,6 @@ three tokens
 <ul>
 <li>The <a href="rust-2024/../../std/future/trait.Future.html"><code>Future</code></a> and <a href="rust-2024/../../std/future/trait.IntoFuture.html"><code>IntoFuture</code></a> traits are now part of the prelude.</li>
 <li>This might make calls to trait methods ambiguous which could make some code fail to compile.</li>
-<li><code>RustcEncodable</code> and <code>RustcDecodable</code> have been removed from the prelude.</li>
 </ul>
 <h2 id="details-25"><a class="header" href="#details-25">Details</a></h2>
 <p>The <a href="rust-2024/../../std/prelude/index.html">prelude of the standard library</a> is the module containing everything that is automatically imported in every module.
@@ -2852,18 +2851,7 @@ It's identical to the current one, except for the following changes:</p>
 <li><a href="rust-2024/../../std/future/trait.IntoFuture.html"><code>std::future::IntoFuture</code></a></li>
 </ul>
 </li>
-<li>Removed:
-<ul>
-<li><code>RustcEncodable</code></li>
-<li><code>RustcDecodable</code></li>
 </ul>
-</li>
-</ul>
-<h3 id="rustcencodable-and-rustcdecodable-removal"><a class="header" href="#rustcencodable-and-rustcdecodable-removal"><code>RustcEncodable</code> and <code>RustcDecodable</code> removal</a></h3>
-<p><code>RustcEncodable</code> and <code>RustcDecodable</code> are two undocumented derive macros that have been removed from the prelude.
-These were deprecated before Rust 1.0, but remained within the standard library prelude.
-The 2024 Edition has removed these from the prelude since they are not expected to be used.</p>
-<p>If in the unlikely case there is a project still using these, it is recommended to switch to a serialization library, such as those found on <a href="https://crates.io/categories/encoding">crates.io</a>.</p>
 <h2 id="migration-22"><a class="header" href="#migration-22">Migration</a></h2>
 <h3 id="conflicting-trait-methods-1"><a class="header" href="#conflicting-trait-methods-1">Conflicting trait methods</a></h3>
 <p>When two traits that are in scope have the same method name, it is ambiguous which trait method should be used. For example:</p>
@@ -2896,15 +2884,6 @@ fn main() {
 </span>// Add this to the root of your crate to do a manual migration.
 #![warn(rust_2024_prelude_collisions)]
 <span class="boring">}</span></code></pre></pre>
-<h3 id="rustcencodable-and-rustcdecodable"><a class="header" href="#rustcencodable-and-rustcdecodable"><code>RustcEncodable</code> and <code>RustcDecodable</code></a></h3>
-<p>It is strongly recommended that you migrate to a different serialization library if you are still using these.
-However, these derive macros are still available in the standard library, they are just required to be imported from the older prelude now:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[allow(soft_unstable)]
-use core::prelude::v1::{RustcDecodable, RustcEncodable};
-<span class="boring">}</span></code></pre></pre>
-<p>There is no automatic migration for this change; you will need to make the update manually.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="add-intoiterator-for-boxt"><a class="header" href="#add-intoiterator-for-boxt">Add <code>IntoIterator</code> for <code>Box&lt;[T]&gt;</code></a></h1>
 <h2 id="summary-29"><a class="header" href="#summary-29">Summary</a></h2>
 <ul>
@@ -3709,87 +3688,10 @@ https://github.com/rust-lang/rustfmt/pull/6148
 }</code></pre>
 <h2 id="migration-31"><a class="header" href="#migration-31">Migration</a></h2>
 <p>The change can be applied automatically by running <code>cargo fmt</code> or <code>rustfmt</code> with the 2024 Edition. See the <a href="rust-2024/rustfmt-style-edition.html">Style edition</a> chapter for more information on migrating and how style editions work.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="rustfmt-combine-all-delimited-exprs-as-last-argument"><a class="header" href="#rustfmt-combine-all-delimited-exprs-as-last-argument">Rustfmt: Combine all delimited exprs as last argument</a></h1>
-<h2 id="summary-38"><a class="header" href="#summary-38">Summary</a></h2>
-<ul>
-<li>Some expressions with multi-line final arguments will now format as a single line, with the final expression overflowing.</li>
-</ul>
-<h2 id="details-35"><a class="header" href="#details-35">Details</a></h2>
-<p>When structs, slices, arrays, and block/array-like macros are used as the last argument in an expression list, they are now allowed to overflow (like blocks/closures) instead of being indented on a new line.</p>
-<pre><code class="language-rust ignore">// Edition 2021
-
-fn example() {
-    foo(ctx, |param| {
-        action();
-        foo(param)
-    });
-
-    foo(
-        ctx,
-        Bar {
-            x: value,
-            y: value2,
-        },
-    );
-
-    foo(
-        ctx,
-        &amp;[
-            MAROON_TOMATOES,
-            PURPLE_POTATOES,
-            ORGANE_ORANGES,
-            GREEN_PEARS,
-            RED_APPLES,
-        ],
-    );
-
-    foo(
-        ctx,
-        vec![
-            MAROON_TOMATOES,
-            PURPLE_POTATOES,
-            ORGANE_ORANGES,
-            GREEN_PEARS,
-            RED_APPLES,
-        ],
-    );
-}</code></pre>
-<p>This now formats as the following in the 2024 style edition:</p>
-<pre><code class="language-rust ignore">// Edition 2024
-
-fn example() {
-    foo(ctx, |param| {
-        action();
-        foo(param)
-    });
-
-    foo(ctx, Bar {
-        x: value,
-        y: value2,
-    });
-
-    foo(ctx, &amp;[
-        MAROON_TOMATOES,
-        PURPLE_POTATOES,
-        ORGANE_ORANGES,
-        GREEN_PEARS,
-        RED_APPLES,
-    ]);
-
-    foo(ctx, vec![
-        MAROON_TOMATOES,
-        PURPLE_POTATOES,
-        ORGANE_ORANGES,
-        GREEN_PEARS,
-        RED_APPLES,
-    ]);
-}</code></pre>
-<h2 id="migration-32"><a class="header" href="#migration-32">Migration</a></h2>
-<p>The change can be applied automatically by running <code>cargo fmt</code> or <code>rustfmt</code> with the 2024 Edition. See the <a href="rust-2024/rustfmt-style-edition.html">Style edition</a> chapter for more information on migrating and how style editions work.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="rustfmt-raw-identifier-sorting"><a class="header" href="#rustfmt-raw-identifier-sorting">Rustfmt: Raw identifier sorting</a></h1>
-<h2 id="summary-39"><a class="header" href="#summary-39">Summary</a></h2>
+<h2 id="summary-38"><a class="header" href="#summary-38">Summary</a></h2>
 <p><code>rustfmt</code> now properly sorts <a href="rust-2024/../../reference/identifiers.html#raw-identifiers">raw identifiers</a>.</p>
-<h2 id="details-36"><a class="header" href="#details-36">Details</a></h2>
+<h2 id="details-35"><a class="header" href="#details-35">Details</a></h2>
 <p>The <a href="rust-2024/../../style-guide/index.html">Rust Style Guide</a> includes <a href="rust-2024/../../style-guide/index.html#sorting">rules for sorting</a> that <code>rustfmt</code> applies in various contexts, such as on imports.</p>
 <p>Prior to the 2024 Edition, when sorting rustfmt would use the leading <code>r#</code> token instead of the ident which led to unwanted results. For example:</p>
 <pre><code class="language-rust ignore">use websocket::client::ClientBuilder;
@@ -3799,12 +3701,12 @@ use websocket::result::WebSocketError;</code></pre>
 <pre><code class="language-rust ignore">use websocket::r#async::futures::Stream;
 use websocket::client::ClientBuilder;
 use websocket::result::WebSocketError;</code></pre>
-<h2 id="migration-33"><a class="header" href="#migration-33">Migration</a></h2>
+<h2 id="migration-32"><a class="header" href="#migration-32">Migration</a></h2>
 <p>The change can be applied automatically by running <code>cargo fmt</code> or <code>rustfmt</code> with the 2024 Edition. See the <a href="rust-2024/rustfmt-style-edition.html">Style edition</a> chapter for more information on migrating and how style editions work.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="rustfmt-version-sorting"><a class="header" href="#rustfmt-version-sorting">Rustfmt: Version sorting</a></h1>
-<h2 id="summary-40"><a class="header" href="#summary-40">Summary</a></h2>
+<h2 id="summary-39"><a class="header" href="#summary-39">Summary</a></h2>
 <p><code>rustfmt</code> utilizes a new sorting algorithm.</p>
-<h2 id="details-37"><a class="header" href="#details-37">Details</a></h2>
+<h2 id="details-36"><a class="header" href="#details-36">Details</a></h2>
 <p>The <a href="rust-2024/../../style-guide/index.html">Rust Style Guide</a> includes <a href="rust-2024/../../style-guide/index.html#sorting">rules for sorting</a> that <code>rustfmt</code> applies in various contexts, such as on imports.</p>
 <p>Previous versions of the Style Guide and Rustfmt generally used an "ASCIIbetical" based approach. In the 2024 Edition this is changed to use a version-sort like algorithm that compares Unicode characters lexicographically and provides better results in ASCII digit comparisons.</p>
 <p>For example with a given (unsorted) input:</p>
@@ -3816,7 +3718,7 @@ use std::num::{NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8};</code></pre>
 <p>In the 2024 Edition, <code>rustfmt</code> now produces:</p>
 <pre><code class="language-rust ignore">use std::io::{self, Read, Write, stdout};
 use std::num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64};</code></pre>
-<h2 id="migration-34"><a class="header" href="#migration-34">Migration</a></h2>
+<h2 id="migration-33"><a class="header" href="#migration-33">Migration</a></h2>
 <p>The change can be applied automatically by running <code>cargo fmt</code> or <code>rustfmt</code> with the 2024 Edition. See the <a href="rust-2024/rustfmt-style-edition.html">Style edition</a> chapter for more information on migrating and how style editions work.</p>
 
                     </main>

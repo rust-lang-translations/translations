@@ -1,0 +1,426 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Checking Conditional Configurations - The rustc book</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/language-picker.css">
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The rustc book</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/rust-lang/rust/tree/master/src/doc/rustc" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/rust-lang/rust/edit/master/src/doc/rustc/src/check-cfg.md" title="Suggest an edit" aria-label="Suggest an edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="checking-conditional-configurations"><a class="header" href="#checking-conditional-configurations">Checking conditional configurations</a></h1>
+<p><code>rustc</code> supports checking that every <em>reachable</em><sup class="footnote-reference"><a href="#reachable">1</a></sup> <code>#[cfg]</code> matches a list of the
+expected config names and values.</p>
+<p>This can help with verifying that the crate is correctly handling conditional compilation for
+different target platforms or features. It ensures that the cfg settings are consistent between
+what is intended and what is used, helping to catch potential bugs or errors early in the
+development process.</p>
+<p>In order to accomplish that goal, <code>rustc</code> accepts the <code>--check-cfg</code> flag, which specifies
+whether to check conditions and how to check them.</p>
+<blockquote>
+<p><strong>Note:</strong> For interacting with this through Cargo,
+see <a href="check-cfg/cargo-specifics.html">Cargo Specifics</a> page.</p>
+</blockquote>
+<div class="footnote-definition" id="reachable"><sup class="footnote-definition-label">1</sup>
+<p><code>rustc</code> promises to at least check reachable <code>#[cfg]</code>, and while non-reachable
+<code>#[cfg]</code> are not currently checked, they may well be checked in the future without it being a
+breaking change.</p>
+</div>
+<h2 id="specifying-expected-names-and-values"><a class="header" href="#specifying-expected-names-and-values">Specifying expected names and values</a></h2>
+<p>To specify expected names and values, the <em>check cfg specification</em> provides the <code>cfg(...)</code>
+option which enables specifying for an expected config name and it's expected values.</p>
+<blockquote>
+<p><strong>Note:</strong> No implicit expectation is added when using <code>--cfg</code>. Users are expected to
+pass all expected names and values using the <em>check cfg specification</em>.</p>
+</blockquote>
+<p>It has this basic form:</p>
+<pre><code class="language-bash">rustc --check-cfg 'cfg(name, values("value1", "value2", ... "valueN"))'
+</code></pre>
+<p>where <code>name</code> is a bare identifier (has no quotes) and each <code>"value"</code> term is a quoted literal
+string. <code>name</code> specifies the name of the condition, such as <code>feature</code> or <code>my_cfg</code>.
+<code>"value"</code> specify one of the value of that condition name.</p>
+<p>When the <code>cfg(...)</code> option is specified, <code>rustc</code> will check every<sup class="footnote-reference"><a href="#reachable">1</a></sup>:</p>
+<ul>
+<li><code>#[cfg(name = "value")]</code> attribute</li>
+<li><code>#[cfg_attr(name = "value")]</code> attribute</li>
+<li><code>#[link(name = "a", cfg(name = "value"))]</code> attribute</li>
+<li><code>cfg!(name = "value")</code> macro call</li>
+</ul>
+<blockquote>
+<p><em>The command line <code>--cfg</code> arguments are currently NOT checked but may very well be checked
+in the future.</em></p>
+</blockquote>
+<p><code>rustc</code> will check that the <code>"value"</code> specified is present in the list of expected values.
+If <code>"value"</code> is not in it, then <code>rustc</code> will report an <code>unexpected_cfgs</code> lint diagnostic.
+The default diagnostic level for this lint is <code>Warn</code>.</p>
+<p>To check for the <em>none</em> value (ie <code>#[cfg(foo)]</code>) one can use the <code>none()</code> predicate inside
+<code>values()</code>: <code>values(none())</code>. It can be followed or preceded by any number of <code>"value"</code>.</p>
+<p>To enable checking of values, but to provide an <em>none</em>/empty set of expected values
+(ie. expect <code>#[cfg(name)]</code>), use these forms:</p>
+<pre><code class="language-bash">rustc --check-cfg 'cfg(name)'
+rustc --check-cfg 'cfg(name, values(none()))'
+</code></pre>
+<p>To enable checking of name but not values, use one of these forms:</p>
+<ul>
+<li>
+<p>No expected values (<em>will lint on every value of <code>name</code></em>):</p>
+<pre><code class="language-bash">rustc --check-cfg 'cfg(name, values())'
+</code></pre>
+</li>
+<li>
+<p>Unknown expected values (<em>will never lint on value of <code>name</code></em>):</p>
+<pre><code class="language-bash">rustc --check-cfg 'cfg(name, values(any()))'
+</code></pre>
+</li>
+</ul>
+<p>To avoid repeating the same set of values, use this form:</p>
+<pre><code class="language-bash">rustc --check-cfg 'cfg(name1, ..., nameN, values("value1", "value2", ... "valueN"))'
+</code></pre>
+<p>To enable checking without specifying any names or values, use this form:</p>
+<pre><code class="language-bash">rustc --check-cfg 'cfg()'
+</code></pre>
+<p>The <code>--check-cfg cfg(...)</code> option can be repeated, both for the same condition name and for
+different names. If it is repeated for the same condition name, then the sets of values for that
+condition are merged together (precedence is given to <code>values(any())</code>).</p>
+<blockquote>
+<p>To help out an equivalence table between <code>--cfg</code> arguments and <code>--check-cfg</code> is available
+<a href="#equivalence-table-with---cfg">down below</a>.</p>
+</blockquote>
+<h2 id="well-known-names-and-values"><a class="header" href="#well-known-names-and-values">Well known names and values</a></h2>
+<p><code>rustc</code> maintains a list of well-known names and their corresponding values in order to avoid
+the need to specify them manually.</p>
+<p>Well known names and values are implicitly added as long as at least one <code>--check-cfg</code> argument
+is present.</p>
+<p>As of <code>2025-01-02T</code>, the list of known names is as follows:</p>
+<!--- See CheckCfg::fill_well_known in compiler/rustc_session/src/config.rs -->
+<ul>
+<li><code>clippy</code></li>
+<li><code>debug_assertions</code></li>
+<li><code>doc</code></li>
+<li><code>doctest</code></li>
+<li><code>fmt_debug</code></li>
+<li><code>miri</code></li>
+<li><code>overflow_checks</code></li>
+<li><code>panic</code></li>
+<li><code>proc_macro</code></li>
+<li><code>relocation_model</code></li>
+<li><code>rustfmt</code></li>
+<li><code>sanitize</code></li>
+<li><code>sanitizer_cfi_generalize_pointers</code></li>
+<li><code>sanitizer_cfi_normalize_integers</code></li>
+<li><code>target_abi</code></li>
+<li><code>target_arch</code></li>
+<li><code>target_endian</code></li>
+<li><code>target_env</code></li>
+<li><code>target_family</code></li>
+<li><code>target_feature</code></li>
+<li><code>target_has_atomic</code></li>
+<li><code>target_has_atomic_equal_alignment</code></li>
+<li><code>target_has_atomic_load_store</code></li>
+<li><code>target_os</code></li>
+<li><code>target_pointer_width</code></li>
+<li><code>target_thread_local</code></li>
+<li><code>target_vendor</code></li>
+<li><code>ub_checks</code></li>
+<li><code>unix</code></li>
+<li><code>windows</code></li>
+</ul>
+<blockquote>
+<p>Starting with 1.85.0, the <code>test</code> cfg is consider to be a "userspace" config
+despite being also set by <code>rustc</code> and should be managed by the build-system it-self.</p>
+</blockquote>
+<p>Like with <code>values(any())</code>, well known names checking can be disabled by passing <code>cfg(any())</code>
+as argument to <code>--check-cfg</code>.</p>
+<h2 id="equivalence-table-with---cfg"><a class="header" href="#equivalence-table-with---cfg">Equivalence table with <code>--cfg</code></a></h2>
+<p>This table describe the equivalence between a <code>--cfg</code> argument to a <code>--check-cfg</code> argument.</p>
+<div class="table-wrapper"><table><thead><tr><th><code>--cfg</code></th><th><code>--check-cfg</code></th></tr></thead><tbody>
+<tr><td><em>nothing</em></td><td><em>nothing</em> or <code>--check-cfg=cfg()</code> (to enable the checking)</td></tr>
+<tr><td><code>--cfg foo</code></td><td><code>--check-cfg=cfg(foo)</code> or <code>--check-cfg=cfg(foo, values(none()))</code></td></tr>
+<tr><td><code>--cfg foo=""</code></td><td><code>--check-cfg=cfg(foo, values(""))</code></td></tr>
+<tr><td><code>--cfg foo="bar"</code></td><td><code>--check-cfg=cfg(foo, values("bar"))</code></td></tr>
+<tr><td><code>--cfg foo="1" --cfg foo="2"</code></td><td><code>--check-cfg=cfg(foo, values("1", "2"))</code></td></tr>
+<tr><td><code>--cfg foo="1" --cfg bar="2"</code></td><td><code>--check-cfg=cfg(foo, values("1")) --check-cfg=cfg(bar, values("2"))</code></td></tr>
+<tr><td><code>--cfg foo --cfg foo="bar"</code></td><td><code>--check-cfg=cfg(foo, values(none(), "bar"))</code></td></tr>
+</tbody></table>
+</div>
+<h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
+<h3 id="example-cargo-like-feature-example"><a class="header" href="#example-cargo-like-feature-example">Example: Cargo-like <code>feature</code> example</a></h3>
+<p>Consider this command line:</p>
+<pre><code class="language-bash">rustc --check-cfg 'cfg(feature, values("lion", "zebra"))' \
+      --cfg 'feature="lion"' example.rs
+</code></pre>
+<blockquote>
+<p>This command line indicates that this crate has two features: <code>lion</code> and <code>zebra</code>. The <code>lion</code>
+feature is enabled, while the <code>zebra</code> feature is disabled.</p>
+</blockquote>
+<pre><code class="language-rust">#[cfg(feature = "lion")]     // This condition is expected, as "lion" is an
+                             // expected value of `feature`
+fn tame_lion(lion: Lion) {}
+
+#[cfg(feature = "zebra")]    // This condition is expected, as "zebra" is an expected
+                             // value of `feature` but the condition will evaluate
+                             // to false since only --cfg feature="lion" was passed
+fn ride_zebra(z: Zebra) {}
+
+#[cfg(feature = "platypus")] // This condition is UNEXPECTED, as "platypus" is NOT
+                             // an expected value of `feature` and will cause a
+                             // the compiler to emit the `unexpected_cfgs` lint
+fn poke_platypus() {}
+
+#[cfg(feechure = "lion")]    // This condition is UNEXPECTED, as 'feechure' is NOT
+                             // a expected condition name, no `cfg(feechure, ...)`
+                             // was passed in `--check-cfg`
+fn tame_lion() {}
+
+#[cfg(windows = "unix")]     // This condition is UNEXPECTED, as the well known
+                             // 'windows' cfg doesn't expect any values
+fn tame_windows() {}</code></pre>
+<h3 id="example-multiple-names-and-values"><a class="header" href="#example-multiple-names-and-values">Example: Multiple names and values</a></h3>
+<pre><code class="language-bash">rustc --check-cfg 'cfg(is_embedded, has_feathers)' \
+      --check-cfg 'cfg(feature, values("zapping", "lasers"))' \
+      --cfg has_feathers --cfg 'feature="zapping"'
+</code></pre>
+<pre><code class="language-rust">#[cfg(is_embedded)]         // This condition is expected, as 'is_embedded' was
+                            // provided in --check-cfg and doesn't take any value
+fn do_embedded() {}
+
+#[cfg(has_feathers)]        // This condition is expected, as 'has_feathers' was
+                            // provided in --check-cfg and doesn't take any value
+fn do_features() {}
+
+#[cfg(has_mumble_frotz)]    // This condition is UNEXPECTED, as 'has_mumble_frotz'
+                            // was NEVER provided in any --check-cfg arguments
+fn do_mumble_frotz() {}
+
+#[cfg(feature = "lasers")]  // This condition is expected, as "lasers" is an
+                            // expected value of `feature`
+fn shoot_lasers() {}
+
+#[cfg(feature = "monkeys")] // This condition is UNEXPECTED, as "monkeys" is NOT
+                            // an expected value of `feature`
+fn write_shakespeare() {}</code></pre>
+<h3 id="example-condition-names-without-values"><a class="header" href="#example-condition-names-without-values">Example: Condition names without values</a></h3>
+<pre><code class="language-bash">rustc --check-cfg 'cfg(is_embedded, has_feathers, values(any()))' \
+      --cfg has_feathers
+</code></pre>
+<pre><code class="language-rust">#[cfg(is_embedded)]      // This condition is expected, as 'is_embedded' was
+                         // provided in --check-cfg as condition name
+fn do_embedded() {}
+
+#[cfg(has_feathers)]     // This condition is expected, as "has_feathers" was
+                         // provided in --check-cfg as condition name
+fn do_features() {}
+
+#[cfg(has_feathers = "zapping")] // This condition is expected, as "has_feathers"
+                                 // was provided and because *any* values is
+                                 // expected for 'has_feathers' no
+                                 // warning is emitted for the value "zapping"
+fn do_zapping() {}
+
+#[cfg(has_mumble_frotz)] // This condition is UNEXPECTED, as 'has_mumble_frotz'
+                         // was not provided in any --check-cfg arguments
+fn do_mumble_frotz() {}</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="linker-plugin-lto.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="check-cfg/cargo-specifics.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="linker-plugin-lto.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="check-cfg/cargo-specifics.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/language-picker.js"></script>
+
+
+    </div>
+    </body>
+</html>
