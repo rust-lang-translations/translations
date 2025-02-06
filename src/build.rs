@@ -69,6 +69,10 @@ pub fn build_book(
             .set("output.html.additional-js", vec![js_file])?;
     }
     mdbook.config.set("preprocessor.gettext.po-dir", po_path)?;
+    mdbook.config.set(
+        "output.html.git-repository-url",
+        "https://github.com/rust-lang-translations/project",
+    )?;
     if serve.is_some() {
         mdbook
             .config
