@@ -5,8 +5,8 @@ title: Rust Translations
 This is an **unofficial** document translation project for [Rust Programming Language](https://rust-lang.org).
 The following advantages are provided by this project:
 
-## All documentation
-All documentation hosted under https://doc.rust-lang.org is supported, so users can easily find translated documentation. Other documentation can also be added.
+## All documentation / All language
+All documentation hosted under https://doc.rust-lang.org is already supported, and all languages are translation target, so users can easily find translated documentation. Other documentation can also be added.
 
 ## Always up to date
 In conventional translations, the content becomes outdated as the original is updated. With this site, the content is always up to date, but untranslated parts are displayed in English. Users who notice the English display can contribute to the translation.
