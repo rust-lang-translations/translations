@@ -17,11 +17,16 @@ All documentation has a language selector, so users can easily refer to the orig
 ## Translator-friendly workflow
 We provide the workflow necessary for translators, such as automatic updates of the original version and measurement of translation rate (planned). Unlike when each translator works in their own repository, workflow improvements reach all translators.
 
-If you are interesting in document translation, please see [the project on GitHub](https://github.com/rust-lang-translations/project).
+# Contribution
+
+This is a community project. So we need contribution to translate to each languages.
+If you are interesting in contribution, please see [the project on GitHub](https://github.com/rust-lang-translations/project).
 
 # Usage
 
 All the documents have a language selector at the top right of the pages.
+
+![language selector](./img/capture.png)
 
 # Documents
 
