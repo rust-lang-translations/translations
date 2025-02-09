@@ -20,7 +20,7 @@ We provide the workflow necessary for translators, such as automatic updates of 
 # Contribution
 
 This is a community project. So we need contribution to translate to each languages.
-If you are interesting in contribution, please see [the project on GitHub](https://github.com/rust-lang-translations/project).
+If you are interesting in contribution, please see [the project on GitHub](https://github.com/rust-lang-translations/translations).
 
 # Usage
 
@@ -41,6 +41,6 @@ All the documents have a language selector at the top right of the pages.
 * [The rustdoc book](https://rust-lang-translations.org/rustdoc)
 * [Rust By Example](https://doc.rust-lang.org/rust-by-example) : The official site
 
-If you want to add other documents, please open a [issue](https://github.com/rust-lang-translations/project/issues).
+If you want to add other documents, please open a [issue](https://github.com/rust-lang-translations/translations/issues).
 
 The official [Rust By Example](https://doc.rust-lang.org/rust-by-example) already has some translations, so this project doesn't include it.
