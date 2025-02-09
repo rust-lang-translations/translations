@@ -13,7 +13,7 @@ https://rust-lang-translations.org
 If you want to add a new translation or update the existing translations.
 Please follow the following instruction.
 
-To avoid duplicated works, we recommend to open an [issue](https://github.com/rust-lang-translations/project/issues) before starting your work.
+To avoid duplicated works, we recommend to open an [issue](https://github.com/rust-lang-translations/translations/issues) before starting your work.
 
 There are two way to manage translations.
 
@@ -23,7 +23,7 @@ There are two way to manage translations.
 ### Use Web UI
 
 [POEditor](https://poeditor.com) can be used.
-If you want it, please request through [issue](https://github.com/rust-lang-translations/project/issues).
+If you want it, please request through [issue](https://github.com/rust-lang-translations/translations/issues).
 
 ### Edit locally
 
