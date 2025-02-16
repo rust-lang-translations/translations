@@ -619,27 +619,43 @@ Any cast that does not fit either a coercion rule or an entry in the table is a 
 Here <code>*T</code> means either <code>*const T</code> or <code>*mut T</code>. <code>m</code> stands for optional <code>mut</code> in
 reference types and <code>mut</code> or <code>const</code> in pointer types.</p>
 <div class="table-wrapper"><table><thead><tr><th>Type of <code>e</code></th><th><code>U</code></th><th>Cast performed by <code>e as U</code></th></tr></thead><tbody>
-<tr><td>Integer or Float type</td><td>Integer or Float type</td><td>Numeric cast</td></tr>
-<tr><td>Enumeration</td><td>Integer type</td><td>Enum cast</td></tr>
-<tr><td><code>bool</code> or <code>char</code></td><td>Integer type</td><td>Primitive to integer cast</td></tr>
-<tr><td><code>u8</code></td><td><code>char</code></td><td><code>u8</code> to <code>char</code> cast</td></tr>
-<tr><td><code>*T</code></td><td><code>*V</code> where <code>V: Sized</code> *</td><td>Pointer to pointer cast</td></tr>
-<tr><td><code>*T</code> where <code>T: Sized</code></td><td>Integer type</td><td>Pointer to address cast</td></tr>
-<tr><td>Integer type</td><td><code>*V</code> where <code>V: Sized</code></td><td>Address to pointer cast</td></tr>
-<tr><td><code>&amp;m₁ T</code></td><td><code>*m₂ T</code> **</td><td>Reference to pointer cast</td></tr>
-<tr><td><code>&amp;m₁ [T; n]</code></td><td><code>*m₂ T</code> **</td><td>Array to pointer cast</td></tr>
+<tr><td>Integer or Float type</td><td>Integer or Float type</td><td><a href="operator-expr.html#r-expr.as.numeric">Numeric cast</a></td></tr>
+<tr><td>Enumeration</td><td>Integer type</td><td><a href="operator-expr.html#r-expr.as.enum">Enum cast</a></td></tr>
+<tr><td><code>bool</code> or <code>char</code></td><td>Integer type</td><td><a href="operator-expr.html#r-expr.as.bool-char-as-int">Primitive to integer cast</a></td></tr>
+<tr><td><code>u8</code></td><td><code>char</code></td><td><a href="operator-expr.html#r-expr.as.u8-as-char"><code>u8</code> to <code>char</code> cast</a></td></tr>
+<tr><td><code>*T</code></td><td><code>*V</code> <sup class="footnote-reference"><a href="#meta-compat">1</a></sup></td><td><a href="operator-expr.html#r-expr.as.pointer">Pointer to pointer cast</a></td></tr>
+<tr><td><code>*T</code> where <code>T: Sized</code></td><td>Integer type</td><td><a href="operator-expr.html#r-expr.as.pointer-as-int">Pointer to address cast</a></td></tr>
+<tr><td>Integer type</td><td><code>*V</code> where <code>V: Sized</code></td><td><a href="operator-expr.html#r-expr.as.int-as-pointer">Address to pointer cast</a></td></tr>
+<tr><td><code>&amp;m₁ [T; n]</code></td><td><code>*m₂ T</code> <sup class="footnote-reference"><a href="#lessmut">2</a></sup></td><td>Array to pointer cast</td></tr>
+<tr><td><code>*m₁ [T; n]</code></td><td><code>*m₂ T</code> <sup class="footnote-reference"><a href="#lessmut">2</a></sup></td><td>Array to pointer cast</td></tr>
 <tr><td><a href="../types/function-item.html">Function item</a></td><td><a href="../types/function-pointer.html">Function pointer</a></td><td>Function item to function pointer cast</td></tr>
 <tr><td><a href="../types/function-item.html">Function item</a></td><td><code>*V</code> where <code>V: Sized</code></td><td>Function item to pointer cast</td></tr>
 <tr><td><a href="../types/function-item.html">Function item</a></td><td>Integer</td><td>Function item to address cast</td></tr>
 <tr><td><a href="../types/function-pointer.html">Function pointer</a></td><td><code>*V</code> where <code>V: Sized</code></td><td>Function pointer to pointer cast</td></tr>
 <tr><td><a href="../types/function-pointer.html">Function pointer</a></td><td>Integer</td><td>Function pointer to address cast</td></tr>
-<tr><td>Closure ***</td><td>Function pointer</td><td>Closure to function pointer cast</td></tr>
+<tr><td>Closure <sup class="footnote-reference"><a href="#no-capture">3</a></sup></td><td>Function pointer</td><td>Closure to function pointer cast</td></tr>
 </tbody></table>
 </div>
-<p>* or <code>T</code> and <code>V</code> are compatible unsized types, e.g., both slices, both the same trait object.</p>
-<p>** only when <code>m₁</code> is <code>mut</code> or <code>m₂</code> is <code>const</code>. Casting <code>mut</code> reference to
+<div class="footnote-definition" id="meta-compat"><sup class="footnote-definition-label">1</sup>
+<p>where <code>T</code> and <code>V</code> have compatible metadata:</p>
+<ul>
+<li><code>V: Sized</code>, or</li>
+<li>Both slice metadata (<code>*[u16]</code> -&gt; <code>*[u8]</code>, <code>*str</code> -&gt; <code>*(u8, [u32])</code>), or</li>
+<li>Both the same trait object metadata, modulo dropping auto traits (<code>*dyn Debug</code> -&gt; <code>*(u16, dyn Debug)</code>, <code>*dyn Debug + Send</code> -&gt; <code>*dyn Debug</code>)
+<ul>
+<li><strong>Note</strong>: <em>adding</em> auto traits is only allowed if the principal trait has the auto trait as a super trait (given <code>trait T: Send {}</code>, <code>*dyn T</code> -&gt; <code>*dyn T + Send</code> is valid, but <code>*dyn Debug</code> -&gt; <code>*dyn Debug + Send</code> is not)</li>
+<li><strong>Note</strong>: Generics (including lifetimes) must match (<code>*dyn T&lt;'a, A&gt;</code> -&gt; <code>*dyn T&lt;'b, B&gt;</code> requires <code>'a = 'b</code> and <code>A = B</code>)</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="footnote-definition" id="lessmut"><sup class="footnote-definition-label">2</sup>
+<p>only when <code>m₁</code> is <code>mut</code> or <code>m₂</code> is <code>const</code>. Casting <code>mut</code> reference/pointer to
 <code>const</code> pointer is allowed.</p>
-<p>*** only for closures that do not capture (close over) any local variables</p>
+</div>
+<div class="footnote-definition" id="no-capture"><sup class="footnote-definition-label">3</sup>
+<p>only for closures that do not capture (close over) any local variables can be casted to function pointers.</p>
+</div>
 <h3 id="semantics"><a class="header" href="#semantics">Semantics</a></h3>
 <div class="rule" id="r-expr.as.numeric"><a class="rule-link" href="#r-expr.as.numeric" title="expr.as.numeric"><span>[expr<wbr>.as<wbr>.numeric]<span/></a></div>
 <h4 id="numeric-cast"><a class="header" href="#numeric-cast">Numeric cast</a></h4>
@@ -770,6 +786,7 @@ number, preferring the one with an even least significant digit if exactly
 halfway between two floating point numbers.</p>
 <div class="rule" id="r-expr.as.enum"><a class="rule-link" href="#r-expr.as.enum" title="expr.as.enum"><span>[expr<wbr>.as<wbr>.enum]<span/></a></div>
 <h4 id="enum-cast"><a class="header" href="#enum-cast">Enum cast</a></h4>
+<div class="rule" id="r-expr.as.enum.discriminant"><a class="rule-link" href="#r-expr.as.enum.discriminant" title="expr.as.enum.discriminant"><span>[expr<wbr>.as<wbr>.enum<wbr>.discriminant]<span/></a></div>
 <p>Casts an enum to its discriminant, then uses a numeric cast if needed.
 Casting is limited to the following kinds of enumerations:</p>
 <ul>
@@ -783,6 +800,8 @@ assert_eq!(Enum::A as i32, 0);
 assert_eq!(Enum::B as i32, 1);
 assert_eq!(Enum::C as i32, 2);
 <span class="boring">}</span></code></pre></pre>
+<div class="rule" id="r-expr.as.enum.no-drop"><a class="rule-link" href="#r-expr.as.enum.no-drop" title="expr.as.enum.no-drop"><span>[expr<wbr>.as<wbr>.enum<wbr>.no-drop]<span/></a></div>
+<p>Casting is not allowed if the enum implements <a href="../../core/ops/drop/trait.Drop.html"><code>Drop</code></a>.</p>
 <div class="rule" id="r-expr.as.bool-char-as-int"><a class="rule-link" href="#r-expr.as.bool-char-as-int" title="expr.as.bool-char-as-int"><span>[expr<wbr>.as<wbr>.bool-char-as-int]<span/></a></div>
 <h4 id="primitive-to-integer-cast"><a class="header" href="#primitive-to-integer-cast">Primitive to integer cast</a></h4>
 <ul>

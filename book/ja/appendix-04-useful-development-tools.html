@@ -230,27 +230,24 @@
 <h3 id="fix-your-code-with-rustfix"><a class="header" href="#fix-your-code-with-rustfix">Fix Your Code with <code>rustfix</code></a></h3>
 <p>The rustfix tool is included with Rust installations and can automatically fix compiler warnings that have a clear way to correct the problem that’s likely what you want. It’s likely you’ve seen compiler warnings before. For example, consider this code:</p>
 <p><span class="filename">Filename: src/main.rs</span></p>
-<pre><pre class="playground"><code class="language-rust edition2021">fn do_something() {}
-
-fn main() {
-    for i in 0..100 {
-        do_something();
-    }
+<pre><pre class="playground"><code class="language-rust edition2021">fn main() {
+    let mut x = 42;
+    println!("{x}");
 }</code></pre></pre>
-<p>Here, we’re calling the <code>do_something</code> function 100 times, but we never use the variable <code>i</code> in the body of the <code>for</code> loop. Rust warns us about that:</p>
+<p>Here, we’re defining variable <code>x</code> as mutable, but we never actually mutate it. Rust warns us about that:</p>
 <pre><code class="language-console">$ cargo build
    Compiling myprogram v0.1.0 (file:///projects/myprogram)
-warning: unused variable: `i`
- --&gt; src/main.rs:4:9
+warning: variable does not need to be mutable
+ --&gt; src/main.rs:2:9
   |
-4 |     for i in 0..100 {
-  |         ^ help: consider using `_i` instead
+2 |     let mut x = 0;
+  |         ----^
+  |         |
+  |         help: remove this `mut`
   |
-  = note: #[warn(unused_variables)] on by default
-
-    Finished dev [unoptimized + debuginfo] target(s) in 0.50s
+  = note: `#[warn(unused_mut)]` on by default
 </code></pre>
-<p>The warning suggests that we use <code>_i</code> as a name instead: the underscore indicates that we intend for this variable to be unused. We can automatically apply that suggestion using the <code>rustfix</code> tool by running the command <code>cargo fix</code>:</p>
+<p>The warning suggests that we remove the <code>mut</code> keyword. We can automatically apply that suggestion using the <code>rustfix</code> tool by running the command <code>cargo fix</code>:</p>
 <pre><code class="language-console">$ cargo fix
     Checking myprogram v0.1.0 (file:///projects/myprogram)
       Fixing src/main.rs (1 fix)
@@ -258,14 +255,11 @@ warning: unused variable: `i`
 </code></pre>
 <p>When we look at <em>src/main.rs</em> again, we’ll see that <code>cargo fix</code> has changed the code:</p>
 <p><span class="filename">Filename: src/main.rs</span></p>
-<pre><pre class="playground"><code class="language-rust edition2021">fn do_something() {}
-
-fn main() {
-    for _i in 0..100 {
-        do_something();
-    }
+<pre><pre class="playground"><code class="language-rust edition2021">fn main() {
+    let x = 42;
+    println!("{x}");
 }</code></pre></pre>
-<p>The <code>for</code> loop variable is now named <code>_i</code>, and the warning no longer appears.</p>
+<p>The <code>x</code> variable is now immutable, and the warning no longer appears.</p>
 <p>You can also use the <code>cargo fix</code> command to transition your code between different Rust editions. Editions are covered in <a href="appendix-05-editions.html">Appendix E</a>.</p>
 <h3 id="more-lints-with-clippy"><a class="header" href="#more-lints-with-clippy">More Lints with Clippy</a></h3>
 <p>The Clippy tool is a collection of lints to analyze your code so you can catch common mistakes and improve your Rust code.</p>
