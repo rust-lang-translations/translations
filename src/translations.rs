@@ -1,6 +1,6 @@
 use crate::build::build_book;
 use crate::serve::serve;
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use log::info;
 use mdbook::MDBook;
 use mdbook_i18n_helpers::renderers::Xgettext;
@@ -78,6 +78,8 @@ impl Translations {
                 bail!("Language {lang_id} for {name} alreay exists");
             }
 
+            info!("Creating language resource {}", lang_po.to_string_lossy());
+
             Command::new("msginit")
                 .arg("--no-translator")
                 .arg("-i")
@@ -86,7 +88,8 @@ impl Translations {
                 .arg(lang_id)
                 .arg("-o")
                 .arg(&lang_po)
-                .output()?;
+                .output()
+                .with_context(|| "failed to call msginit")?;
 
             let new_trans = Translation {
                 id: lang_id.to_string(),
