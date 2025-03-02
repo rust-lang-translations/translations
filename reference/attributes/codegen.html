@@ -274,16 +274,67 @@ features. It uses the <a href="../attributes.html#meta-item-attribute-syntax"><e
 </span><span class="boring">fn main() {
 </span><span class="boring">#[cfg(target_feature = "avx2")]
 </span>#[target_feature(enable = "avx2")]
-unsafe fn foo_avx2() {}
+fn foo_avx2() {}
 <span class="boring">}</span></code></pre></pre>
 <div class="rule" id="r-attributes.codegen.target_feature.arch"><a class="rule-link" href="#r-attributes.codegen.target_feature.arch" title="attributes.codegen.target_feature.arch"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.arch]<span/></a></div>
 <p>Each <a href="../conditional-compilation.html#target_arch">target architecture</a> has a set of features that may be enabled. It is an
 error to specify a feature for a target architecture that the crate is not
 being compiled for.</p>
+<div class="rule" id="r-attributes.codegen.target_feature.closures"><a class="rule-link" href="#r-attributes.codegen.target_feature.closures" title="attributes.codegen.target_feature.closures"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.closures]<span/></a></div>
+<p>Closures defined within a <code>target_feature</code>-annotated function inherit the
+attribute from the enclosing function.</p>
 <div class="rule" id="r-attributes.codegen.target_feature.target-ub"><a class="rule-link" href="#r-attributes.codegen.target_feature.target-ub" title="attributes.codegen.target_feature.target-ub"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.target-ub]<span/></a></div>
 <p>It is <a href="../behavior-considered-undefined.html">undefined behavior</a> to call a function that is compiled with a feature
 that is not supported on the current platform the code is running on, <em>except</em>
 if the platform explicitly documents this to be safe.</p>
+<div class="rule" id="r-attributes.codegen.target_feature.safety-restrictions"><a class="rule-link" href="#r-attributes.codegen.target_feature.safety-restrictions" title="attributes.codegen.target_feature.safety-restrictions"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.safety-restrictions]<span/></a></div>
+<p>The following restrictions apply unless otherwise specified by the platform rules below:</p>
+<ul>
+<li>Safe <code>#[target_feature]</code> functions (and closures that inherit the attribute) can only be safely called within a caller that enables all the <code>target_feature</code>s that the callee enables.
+This restriction does not apply in an <code>unsafe</code> context.</li>
+<li>Safe <code>#[target_feature]</code> functions (and closures that inherit the attribute) can only be coerced to <em>safe</em> function pointers in contexts that enable all the <code>target_feature</code>s that the coercee enables.
+This restriction does not apply to <code>unsafe</code> function pointers.</li>
+</ul>
+<p>Implicitly enabled features are included in this rule. For example an <code>sse2</code> function can call ones marked with <code>sse</code>.</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">#[cfg(target_feature = "sse2")] {
+</span>#[target_feature(enable = "sse")]
+fn foo_sse() {}
+
+fn bar() {
+    // Calling `foo_sse` here is unsafe, as we must ensure that SSE is
+    // available first, even if `sse` is enabled by default on the target
+    // platform or manually enabled as compiler flags.
+    unsafe {
+        foo_sse();
+    }
+}
+
+#[target_feature(enable = "sse")]
+fn bar_sse() {
+    // Calling `foo_sse` here is safe.
+    foo_sse();
+    || foo_sse();
+}
+
+#[target_feature(enable = "sse2")]
+fn bar_sse2() {
+    // Calling `foo_sse` here is safe because `sse2` implies `sse`.
+    foo_sse();
+}
+<span class="boring">}
+</span><span class="boring">}</span></code></pre></pre>
+<div class="rule" id="r-attributes.codegen.target_feature.fn-traits"><a class="rule-link" href="#r-attributes.codegen.target_feature.fn-traits" title="attributes.codegen.target_feature.fn-traits"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.fn-traits]<span/></a></div>
+<p>A function with a <code>#[target_feature]</code> attribute <em>never</em> implements the <code>Fn</code> family of traits, although closures inheriting features from the enclosing function do.</p>
+<div class="rule" id="r-attributes.codegen.target_feature.allowed-positions"><a class="rule-link" href="#r-attributes.codegen.target_feature.allowed-positions" title="attributes.codegen.target_feature.allowed-positions"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.allowed-positions]<span/></a></div>
+<p>The <code>#[target_feature]</code> attribute is not allowed on the following places:</p>
+<ul>
+<li><a href="../crates-and-source-files.html#r-crate.main">the <code>main</code> function</a></li>
+<li>a <a href="../runtime.html#r-runtime.panic_handler"><code>panic_handler</code> function</a></li>
+<li>safe trait methods</li>
+<li>safe default functions in traits</li>
+</ul>
 <div class="rule" id="r-attributes.codegen.target_feature.inline"><a class="rule-link" href="#r-attributes.codegen.target_feature.inline" title="attributes.codegen.target_feature.inline"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.inline]<span/></a></div>
 <p>Functions marked with <code>target_feature</code> are not inlined into a context that
 does not support the given features. The <code>#[inline(always)]</code> attribute may not
@@ -294,8 +345,8 @@ be used with a <code>target_feature</code> attribute.</p>
 <div class="rule" id="r-attributes.codegen.target_feature.x86"><a class="rule-link" href="#r-attributes.codegen.target_feature.x86" title="attributes.codegen.target_feature.x86"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.x86]<span/></a></div>
 <h4 id="x86-or-x86_64"><a class="header" href="#x86-or-x86_64"><code>x86</code> or <code>x86_64</code></a></h4>
 <p>Executing code with unsupported features is undefined behavior on this platform.
-Hence this platform requires that <code>#[target_feature]</code> is only applied to <a href="../unsafe-keyword.html"><code>unsafe</code>
-functions</a>.</p>
+Hence on this platform usage of <code>#[target_feature]</code> functions follows the
+<a href="codegen.html#r-attributes.codegen.target_feature.safety-restrictions">above restrictions</a>.</p>
 <div class="table-wrapper"><table><thead><tr><th>Feature</th><th>Implicitly Enables</th><th>Description</th></tr></thead><tbody>
 <tr><td><code>adx</code></td><td></td><td><a href="https://en.wikipedia.org/wiki/Intel_ADX">ADX</a> — Multi-Precision Add-Carry Instruction Extensions</td></tr>
 <tr><td><code>aes</code></td><td><code>sse2</code></td><td><a href="https://en.wikipedia.org/wiki/AES_instruction_set">AES</a> — Advanced Encryption Standard</td></tr>
@@ -328,8 +379,8 @@ functions</a>.</p>
 </div><!-- Keep links near each table to make it easier to move and update. -->
 <div class="rule" id="r-attributes.codegen.target_feature.aarch64"><a class="rule-link" href="#r-attributes.codegen.target_feature.aarch64" title="attributes.codegen.target_feature.aarch64"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.aarch64]<span/></a></div>
 <h4 id="aarch64"><a class="header" href="#aarch64"><code>aarch64</code></a></h4>
-<p>This platform requires that <code>#[target_feature]</code> is only applied to <a href="../unsafe-keyword.html"><code>unsafe</code>
-functions</a>.</p>
+<p>On this platform the usage of <code>#[target_feature]</code> functions follows the
+<a href="codegen.html#r-attributes.codegen.target_feature.safety-restrictions">above restrictions</a>.</p>
 <p>Further documentation on these features can be found in the <a href="https://developer.arm.com/documentation/ddi0487/latest">ARM Architecture
 Reference Manual</a>, or elsewhere on <a href="https://developer.arm.com">developer.arm.com</a>.</p>
 <blockquote>
@@ -387,8 +438,8 @@ or disabled together if used:</p>
 </tbody></table>
 </div><div class="rule" id="r-attributes.codegen.target_feature.riscv"><a class="rule-link" href="#r-attributes.codegen.target_feature.riscv" title="attributes.codegen.target_feature.riscv"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.riscv]<span/></a></div>
 <h4 id="riscv32-or-riscv64"><a class="header" href="#riscv32-or-riscv64"><code>riscv32</code> or <code>riscv64</code></a></h4>
-<p>This platform requires that <code>#[target_feature]</code> is only applied to <a href="../unsafe-keyword.html"><code>unsafe</code>
-functions</a>.</p>
+<p>On this platform the usage of <code>#[target_feature]</code> functions follows the
+<a href="codegen.html#r-attributes.codegen.target_feature.safety-restrictions">above restrictions</a>.</p>
 <p>Further documentation on these features can be found in their respective
 specification. Many specifications are described in the <a href="https://github.com/riscv/riscv-isa-manual">RISC-V ISA Manual</a> or
 in another manual hosted on the <a href="https://github.com/riscv">RISC-V GitHub Account</a>.</p>
@@ -418,12 +469,11 @@ in another manual hosted on the <a href="https://github.com/riscv">RISC-V GitHub
 </div><!-- Keep links near each table to make it easier to move and update. -->
 <div class="rule" id="r-attributes.codegen.target_feature.wasm"><a class="rule-link" href="#r-attributes.codegen.target_feature.wasm" title="attributes.codegen.target_feature.wasm"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.wasm]<span/></a></div>
 <h4 id="wasm32-or-wasm64"><a class="header" href="#wasm32-or-wasm64"><code>wasm32</code> or <code>wasm64</code></a></h4>
-<p><code>#[target_feature]</code> may be used with both safe and
-<a href="../unsafe-keyword.html"><code>unsafe</code> functions</a> on Wasm platforms. It is impossible to
-cause undefined behavior via the <code>#[target_feature]</code> attribute because
-attempting to use instructions unsupported by the Wasm engine will fail at load
-time without the risk of being interpreted in a way different from what the
-compiler expected.</p>
+<p>Safe <code>#[target_feature]</code> functions may always be used in safe contexts on Wasm
+platforms. It is impossible to cause undefined behavior via the
+<code>#[target_feature]</code> attribute because attempting to use instructions
+unsupported by the Wasm engine will fail at load time without the risk of being
+interpreted in a way different from what the compiler expected.</p>
 <div class="table-wrapper"><table><thead><tr><th>Feature</th><th>Implicitly Enables</th><th>Description</th></tr></thead><tbody>
 <tr><td><code>bulk-memory</code></td><td></td><td><a href="https://github.com/WebAssembly/bulk-memory-operations">WebAssembly bulk memory operations proposal</a></td></tr>
 <tr><td><code>extended-const</code></td><td></td><td><a href="https://github.com/WebAssembly/extended-const">WebAssembly extended const expressions proposal</a></td></tr>

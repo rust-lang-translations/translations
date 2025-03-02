@@ -293,13 +293,14 @@ error: could not compile `restaurant` (lib) due to 2 previous errors
     }
 }
 
-pub fn eat_at_restaurant() {
-    // Absolute path
-    crate::front_of_house::hosting::add_to_waitlist();
-
-    // Relative path
-    front_of_house::hosting::add_to_waitlist();
-}</code></pre>
+// -- snip --
+<span class="boring">pub fn eat_at_restaurant() {
+</span><span class="boring">    // Absolute path
+</span><span class="boring">    crate::front_of_house::hosting::add_to_waitlist();
+</span><span class="boring">
+</span><span class="boring">    // Relative path
+</span><span class="boring">    front_of_house::hosting::add_to_waitlist();
+</span><span class="boring">}</span></code></pre>
 </Listing>
 <p>Unfortunately, the code in Listing 7-5 still results in compiler errors, as shown in Listing 7-6.</p>
 <Listing number="7-6" caption="Compiler errors from building the code in Listing 7-5">
@@ -343,23 +344,24 @@ error: could not compile `restaurant` (lib) due to 2 previous errors
     }
 }
 
-pub fn eat_at_restaurant() {
-    // Absolute path
-    crate::front_of_house::hosting::add_to_waitlist();
-
-    // Relative path
-    front_of_house::hosting::add_to_waitlist();
-}</code></pre>
+// -- snip --
+<span class="boring">pub fn eat_at_restaurant() {
+</span><span class="boring">    // Absolute path
+</span><span class="boring">    crate::front_of_house::hosting::add_to_waitlist();
+</span><span class="boring">
+</span><span class="boring">    // Relative path
+</span><span class="boring">    front_of_house::hosting::add_to_waitlist();
+</span><span class="boring">}</span></code></pre>
 </Listing>
 <p>Now the code will compile! To see why adding the <code>pub</code> keyword lets us use these paths in <code>eat_at_restaurant</code> with respect to the privacy rules, let’s look at the absolute and the relative paths.</p>
 <p>In the absolute path, we start with <code>crate</code>, the root of our crate’s module tree. The <code>front_of_house</code> module is defined in the crate root. While <code>front_of_house</code> isn’t public, because the <code>eat_at_restaurant</code> function is defined in the same module as <code>front_of_house</code> (that is, <code>eat_at_restaurant</code> and <code>front_of_house</code> are siblings), we can refer to <code>front_of_house</code> from <code>eat_at_restaurant</code>. Next is the <code>hosting</code> module marked with <code>pub</code>. We can access the parent module of <code>hosting</code>, so we can access <code>hosting</code>. Finally, the <code>add_to_waitlist</code> function is marked with <code>pub</code> and we can access its parent module, so this function call works!</p>
 <p>In the relative path, the logic is the same as the absolute path except for the first step: rather than starting from the crate root, the path starts from <code>front_of_house</code>. The <code>front_of_house</code> module is defined within the same module as <code>eat_at_restaurant</code>, so the relative path starting from the module in which <code>eat_at_restaurant</code> is defined works. Then, because <code>hosting</code> and <code>add_to_waitlist</code> are marked with <code>pub</code>, the rest of the path works, and this function call is valid!</p>
-<p>If you plan on sharing your library crate so other projects can use your code, your public API is your contract with users of your crate that determines how they can interact with your code. There are many considerations around managing changes to your public API to make it easier for people to depend on your crate. These considerations are out of the scope of this book; if you’re interested in this topic, see <a href="https://rust-lang.github.io/api-guidelines/">The Rust API Guidelines</a>.</p>
+<p>If you plan on sharing your library crate so other projects can use your code, your public API is your contract with users of your crate that determines how they can interact with your code. There are many considerations around managing changes to your public API to make it easier for people to depend on your crate. These considerations are beyond the scope of this book; if you’re interested in this topic, see <a href="https://rust-lang.github.io/api-guidelines/">The Rust API Guidelines</a>.</p>
 <blockquote>
 <h4 id="best-practices-for-packages-with-a-binary-and-a-library"><a class="header" href="#best-practices-for-packages-with-a-binary-and-a-library">Best Practices for Packages with a Binary and a Library</a></h4>
 <p>We mentioned that a package can contain both a <em>src/main.rs</em> binary crate root as well as a <em>src/lib.rs</em> library crate root, and both crates will have the package name by default. Typically, packages with this pattern of containing both a library and a binary crate will have just enough code in the binary crate to start an executable that calls code within the library crate. This lets other projects benefit from most of the functionality that the package provides because the library crate’s code can be shared.</p>
 <p>The module tree should be defined in <em>src/lib.rs</em>. Then, any public items can be used in the binary crate by starting paths with the name of the package. The binary crate becomes a user of the library crate just like a completely external crate would use the library crate: it can only use the public API. This helps you design a good API; not only are you the author, you’re also a client!</p>
-<p>In <a href="ch12-00-an-io-project.html">Chapter 12</a><!-- ignore -->, we’ll demonstrate this organizational practice with a command-line program that will contain both a binary crate and a library crate.</p>
+<p>In <a href="ch12-00-an-io-project.html">Chapter 12</a><!-- ignore -->, we’ll demonstrate this organizational practice with a command line program that will contain both a binary crate and a library crate.</p>
 </blockquote>
 <h3 id="starting-relative-paths-with-super"><a class="header" href="#starting-relative-paths-with-super">Starting Relative Paths with <code>super</code></a></h3>
 <p>We can construct relative paths that begin in the parent module, rather than the current module or the crate root, by using <code>super</code> at the start of the path. This is like starting a filesystem path with the <code>..</code> syntax. Using <code>super</code> allows us to reference an item that we know is in the parent module, which can make rearranging the module tree easier when the module is closely related to the parent but the parent might be moved elsewhere in the module tree someday.</p>
@@ -397,21 +399,21 @@ mod back_of_house {
 }
 
 pub fn eat_at_restaurant() {
-    // Order a breakfast in the summer with Rye toast
+    // Order a breakfast in the summer with Rye toast.
     let mut meal = back_of_house::Breakfast::summer("Rye");
-    // Change our mind about what bread we'd like
+    // Change our mind about what bread we'd like.
     meal.toast = String::from("Wheat");
     println!("I'd like {} toast please", meal.toast);
 
     // The next line won't compile if we uncomment it; we're not allowed
-    // to see or modify the seasonal fruit that comes with the meal
+    // to see or modify the seasonal fruit that comes with the meal.
     // meal.seasonal_fruit = String::from("blueberries");
 }</code></pre>
 </Listing>
 <p>Because the <code>toast</code> field in the <code>back_of_house::Breakfast</code> struct is public, in <code>eat_at_restaurant</code> we can write and read to the <code>toast</code> field using dot notation. Notice that we can’t use the <code>seasonal_fruit</code> field in <code>eat_at_restaurant</code>, because <code>seasonal_fruit</code> is private. Try uncommenting the line modifying the <code>seasonal_fruit</code> field value to see what error you get!</p>
 <p>Also, note that because <code>back_of_house::Breakfast</code> has a private field, the struct needs to provide a public associated function that constructs an instance of <code>Breakfast</code> (we’ve named it <code>summer</code> here). If <code>Breakfast</code> didn’t have such a function, we couldn’t create an instance of <code>Breakfast</code> in <code>eat_at_restaurant</code> because we couldn’t set the value of the private <code>seasonal_fruit</code> field in <code>eat_at_restaurant</code>.</p>
 <p>In contrast, if we make an enum public, all of its variants are then public. We only need the <code>pub</code> before the <code>enum</code> keyword, as shown in Listing 7-10.</p>
-<Listing number="7-10" file-name="src/lib.rs" caption="Designating an enum as public makes all its variants public">
+<Listing number="7-10" file-name="src/lib.rs" caption="Designating an enum as public makes all its variants public.">
 <pre><code class="language-rust noplayground">mod back_of_house {
     pub enum Appetizer {
         Soup,

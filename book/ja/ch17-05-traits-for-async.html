@@ -303,7 +303,7 @@ note: required by a bound in `futures_util::future::join_all::JoinAll`
 </code></pre>
 <p>This error message tells us not only that we need to pin the values but also why pinning is required. The <code>trpl::join_all</code> function returns a struct called <code>JoinAll</code>. That struct is generic over a type <code>F</code>, which is constrained to implement the <code>Future</code> trait. Directly awaiting a future with <code>await</code> pins the future implicitly. That’s why we don’t need to use <code>pin!</code> everywhere we want to await futures.</p>
 <p>However, we’re not directly awaiting a future here. Instead, we construct a new future, <code>JoinAll</code>, by passing a collection of futures to the <code>join_all</code> function. The signature for <code>join_all</code> requires that the types of the items in the collection all implement the <code>Future</code> trait, and <code>Box&lt;T&gt;</code> implements <code>Future</code> only if the <code>T</code> it wraps is a future that implements the <code>Unpin</code> trait.</p>
-<p>That’s a lot to absorb! To really understand it, let’s we dive a little further into how the <code>Future</code> trait actually works, in particular around <em>pinning</em>.</p>
+<p>That’s a lot to absorb! To really understand it, let’s dive a little further into how the <code>Future</code> trait actually works, in particular around <em>pinning</em>.</p>
 <p>Look again at the definition of the <code>Future</code> trait:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -317,7 +317,7 @@ pub trait Future {
     fn poll(self: Pin&lt;&amp;mut Self&gt;, cx: &amp;mut Context&lt;'_&gt;) -&gt; Poll&lt;Self::Output&gt;;
 }
 <span class="boring">}</span></code></pre></pre>
-<p>The <code>cx</code> parameter and its <code>Context</code> type are the key to how a runtime actually knows when to check any given future while still being lazy. Again, the details of how that works are beyond the scope of this chapter, and you generally only need to think about this when writing a custom <code>Future</code> implementation. We’ll focus instead on the type for <code>self</code>, as this is the first time we’ve seen a method where <code>self</code> has a type annotation. A type annotation for <code>self</code> is works like type annotations for other function parameters, but with two key differences:</p>
+<p>The <code>cx</code> parameter and its <code>Context</code> type are the key to how a runtime actually knows when to check any given future while still being lazy. Again, the details of how that works are beyond the scope of this chapter, and you generally only need to think about this when writing a custom <code>Future</code> implementation. We’ll focus instead on the type for <code>self</code>, as this is the first time we’ve seen a method where <code>self</code> has a type annotation. A type annotation for <code>self</code> works like type annotations for other function parameters, but with two key differences:</p>
 <ul>
 <li>
 <p>It tells Rust what type <code>self</code> must be for the method to be called.</p>

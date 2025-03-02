@@ -1721,7 +1721,6 @@ See that chapter for more detail.</p>
 <p><em>Capturing</em> a generic parameter in an RPIT (return-position impl Trait) opaque type allows for that parameter to be used in the corresponding hidden type.  In Rust 1.82, we added <code>use&lt;..&gt;</code> bounds that allow specifying explicitly which generic parameters to capture.  Those will be helpful for migrating your code to Rust 2024, and will be helpful in this chapter for explaining how the edition-specific implicit capturing rules work.  These <code>use&lt;..&gt;</code> bounds look like this:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span><span class="boring">#![feature(precise_capturing)]
 </span>fn capture&lt;'a, T&gt;(x: &amp;'a (), y: T) -&gt; impl Sized + use&lt;'a, T&gt; {
     //                                ~~~~~~~~~~~~~~~~~~~~~~~
     //                             This is the RPIT opaque type.
@@ -1737,7 +1736,6 @@ See that chapter for more detail.</p>
 <p>The generic parameters that are captured affect how the opaque type can be used.  E.g., this is an error because the lifetime is captured despite the fact that the hidden type does not use the lifetime:</p>
 <pre><pre class="playground"><code class="language-rust compile_fail"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span><span class="boring">#![feature(precise_capturing)]
 </span>fn capture&lt;'a&gt;(_: &amp;'a ()) -&gt; impl Sized + use&lt;'a&gt; {}
 
 fn test&lt;'a&gt;(x: &amp;'a ()) -&gt; impl Sized + 'static {
@@ -1748,7 +1746,6 @@ fn test&lt;'a&gt;(x: &amp;'a ()) -&gt; impl Sized + 'static {
 <p>Conversely, this is OK:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span><span class="boring">#![feature(precise_capturing)]
 </span>fn capture&lt;'a&gt;(_: &amp;'a ()) -&gt; impl Sized + use&lt;&gt; {}
 
 fn test&lt;'a&gt;(x: &amp;'a ()) -&gt; impl Sized + 'static {
@@ -1760,7 +1757,6 @@ fn test&lt;'a&gt;(x: &amp;'a ()) -&gt; impl Sized + 'static {
 <p>In all editions, all in-scope type and const generic parameters are captured implicitly when the <code>use&lt;..&gt;</code> bound is not present.  E.g.:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span><span class="boring">#![feature(precise_capturing)]
 </span>fn f_implicit&lt;T, const C: usize&gt;() -&gt; impl Sized {}
 //                                    ~~~~~~~~~~
 //                         No `use&lt;..&gt;` bound is present here.
@@ -1771,7 +1767,6 @@ fn f_explicit&lt;T, const C: usize&gt;() -&gt; impl Sized + use&lt;T, C&gt; {}
 <p>In Rust 2021 and earlier editions, when the <code>use&lt;..&gt;</code> bound is not present, generic lifetime parameters are only captured when they appear syntactically within a bound in RPIT opaque types in the signature of bare functions and associated functions and methods within inherent impls.  However, starting in Rust 2024, these in-scope generic lifetime parameters are unconditionally captured.  E.g.:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span><span class="boring">#![feature(precise_capturing)]
 </span>fn f_implicit(_: &amp;()) -&gt; impl Sized {}
 // In Rust 2021 and earlier, the above is equivalent to:
 fn f_2021(_: &amp;()) -&gt; impl Sized + use&lt;&gt; {}
@@ -1783,7 +1778,6 @@ fn f_2024(_: &amp;()) -&gt; impl Sized + use&lt;'_&gt; {}
 <p>Generic parameters from an outer impl are considered to be in scope when deciding what is implicitly captured.  E.g.:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span><span class="boring">#![feature(precise_capturing)]
 </span>struct S&lt;T, const C: usize&gt;((T, [(); C]));
 impl&lt;T, const C: usize&gt; S&lt;T, C&gt; {
 //   ~~~~~~~~~~~~~~~~~
@@ -1803,7 +1797,6 @@ impl&lt;T, const C: usize&gt; S&lt;T, C&gt; {
 <p>Similarly, generic lifetime parameters introduced into scope by a higher-ranked <code>for&lt;..&gt;</code> binder are considered to be in scope.  E.g.:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span><span class="boring">#![feature(precise_capturing)]
 </span>trait Tr&lt;'a&gt; { type Ty; }
 impl Tr&lt;'_&gt; for () { type Ty = (); }
 
@@ -1820,7 +1813,6 @@ fn f_2021() -&gt; impl for&lt;'a&gt; Tr&lt;'a, Ty = impl Copy + use&lt;&gt;&gt; 
 <p>Anonymous (i.e. unnamed) generic parameters created by the use of APIT (argument position impl Trait) are considered to be in scope.  E.g.:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span><span class="boring">#![feature(precise_capturing)]
 </span>fn f_implicit(_: impl Sized) -&gt; impl Sized {}
 //               ~~~~~~~~~~
 //           This is called APIT.
@@ -1843,7 +1835,6 @@ fn f_explicit&lt;_0: Sized&gt;(_: _0) -&gt; impl Sized + use&lt;_0&gt; {}
 <p>...into:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span><span class="boring">#![feature(precise_capturing)]
 </span>fn f&lt;'a&gt;(x: &amp;'a ()) -&gt; impl Sized + use&lt;&gt; { *x }
 <span class="boring">}</span></code></pre></pre>
 <p>Without this <code>use&lt;&gt;</code> bound, in Rust 2024, the opaque type would capture the <code>'a</code> lifetime parameter.  By adding this bound, the migration lint preserves the existing semantics.</p>
@@ -1865,7 +1856,6 @@ fn f_explicit&lt;_0: Sized&gt;(_: _0) -&gt; impl Sized + use&lt;_0&gt; {}
 <p>The code cannot be converted automatically because of the use of APIT and the fact that the generic type parameter must be named in the <code>use&lt;..&gt;</code> bound.  To convert this code to Rust 2024 without capturing the lifetime, you must name that type parameter.  E.g.:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span><span class="boring">#![feature(precise_capturing)]
 </span><span class="boring">#![deny(impl_trait_overcaptures)]
 </span>fn f&lt;'a, T: Sized&gt;(x: &amp;'a (), y: T) -&gt; impl Sized + use&lt;T&gt; { (*x, y) }
 //       ~~~~~~~~
@@ -1897,7 +1887,6 @@ fn f&lt;'a, T&gt;(x: &amp;'a (), y: T) -&gt; impl Sized + Captures&lt;(&amp;'a (
 <p>With the <code>use&lt;..&gt;</code> bound syntax, the <code>Captures</code> trick is no longer needed and can be replaced with the following in all editions:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span><span class="boring">#![feature(precise_capturing)]
 </span>fn f&lt;'a, T&gt;(x: &amp;'a (), y: T) -&gt; impl Sized + use&lt;'a, T&gt; {
     (x, y)
 }
@@ -1909,7 +1898,6 @@ fn f&lt;'a, T&gt;(x: &amp;'a (), y: T) -&gt; impl Sized + Captures&lt;(&amp;'a (
 <p>In Rust 2024, the <code>use&lt;..&gt;</code> bound can often be omitted entirely, and the above can be written simply as:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span><span class="boring">#![feature(lifetime_capture_rules_2024)]
 </span>fn f&lt;'a, T&gt;(x: &amp;'a (), y: T) -&gt; impl Sized {
     (x, y)
 }
@@ -1937,7 +1925,6 @@ fn f&lt;'a, T&gt;(x: &amp;'a (), y: T) -&gt; impl Sized + Captures&lt;(&amp;'a (
 <p>Using precise capturing, you can write the above instead, in all editions, as:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span><span class="boring">#![feature(precise_capturing)]
 </span>fn f&lt;T&gt;(x: &amp;(), y: T) -&gt; impl Sized + use&lt;'_, T&gt; {
     (x, y)
 }
@@ -1949,8 +1936,6 @@ fn f&lt;'a, T&gt;(x: &amp;'a (), y: T) -&gt; impl Sized + Captures&lt;(&amp;'a (
 <p>In Rust 2024, the <code>use&lt;..&gt;</code> bound can often be omitted entirely, and the above can be written simply as:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span><span class="boring">#![feature(precise_capturing)]
-</span><span class="boring">#![feature(lifetime_capture_rules_2024)]
 </span>fn f&lt;T&gt;(x: &amp;(), y: T) -&gt; impl Sized {
     (x, y)
 }
@@ -1998,9 +1983,9 @@ fn f(value: &amp;RwLock&lt;Option&lt;bool&gt;&gt;) {
     }
     // &lt;--- Read lock is dropped here in 2024
     else {
-        let mut s = value.write().unwrap();
-        if s.is_none() {
-            *s = Some(true);
+        let mut v = value.write().unwrap();
+        if v.is_none() {
+            *v = Some(true);
         }
     }
 }

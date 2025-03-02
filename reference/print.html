@@ -7937,16 +7937,67 @@ features. It uses the <a href="attributes/../attributes.html#meta-item-attribute
 </span><span class="boring">fn main() {
 </span><span class="boring">#[cfg(target_feature = "avx2")]
 </span>#[target_feature(enable = "avx2")]
-unsafe fn foo_avx2() {}
+fn foo_avx2() {}
 <span class="boring">}</span></code></pre></pre>
 <div class="rule" id="r-attributes.codegen.target_feature.arch"><a class="rule-link" href="attributes/codegen.html#r-attributes.codegen.target_feature.arch" title="attributes.codegen.target_feature.arch"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.arch]<span/></a></div>
 <p>Each <a href="attributes/../conditional-compilation.html#target_arch">target architecture</a> has a set of features that may be enabled. It is an
 error to specify a feature for a target architecture that the crate is not
 being compiled for.</p>
+<div class="rule" id="r-attributes.codegen.target_feature.closures"><a class="rule-link" href="attributes/codegen.html#r-attributes.codegen.target_feature.closures" title="attributes.codegen.target_feature.closures"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.closures]<span/></a></div>
+<p>Closures defined within a <code>target_feature</code>-annotated function inherit the
+attribute from the enclosing function.</p>
 <div class="rule" id="r-attributes.codegen.target_feature.target-ub"><a class="rule-link" href="attributes/codegen.html#r-attributes.codegen.target_feature.target-ub" title="attributes.codegen.target_feature.target-ub"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.target-ub]<span/></a></div>
 <p>It is <a href="attributes/../behavior-considered-undefined.html">undefined behavior</a> to call a function that is compiled with a feature
 that is not supported on the current platform the code is running on, <em>except</em>
 if the platform explicitly documents this to be safe.</p>
+<div class="rule" id="r-attributes.codegen.target_feature.safety-restrictions"><a class="rule-link" href="attributes/codegen.html#r-attributes.codegen.target_feature.safety-restrictions" title="attributes.codegen.target_feature.safety-restrictions"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.safety-restrictions]<span/></a></div>
+<p>The following restrictions apply unless otherwise specified by the platform rules below:</p>
+<ul>
+<li>Safe <code>#[target_feature]</code> functions (and closures that inherit the attribute) can only be safely called within a caller that enables all the <code>target_feature</code>s that the callee enables.
+This restriction does not apply in an <code>unsafe</code> context.</li>
+<li>Safe <code>#[target_feature]</code> functions (and closures that inherit the attribute) can only be coerced to <em>safe</em> function pointers in contexts that enable all the <code>target_feature</code>s that the coercee enables.
+This restriction does not apply to <code>unsafe</code> function pointers.</li>
+</ul>
+<p>Implicitly enabled features are included in this rule. For example an <code>sse2</code> function can call ones marked with <code>sse</code>.</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">#[cfg(target_feature = "sse2")] {
+</span>#[target_feature(enable = "sse")]
+fn foo_sse() {}
+
+fn bar() {
+    // Calling `foo_sse` here is unsafe, as we must ensure that SSE is
+    // available first, even if `sse` is enabled by default on the target
+    // platform or manually enabled as compiler flags.
+    unsafe {
+        foo_sse();
+    }
+}
+
+#[target_feature(enable = "sse")]
+fn bar_sse() {
+    // Calling `foo_sse` here is safe.
+    foo_sse();
+    || foo_sse();
+}
+
+#[target_feature(enable = "sse2")]
+fn bar_sse2() {
+    // Calling `foo_sse` here is safe because `sse2` implies `sse`.
+    foo_sse();
+}
+<span class="boring">}
+</span><span class="boring">}</span></code></pre></pre>
+<div class="rule" id="r-attributes.codegen.target_feature.fn-traits"><a class="rule-link" href="attributes/codegen.html#r-attributes.codegen.target_feature.fn-traits" title="attributes.codegen.target_feature.fn-traits"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.fn-traits]<span/></a></div>
+<p>A function with a <code>#[target_feature]</code> attribute <em>never</em> implements the <code>Fn</code> family of traits, although closures inheriting features from the enclosing function do.</p>
+<div class="rule" id="r-attributes.codegen.target_feature.allowed-positions"><a class="rule-link" href="attributes/codegen.html#r-attributes.codegen.target_feature.allowed-positions" title="attributes.codegen.target_feature.allowed-positions"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.allowed-positions]<span/></a></div>
+<p>The <code>#[target_feature]</code> attribute is not allowed on the following places:</p>
+<ul>
+<li><a href="attributes/../crates-and-source-files.html#r-crate.main">the <code>main</code> function</a></li>
+<li>a <a href="attributes/../runtime.html#r-runtime.panic_handler"><code>panic_handler</code> function</a></li>
+<li>safe trait methods</li>
+<li>safe default functions in traits</li>
+</ul>
 <div class="rule" id="r-attributes.codegen.target_feature.inline"><a class="rule-link" href="attributes/codegen.html#r-attributes.codegen.target_feature.inline" title="attributes.codegen.target_feature.inline"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.inline]<span/></a></div>
 <p>Functions marked with <code>target_feature</code> are not inlined into a context that
 does not support the given features. The <code>#[inline(always)]</code> attribute may not
@@ -7957,8 +8008,8 @@ be used with a <code>target_feature</code> attribute.</p>
 <div class="rule" id="r-attributes.codegen.target_feature.x86"><a class="rule-link" href="attributes/codegen.html#r-attributes.codegen.target_feature.x86" title="attributes.codegen.target_feature.x86"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.x86]<span/></a></div>
 <h4 id="x86-or-x86_64"><a class="header" href="#x86-or-x86_64"><code>x86</code> or <code>x86_64</code></a></h4>
 <p>Executing code with unsupported features is undefined behavior on this platform.
-Hence this platform requires that <code>#[target_feature]</code> is only applied to <a href="attributes/../unsafe-keyword.html"><code>unsafe</code>
-functions</a>.</p>
+Hence on this platform usage of <code>#[target_feature]</code> functions follows the
+<a href="attributes/codegen.html#r-attributes.codegen.target_feature.safety-restrictions">above restrictions</a>.</p>
 <div class="table-wrapper"><table><thead><tr><th>Feature</th><th>Implicitly Enables</th><th>Description</th></tr></thead><tbody>
 <tr><td><code>adx</code></td><td></td><td><a href="https://en.wikipedia.org/wiki/Intel_ADX">ADX</a> — Multi-Precision Add-Carry Instruction Extensions</td></tr>
 <tr><td><code>aes</code></td><td><code>sse2</code></td><td><a href="https://en.wikipedia.org/wiki/AES_instruction_set">AES</a> — Advanced Encryption Standard</td></tr>
@@ -7991,8 +8042,8 @@ functions</a>.</p>
 </div><!-- Keep links near each table to make it easier to move and update. -->
 <div class="rule" id="r-attributes.codegen.target_feature.aarch64"><a class="rule-link" href="attributes/codegen.html#r-attributes.codegen.target_feature.aarch64" title="attributes.codegen.target_feature.aarch64"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.aarch64]<span/></a></div>
 <h4 id="aarch64"><a class="header" href="#aarch64"><code>aarch64</code></a></h4>
-<p>This platform requires that <code>#[target_feature]</code> is only applied to <a href="attributes/../unsafe-keyword.html"><code>unsafe</code>
-functions</a>.</p>
+<p>On this platform the usage of <code>#[target_feature]</code> functions follows the
+<a href="attributes/codegen.html#r-attributes.codegen.target_feature.safety-restrictions">above restrictions</a>.</p>
 <p>Further documentation on these features can be found in the <a href="https://developer.arm.com/documentation/ddi0487/latest">ARM Architecture
 Reference Manual</a>, or elsewhere on <a href="https://developer.arm.com">developer.arm.com</a>.</p>
 <blockquote>
@@ -8050,8 +8101,8 @@ or disabled together if used:</p>
 </tbody></table>
 </div><div class="rule" id="r-attributes.codegen.target_feature.riscv"><a class="rule-link" href="attributes/codegen.html#r-attributes.codegen.target_feature.riscv" title="attributes.codegen.target_feature.riscv"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.riscv]<span/></a></div>
 <h4 id="riscv32-or-riscv64"><a class="header" href="#riscv32-or-riscv64"><code>riscv32</code> or <code>riscv64</code></a></h4>
-<p>This platform requires that <code>#[target_feature]</code> is only applied to <a href="attributes/../unsafe-keyword.html"><code>unsafe</code>
-functions</a>.</p>
+<p>On this platform the usage of <code>#[target_feature]</code> functions follows the
+<a href="attributes/codegen.html#r-attributes.codegen.target_feature.safety-restrictions">above restrictions</a>.</p>
 <p>Further documentation on these features can be found in their respective
 specification. Many specifications are described in the <a href="https://github.com/riscv/riscv-isa-manual">RISC-V ISA Manual</a> or
 in another manual hosted on the <a href="https://github.com/riscv">RISC-V GitHub Account</a>.</p>
@@ -8081,12 +8132,11 @@ in another manual hosted on the <a href="https://github.com/riscv">RISC-V GitHub
 </div><!-- Keep links near each table to make it easier to move and update. -->
 <div class="rule" id="r-attributes.codegen.target_feature.wasm"><a class="rule-link" href="attributes/codegen.html#r-attributes.codegen.target_feature.wasm" title="attributes.codegen.target_feature.wasm"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.wasm]<span/></a></div>
 <h4 id="wasm32-or-wasm64"><a class="header" href="#wasm32-or-wasm64"><code>wasm32</code> or <code>wasm64</code></a></h4>
-<p><code>#[target_feature]</code> may be used with both safe and
-<a href="attributes/../unsafe-keyword.html"><code>unsafe</code> functions</a> on Wasm platforms. It is impossible to
-cause undefined behavior via the <code>#[target_feature]</code> attribute because
-attempting to use instructions unsupported by the Wasm engine will fail at load
-time without the risk of being interpreted in a way different from what the
-compiler expected.</p>
+<p>Safe <code>#[target_feature]</code> functions may always be used in safe contexts on Wasm
+platforms. It is impossible to cause undefined behavior via the
+<code>#[target_feature]</code> attribute because attempting to use instructions
+unsupported by the Wasm engine will fail at load time without the risk of being
+interpreted in a way different from what the compiler expected.</p>
 <div class="table-wrapper"><table><thead><tr><th>Feature</th><th>Implicitly Enables</th><th>Description</th></tr></thead><tbody>
 <tr><td><code>bulk-memory</code></td><td></td><td><a href="https://github.com/WebAssembly/bulk-memory-operations">WebAssembly bulk memory operations proposal</a></td></tr>
 <tr><td><code>extended-const</code></td><td></td><td><a href="https://github.com/WebAssembly/extended-const">WebAssembly extended const expressions proposal</a></td></tr>
@@ -12691,7 +12741,6 @@ assert_eq!(a, b);
       | <code>ref</code><sup>?</sup> <code>mut</code><sup>?</sup> <a href="identifiers.html">IDENTIFIER</a><br />
    )</p>
 <p><em>StructPatternEtCetera</em> :<br />
-   <a href="attributes.html"><em>OuterAttribute</em></a> <sup>*</sup><br />
    <code>..</code></p>
 </blockquote>
 <div class="rule" id="r-patterns.struct.intro"><a class="rule-link" href="patterns.html#r-patterns.struct.intro" title="patterns.struct.intro"><span>[patterns<wbr>.struct<wbr>.intro]<span/></a></div>
@@ -16979,7 +17028,9 @@ introduced by compiler options and extensions:</p>
 <div class="rule" id="r-names.implicit.root"><a class="rule-link" href="names.html#r-names.implicit.root" title="names.implicit.root"><span>[names<wbr>.implicit<wbr>.root]<span/></a></div>
 <p>Additionally, the crate root module does not have a name, but can be referred
 to with certain <a href="paths.html#path-qualifiers">path qualifiers</a> or aliases.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="namespaces"><a class="header" href="#namespaces">Namespaces</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><div class="rule" id="r-names.namespaces"><a class="rule-link" href="names/namespaces.html#r-names.namespaces" title="names.namespaces"><span>[names<wbr>.namespaces]<span/></a></div>
+<h1 id="namespaces"><a class="header" href="#namespaces">Namespaces</a></h1>
+<div class="rule" id="r-names.namespaces.intro"><a class="rule-link" href="names/namespaces.html#r-names.namespaces.intro" title="names.namespaces.intro"><span>[names<wbr>.namespaces<wbr>.intro]<span/></a></div>
 <p>A <em>namespace</em> is a logical grouping of declared <a href="names/../names.html">names</a>. Names are segregated
 into separate namespaces based on the kind of entity the name refers to.
 Namespaces allow the occurrence of a name in one namespace to not conflict
@@ -16988,6 +17039,7 @@ with the same name in another namespace.</p>
 entities. The usage of a name will look for the declaration of that name in
 different namespaces, based on the context, as described in the <a href="names/name-resolution.html">name
 resolution</a> chapter.</p>
+<div class="rule" id="r-names.namespaces.kinds"><a class="rule-link" href="names/namespaces.html#r-names.namespaces.kinds" title="names.namespaces.kinds"><span>[names<wbr>.namespaces<wbr>.kinds]<span/></a></div>
 <p>The following is a list of namespaces, with their corresponding entities:</p>
 <ul>
 <li>Type Namespace
@@ -17073,56 +17125,92 @@ fn example&lt;'Foo&gt;(f: Foo) {
     }
 }
 <span class="boring">}</span></code></pre></pre>
+<div class="rule" id="r-names.namespaces.without"><a class="rule-link" href="names/namespaces.html#r-names.namespaces.without" title="names.namespaces.without"><span>[names<wbr>.namespaces<wbr>.without]<span/></a></div>
 <h2 id="named-entities-without-a-namespace"><a class="header" href="#named-entities-without-a-namespace">Named entities without a namespace</a></h2>
 <p>The following entities have explicit names, but the names are not a part of
 any specific namespace.</p>
 <h3 id="fields"><a class="header" href="#fields">Fields</a></h3>
+<div class="rule" id="r-names.namespaces.without.fields"><a class="rule-link" href="names/namespaces.html#r-names.namespaces.without.fields" title="names.namespaces.without.fields"><span>[names<wbr>.namespaces<wbr>.without<wbr>.fields]<span/></a></div>
 <p>Even though struct, enum, and union fields are named, the named fields do not
 live in an explicit namespace. They can only be accessed via a <a href="names/../expressions/field-expr.html">field
 expression</a>, which only inspects the field names of the specific type being
 accessed.</p>
 <h3 id="use-declarations-1"><a class="header" href="#use-declarations-1">Use declarations</a></h3>
+<div class="rule" id="r-names.namespaces.without.use"><a class="rule-link" href="names/namespaces.html#r-names.namespaces.without.use" title="names.namespaces.without.use"><span>[names<wbr>.namespaces<wbr>.without<wbr>.use]<span/></a></div>
 <p>A <a href="names/../items/use-declarations.html">use declaration</a> has named aliases that it imports into scope, but the
 <code>use</code> item itself does not belong to a specific namespace. Instead, it can
 introduce aliases into multiple namespaces, depending on the item kind being
 imported.</p>
+<div class="rule" id="r-names.namespaces.sub-namespaces"><a class="rule-link" href="names/namespaces.html#r-names.namespaces.sub-namespaces" title="names.namespaces.sub-namespaces"><span>[names<wbr>.namespaces<wbr>.sub-namespaces]<span/></a></div>
 <h2 id="sub-namespaces"><a class="header" href="#sub-namespaces">Sub-namespaces</a></h2>
+<div class="rule" id="r-names.namespaces.sub-namespaces.intro"><a class="rule-link" href="names/namespaces.html#r-names.namespaces.sub-namespaces.intro" title="names.namespaces.sub-namespaces.intro"><span>[names<wbr>.namespaces<wbr>.sub-namespaces<wbr>.intro]<span/></a></div>
 <p>The macro namespace is split into two sub-namespaces: one for <a href="names/../macros.html">bang-style macros</a> and one for <a href="names/../attributes.html">attributes</a>.
 When an attribute is resolved, any bang-style macros in scope will be ignored.
 And conversely resolving a bang-style macro will ignore attribute macros in scope.
 This prevents one style from shadowing another.</p>
 <p>For example, the <a href="names/../conditional-compilation.html#the-cfg-attribute"><code>cfg</code> attribute</a> and the <a href="names/../conditional-compilation.html#the-cfg-macro"><code>cfg</code> macro</a> are two different entities with the same name in the macro namespace, but they can still be used in their respective context.</p>
+<div class="rule" id="r-names.namespaces.sub-namespaces.use-shadow"><a class="rule-link" href="names/namespaces.html#r-names.namespaces.sub-namespaces.use-shadow" title="names.namespaces.sub-namespaces.use-shadow"><span>[names<wbr>.namespaces<wbr>.sub-namespaces<wbr>.use-shadow]<span/></a></div>
 <p>It is still an error for a <a href="names/../items/use-declarations.html"><code>use</code> import</a> to shadow another macro, regardless of their sub-namespaces.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="scopes"><a class="header" href="#scopes">Scopes</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><div class="rule" id="r-names.scopes"><a class="rule-link" href="names/scopes.html#r-names.scopes" title="names.scopes"><span>[names<wbr>.scopes]<span/></a></div>
+<h1 id="scopes"><a class="header" href="#scopes">Scopes</a></h1>
+<div class="rule" id="r-names.scopes.intro"><a class="rule-link" href="names/scopes.html#r-names.scopes.intro" title="names.scopes.intro"><span>[names<wbr>.scopes<wbr>.intro]<span/></a></div>
 <p>A <em>scope</em> is the region of source text where a named <a href="names/../names.html">entity</a> may be referenced with that name.
 The following sections provide details on the scoping rules and behavior, which depend on the kind of entity and where it is declared.
 The process of how names are resolved to entities is described in the <a href="names/name-resolution.html">name resolution</a> chapter.
 More information on “drop scopes” used for the purpose of running destructors may be found in the <a href="names/../destructors.html">destructors</a> chapter.</p>
+<div class="rule" id="r-names.scopes.items"><a class="rule-link" href="names/scopes.html#r-names.scopes.items" title="names.scopes.items"><span>[names<wbr>.scopes<wbr>.items]<span/></a></div>
 <h2 id="item-scopes"><a class="header" href="#item-scopes">Item scopes</a></h2>
+<div class="rule" id="r-names.scopes.items.module"><a class="rule-link" href="names/scopes.html#r-names.scopes.items.module" title="names.scopes.items.module"><span>[names<wbr>.scopes<wbr>.items<wbr>.module]<span/></a></div>
 <p>The name of an <a href="names/../items.html">item</a> declared directly in a <a href="names/../items/modules.html">module</a> has a scope that extends from the start of the module to the end of the module. These items are also members of the module and can be referred to with a <a href="names/../paths.html">path</a> leading from their module.</p>
+<div class="rule" id="r-names.scopes.items.statement"><a class="rule-link" href="names/scopes.html#r-names.scopes.items.statement" title="names.scopes.items.statement"><span>[names<wbr>.scopes<wbr>.items<wbr>.statement]<span/></a></div>
 <p>The name of an item declared as a <a href="names/../statements.html">statement</a> has a scope that extends from the start of the block the item statement is in until the end of the block.</p>
+<div class="rule" id="r-names.scopes.items.duplicate"><a class="rule-link" href="names/scopes.html#r-names.scopes.items.duplicate" title="names.scopes.items.duplicate"><span>[names<wbr>.scopes<wbr>.items<wbr>.duplicate]<span/></a></div>
 <p>It is an error to introduce an item with a duplicate name of another item in the same <a href="names/namespaces.html">namespace</a> within the same module or block.
-<a href="names/../items/use-declarations.html">Asterisk glob imports</a> have special behavior for dealing with duplicate names and shadowing, see the linked chapter for more details.
-Items in a module may shadow items in a <a href="names/scopes.html#prelude-scopes">prelude</a>.</p>
+<a href="names/../items/use-declarations.html">Asterisk glob imports</a> have special behavior for dealing with duplicate names and shadowing, see the linked chapter for more details.</p>
+<div class="rule" id="r-names.scopes.items.shadow-prelude"><a class="rule-link" href="names/scopes.html#r-names.scopes.items.shadow-prelude" title="names.scopes.items.shadow-prelude"><span>[names<wbr>.scopes<wbr>.items<wbr>.shadow-prelude]<span/></a></div>
+<p>Items in a module may shadow items in a <a href="names/scopes.html#prelude-scopes">prelude</a>.</p>
+<div class="rule" id="r-names.scopes.items.nested-modules"><a class="rule-link" href="names/scopes.html#r-names.scopes.items.nested-modules" title="names.scopes.items.nested-modules"><span>[names<wbr>.scopes<wbr>.items<wbr>.nested-modules]<span/></a></div>
 <p>Item names from outer modules are not in scope within a nested module.
 A <a href="names/../paths.html">path</a> may be used to refer to an item in another module.</p>
+<div class="rule" id="r-names.scopes.associated-items"><a class="rule-link" href="names/scopes.html#r-names.scopes.associated-items" title="names.scopes.associated-items"><span>[names<wbr>.scopes<wbr>.associated-items]<span/></a></div>
 <h3 id="associated-item-scopes"><a class="header" href="#associated-item-scopes">Associated item scopes</a></h3>
+<div class="rule" id="r-names.scopes.associated-items.scope"><a class="rule-link" href="names/scopes.html#r-names.scopes.associated-items.scope" title="names.scopes.associated-items.scope"><span>[names<wbr>.scopes<wbr>.associated-items<wbr>.scope]<span/></a></div>
 <p><a href="names/../items/associated-items.html">Associated items</a> are not scoped and can only be referred to by using a <a href="names/../paths.html">path</a> leading from the type or trait they are associated with.
 <a href="names/../items/associated-items.html#methods">Methods</a> can also be referred to via <a href="names/../expressions/call-expr.html">call expressions</a>.</p>
+<div class="rule" id="r-names.scopes.associated-items.duplicate"><a class="rule-link" href="names/scopes.html#r-names.scopes.associated-items.duplicate" title="names.scopes.associated-items.duplicate"><span>[names<wbr>.scopes<wbr>.associated-items<wbr>.duplicate]<span/></a></div>
 <p>Similar to items within a module or block,  it is an error to introduce an item within a trait or implementation that is a duplicate of another item in the trait or impl in the same namespace.</p>
+<div class="rule" id="r-names.scopes.pattern-bindings"><a class="rule-link" href="names/scopes.html#r-names.scopes.pattern-bindings" title="names.scopes.pattern-bindings"><span>[names<wbr>.scopes<wbr>.pattern-bindings]<span/></a></div>
 <h2 id="pattern-binding-scopes"><a class="header" href="#pattern-binding-scopes">Pattern binding scopes</a></h2>
 <p>The scope of a local variable <a href="names/../patterns.html">pattern</a> binding depends on where it is used:</p>
+<div class="rule" id="r-names.scopes.pattern-bindings.let"><a class="rule-link" href="names/scopes.html#r-names.scopes.pattern-bindings.let" title="names.scopes.pattern-bindings.let"><span>[names<wbr>.scopes<wbr>.pattern-bindings<wbr>.let]<span/></a></div>
 <ul>
 <li><a href="names/../statements.html#let-statements"><code>let</code> statement</a> bindings range from just after the <code>let</code> statement until the end of the block where it is declared.</li>
+</ul>
+<div class="rule" id="r-names.scopes.pattern-bindings.parameter"><a class="rule-link" href="names/scopes.html#r-names.scopes.pattern-bindings.parameter" title="names.scopes.pattern-bindings.parameter"><span>[names<wbr>.scopes<wbr>.pattern-bindings<wbr>.parameter]<span/></a></div>
+<ul>
 <li><a href="names/../items/functions.html#function-parameters">Function parameter</a> bindings are within the body of the function.</li>
+</ul>
+<div class="rule" id="r-names.scopes.pattern-bindings.closure"><a class="rule-link" href="names/scopes.html#r-names.scopes.pattern-bindings.closure" title="names.scopes.pattern-bindings.closure"><span>[names<wbr>.scopes<wbr>.pattern-bindings<wbr>.closure]<span/></a></div>
+<ul>
 <li><a href="names/../expressions/closure-expr.html">Closure parameter</a> bindings are within the closure body.</li>
+</ul>
+<div class="rule" id="r-names.scopes.pattern-bindings.loop"><a class="rule-link" href="names/scopes.html#r-names.scopes.pattern-bindings.loop" title="names.scopes.pattern-bindings.loop"><span>[names<wbr>.scopes<wbr>.pattern-bindings<wbr>.loop]<span/></a></div>
+<ul>
 <li><a href="names/../expressions/loop-expr.html#iterator-loops"><code>for</code></a> and <a href="names/../expressions/loop-expr.html#predicate-pattern-loops"><code>while let</code></a> bindings are within the loop body.</li>
+</ul>
+<div class="rule" id="r-names.scopes.pattern-bindings.if-let"><a class="rule-link" href="names/scopes.html#r-names.scopes.pattern-bindings.if-let" title="names.scopes.pattern-bindings.if-let"><span>[names<wbr>.scopes<wbr>.pattern-bindings<wbr>.if-let]<span/></a></div>
+<ul>
 <li><a href="names/../expressions/if-expr.html#if-let-expressions"><code>if let</code></a> bindings are within the consequent block.</li>
+</ul>
+<div class="rule" id="r-names.scopes.pattern-bindings.match-arm"><a class="rule-link" href="names/scopes.html#r-names.scopes.pattern-bindings.match-arm" title="names.scopes.pattern-bindings.match-arm"><span>[names<wbr>.scopes<wbr>.pattern-bindings<wbr>.match-arm]<span/></a></div>
+<ul>
 <li><a href="names/../expressions/match-expr.html"><code>match</code> arms</a> bindings are within the <a href="names/../expressions/match-expr.html#match-guards">match guard</a> and the match arm expression.</li>
 </ul>
+<div class="rule" id="r-names.scopes.pattern-bindings.items"><a class="rule-link" href="names/scopes.html#r-names.scopes.pattern-bindings.items" title="names.scopes.pattern-bindings.items"><span>[names<wbr>.scopes<wbr>.pattern-bindings<wbr>.items]<span/></a></div>
 <p>Local variable scopes do not extend into item declarations.</p>
 <!-- Not entirely, see https://github.com/rust-lang/rust/issues/33118 -->
 <h3 id="pattern-binding-shadowing"><a class="header" href="#pattern-binding-shadowing">Pattern binding shadowing</a></h3>
+<div class="rule" id="r-names.scopes.pattern-bindings.shadow"><a class="rule-link" href="names/scopes.html#r-names.scopes.pattern-bindings.shadow" title="names.scopes.pattern-bindings.shadow"><span>[names<wbr>.scopes<wbr>.pattern-bindings<wbr>.shadow]<span/></a></div>
 <p>Pattern bindings are allowed to shadow any name in scope with the following exceptions which are an error:</p>
 <ul>
 <li><a href="names/../items/generics.html#const-generics">Const generic parameters</a></li>
@@ -17142,9 +17230,12 @@ A <a href="names/../paths.html">path</a> may be used to refer to an item in anot
     foo(); // prints `closure`
 }
 <span class="boring">}</span></code></pre></pre>
+<div class="rule" id="r-names.scopes.generic-parameters"><a class="rule-link" href="names/scopes.html#r-names.scopes.generic-parameters" title="names.scopes.generic-parameters"><span>[names<wbr>.scopes<wbr>.generic-parameters]<span/></a></div>
 <h2 id="generic-parameter-scopes"><a class="header" href="#generic-parameter-scopes">Generic parameter scopes</a></h2>
+<div class="rule" id="r-names.scopes.generic-parameters.param-list"><a class="rule-link" href="names/scopes.html#r-names.scopes.generic-parameters.param-list" title="names.scopes.generic-parameters.param-list"><span>[names<wbr>.scopes<wbr>.generic-parameters<wbr>.param-list]<span/></a></div>
 <p>Generic parameters are declared in a <a href="names/../items/generics.html"><em>GenericParams</em></a> list.
 The scope of a generic parameter is within the item it is declared on.</p>
+<div class="rule" id="r-names.scopes.generic-parameters.order-independent"><a class="rule-link" href="names/scopes.html#r-names.scopes.generic-parameters.order-independent" title="names.scopes.generic-parameters.order-independent"><span>[names<wbr>.scopes<wbr>.generic-parameters<wbr>.order-independent]<span/></a></div>
 <p>All parameters are in scope within the generic parameter list regardless of the order they are declared.
 The following shows some examples where a parameter may be referenced before it is declared:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
@@ -17156,6 +17247,7 @@ fn params_scope&lt;'a: 'b, 'b&gt;() {}
 </span>// The const N is referenced in the trait bound before it is declared.
 fn f&lt;T: SomeTrait&lt;N&gt;, const N: usize&gt;() {}
 <span class="boring">}</span></code></pre></pre>
+<div class="rule" id="r-names.scopes.generic-parameters.bounds"><a class="rule-link" href="names/scopes.html#r-names.scopes.generic-parameters.bounds" title="names.scopes.generic-parameters.bounds"><span>[names<wbr>.scopes<wbr>.generic-parameters<wbr>.bounds]<span/></a></div>
 <p>Generic parameters are also in scope for type bounds and where clauses, for example:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -17167,6 +17259,7 @@ fn where_scope&lt;'a, T, U&gt;()
     where T: SomeTrait&lt;'a, U&gt;
 {}
 <span class="boring">}</span></code></pre></pre>
+<div class="rule" id="r-names.scopes.generic-parameters.inner-items"><a class="rule-link" href="names/scopes.html#r-names.scopes.generic-parameters.inner-items" title="names.scopes.generic-parameters.inner-items"><span>[names<wbr>.scopes<wbr>.generic-parameters<wbr>.inner-items]<span/></a></div>
 <p>It is an error for <a href="names/../items.html">items</a> declared inside a function to refer to a generic parameter from their outer scope.</p>
 <pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -17175,6 +17268,7 @@ fn where_scope&lt;'a, T, U&gt;()
 }
 <span class="boring">}</span></code></pre></pre>
 <h3 id="generic-parameter-shadowing"><a class="header" href="#generic-parameter-shadowing">Generic parameter shadowing</a></h3>
+<div class="rule" id="r-names.scopes.generic-parameters.shadow"><a class="rule-link" href="names/scopes.html#r-names.scopes.generic-parameters.shadow" title="names.scopes.generic-parameters.shadow"><span>[names<wbr>.scopes<wbr>.generic-parameters<wbr>.shadow]<span/></a></div>
 <p>It is an error to shadow a generic parameter with the exception that items declared within functions are allowed to shadow generic parameter names from the function.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -17194,13 +17288,17 @@ fn where_scope&lt;'a, T, U&gt;()
     fn example_mixed&lt;const T: usize&gt;() {} // ERROR: T is already in use
 }
 <span class="boring">}</span></code></pre></pre>
+<div class="rule" id="r-names.scopes.lifetimes"><a class="rule-link" href="names/scopes.html#r-names.scopes.lifetimes" title="names.scopes.lifetimes"><span>[names<wbr>.scopes<wbr>.lifetimes]<span/></a></div>
 <h3 id="lifetime-scopes"><a class="header" href="#lifetime-scopes">Lifetime scopes</a></h3>
 <p>Lifetime parameters are declared in a <a href="names/../items/generics.html"><em>GenericParams</em></a> list and <a href="names/../trait-bounds.html#higher-ranked-trait-bounds">higher-ranked trait bounds</a>.</p>
+<div class="rule" id="r-names.scopes.lifetimes.special"><a class="rule-link" href="names/scopes.html#r-names.scopes.lifetimes.special" title="names.scopes.lifetimes.special"><span>[names<wbr>.scopes<wbr>.lifetimes<wbr>.special]<span/></a></div>
 <p>The <code>'static</code> lifetime and <a href="names/../lifetime-elision.html">placeholder lifetime</a> <code>'_</code> have a special meaning and cannot be declared as a parameter.</p>
 <h4 id="lifetime-generic-parameter-scopes"><a class="header" href="#lifetime-generic-parameter-scopes">Lifetime generic parameter scopes</a></h4>
+<div class="rule" id="r-names.scopes.lifetimes.generic"><a class="rule-link" href="names/scopes.html#r-names.scopes.lifetimes.generic" title="names.scopes.lifetimes.generic"><span>[names<wbr>.scopes<wbr>.lifetimes<wbr>.generic]<span/></a></div>
 <p><a href="names/../items/constant-items.html">Constant</a> and <a href="names/../items/static-items.html">static</a> items and <a href="names/../const_eval.html#const-context">const contexts</a> only ever allow <code>'static</code> lifetime references, so no other lifetime may be in scope within them.
 <a href="names/../items/associated-items.html#associated-constants">Associated consts</a> do allow referring to lifetimes declared in their trait or implementation.</p>
 <h4 id="higher-ranked-trait-bound-scopes"><a class="header" href="#higher-ranked-trait-bound-scopes">Higher-ranked trait bound scopes</a></h4>
+<div class="rule" id="r-names.scopes.lifetimes.higher-ranked"><a class="rule-link" href="names/scopes.html#r-names.scopes.lifetimes.higher-ranked" title="names.scopes.lifetimes.higher-ranked"><span>[names<wbr>.scopes<wbr>.lifetimes<wbr>.higher-ranked]<span/></a></div>
 <p>The scope of a lifetime parameter declared as a <a href="names/../trait-bounds.html#higher-ranked-trait-bounds">higher-ranked trait bound</a> depends on the scenario where it is used.</p>
 <ul>
 <li>As a <a href="names/../items/generics.html"><em>TypeBoundWhereClauseItem</em></a> the declared lifetimes are in scope in the type and the type bounds.</li>
@@ -17229,6 +17327,7 @@ fn bound&lt;T&gt;()
 type FnExample = for&lt;'a&gt; fn(x: Example&lt;'a&gt;) -&gt; Example&lt;'a&gt;;
 <span class="boring">}</span></code></pre></pre>
 <h4 id="impl-trait-restrictions"><a class="header" href="#impl-trait-restrictions">Impl trait restrictions</a></h4>
+<div class="rule" id="r-names.scopes.lifetimes.impl-trait"><a class="rule-link" href="names/scopes.html#r-names.scopes.lifetimes.impl-trait" title="names.scopes.lifetimes.impl-trait"><span>[names<wbr>.scopes<wbr>.lifetimes<wbr>.impl-trait]<span/></a></div>
 <p><a href="names/../types/impl-trait.html">Impl trait</a> types can only reference lifetimes declared on a function or implementation.</p>
 <!-- not able to demonstrate the scope error because the compiler panics
      https://github.com/rust-lang/rust/issues/67830
@@ -17256,7 +17355,9 @@ fn foo&lt;'a&gt;() -&gt; impl for&lt;'b&gt; Trait1&lt;Item = impl Trait2&lt;'a&g
 <span class="boring">   Example
 </span>}
 <span class="boring">}</span></code></pre></pre>
+<div class="rule" id="r-names.scopes.loop-label"><a class="rule-link" href="names/scopes.html#r-names.scopes.loop-label" title="names.scopes.loop-label"><span>[names<wbr>.scopes<wbr>.loop-label]<span/></a></div>
 <h2 id="loop-label-scopes"><a class="header" href="#loop-label-scopes">Loop label scopes</a></h2>
+<div class="rule" id="r-names.scopes.loop-label.scope"><a class="rule-link" href="names/scopes.html#r-names.scopes.loop-label.scope" title="names.scopes.loop-label.scope"><span>[names<wbr>.scopes<wbr>.loop-label<wbr>.scope]<span/></a></div>
 <p><a href="names/../expressions/loop-expr.html#loop-labels">Loop labels</a> may be declared by a <a href="names/../expressions/loop-expr.html">loop expression</a>.
 The scope of a loop label is from the point it is declared till the end of the loop expression.
 The scope does not extend into <a href="names/../items.html">items</a>, <a href="names/../expressions/closure-expr.html">closures</a>, <a href="names/../expressions/block-expr.html#async-blocks">async blocks</a>, <a href="names/../items/generics.html#const-generics">const arguments</a>, <a href="names/../const_eval.html#const-context">const contexts</a>, and the iterator expression of the defining <a href="names/../expressions/loop-expr.html#iterator-loops"><code>for</code> loop</a>.</p>
@@ -17287,6 +17388,7 @@ The scope does not extend into <a href="names/../items.html">items</a>, <a href=
 }
 
 <span class="boring">}</span></code></pre></pre>
+<div class="rule" id="r-names.scopes.loop-label.shadow"><a class="rule-link" href="names/scopes.html#r-names.scopes.loop-label.shadow" title="names.scopes.loop-label.shadow"><span>[names<wbr>.scopes<wbr>.loop-label<wbr>.shadow]<span/></a></div>
 <p>Loop labels may shadow labels of the same name in outer scopes.
 References to a label refer to the closest definition.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
@@ -17299,10 +17401,14 @@ References to a label refer to the closest definition.</p>
     }
 }
 <span class="boring">}</span></code></pre></pre>
+<div class="rule" id="r-names.scopes.prelude"><a class="rule-link" href="names/scopes.html#r-names.scopes.prelude" title="names.scopes.prelude"><span>[names<wbr>.scopes<wbr>.prelude]<span/></a></div>
 <h2 id="prelude-scopes"><a class="header" href="#prelude-scopes">Prelude scopes</a></h2>
+<div class="rule" id="r-names.scopes.prelude.intro"><a class="rule-link" href="names/scopes.html#r-names.scopes.prelude.intro" title="names.scopes.prelude.intro"><span>[names<wbr>.scopes<wbr>.prelude<wbr>.intro]<span/></a></div>
 <p><a href="names/preludes.html">Preludes</a> bring entities into scope of every module.
-The entities are not members of the module, but are implicitly queried during <a href="names/name-resolution.html">name resolution</a>.
-The prelude names may be shadowed by declarations in a module.</p>
+The entities are not members of the module, but are implicitly queried during <a href="names/name-resolution.html">name resolution</a>.</p>
+<div class="rule" id="r-names.scopes.prelude.shadow"><a class="rule-link" href="names/scopes.html#r-names.scopes.prelude.shadow" title="names.scopes.prelude.shadow"><span>[names<wbr>.scopes<wbr>.prelude<wbr>.shadow]<span/></a></div>
+<p>The prelude names may be shadowed by declarations in a module.</p>
+<div class="rule" id="r-names.scopes.prelude.layers"><a class="rule-link" href="names/scopes.html#r-names.scopes.prelude.layers" title="names.scopes.prelude.layers"><span>[names<wbr>.scopes<wbr>.prelude<wbr>.layers]<span/></a></div>
 <p>The preludes are layered such that one shadows another if they contain entities of the same name.
 The order that preludes may shadow other preludes is the following where earlier entries may shadow later ones:</p>
 <ol>
@@ -17312,16 +17418,24 @@ The order that preludes may shadow other preludes is the following where earlier
 <li><a href="names/preludes.html#standard-library-prelude">Standard library prelude</a></li>
 <li><a href="names/preludes.html#language-prelude">Language prelude</a></li>
 </ol>
+<div class="rule" id="r-names.scopes.macro_rules"><a class="rule-link" href="names/scopes.html#r-names.scopes.macro_rules" title="names.scopes.macro_rules"><span>[names<wbr>.scopes<wbr>.macro_rules]<span/></a></div>
 <h2 id="macro_rules-scopes"><a class="header" href="#macro_rules-scopes"><code>macro_rules</code> scopes</a></h2>
 <p>The scope of <code>macro_rules</code> macros is described in the <a href="names/../macros-by-example.html">Macros By Example</a> chapter.
 The behavior depends on the use of the <a href="names/../macros-by-example.html#the-macro_use-attribute"><code>macro_use</code></a> and <a href="names/../macros-by-example.html#path-based-scope"><code>macro_export</code></a> attributes.</p>
+<div class="rule" id="r-names.scopes.derive"><a class="rule-link" href="names/scopes.html#r-names.scopes.derive" title="names.scopes.derive"><span>[names<wbr>.scopes<wbr>.derive]<span/></a></div>
 <h2 id="derive-macro-helper-attributes-1"><a class="header" href="#derive-macro-helper-attributes-1">Derive macro helper attributes</a></h2>
+<div class="rule" id="r-names.scopes.derive.scope"><a class="rule-link" href="names/scopes.html#r-names.scopes.derive.scope" title="names.scopes.derive.scope"><span>[names<wbr>.scopes<wbr>.derive<wbr>.scope]<span/></a></div>
 <p><a href="names/../procedural-macros.html#derive-macro-helper-attributes">Derive macro helper attributes</a> are in scope in the item where their corresponding <a href="names/../attributes/derive.html"><code>derive</code> attribute</a> is specified.
-The scope extends from just after the <code>derive</code> attribute to the end of the item. <!-- Note: Not strictly true, see https://github.com/rust-lang/rust/issues/79202, but this is the intention. -->
-Helper attributes shadow other attributes of the same name in scope.</p>
+The scope extends from just after the <code>derive</code> attribute to the end of the item. <!-- Note: Not strictly true, see https://github.com/rust-lang/rust/issues/79202, but this is the intention. --></p>
+<div class="rule" id="r-names.scopes.derive.shadow"><a class="rule-link" href="names/scopes.html#r-names.scopes.derive.shadow" title="names.scopes.derive.shadow"><span>[names<wbr>.scopes<wbr>.derive<wbr>.shadow]<span/></a></div>
+<p>Helper attributes shadow other attributes of the same name in scope.</p>
+<div class="rule" id="r-names.scopes.self"><a class="rule-link" href="names/scopes.html#r-names.scopes.self" title="names.scopes.self"><span>[names<wbr>.scopes<wbr>.self]<span/></a></div>
 <h2 id="self-scope"><a class="header" href="#self-scope"><code>Self</code> scope</a></h2>
+<div class="rule" id="r-names.scopes.self.intro"><a class="rule-link" href="names/scopes.html#r-names.scopes.self.intro" title="names.scopes.self.intro"><span>[names<wbr>.scopes<wbr>.self<wbr>.intro]<span/></a></div>
 <p>Although <a href="names/../paths.html#self-1"><code>Self</code></a> is a keyword with special meaning, it interacts with name resolution in a way similar to normal names.</p>
+<div class="rule" id="r-names.scopes.self.def-scope"><a class="rule-link" href="names/scopes.html#r-names.scopes.self.def-scope" title="names.scopes.self.def-scope"><span>[names<wbr>.scopes<wbr>.self<wbr>.def-scope]<span/></a></div>
 <p>The implicit <code>Self</code> type in the definition of a <a href="names/../items/structs.html">struct</a>, <a href="names/../items/enumerations.html">enum</a>, <a href="names/../items/unions.html">union</a>, <a href="names/../items/traits.html">trait</a>, or <a href="names/../items/implementations.html">implementation</a> is treated similarly to a <a href="names/scopes.html#generic-parameter-scopes">generic parameter</a>, and is in scope in the same way as a generic type parameter.</p>
+<div class="rule" id="r-names.scopes.self.impl-scope"><a class="rule-link" href="names/scopes.html#r-names.scopes.self.impl-scope" title="names.scopes.self.impl-scope"><span>[names<wbr>.scopes<wbr>.self<wbr>.impl-scope]<span/></a></div>
 <p>The implicit <code>Self</code> constructor in the value <a href="names/namespaces.html">namespace</a> of an <a href="names/../items/implementations.html">implementation</a> is in scope within the body of the implementation (the implementation’s <a href="names/../items/associated-items.html">associated items</a>).</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -17341,13 +17455,16 @@ impl ImplExample {
     }
 }
 <span class="boring">}</span></code></pre></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="preludes"><a class="header" href="#preludes">Preludes</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><div class="rule" id="r-names.preludes"><a class="rule-link" href="names/preludes.html#r-names.preludes" title="names.preludes"><span>[names<wbr>.preludes]<span/></a></div>
+<h1 id="preludes"><a class="header" href="#preludes">Preludes</a></h1>
+<div class="rule" id="r-names.preludes.intro"><a class="rule-link" href="names/preludes.html#r-names.preludes.intro" title="names.preludes.intro"><span>[names<wbr>.preludes<wbr>.intro]<span/></a></div>
 <p>A <em>prelude</em> is a collection of names that are automatically brought into scope
 of every module in a crate.</p>
 <p>These prelude names are not part of the module itself: they are implicitly
 queried during <a href="names/name-resolution.html">name resolution</a>. For example, even though something like
 <a href="names/../../alloc/boxed/struct.Box.html"><code>Box</code></a> is in scope in every module, you cannot refer to it as <code>self::Box</code>
 because it is not a member of the current module.</p>
+<div class="rule" id="r-names.preludes.kinds"><a class="rule-link" href="names/preludes.html#r-names.preludes.kinds" title="names.preludes.kinds"><span>[names<wbr>.preludes<wbr>.kinds]<span/></a></div>
 <p>There are several different preludes:</p>
 <ul>
 <li><a href="names/preludes.html#standard-library-prelude">Standard library prelude</a></li>
@@ -17356,9 +17473,12 @@ because it is not a member of the current module.</p>
 <li><a href="names/preludes.html#macro_use-prelude"><code>macro_use</code> prelude</a></li>
 <li><a href="names/preludes.html#tool-prelude">Tool prelude</a></li>
 </ul>
+<div class="rule" id="r-names.preludes.std"><a class="rule-link" href="names/preludes.html#r-names.preludes.std" title="names.preludes.std"><span>[names<wbr>.preludes<wbr>.std]<span/></a></div>
 <h2 id="standard-library-prelude"><a class="header" href="#standard-library-prelude">Standard library prelude</a></h2>
-<p>Each crate has a standard library prelude, which consists of the names from a single standard library module.
-The module used depends on the crate’s edition, and on whether the <a href="names/preludes.html#the-no_std-attribute"><code>no_std</code> attribute</a> is applied to the crate:</p>
+<div class="rule" id="r-names.preludes.std.intro"><a class="rule-link" href="names/preludes.html#r-names.preludes.std.intro" title="names.preludes.std.intro"><span>[names<wbr>.preludes<wbr>.std<wbr>.intro]<span/></a></div>
+<p>Each crate has a standard library prelude, which consists of the names from a single standard library module.</p>
+<div class="rule" id="r-names.preludes.std.module"><a class="rule-link" href="names/preludes.html#r-names.preludes.std.module" title="names.preludes.std.module"><span>[names<wbr>.preludes<wbr>.std<wbr>.module]<span/></a></div>
+<p>The module used depends on the crate’s edition, and on whether the <a href="names/preludes.html#the-no_std-attribute"><code>no_std</code> attribute</a> is applied to the crate:</p>
 <div class="table-wrapper"><table><thead><tr><th>Edition</th><th><code>no_std</code> not applied</th><th><code>no_std</code> applied</th></tr></thead><tbody>
 <tr><td>2015</td><td><a href="names/../../std/prelude/rust_2015/index.html"><code>std::prelude::rust_2015</code></a></td><td><a href="names/../../core/prelude/rust_2015/index.html"><code>core::prelude::rust_2015</code></a></td></tr>
 <tr><td>2018</td><td><a href="names/../../std/prelude/rust_2018/index.html"><code>std::prelude::rust_2018</code></a></td><td><a href="names/../../core/prelude/rust_2018/index.html"><code>core::prelude::rust_2018</code></a></td></tr>
@@ -17371,12 +17491,17 @@ The module used depends on the crate’s edition, and on whether the <a href="na
 <p><a href="names/../../std/prelude/rust_2015/index.html"><code>std::prelude::rust_2015</code></a> and <a href="names/../../std/prelude/rust_2018/index.html"><code>std::prelude::rust_2018</code></a> have the same contents as <a href="names/../../std/prelude/v1/index.html"><code>std::prelude::v1</code></a>.</p>
 <p><a href="names/../../core/prelude/rust_2015/index.html"><code>core::prelude::rust_2015</code></a> and <a href="names/../../core/prelude/rust_2018/index.html"><code>core::prelude::rust_2018</code></a> have the same contents as <a href="names/../../core/prelude/v1/index.html"><code>core::prelude::v1</code></a>.</p>
 </blockquote>
+<div class="rule" id="r-names.preludes.extern"><a class="rule-link" href="names/preludes.html#r-names.preludes.extern" title="names.preludes.extern"><span>[names<wbr>.preludes<wbr>.extern]<span/></a></div>
 <h2 id="extern-prelude"><a class="header" href="#extern-prelude">Extern prelude</a></h2>
+<div class="rule" id="r-names.preludes.extern.intro"><a class="rule-link" href="names/preludes.html#r-names.preludes.extern.intro" title="names.preludes.extern.intro"><span>[names<wbr>.preludes<wbr>.extern<wbr>.intro]<span/></a></div>
 <p>External crates imported with <a href="names/../items/extern-crates.html"><code>extern crate</code></a> in the root module or provided
 to the compiler (as with the <code>--extern</code> flag with <code>rustc</code>) are added to the
 <em>extern prelude</em>. If imported with an alias such as <code>extern crate orig_name as new_name</code>, then the symbol <code>new_name</code> is instead added to the prelude.</p>
-<p>The <a href="names/../../core/index.html"><code>core</code></a> crate is always added to the extern prelude. The <a href="names/../../std/index.html"><code>std</code></a> crate is
-added as long as the <a href="names/preludes.html#the-no_std-attribute"><code>no_std</code> attribute</a> is not specified in the crate root.</p>
+<div class="rule" id="r-names.preludes.extern.core"><a class="rule-link" href="names/preludes.html#r-names.preludes.extern.core" title="names.preludes.extern.core"><span>[names<wbr>.preludes<wbr>.extern<wbr>.core]<span/></a></div>
+<p>The <a href="names/../../core/index.html"><code>core</code></a> crate is always added to the extern prelude.</p>
+<div class="rule" id="r-names.preludes.extern.std"><a class="rule-link" href="names/preludes.html#r-names.preludes.extern.std" title="names.preludes.extern.std"><span>[names<wbr>.preludes<wbr>.extern<wbr>.std]<span/></a></div>
+<p>The <a href="names/../../std/index.html"><code>std</code></a> crate is added as long as the <a href="names/preludes.html#the-no_std-attribute"><code>no_std</code> attribute</a> is not specified in the crate root.</p>
+<div class="rule" id="r-names.preludes.extern.edition2018"><a class="rule-link" href="names/preludes.html#r-names.preludes.extern.edition2018" title="names.preludes.extern.edition2018"><span>[names<wbr>.preludes<wbr>.extern<wbr>.edition2018]<span/></a></div>
 <blockquote>
 <p><strong>Edition differences</strong>: In the 2015 edition, crates in the extern prelude
 cannot be referenced via <a href="names/../items/use-declarations.html">use declarations</a>, so it is generally standard
@@ -17401,17 +17526,28 @@ only.</p>
 See https://github.com/rust-lang/rust/issues/57288 for more about the
 alloc/test limitation.
 -->
+<div class="rule" id="r-names.preludes.extern.no_std"><a class="rule-link" href="names/preludes.html#r-names.preludes.extern.no_std" title="names.preludes.extern.no_std"><span>[names<wbr>.preludes<wbr>.extern<wbr>.no_std]<span/></a></div>
 <h3 id="the-no_std-attribute"><a class="header" href="#the-no_std-attribute">The <code>no_std</code> attribute</a></h3>
+<div class="rule" id="r-names.preludes.extern.no_std.intro"><a class="rule-link" href="names/preludes.html#r-names.preludes.extern.no_std.intro" title="names.preludes.extern.no_std.intro"><span>[names<wbr>.preludes<wbr>.extern<wbr>.no_std<wbr>.intro]<span/></a></div>
 <p>By default, the standard library is automatically included in the crate root
 module. The <a href="names/../../std/index.html"><code>std</code></a> crate is added to the root, along with an implicit
 <a href="names/../macros-by-example.html#the-macro_use-attribute"><code>macro_use</code> attribute</a> pulling in all macros exported from <code>std</code> into the
 <a href="names/preludes.html#macro_use-prelude"><code>macro_use</code> prelude</a>. Both <a href="names/../../core/index.html"><code>core</code></a> and <a href="names/../../std/index.html"><code>std</code></a> are added to the <a href="names/preludes.html#extern-prelude">extern
 prelude</a>.</p>
+<div class="rule" id="r-names.preludes.extern.no_std.allowed-positions"><a class="rule-link" href="names/preludes.html#r-names.preludes.extern.no_std.allowed-positions" title="names.preludes.extern.no_std.allowed-positions"><span>[names<wbr>.preludes<wbr>.extern<wbr>.no_std<wbr>.allowed-positions]<span/></a></div>
 <p>The <em><code>no_std</code> <a href="names/../attributes.html">attribute</a></em> may be applied at the crate level to prevent the
-<a href="names/../../std/index.html"><code>std</code></a> crate from being automatically added into scope. It does three things:</p>
+<a href="names/../../std/index.html"><code>std</code></a> crate from being automatically added into scope.</p>
+<p>It does three things:</p>
+<div class="rule" id="r-names.preludes.extern.no_std.extern"><a class="rule-link" href="names/preludes.html#r-names.preludes.extern.no_std.extern" title="names.preludes.extern.no_std.extern"><span>[names<wbr>.preludes<wbr>.extern<wbr>.no_std<wbr>.extern]<span/></a></div>
 <ul>
 <li>Prevents <code>std</code> from being added to the <a href="names/preludes.html#extern-prelude">extern prelude</a>.</li>
+</ul>
+<div class="rule" id="r-names.preludes.extern.no_std.module"><a class="rule-link" href="names/preludes.html#r-names.preludes.extern.no_std.module" title="names.preludes.extern.no_std.module"><span>[names<wbr>.preludes<wbr>.extern<wbr>.no_std<wbr>.module]<span/></a></div>
+<ul>
 <li>Affects which module is used to make up the <a href="names/preludes.html#standard-library-prelude">standard library prelude</a> (as described above).</li>
+</ul>
+<div class="rule" id="r-names.preludes.extern.no_std.core"><a class="rule-link" href="names/preludes.html#r-names.preludes.extern.no_std.core" title="names.preludes.extern.no_std.core"><span>[names<wbr>.preludes<wbr>.extern<wbr>.no_std<wbr>.core]<span/></a></div>
+<ul>
 <li>Injects the <a href="names/../../core/index.html"><code>core</code></a> crate into the crate root instead of <a href="names/../../std/index.html"><code>std</code></a>, and pulls
 in all macros exported from <code>core</code> in the <a href="names/preludes.html#macro_use-prelude"><code>macro_use</code> prelude</a>.</li>
 </ul>
@@ -17428,9 +17564,13 @@ and <code>Vec</code>) and file and network capabilities (e.g. <code>std::fs</cod
 Using <code>no_std</code> does not prevent the standard library from being linked in. It is still valid to put <code>extern crate std;</code> into the crate and dependencies can also link it in.</p>
 </blockquote>
 </div>
+<div class="rule" id="r-names.preludes.lang"><a class="rule-link" href="names/preludes.html#r-names.preludes.lang" title="names.preludes.lang"><span>[names<wbr>.preludes<wbr>.lang]<span/></a></div>
 <h2 id="language-prelude"><a class="header" href="#language-prelude">Language prelude</a></h2>
+<div class="rule" id="r-names.preludes.lang.intro"><a class="rule-link" href="names/preludes.html#r-names.preludes.lang.intro" title="names.preludes.lang.intro"><span>[names<wbr>.preludes<wbr>.lang<wbr>.intro]<span/></a></div>
 <p>The language prelude includes names of types and attributes that are built-in
-to the language. The language prelude is always in scope. It includes the following:</p>
+to the language. The language prelude is always in scope.</p>
+<div class="rule" id="r-names.preludes.lang.entities"><a class="rule-link" href="names/preludes.html#r-names.preludes.lang.entities" title="names.preludes.lang.entities"><span>[names<wbr>.preludes<wbr>.lang<wbr>.entities]<span/></a></div>
+<p>It includes the following:</p>
 <ul>
 <li><a href="names/namespaces.html">Type namespace</a>
 <ul>
@@ -17447,18 +17587,26 @@ to the language. The language prelude is always in scope. It includes the follow
 </ul>
 </li>
 </ul>
+<div class="rule" id="r-names.preludes.macro_use"><a class="rule-link" href="names/preludes.html#r-names.preludes.macro_use" title="names.preludes.macro_use"><span>[names<wbr>.preludes<wbr>.macro_use]<span/></a></div>
 <h2 id="macro_use-prelude"><a class="header" href="#macro_use-prelude"><code>macro_use</code> prelude</a></h2>
+<div class="rule" id="r-names.preludes.macro_use.intro"><a class="rule-link" href="names/preludes.html#r-names.preludes.macro_use.intro" title="names.preludes.macro_use.intro"><span>[names<wbr>.preludes<wbr>.macro_use<wbr>.intro]<span/></a></div>
 <p>The <code>macro_use</code> prelude includes macros from external crates that were
 imported by the <a href="names/../macros-by-example.html#the-macro_use-attribute"><code>macro_use</code> attribute</a> applied to an <a href="names/../items/extern-crates.html"><code>extern crate</code></a>.</p>
+<div class="rule" id="r-names.preludes.tool"><a class="rule-link" href="names/preludes.html#r-names.preludes.tool" title="names.preludes.tool"><span>[names<wbr>.preludes<wbr>.tool]<span/></a></div>
 <h2 id="tool-prelude"><a class="header" href="#tool-prelude">Tool prelude</a></h2>
+<div class="rule" id="r-names.preludes.tool.intro"><a class="rule-link" href="names/preludes.html#r-names.preludes.tool.intro" title="names.preludes.tool.intro"><span>[names<wbr>.preludes<wbr>.tool<wbr>.intro]<span/></a></div>
 <p>The tool prelude includes tool names for external tools in the <a href="names/namespaces.html">type
 namespace</a>. See the <a href="names/../attributes.html#tool-attributes">tool attributes</a> section for more details.</p>
+<div class="rule" id="r-names.preludes.no_implicit_prelude"><a class="rule-link" href="names/preludes.html#r-names.preludes.no_implicit_prelude" title="names.preludes.no_implicit_prelude"><span>[names<wbr>.preludes<wbr>.no_implicit_prelude]<span/></a></div>
 <h2 id="the-no_implicit_prelude-attribute"><a class="header" href="#the-no_implicit_prelude-attribute">The <code>no_implicit_prelude</code> attribute</a></h2>
+<div class="rule" id="r-names.preludes.no_implicit_prelude.intro"><a class="rule-link" href="names/preludes.html#r-names.preludes.no_implicit_prelude.intro" title="names.preludes.no_implicit_prelude.intro"><span>[names<wbr>.preludes<wbr>.no_implicit_prelude<wbr>.intro]<span/></a></div>
 <p>The <em><code>no_implicit_prelude</code> <a href="names/../attributes.html">attribute</a></em> may be applied at the crate level or
 on a module to indicate that it should not automatically bring the <a href="names/preludes.html#standard-library-prelude">standard
 library prelude</a>, <a href="names/preludes.html#extern-prelude">extern prelude</a>, or <a href="names/preludes.html#tool-prelude">tool prelude</a> into scope for that
 module or any of its descendants.</p>
+<div class="rule" id="r-names.preludes.no_implicit_prelude.lang"><a class="rule-link" href="names/preludes.html#r-names.preludes.no_implicit_prelude.lang" title="names.preludes.no_implicit_prelude.lang"><span>[names<wbr>.preludes<wbr>.no_implicit_prelude<wbr>.lang]<span/></a></div>
 <p>This attribute does not affect the <a href="names/preludes.html#language-prelude">language prelude</a>.</p>
+<div class="rule" id="r-names.preludes.no_implicit_prelude.edition2018"><a class="rule-link" href="names/preludes.html#r-names.preludes.no_implicit_prelude.edition2018" title="names.preludes.no_implicit_prelude.edition2018"><span>[names<wbr>.preludes<wbr>.no_implicit_prelude<wbr>.edition2018]<span/></a></div>
 <blockquote>
 <p><strong>Edition differences</strong>: In the 2015 edition, the <code>no_implicit_prelude</code>
 attribute does not affect the <a href="names/preludes.html#macro_use-prelude"><code>macro_use</code> prelude</a>, and all macros exported
@@ -20003,6 +20151,10 @@ Rust:</p>
 <ul>
 <li>Calling an unsafe function (including an intrinsic or foreign function).</li>
 </ul>
+<div class="rule" id="r-safety.unsafe-target-feature-call"><a class="rule-link" href="unsafety.html#r-safety.unsafe-target-feature-call" title="safety.unsafe-target-feature-call"><span>[safety<wbr>.unsafe-target-feature-call]<span/></a></div>
+<ul>
+<li>Calling a safe function marked with a <a href="attributes/codegen.html#r-attributes.codegen.target_feature"><code>target_feature</code></a> from a function that does not have a <code>target_feature</code> attribute enabling the same features (see <a href="attributes/codegen.html#r-attributes.codegen.target_feature.safety-restrictions">attributes.codegen.target_feature.safety-restrictions</a>).</li>
+</ul>
 <div class="rule" id="r-safety.unsafe-impl"><a class="rule-link" href="unsafety.html#r-safety.unsafe-impl" title="safety.unsafe-impl"><span>[safety<wbr>.unsafe-impl]<span/></a></div>
 <ul>
 <li>Implementing an <a href="items/traits.html#unsafe-traits">unsafe trait</a>.</li>
@@ -20042,7 +20194,7 @@ The unsafe function should come with documentation explaining what those extra s
 <div class="rule" id="r-unsafe.block"><a class="rule-link" href="unsafe-keyword.html#r-unsafe.block" title="unsafe.block"><span>[unsafe<wbr>.block]<span/></a></div>
 <h2 id="unsafe-blocks-unsafe-"><a class="header" href="#unsafe-blocks-unsafe-">Unsafe blocks (<code>unsafe {}</code>)</a></h2>
 <div class="rule" id="r-unsafe.block.intro"><a class="rule-link" href="unsafe-keyword.html#r-unsafe.block.intro" title="unsafe.block.intro"><span>[unsafe<wbr>.block<wbr>.intro]<span/></a></div>
-<p>A block of code can be prefixed with the <code>unsafe</code> keyword, to permit calling <code>unsafe</code> functions or dereferencing raw pointers.</p>
+<p>A block of code can be prefixed with the <code>unsafe</code> keyword to permit using the unsafe actions as defined in the <a href="unsafety.html">Unsafety</a> chapter, such as calling other unsafe functions or dereferencing raw pointers.</p>
 <div class="rule" id="r-unsafe.block.fn-body"><a class="rule-link" href="unsafe-keyword.html#r-unsafe.block.fn-body" title="unsafe.block.fn-body"><span>[unsafe<wbr>.block<wbr>.fn-body]<span/></a></div>
 <p>By default, the body of an unsafe function is also considered to be an unsafe block;
 this can be changed by enabling the <a href="../rustc/lints/listing/allowed-by-default.html#unsafe-op-in-unsafe-fn"><code>unsafe_op_in_unsafe_fn</code></a> lint.</p>
@@ -22453,10 +22605,10 @@ Uncovered rules
 </tr>
 <tr>
 <td><a href="attributes/codegen.html">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;7.4. Code generation</a></td>
-<td>36</td>
+<td>40</td>
 <td>0</td>
 <td><div class="popup-container">
-<a href="javascript:void(0)" onclick="spec_toggle_uncovered(34);">36</a>
+<a href="javascript:void(0)" onclick="spec_toggle_uncovered(34);">40</a>
 <div id="uncovered-34" class="uncovered-rules-popup popup-hidden">
 Uncovered rules
                         <ul><li><a href="attributes/codegen.html#r-attributes.codegen">attributes.codegen</a></li>
@@ -22476,14 +22628,18 @@ Uncovered rules
 <li><a href="attributes/codegen.html#r-attributes.codegen.no_builtins">attributes.codegen.no_builtins</a></li>
 <li><a href="attributes/codegen.html#r-attributes.codegen.target_feature">attributes.codegen.target_feature</a></li>
 <li><a href="attributes/codegen.html#r-attributes.codegen.target_feature.aarch64">attributes.codegen.target_feature.aarch64</a></li>
+<li><a href="attributes/codegen.html#r-attributes.codegen.target_feature.allowed-positions">attributes.codegen.target_feature.allowed-positions</a></li>
 <li><a href="attributes/codegen.html#r-attributes.codegen.target_feature.arch">attributes.codegen.target_feature.arch</a></li>
 <li><a href="attributes/codegen.html#r-attributes.codegen.target_feature.availability">attributes.codegen.target_feature.availability</a></li>
+<li><a href="attributes/codegen.html#r-attributes.codegen.target_feature.closures">attributes.codegen.target_feature.closures</a></li>
+<li><a href="attributes/codegen.html#r-attributes.codegen.target_feature.fn-traits">attributes.codegen.target_feature.fn-traits</a></li>
 <li><a href="attributes/codegen.html#r-attributes.codegen.target_feature.info">attributes.codegen.target_feature.info</a></li>
 <li><a href="attributes/codegen.html#r-attributes.codegen.target_feature.inline">attributes.codegen.target_feature.inline</a></li>
 <li><a href="attributes/codegen.html#r-attributes.codegen.target_feature.intro">attributes.codegen.target_feature.intro</a></li>
 <li><a href="attributes/codegen.html#r-attributes.codegen.target_feature.remark-cfg">attributes.codegen.target_feature.remark-cfg</a></li>
 <li><a href="attributes/codegen.html#r-attributes.codegen.target_feature.remark-rt">attributes.codegen.target_feature.remark-rt</a></li>
 <li><a href="attributes/codegen.html#r-attributes.codegen.target_feature.riscv">attributes.codegen.target_feature.riscv</a></li>
+<li><a href="attributes/codegen.html#r-attributes.codegen.target_feature.safety-restrictions">attributes.codegen.target_feature.safety-restrictions</a></li>
 <li><a href="attributes/codegen.html#r-attributes.codegen.target_feature.target-ub">attributes.codegen.target_feature.target-ub</a></li>
 <li><a href="attributes/codegen.html#r-attributes.codegen.target_feature.wasm">attributes.codegen.target_feature.wasm</a></li>
 <li><a href="attributes/codegen.html#r-attributes.codegen.target_feature.x86">attributes.codegen.target_feature.x86</a></li>
@@ -24344,24 +24500,119 @@ Uncovered rules
 </tr>
 <tr>
 <td><a href="names/namespaces.html">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;12.1. Namespaces</a></td>
+<td>9</td>
 <td>0</td>
-<td></td>
-<td></td>
-<td></td>
+<td><div class="popup-container">
+<a href="javascript:void(0)" onclick="spec_toggle_uncovered(91);">9</a>
+<div id="uncovered-91" class="uncovered-rules-popup popup-hidden">
+Uncovered rules
+                        <ul><li><a href="names/namespaces.html#r-names.namespaces">names.namespaces</a></li>
+<li><a href="names/namespaces.html#r-names.namespaces.intro">names.namespaces.intro</a></li>
+<li><a href="names/namespaces.html#r-names.namespaces.kinds">names.namespaces.kinds</a></li>
+<li><a href="names/namespaces.html#r-names.namespaces.sub-namespaces">names.namespaces.sub-namespaces</a></li>
+<li><a href="names/namespaces.html#r-names.namespaces.sub-namespaces.intro">names.namespaces.sub-namespaces.intro</a></li>
+<li><a href="names/namespaces.html#r-names.namespaces.sub-namespaces.use-shadow">names.namespaces.sub-namespaces.use-shadow</a></li>
+<li><a href="names/namespaces.html#r-names.namespaces.without">names.namespaces.without</a></li>
+<li><a href="names/namespaces.html#r-names.namespaces.without.fields">names.namespaces.without.fields</a></li>
+<li><a href="names/namespaces.html#r-names.namespaces.without.use">names.namespaces.without.use</a></li>
+</ul></div></div></td>
+<td>0.0%</td>
 </tr>
 <tr>
 <td><a href="names/scopes.html">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;12.2. Scopes</a></td>
+<td>46</td>
 <td>0</td>
-<td></td>
-<td></td>
-<td></td>
+<td><div class="popup-container">
+<a href="javascript:void(0)" onclick="spec_toggle_uncovered(92);">46</a>
+<div id="uncovered-92" class="uncovered-rules-popup popup-hidden">
+Uncovered rules
+                        <ul><li><a href="names/scopes.html#r-names.scopes">names.scopes</a></li>
+<li><a href="names/scopes.html#r-names.scopes.associated-items">names.scopes.associated-items</a></li>
+<li><a href="names/scopes.html#r-names.scopes.associated-items.duplicate">names.scopes.associated-items.duplicate</a></li>
+<li><a href="names/scopes.html#r-names.scopes.associated-items.scope">names.scopes.associated-items.scope</a></li>
+<li><a href="names/scopes.html#r-names.scopes.derive">names.scopes.derive</a></li>
+<li><a href="names/scopes.html#r-names.scopes.derive.scope">names.scopes.derive.scope</a></li>
+<li><a href="names/scopes.html#r-names.scopes.derive.shadow">names.scopes.derive.shadow</a></li>
+<li><a href="names/scopes.html#r-names.scopes.generic-parameters">names.scopes.generic-parameters</a></li>
+<li><a href="names/scopes.html#r-names.scopes.generic-parameters.bounds">names.scopes.generic-parameters.bounds</a></li>
+<li><a href="names/scopes.html#r-names.scopes.generic-parameters.inner-items">names.scopes.generic-parameters.inner-items</a></li>
+<li><a href="names/scopes.html#r-names.scopes.generic-parameters.order-independent">names.scopes.generic-parameters.order-independent</a></li>
+<li><a href="names/scopes.html#r-names.scopes.generic-parameters.param-list">names.scopes.generic-parameters.param-list</a></li>
+<li><a href="names/scopes.html#r-names.scopes.generic-parameters.shadow">names.scopes.generic-parameters.shadow</a></li>
+<li><a href="names/scopes.html#r-names.scopes.intro">names.scopes.intro</a></li>
+<li><a href="names/scopes.html#r-names.scopes.items">names.scopes.items</a></li>
+<li><a href="names/scopes.html#r-names.scopes.items.duplicate">names.scopes.items.duplicate</a></li>
+<li><a href="names/scopes.html#r-names.scopes.items.module">names.scopes.items.module</a></li>
+<li><a href="names/scopes.html#r-names.scopes.items.nested-modules">names.scopes.items.nested-modules</a></li>
+<li><a href="names/scopes.html#r-names.scopes.items.shadow-prelude">names.scopes.items.shadow-prelude</a></li>
+<li><a href="names/scopes.html#r-names.scopes.items.statement">names.scopes.items.statement</a></li>
+<li><a href="names/scopes.html#r-names.scopes.lifetimes">names.scopes.lifetimes</a></li>
+<li><a href="names/scopes.html#r-names.scopes.lifetimes.generic">names.scopes.lifetimes.generic</a></li>
+<li><a href="names/scopes.html#r-names.scopes.lifetimes.higher-ranked">names.scopes.lifetimes.higher-ranked</a></li>
+<li><a href="names/scopes.html#r-names.scopes.lifetimes.impl-trait">names.scopes.lifetimes.impl-trait</a></li>
+<li><a href="names/scopes.html#r-names.scopes.lifetimes.special">names.scopes.lifetimes.special</a></li>
+<li><a href="names/scopes.html#r-names.scopes.loop-label">names.scopes.loop-label</a></li>
+<li><a href="names/scopes.html#r-names.scopes.loop-label.scope">names.scopes.loop-label.scope</a></li>
+<li><a href="names/scopes.html#r-names.scopes.loop-label.shadow">names.scopes.loop-label.shadow</a></li>
+<li><a href="names/scopes.html#r-names.scopes.macro_rules">names.scopes.macro_rules</a></li>
+<li><a href="names/scopes.html#r-names.scopes.pattern-bindings">names.scopes.pattern-bindings</a></li>
+<li><a href="names/scopes.html#r-names.scopes.pattern-bindings.closure">names.scopes.pattern-bindings.closure</a></li>
+<li><a href="names/scopes.html#r-names.scopes.pattern-bindings.if-let">names.scopes.pattern-bindings.if-let</a></li>
+<li><a href="names/scopes.html#r-names.scopes.pattern-bindings.items">names.scopes.pattern-bindings.items</a></li>
+<li><a href="names/scopes.html#r-names.scopes.pattern-bindings.let">names.scopes.pattern-bindings.let</a></li>
+<li><a href="names/scopes.html#r-names.scopes.pattern-bindings.loop">names.scopes.pattern-bindings.loop</a></li>
+<li><a href="names/scopes.html#r-names.scopes.pattern-bindings.match-arm">names.scopes.pattern-bindings.match-arm</a></li>
+<li><a href="names/scopes.html#r-names.scopes.pattern-bindings.parameter">names.scopes.pattern-bindings.parameter</a></li>
+<li><a href="names/scopes.html#r-names.scopes.pattern-bindings.shadow">names.scopes.pattern-bindings.shadow</a></li>
+<li><a href="names/scopes.html#r-names.scopes.prelude">names.scopes.prelude</a></li>
+<li><a href="names/scopes.html#r-names.scopes.prelude.intro">names.scopes.prelude.intro</a></li>
+<li><a href="names/scopes.html#r-names.scopes.prelude.layers">names.scopes.prelude.layers</a></li>
+<li><a href="names/scopes.html#r-names.scopes.prelude.shadow">names.scopes.prelude.shadow</a></li>
+<li><a href="names/scopes.html#r-names.scopes.self">names.scopes.self</a></li>
+<li><a href="names/scopes.html#r-names.scopes.self.def-scope">names.scopes.self.def-scope</a></li>
+<li><a href="names/scopes.html#r-names.scopes.self.impl-scope">names.scopes.self.impl-scope</a></li>
+<li><a href="names/scopes.html#r-names.scopes.self.intro">names.scopes.self.intro</a></li>
+</ul></div></div></td>
+<td>0.0%</td>
 </tr>
 <tr>
 <td><a href="names/preludes.html">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;12.3. Preludes</a></td>
+<td>28</td>
 <td>0</td>
-<td></td>
-<td></td>
-<td></td>
+<td><div class="popup-container">
+<a href="javascript:void(0)" onclick="spec_toggle_uncovered(93);">28</a>
+<div id="uncovered-93" class="uncovered-rules-popup popup-hidden">
+Uncovered rules
+                        <ul><li><a href="names/preludes.html#r-names.preludes">names.preludes</a></li>
+<li><a href="names/preludes.html#r-names.preludes.extern">names.preludes.extern</a></li>
+<li><a href="names/preludes.html#r-names.preludes.extern.core">names.preludes.extern.core</a></li>
+<li><a href="names/preludes.html#r-names.preludes.extern.edition2018">names.preludes.extern.edition2018</a></li>
+<li><a href="names/preludes.html#r-names.preludes.extern.intro">names.preludes.extern.intro</a></li>
+<li><a href="names/preludes.html#r-names.preludes.extern.no_std">names.preludes.extern.no_std</a></li>
+<li><a href="names/preludes.html#r-names.preludes.extern.no_std.allowed-positions">names.preludes.extern.no_std.allowed-positions</a></li>
+<li><a href="names/preludes.html#r-names.preludes.extern.no_std.core">names.preludes.extern.no_std.core</a></li>
+<li><a href="names/preludes.html#r-names.preludes.extern.no_std.extern">names.preludes.extern.no_std.extern</a></li>
+<li><a href="names/preludes.html#r-names.preludes.extern.no_std.intro">names.preludes.extern.no_std.intro</a></li>
+<li><a href="names/preludes.html#r-names.preludes.extern.no_std.module">names.preludes.extern.no_std.module</a></li>
+<li><a href="names/preludes.html#r-names.preludes.extern.std">names.preludes.extern.std</a></li>
+<li><a href="names/preludes.html#r-names.preludes.intro">names.preludes.intro</a></li>
+<li><a href="names/preludes.html#r-names.preludes.kinds">names.preludes.kinds</a></li>
+<li><a href="names/preludes.html#r-names.preludes.lang">names.preludes.lang</a></li>
+<li><a href="names/preludes.html#r-names.preludes.lang.entities">names.preludes.lang.entities</a></li>
+<li><a href="names/preludes.html#r-names.preludes.lang.intro">names.preludes.lang.intro</a></li>
+<li><a href="names/preludes.html#r-names.preludes.macro_use">names.preludes.macro_use</a></li>
+<li><a href="names/preludes.html#r-names.preludes.macro_use.intro">names.preludes.macro_use.intro</a></li>
+<li><a href="names/preludes.html#r-names.preludes.no_implicit_prelude">names.preludes.no_implicit_prelude</a></li>
+<li><a href="names/preludes.html#r-names.preludes.no_implicit_prelude.edition2018">names.preludes.no_implicit_prelude.edition2018</a></li>
+<li><a href="names/preludes.html#r-names.preludes.no_implicit_prelude.intro">names.preludes.no_implicit_prelude.intro</a></li>
+<li><a href="names/preludes.html#r-names.preludes.no_implicit_prelude.lang">names.preludes.no_implicit_prelude.lang</a></li>
+<li><a href="names/preludes.html#r-names.preludes.std">names.preludes.std</a></li>
+<li><a href="names/preludes.html#r-names.preludes.std.intro">names.preludes.std.intro</a></li>
+<li><a href="names/preludes.html#r-names.preludes.std.module">names.preludes.std.module</a></li>
+<li><a href="names/preludes.html#r-names.preludes.tool">names.preludes.tool</a></li>
+<li><a href="names/preludes.html#r-names.preludes.tool.intro">names.preludes.tool.intro</a></li>
+</ul></div></div></td>
+<td>0.0%</td>
 </tr>
 <tr>
 <td><a href="paths.html">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;12.4. Paths</a></td>
@@ -24649,10 +24900,10 @@ Uncovered rules
 </tr>
 <tr>
 <td><a href="unsafety.html">16. Unsafety</a></td>
-<td>10</td>
+<td>11</td>
 <td>0</td>
 <td><div class="popup-container">
-<a href="javascript:void(0)" onclick="spec_toggle_uncovered(102);">10</a>
+<a href="javascript:void(0)" onclick="spec_toggle_uncovered(102);">11</a>
 <div id="uncovered-102" class="uncovered-rules-popup popup-hidden">
 Uncovered rules
                         <ul><li><a href="unsafety.html#r-safety">safety</a></li>
@@ -24664,6 +24915,7 @@ Uncovered rules
 <li><a href="unsafety.html#r-safety.unsafe-impl">safety.unsafe-impl</a></li>
 <li><a href="unsafety.html#r-safety.unsafe-ops">safety.unsafe-ops</a></li>
 <li><a href="unsafety.html#r-safety.unsafe-static">safety.unsafe-static</a></li>
+<li><a href="unsafety.html#r-safety.unsafe-target-feature-call">safety.unsafe-target-feature-call</a></li>
 <li><a href="unsafety.html#r-safety.unsafe-union-access">safety.unsafe-union-access</a></li>
 </ul></div></div></td>
 <td>0.0%</td>
@@ -24921,9 +25173,9 @@ Uncovered rules
 </tr>
 <tr>
 <td><b>Total:</b></td>
-<td>2540</td>
+<td>2628</td>
 <td>0</td>
-<td>2540</td>
+<td>2628</td>
 <td>0.0%</td>
 </tr>
 </table>

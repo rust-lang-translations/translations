@@ -287,6 +287,7 @@ build-std = ["core", "alloc"]
 <li><a href="#public-dependency">public-dependency</a> — Allows dependencies to be classified as either public or private.</li>
 <li><a href="#msrv-policy">msrv-policy</a> — MSRV-aware resolver and version selection</li>
 <li><a href="#precise-pre-release">precise-pre-release</a> — Allows pre-release versions to be selected with <code>update --precise</code></li>
+<li><a href="#sbom">sbom</a> — Generates SBOM pre-cursor files for compiled artifacts</li>
 <li><a href="#update-breaking">update-breaking</a> — Allows upgrading to breaking versions with <code>update --breaking</code></li>
 <li><a href="#feature-unification">feature-unification</a> — Enable new feature unification modes in workspaces</li>
 </ul>
@@ -294,6 +295,7 @@ build-std = ["core", "alloc"]
 <li>Output behavior
 <ul>
 <li><a href="#artifact-dir">artifact-dir</a> — Adds a directory where artifacts are copied to.</li>
+<li><a href="#build-dir">build-dir</a> — Adds a directory where intermediate build artifacts are stored.</li>
 <li><a href="#different-binary-name">Different binary name</a> — Assign a name to the built binary that is separate from the crate name.</li>
 <li><a href="#root-dir">root-dir</a> — Controls the root directory relative to which paths are printed</li>
 </ul>
@@ -463,6 +465,23 @@ Example:</p>
 <pre><code class="language-toml">[build]
 artifact-dir = "out"
 </code></pre>
+<h2 id="build-dir"><a class="header" href="#build-dir">build-dir</a></h2>
+<ul>
+<li>Original Issue: <a href="https://github.com/rust-lang/cargo/issues/14125">#14125</a></li>
+<li>Tracking Issue: <a href="https://github.com/rust-lang/cargo/issues/14125">#14125</a></li>
+</ul>
+<p>The directory where intermediate build artifacts will be stored.
+Intermediate artifacts are produced by Rustc/Cargo during the build process.</p>
+<pre><code class="language-toml">[build]
+build-dir = "out"
+</code></pre>
+<h3 id="buildbuild-dir"><a class="header" href="#buildbuild-dir"><code>build.build-dir</code></a></h3>
+<ul>
+<li>Type: string (path)</li>
+<li>Default: Defaults to the value of <code>build.target-dir</code></li>
+<li>Environment: <code>CARGO_BUILD_BUILD_DIR</code></li>
+</ul>
+<p>The path to where internal files used as part of the build are placed.</p>
 <h2 id="root-dir"><a class="header" href="#root-dir">root-dir</a></h2>
 <ul>
 <li>Original Issue: <a href="https://github.com/rust-lang/cargo/issues/9887">#9887</a></li>
@@ -588,6 +607,90 @@ my-dependency = "0.1.1"
 <p>It’s possible to update <code>my-dependency</code> to a pre-release with <code>update -Zunstable-options my-dependency --precise 0.1.2-pre.0</code>.
 This is because <code>0.1.2-pre.0</code> is considered compatible with <code>0.1.1</code>.
 It would not be possible to upgrade to <code>0.2.0-pre.0</code> from <code>0.1.1</code> in the same way.</p>
+<h2 id="sbom"><a class="header" href="#sbom">sbom</a></h2>
+<ul>
+<li>Tracking Issue: <a href="https://github.com/rust-lang/cargo/pull/13709">#13709</a></li>
+<li>RFC: <a href="https://github.com/rust-lang/rfcs/pull/3553">#3553</a></li>
+</ul>
+<p>The <code>sbom</code> build config allows to generate so-called SBOM pre-cursor files
+alongside each compiled artifact. A Software Bill Of Material (SBOM) tool can
+incorporate these generated files to collect important information from the cargo
+build process that are difficult or impossible to obtain in another way.</p>
+<p>To enable this feature either set the <code>sbom</code> field in the <code>.cargo/config.toml</code></p>
+<pre><code class="language-toml">[unstable]
+sbom = true
+
+[build]
+sbom = true
+</code></pre>
+<p>or set the <code>CARGO_BUILD_SBOM</code> environment variable to <code>true</code>. The functionality
+is available behind the flag <code>-Z sbom</code>.</p>
+<p>The generated output files are in JSON format and follow the naming scheme
+<code>&lt;artifact&gt;.cargo-sbom.json</code>. The JSON file contains information about dependencies,
+target, features and the used <code>rustc</code> compiler.</p>
+<p>SBOM pre-cursor files are generated for all executable and linkable outputs
+that are uplifted into the target or artifact directories.</p>
+<h3 id="environment-variables-cargo-sets-for-crates"><a class="header" href="#environment-variables-cargo-sets-for-crates">Environment variables Cargo sets for crates</a></h3>
+<ul>
+<li><code>CARGO_SBOM_PATH</code> – a list of generated SBOM precursor files, separated by the platform PATH separator. The list can be split with <code>std::env::split_paths</code>.</li>
+</ul>
+<h3 id="sbom-pre-cursor-schema"><a class="header" href="#sbom-pre-cursor-schema">SBOM pre-cursor schema</a></h3>
+<pre><code class="language-json5">{
+  // Schema version.
+  "version": 1,
+  // Index into the crates array for the root crate.
+  "root": 0,
+  // Array of all crates. There may be duplicates of the same crate if that
+  // crate is compiled differently (different opt-level, features, etc).
+  "crates": [
+    {
+      // Package ID specification
+      "id": "path+file:///sample-package#0.1.0",
+      // List of target kinds: bin, lib, rlib, dylib, cdylib, staticlib, proc-macro, example, test, bench, custom-build
+      "kind": ["bin"],
+      // Enabled feature flags.
+      "features": [],
+      // Dependencies for this crate.
+      "dependencies": [
+        {
+          // Index in to the crates array.
+          "index": 1,
+          // Dependency kind: 
+          // Normal: A dependency linked to the artifact produced by this crate.
+          // Build: A compile-time dependency used to build this crate (build-script or proc-macro).
+          "kind": "normal"
+        },
+        {
+          // A crate can depend on another crate with both normal and build edges.
+          "index": 1,
+          "kind": "build"
+        }
+      ]
+    },
+    {
+      "id": "registry+https://github.com/rust-lang/crates.io-index#zerocopy@0.8.16",
+      "kind": ["bin"],
+      "features": [],
+      "dependencies": []
+    }
+  ],
+  // Information about rustc used to perform the compilation.
+  "rustc": {
+    // Compiler version
+    "version": "1.86.0-nightly",
+    // Compiler wrapper
+    "wrapper": null,
+    // Compiler workspace wrapper
+    "workspace_wrapper": null,
+    // Commit hash for rustc
+    "commit_hash": "bef3c3b01f690de16738b1c9f36470fbfc6ac623",
+    // Host target triple
+    "host": "x86_64-pc-windows-msvc",
+    // Verbose version string: `rustc -vV`
+    "verbose_version": "rustc 1.86.0-nightly (bef3c3b01 2025-02-04)\nbinary: rustc\ncommit-hash: bef3c3b01f690de16738b1c9f36470fbfc6ac623\ncommit-date: 2025-02-04\nhost: x86_64-pc-windows-msvc\nrelease: 1.86.0-nightly\nLLVM version: 19.1.7\n"
+  }
+}
+</code></pre>
 <h2 id="update-breaking"><a class="header" href="#update-breaking">update-breaking</a></h2>
 <ul>
 <li>Tracking Issue: <a href="https://github.com/rust-lang/cargo/issues/12425">#12425</a></li>
