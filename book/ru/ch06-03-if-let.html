@@ -1,0 +1,525 @@
+<!DOCTYPE HTML>
+<html lang="ru" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Лаконичное управление потоком с if let и let else - The Rust Programming Language</title>
+
+
+        <!-- Custom HTML head -->
+
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-L455DH98TK"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+        
+          gtag('config', 'G-L455DH98TK');
+        </script>
+        
+        
+        <script>
+            (function () {
+                // See these pages for details:
+                // https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls
+                // https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics
+        
+                function gen_canonical_href(lang) {
+        
+                    let base = "https://rust-lang-translations.org/book";
+        
+                    let canonical_href;
+                    if (lang == "en") {
+                        canonical_href = `${base}/ch06-03-if-let.md`;
+                    } else {
+                        canonical_href = `${base}/${lang}/ch06-03-if-let.md`;
+                    }
+                    canonical_href = canonical_href.slice(0, -"md".length) + "html";
+                    if (canonical_href.endsWith("/index.html")) {
+                        canonical_href = canonical_href.slice(0, -"index.html".length);
+                    }
+                    return canonical_href;
+                }
+        
+                const canonical_href = gen_canonical_href("ru");
+
+                let link = document.createElement("link");
+                link.rel = "canonical";
+                link.href = canonical_href;
+                document.head.appendChild(link);
+        
+        
+                const langs = ["en"  , "ja"  , "ru" ];
+        
+                for (const lang of langs) {
+                    const canonical_href = gen_canonical_href(lang);
+        
+                    let link = document.createElement("link");
+                    link.rel = "alternate";
+                    link.hreflang = lang;
+                    link.href = canonical_href;
+                    document.head.appendChild(link);
+                }
+            })()
+        </script>
+        
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="ferris.css">
+        <link rel="stylesheet" href="theme/2018-edition.css">
+        <link rel="stylesheet" href="theme/semantic-notes.css">
+        <link rel="stylesheet" href="theme/listing.css">
+        <link rel="stylesheet" href="theme/language-picker.css">
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rust Programming Language</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/rust-lang-translations/project" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h2 id="Лаконичное-управление-потоком-с-if-let-и-let-else"><a class="header" href="#Лаконичное-управление-потоком-с-if-let-и-let-else">Лаконичное управление потоком с <code>if let</code> и <code>let else</code></a></h2>
+<p>The <code>if let</code> syntax lets you combine <code>if</code> and <code>let</code> into a less verbose way to handle values that match one pattern while ignoring the rest. Consider the program in Listing 6-6 that matches on an <code>Option&lt;u8&gt;</code> value in the <code>config_max</code> variable but only wants to execute code if the value is the <code>Some</code> variant.</p>
+<Listing number="6-6" caption="A `match` that only cares about executing code when the value is `Some`">
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+</span>    let config_max = Some(3u8);
+    match config_max {
+        Some(max) =&gt; println!("The maximum is configured to be {max}"),
+        _ =&gt; (),
+    }
+<span class="boring">}</span></code></pre></pre>
+</Listing>
+<p>If the value is <code>Some</code>, we print out the value in the <code>Some</code> variant by binding the value to the variable <code>max</code> in the pattern. We don’t want to do anything with the <code>None</code> value. To satisfy the <code>match</code> expression, we have to add <code>_ =&gt; ()</code> after processing just one variant, which is annoying boilerplate code to add.</p>
+<p>Instead, we could write this in a shorter way using <code>if let</code>. The following code behaves the same as the <code>match</code> in Listing 6-6:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+</span>    let config_max = Some(3u8);
+    if let Some(max) = config_max {
+        println!("The maximum is configured to be {max}");
+    }
+<span class="boring">}</span></code></pre></pre>
+<p>The syntax <code>if let</code> takes a pattern and an expression separated by an equal sign. It works the same way as a <code>match</code>, where the expression is given to the <code>match</code> and the pattern is its first arm. In this case, the pattern is <code>Some(max)</code>, and the <code>max</code> binds to the value inside the <code>Some</code>. We can then use <code>max</code> in the body of the <code>if let</code> block in the same way we used <code>max</code> in the corresponding <code>match</code> arm. The code in the <code>if let</code> block only runs if the value matches the pattern.</p>
+<p>Using <code>if let</code> means less typing, less indentation, and less boilerplate code. However, you lose the exhaustive checking that <code>match</code> enforces. Choosing between <code>match</code> and <code>if let</code> depends on what you’re doing in your particular situation and whether gaining conciseness is an appropriate trade-off for losing exhaustive checking.</p>
+<p>In other words, you can think of <code>if let</code> as syntax sugar for a <code>match</code> that runs code when the value matches one pattern and then ignores all other values.</p>
+<p>We can include an <code>else</code> with an <code>if let</code>. The block of code that goes with the <code>else</code> is the same as the block of code that would go with the <code>_</code> case in the <code>match</code> expression that is equivalent to the <code>if let</code> and <code>else</code>. Recall the <code>Coin</code> enum definition in Listing 6-4, where the <code>Quarter</code> variant also held a <code>UsState</code> value. If we wanted to count all non-quarter coins we see while also announcing the state of the quarters, we could do that with a <code>match</code> expression, like this:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#[derive(Debug)]
+</span><span class="boring">enum UsState {
+</span><span class="boring">    Alabama,
+</span><span class="boring">    Alaska,
+</span><span class="boring">    // --snip--
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">enum Coin {
+</span><span class="boring">    Penny,
+</span><span class="boring">    Nickel,
+</span><span class="boring">    Dime,
+</span><span class="boring">    Quarter(UsState),
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">fn main() {
+</span><span class="boring">    let coin = Coin::Penny;
+</span>    let mut count = 0;
+    match coin {
+        Coin::Quarter(state) =&gt; println!("State quarter from {state:?}!"),
+        _ =&gt; count += 1,
+    }
+<span class="boring">}</span></code></pre></pre>
+<p>Or we could use an <code>if let</code> and <code>else</code> expression, like this:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#[derive(Debug)]
+</span><span class="boring">enum UsState {
+</span><span class="boring">    Alabama,
+</span><span class="boring">    Alaska,
+</span><span class="boring">    // --snip--
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">enum Coin {
+</span><span class="boring">    Penny,
+</span><span class="boring">    Nickel,
+</span><span class="boring">    Dime,
+</span><span class="boring">    Quarter(UsState),
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">fn main() {
+</span><span class="boring">    let coin = Coin::Penny;
+</span>    let mut count = 0;
+    if let Coin::Quarter(state) = coin {
+        println!("State quarter from {state:?}!");
+    } else {
+        count += 1;
+    }
+<span class="boring">}</span></code></pre></pre>
+<h2 id="staying-on-the-happy-path-with-let-else"><a class="header" href="#staying-on-the-happy-path-with-let-else">Staying on the “happy path” with <code>let else</code></a></h2>
+<p>One common pattern is to perform some computation when a value is present and return a default value otherwise. Continuing on with our example of coins with a <code>UsState</code> value, if we wanted to say something funny depending on how old the state on the quarter was, we might introduce a method on <code>UsState</code> to check the age of a state, like so:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#[derive(Debug)] // so we can inspect the state in a minute
+</span><span class="boring">enum UsState {
+</span><span class="boring">    Alabama,
+</span><span class="boring">    Alaska,
+</span><span class="boring">    // --snip--
+</span><span class="boring">}
+</span><span class="boring">
+</span>impl UsState {
+    fn existed_in(&amp;self, year: u16) -&gt; bool {
+        match self {
+            UsState::Alabama =&gt; year &gt;= 1819,
+            UsState::Alaska =&gt; year &gt;= 1959,
+            // -- snip --
+        }
+    }
+}
+<span class="boring">
+</span><span class="boring">enum Coin {
+</span><span class="boring">    Penny,
+</span><span class="boring">    Nickel,
+</span><span class="boring">    Dime,
+</span><span class="boring">    Quarter(UsState),
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">fn describe_state_quarter(coin: Coin) -&gt; Option&lt;String&gt; {
+</span><span class="boring">    if let Coin::Quarter(state) = coin {
+</span><span class="boring">        if state.existed_in(1900) {
+</span><span class="boring">            Some(format!("{state:?} is pretty old, for America!"))
+</span><span class="boring">        } else {
+</span><span class="boring">            Some(format!("{state:?} is relatively new."))
+</span><span class="boring">        }
+</span><span class="boring">    } else {
+</span><span class="boring">        None
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">fn main() {
+</span><span class="boring">    if let Some(desc) = describe_state_quarter(Coin::Quarter(UsState::Alaska)) {
+</span><span class="boring">        println!("{desc}");
+</span><span class="boring">    }
+</span><span class="boring">}</span></code></pre></pre>
+<p>Then we might use <code>if let</code> to match on the type of coin, introducing a <code>state</code> variable within the body of the condition, as in Listing 6-7.</p>
+<Listing number="6-7" caption="Using" file-name="src/main.rs">
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#[derive(Debug)] // so we can inspect the state in a minute
+</span><span class="boring">enum UsState {
+</span><span class="boring">    Alabama,
+</span><span class="boring">    Alaska,
+</span><span class="boring">    // --snip--
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl UsState {
+</span><span class="boring">    fn existed_in(&amp;self, year: u16) -&gt; bool {
+</span><span class="boring">        match self {
+</span><span class="boring">            UsState::Alabama =&gt; year &gt;= 1819,
+</span><span class="boring">            UsState::Alaska =&gt; year &gt;= 1959,
+</span><span class="boring">            // -- snip --
+</span><span class="boring">        }
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">enum Coin {
+</span><span class="boring">    Penny,
+</span><span class="boring">    Nickel,
+</span><span class="boring">    Dime,
+</span><span class="boring">    Quarter(UsState),
+</span><span class="boring">}
+</span><span class="boring">
+</span>fn describe_state_quarter(coin: Coin) -&gt; Option&lt;String&gt; {
+    if let Coin::Quarter(state) = coin {
+        if state.existed_in(1900) {
+            Some(format!("{state:?} is pretty old, for America!"))
+        } else {
+            Some(format!("{state:?} is relatively new."))
+        }
+    } else {
+        None
+    }
+}
+<span class="boring">
+</span><span class="boring">fn main() {
+</span><span class="boring">    if let Some(desc) = describe_state_quarter(Coin::Quarter(UsState::Alaska)) {
+</span><span class="boring">        println!("{desc}");
+</span><span class="boring">    }
+</span><span class="boring">}</span></code></pre></pre>
+</Listing>
+<p>That gets the job done, but it has pushed the work into the body of the <code>if let</code> statement, and if the work to be done is more complicated, it might be hard to follow exactly how the top-level branches relate. We could also take advantage of the fact that expressions produce a value either to produce the <code>state</code> from the <code>if let</code> or to return early, as in Listing 6-8. (You could do similar with a <code>match</code>, of course!)</p>
+<Listing number="6-8" caption="Using `if let` to produce a value or return early." file-name="src/main.rs">
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#[derive(Debug)] // so we can inspect the state in a minute
+</span><span class="boring">enum UsState {
+</span><span class="boring">    Alabama,
+</span><span class="boring">    Alaska,
+</span><span class="boring">    // --snip--
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl UsState {
+</span><span class="boring">    fn existed_in(&amp;self, year: u16) -&gt; bool {
+</span><span class="boring">        match self {
+</span><span class="boring">            UsState::Alabama =&gt; year &gt;= 1819,
+</span><span class="boring">            UsState::Alaska =&gt; year &gt;= 1959,
+</span><span class="boring">            // -- snip --
+</span><span class="boring">        }
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">enum Coin {
+</span><span class="boring">    Penny,
+</span><span class="boring">    Nickel,
+</span><span class="boring">    Dime,
+</span><span class="boring">    Quarter(UsState),
+</span><span class="boring">}
+</span><span class="boring">
+</span>fn describe_state_quarter(coin: Coin) -&gt; Option&lt;String&gt; {
+    let state = if let Coin::Quarter(state) = coin {
+        state
+    } else {
+        return None;
+    };
+
+    if state.existed_in(1900) {
+        Some(format!("{state:?} is pretty old, for America!"))
+    } else {
+        Some(format!("{state:?} is relatively new."))
+    }
+}
+<span class="boring">
+</span><span class="boring">fn main() {
+</span><span class="boring">    if let Some(desc) = describe_state_quarter(Coin::Quarter(UsState::Alaska)) {
+</span><span class="boring">        println!("{desc}");
+</span><span class="boring">    }
+</span><span class="boring">}</span></code></pre></pre>
+</Listing>
+<p>This is a bit annoying to follow in its own way, though! One branch of the <code>if let</code> produces a value, and the other one returns from the function entirely.</p>
+<p>To make this common pattern nicer to express, Rust has <code>let</code>-<code>else</code>. The <code>let</code>-<code>else</code> syntax takes a pattern on the left side and an expression on the right, very similar to <code>if let</code>, but it does not have an <code>if</code> branch, only an <code>else</code> branch. If the pattern matches, it will bind the value from the pattern in the outer scope. If the pattern does <em>not</em> match, the program will flow into the <code>else</code> arm, which must return from the function.</p>
+<p>In Listing 6-9, you can see how Listing 6-8 looks when using <code>let</code>-<code>else</code> in place of <code>if let</code>. Notice that it stays “on the happy path” in the main body of the function this way, without having significantly different control flow for two branches the way the <code>if let</code> did.</p>
+<Listing number="6-9" caption="Using `let`-`else` to clarify the flow through the function." file-name="src/main.rs">
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#[derive(Debug)] // so we can inspect the state in a minute
+</span><span class="boring">enum UsState {
+</span><span class="boring">    Alabama,
+</span><span class="boring">    Alaska,
+</span><span class="boring">    // --snip--
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl UsState {
+</span><span class="boring">    fn existed_in(&amp;self, year: u16) -&gt; bool {
+</span><span class="boring">        match self {
+</span><span class="boring">            UsState::Alabama =&gt; year &gt;= 1819,
+</span><span class="boring">            UsState::Alaska =&gt; year &gt;= 1959,
+</span><span class="boring">            // -- snip --
+</span><span class="boring">        }
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">enum Coin {
+</span><span class="boring">    Penny,
+</span><span class="boring">    Nickel,
+</span><span class="boring">    Dime,
+</span><span class="boring">    Quarter(UsState),
+</span><span class="boring">}
+</span><span class="boring">
+</span>fn describe_state_quarter(coin: Coin) -&gt; Option&lt;String&gt; {
+    let Coin::Quarter(state) = coin else {
+        return None;
+    };
+
+    if state.existed_in(1900) {
+        Some(format!("{state:?} is pretty old, for America!"))
+    } else {
+        Some(format!("{state:?} is relatively new."))
+    }
+}
+<span class="boring">
+</span><span class="boring">fn main() {
+</span><span class="boring">    if let Some(desc) = describe_state_quarter(Coin::Quarter(UsState::Alaska)) {
+</span><span class="boring">        println!("{desc}");
+</span><span class="boring">    }
+</span><span class="boring">}</span></code></pre></pre>
+</Listing>
+<p>If you have a situation in which your program has logic that is too verbose to express using a <code>match</code>, remember that <code>if let</code> and <code>let else</code> are in your Rust toolbox as well.</p>
+<h2 id="Подведём-итоги"><a class="header" href="#Подведём-итоги">Подведём итоги</a></h2>
+<p>We’ve now covered how to use enums to create custom types that can be one of a set of enumerated values. We’ve shown how the standard library’s <code>Option&lt;T&gt;</code> type helps you use the type system to prevent errors. When enum values have data inside them, you can use <code>match</code> or <code>if let</code> to extract and use those values, depending on how many cases you need to handle.</p>
+<p>Your Rust programs can now express concepts in your domain using structs and enums. Creating custom types to use in your API ensures type safety: the compiler will make certain your functions only get values of the type each function expects.</p>
+<p>In order to provide a well-organized API to your users that is straightforward to use and only exposes exactly what your users will need, let’s now turn to Rust’s modules.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="ch06-02-match.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="ch07-00-managing-growing-projects-with-packages-crates-and-modules.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="ch06-02-match.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="ch07-00-managing-growing-projects-with-packages-crates-and-modules.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="ferris.js"></script>
+        <script src="theme/language-picker.js"></script>
+
+
+    </div>
+    </body>
+</html>
