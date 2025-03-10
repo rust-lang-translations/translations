@@ -163,6 +163,8 @@ impl Translations {
     }
 
     pub fn stat(&self) -> Result<Vec<TranslationStat>> {
+        self.update_submodule()?;
+
         let mut ret = Vec::new();
 
         for (name, book) in &self.books {
