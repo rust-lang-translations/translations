@@ -217,30 +217,30 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="Использование-модулей-для-управления-областью-видимости-и-приватностью"><a class="header" href="#Использование-модулей-для-управления-областью-видимости-и-приватностью">Использование модулей для управления областью видимости и приватностью</a></h2>
-<p>In this section, we’ll talk about modules and other parts of the module system, namely <em>paths</em>, which allow you to name items; the <code>use</code> keyword that brings a path into scope; and the <code>pub</code> keyword to make items public. We’ll also discuss the <code>as</code> keyword, external packages, and the glob operator.</p>
-<h3 id="modules-cheat-sheet"><a class="header" href="#modules-cheat-sheet">Modules Cheat Sheet</a></h3>
-<p>Before we get to the details of modules and paths, here we provide a quick reference on how modules, paths, the <code>use</code> keyword, and the <code>pub</code> keyword work in the compiler, and how most developers organize their code. We’ll be going through examples of each of these rules throughout this chapter, but this is a great place to refer to as a reminder of how modules work.</p>
+<p>В этом разделе мы поговорим о модулях и других частях системы модулей, а именно: о <em>путях</em>, которые позволяют именовать элементы; о ключевом слове <code>use</code>, которое подключает путь к области видимости; о ключевом слове <code>pub</code>, которое делает элементы общедоступными. Мы также обсудим ключевое слово <code>as</code>, внешние пакеты и оператор <code>*</code>.</p>
+<h3 id="Шпаргалка-по-модулям"><a class="header" href="#Шпаргалка-по-модулям">Шпаргалка по модулям</a></h3>
+<p>Перед тем как вдаваться в детали работы с модулями и путями, мы дадим краткий обзор того, как модули, пути и ключевые слова <code>use</code> и <code>pub</code> работают в компиляторе, и как большинство разработчиков организуют свой код. В этой главе мы рассмотрим всё это на примерах, а пока что у нас есть удобный момент, чтобы дать выжимку о том, как работают крейты.</p>
 <ul>
-<li><strong>Start from the crate root</strong>: When compiling a crate, the compiler first looks in the crate root file (usually <em>src/lib.rs</em> for a library crate or <em>src/main.rs</em> for a binary crate) for code to compile.</li>
-<li><strong>Declaring modules</strong>: In the crate root file, you can declare new modules; say you declare a “garden” module with <code>mod garden;</code>. The compiler will look for the module’s code in these places:
+<li><strong>Старт с корня крейта</strong>. В начале компиляции крейта, компилятор ищет в корне крейта (обычно это <em>src/lib.rs</em> для библиотечного крейта или <em>src/main.rs</em> для бинарного крейта) код для компиляции.</li>
+<li><strong>Объявление модулей</strong>. В файле корня крейта вы можете объявлять новые модули. Скажем, вы объявляете модуль "garden" с помощью <code>mod garden;</code>. Компилятор будет искать код модуля в следующих местах:
 <ul>
-<li>Inline, within curly brackets that replace the semicolon following <code>mod garden</code></li>
-<li>In the file <em>src/garden.rs</em></li>
-<li>In the file <em>src/garden/mod.rs</em></li>
+<li>В этом же файле между фигурных скобок, которые заменяют точку с запятой после <code>mod garden</code></li>
+<li>В файле <em>src/garden.rs</em></li>
+<li>В файле <em>src/garden/mod.rs</em></li>
 </ul>
 </li>
-<li><strong>Declaring submodules</strong>: In any file other than the crate root, you can declare submodules. For example, you might declare <code>mod vegetables;</code> in <em>src/garden.rs</em>. The compiler will look for the submodule’s code within the directory named for the parent module in these places:
+<li><strong>Объявление подмодулей</strong>. В любом файле, кроме корня крейта, вы можете объявлять подмодули. К примеру, вы можете объявить <code>mod vegetables;</code> в <em>src/garden.rs</em>. Компилятор будет искать код подмодуля в каталоге с именем родительского модуля в следующих местах:
 <ul>
-<li>Inline, directly following <code>mod vegetables</code>, within curly brackets instead of the semicolon</li>
-<li>In the file <em>src/garden/vegetables.rs</em></li>
-<li>In the file <em>src/garden/vegetables/mod.rs</em></li>
+<li>В этом же файле, сразу после <code>mod vegetables</code> и между фигурных скобок, которые заменяют точку с запятой</li>
+<li>В файле <em>src/garden/vegetables.rs</em></li>
+<li>В файле <em>src/garden/vegetables/mod.rs</em></li>
 </ul>
 </li>
-<li><strong>Paths to code in modules</strong>: Once a module is part of your crate, you can refer to code in that module from anywhere else in that same crate, as long as the privacy rules allow, using the path to the code. For example, an <code>Asparagus</code> type in the garden vegetables module would be found at <code>crate::garden::vegetables::Asparagus</code>.</li>
-<li><strong>Private vs. public</strong>: Code within a module is private from its parent modules by default. To make a module public, declare it with <code>pub mod</code> instead of <code>mod</code>. To make items within a public module public as well, use <code>pub</code> before their declarations.</li>
-<li><strong>The <code>use</code> keyword</strong>: Within a scope, the <code>use</code> keyword creates shortcuts to items to reduce repetition of long paths. In any scope that can refer to <code>crate::garden::vegetables::Asparagus</code>, you can create a shortcut with <code>use crate::garden::vegetables::Asparagus;</code> and from then on you only need to write <code>Asparagus</code> to make use of that type in the scope.</li>
+<li><strong>Пути к коду в модулях</strong>. После того, как модуль станет частью вашего крейта, и если допускают правила приватности, вы можете ссылаться на код в этом модуле из любого места вашего крейта, используя путь к коду. Например, тип <code>Asparagus</code> в подмодуле <code>vegetables</code> модуля <code>garden</code> будет доступен по пути <code>crate::garden::vegetables::Asparagus</code>.</li>
+<li><strong>Закрытость и открытость</strong>. Код в модуле по умолчанию скрыт от его родительских модулей. Чтобы сделать модуль общедоступным, объявите его как <code>pub mod</code> вместо <code>mod</code>. Чтобы сделать элементы общедоступного модуля тоже общедоступными, используйте <code>pub</code> перед их объявлением.</li>
+<li><strong>Ключевое слово <code>use</code></strong>. Внутри области видимости использование ключевого слова <code>use</code> создаёт псевдонимы для элементов, чтобы сократить повторение длинных путей. В любой области видимости, из которой можно обратиться к <code>crate::garden::vegetables::Asparagus</code>, вы можете создать псевдоним <code>use crate::garden::vegetables::Asparagus;</code> и после этого вам нужно просто писать <code>Asparagus</code>, чтобы использовать этот тип в этой области видимости.</li>
 </ul>
-<p>Here, we create a binary crate named <code>backyard</code> that illustrates these rules. The crate’s directory, also named <code>backyard</code>, contains these files and directories:</p>
+<p>Мы создали бинарный крейт <code>backyard</code>, который иллюстрирует эти правила. Директория крейта, также названная как <code>backyard</code>, содержит следующие файлы и директории:</p>
 <pre><code class="language-text">backyard
 ├── Cargo.lock
 ├── Cargo.toml
@@ -250,7 +250,7 @@
     ├── garden.rs
     └── main.rs
 </code></pre>
-<p>The crate root file in this case is <em>src/main.rs</em>, and it contains:</p>
+<p>Файл корневого модуля крейта (в нашем случае) — <em>src/main.rs</em>. Вот, что он содержит:</p>
 <Listing file-name="src/main.rs">
 <pre><code class="language-rust noplayground ignore">use crate::garden::vegetables::Asparagus;
 
@@ -258,22 +258,22 @@ pub mod garden;
 
 fn main() {
     let plant = Asparagus {};
-    println!("I'm growing {plant:?}!");
+    println!("Здесь растёт {plant:?}!");
 }</code></pre>
 </Listing>
-<p>The <code>pub mod garden;</code> line tells the compiler to include the code it finds in <em>src/garden.rs</em>, which is:</p>
+<p>Строка <code>pub mod garden;</code> говорит компилятору подключить код, имеющийся в <em>src/garden.rs</em>. Вот подключаемый код:</p>
 <Listing file-name="src/garden.rs">
 <pre><code class="language-rust noplayground ignore">pub mod vegetables;</code></pre>
 </Listing>
-<p>Here, <code>pub mod vegetables;</code> means the code in <em>src/garden/vegetables.rs</em> is included too. That code is:</p>
+<p>А здесь <code>pub mod vegetables;</code> указывает, что код в <code>src/garden/vegetables.rs</code> тоже подключён. Вот подключаемый код:</p>
 <pre><code class="language-rust noplayground ignore">#[derive(Debug)]
 pub struct Asparagus {}</code></pre>
-<p>Now let’s get into the details of these rules and demonstrate them in action!</p>
-<h3 id="grouping-related-code-in-modules"><a class="header" href="#grouping-related-code-in-modules">Grouping Related Code in Modules</a></h3>
-<p><em>Modules</em> let us organize code within a crate for readability and easy reuse. Modules also allow us to control the <em>privacy</em> of items because code within a module is private by default. Private items are internal implementation details not available for outside use. We can choose to make modules and the items within them public, which exposes them to allow external code to use and depend on them.</p>
-<p>As an example, let’s write a library crate that provides the functionality of a restaurant. We’ll define the signatures of functions but leave their bodies empty to concentrate on the organization of the code rather than the implementation of a restaurant.</p>
-<p>In the restaurant industry, some parts of a restaurant are referred to as <em>front of house</em> and others as <em>back of house</em>. Front of house is where customers are; this encompasses where the hosts seat customers, servers take orders and payment, and bartenders make drinks. Back of house is where the chefs and cooks work in the kitchen, dishwashers clean up, and managers do administrative work.</p>
-<p>To structure our crate in this way, we can organize its functions into nested modules. Create a new library named <code>restaurant</code> by running <code>cargo new restaurant --lib</code>. Then enter the code in Listing 7-1 into <em>src/lib.rs</em> to define some modules and function signatures; this code is the front of house section.</p>
+<p>Теперь давайте рассмотрим детали этих правил и покажем их в действии!</p>
+<h3 id="Группировка-родственного-кода-в-модули"><a class="header" href="#Группировка-родственного-кода-в-модули">Группировка родственного кода в модули</a></h3>
+<p><em>Модули</em> позволяют упорядочивать код внутри крейта для удобочитаемости и лёгкого повторного использования. Модули также позволяют нам управлять <em>приватностью</em> элементов, поскольку код внутри модуля по умолчанию является закрытым. Приватные элементы — это внутренние детали реализации, недоступные для внешнего использования. Мы можем сделать модули и элементы внутри них общедоступными, что позволит внешнему коду использовать их и зависеть от них.</p>
+<p>В качестве примера, давайте напишем библиотечный крейт предоставляющий функциональность ресторана. Мы определим сигнатуры функций, но оставим их тела пустыми, чтобы сосредоточиться на организации кода, вместо реализации самого ресторана.</p>
+<p>В ресторанной индустрии одни части ресторана называются <em>front of house</em>, а другие — <em>back of house</em>. Front of house — это там, где находятся клиенты; здесь размещаются места клиентов, официанты принимают заказы и оплаты, а бармены делают напитки. Back of house — там, это где повара работают на кухне, работают посудомоечные машины, а менеджеры занимаются хозяйственной деятельностью.</p>
+<p>Чтобы структурировать крейт аналогично ресторанной модели, можно организовать размещение его функций во вложенных модулях. Создадим новую библиотеку с именем <code>restaurant</code> выполнив команду <code>cargo new restaurant --lib</code>. Затем вставим код из Листинга 7-1 в <em>src/lib.rs</em> для определения некоторых модулей и сигнатур функций. Это front of house:</p>
 <Listing number="7-1" file-name="src/lib.rs" caption="A `front_of_house` module containing other modules that then contain functions">
 <pre><code class="language-rust noplayground">mod front_of_house {
     mod hosting {
@@ -291,10 +291,10 @@ pub struct Asparagus {}</code></pre>
     }
 }</code></pre>
 </Listing>
-<p>We define a module with the <code>mod</code> keyword followed by the name of the module (in this case, <code>front_of_house</code>). The body of the module then goes inside curly brackets. Inside modules, we can place other modules, as in this case with the modules <code>hosting</code> and <code>serving</code>. Modules can also hold definitions for other items, such as structs, enums, constants, traits, and—as in Listing 7-1—functions.</p>
-<p>By using modules, we can group related definitions together and name why they’re related. Programmers using this code can navigate the code based on the groups rather than having to read through all the definitions, making it easier to find the definitions relevant to them. Programmers adding new functionality to this code would know where to place the code to keep the program organized.</p>
+<p>Мы определяем модуль ключевым словом <code>mod</code>, затем пишем название модуля (в данном случае — <code>front_of_house</code>) и размещаем фигурные скобки вокруг тела модуля. Внутри модулей можно иметь другие модули, как мы это сделали с модулями <code>hosting</code> и <code>serving</code>. Модули также могут содержать определения других элементов, таких как структуры, перечисления, константы, трейты или (как в Листинге 7-1) функции.</p>
+<p>Используя модули, мы можем группировать родственные определения вместе и пояснять, в чём они являются родственными. Программистам будет легче найти необходимую функциональность в сгруппированном коде, вместо того чтобы искать её в одном общем списке. Программисты, добавляющие новые функции в этот код, будут знать, где разместить код для поддержания порядка в программе.</p>
 <p>Earlier, we mentioned that <em>src/main.rs</em> and <em>src/lib.rs</em> are called crate roots. The reason for their name is that the contents of either of these two files form a module named <code>crate</code> at the root of the crate’s module structure, known as the <em>module tree</em>.</p>
-<p>Listing 7-2 shows the module tree for the structure in Listing 7-1.</p>
+<p>В Листинге 7-2 показано дерево модулей для структуры модулей, приведённой в коде Листинга 7-1.</p>
 <Listing number="7-2" caption="The module tree for the code in Listing 7-1">
 <pre><code class="language-text">crate
  └── front_of_house
@@ -307,8 +307,8 @@ pub struct Asparagus {}</code></pre>
          └── take_payment
 </code></pre>
 </Listing>
-<p>This tree shows how some of the modules nest inside other modules; for example, <code>hosting</code> nests inside <code>front_of_house</code>. The tree also shows that some modules are <em>siblings</em>, meaning they’re defined in the same module; <code>hosting</code> and <code>serving</code> are siblings defined within <code>front_of_house</code>. If module A is contained inside module B, we say that module A is the <em>child</em> of module B and that module B is the <em>parent</em> of module A. Notice that the entire module tree is rooted under the implicit module named <code>crate</code>.</p>
-<p>The module tree might remind you of the filesystem’s directory tree on your computer; this is a very apt comparison! Just like directories in a filesystem, you use modules to organize your code. And just like files in a directory, we need a way to find our modules.</p>
+<p>Это дерево показывает, как некоторые из модулей вкладываются друг в друга; например, <code>hosting</code> находится внутри <code>front_of_house</code>. Дерево также показывает, что некоторые модули являются "братьями", то есть они определены в одном модуле; <code>hosting</code> и <code>serving</code> — это "братья", которые определены внутри <code>front_of_house</code>. Если модуль A содержится внутри модуля B, мы говорим, что модуль A является <em>потомком</em> модуля B, а модуль B является <em>родителем</em> модуля A. Обратите внимание, что родителем всего дерева модулей является неявный модуль с именем <code>crate</code>.</p>
+<p>Дерево модулей может напомнить вам дерево файловой системы на компьютере; это очень удачное сравнение! По аналогии c файловой системой, модули используются для организации кода. И так же, как нам надо искать файлы в директориях, нам требуется способ поиска нужных модулей.</p>
 
                     </main>
 
