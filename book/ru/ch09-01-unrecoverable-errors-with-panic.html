@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Неустранимые ошибки с panic! - The Rust Programming Language</title>
+        <title>Неисправимые ошибки с panic! - The Rust Programming Language</title>
 
 
         <!-- Custom HTML head -->
@@ -216,36 +216,36 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="Неустранимые-ошибки-с-panic"><a class="header" href="#Неустранимые-ошибки-с-panic">Неустранимые ошибки с <code>panic!</code></a></h2>
-<p>Sometimes bad things happen in your code, and there’s nothing you can do about it. In these cases, Rust has the <code>panic!</code> macro. There are two ways to cause a panic in practice: by taking an action that causes our code to panic (such as accessing an array past the end) or by explicitly calling the <code>panic!</code> macro. In both cases, we cause a panic in our program. By default, these panics will print a failure message, unwind, clean up the stack, and quit. Via an environment variable, you can also have Rust display the call stack when a panic occurs to make it easier to track down the source of the panic.</p>
+                        <h2 id="Неисправимые-ошибки-с-panic"><a class="header" href="#Неисправимые-ошибки-с-panic">Неисправимые ошибки с <code>panic!</code></a></h2>
+<p>Иногда в коде возникают критические ошибки, и от этого никуда не деться. Для этих случаев у Rust есть макрос <code>panic!</code>. На практике существует два способа вызвать панику: путём выполнения действия, которое вызывает панику (например, обращение к массиву за пределами его размера) или путём явного вызова макроса <code>panic!</code>. В обоих случаях мы вызываем панику в нашей программе. По умолчанию, паника выводит сообщение об ошибке, раскручивает и очищает стек вызовов и завершает работу. С помощью переменной окружения вы также можете заставить Rust отображать стек вызовов при возникновении паники, чтобы было легче отследить источник паники.</p>
 <blockquote>
-<h3 id="unwinding-the-stack-or-aborting-in-response-to-a-panic"><a class="header" href="#unwinding-the-stack-or-aborting-in-response-to-a-panic">Unwinding the Stack or Aborting in Response to a Panic</a></h3>
-<p>By default, when a panic occurs the program starts <em>unwinding</em>, which means Rust walks back up the stack and cleans up the data from each function it encounters. However, walking back and cleaning up is a lot of work. Rust, therefore, allows you to choose the alternative of immediately <em>aborting</em>, which ends the program without cleaning up.</p>
-<p>Memory that the program was using will then need to be cleaned up by the operating system. If in your project you need to make the resultant binary as small as possible, you can switch from unwinding to aborting upon a panic by adding <code>panic = 'abort'</code> to the appropriate <code>[profile]</code> sections in your <em>Cargo.toml</em> file. For example, if you want to abort on panic in release mode, add this:</p>
+<h3 id="Раскрутить-стек-или-прервать-исполнение-программы"><a class="header" href="#Раскрутить-стек-или-прервать-исполнение-программы">Раскрутить стек или прервать исполнение программы?</a></h3>
+<p>По умолчанию, когда происходит паника, программа начинает процесс <em>раскрутки стека</em>, означающий проход обратно по стеку вызовов и очистку данных для каждой обнаруженной функции. Тем не менее, этот обратный проход по стеку и очистка требуют много работы. Rust в качестве альтернативы предоставляет вам возможность немедленного <em>прерывания исполнения</em>, которое завершает работу программы без очистки.</p>
+<p>Память, которую использовала программа, должна быть очищена операционной системой. Если в вашем проекте нужно сделать исполняемый файл маленьким настолько, насколько это возможно, вы можете прямо указать программе прерывать исполнение в случае паники, добавив <code>panic = 'abort'</code> в соответствующие разделы <code>[profile]</code> вашего файла <em>Cargo.toml</em>. Например, если вы хотите прерывать панику в релизном режиме, добавьте это:</p>
 <pre><code class="language-toml">[profile.release]
 panic = 'abort'
 </code></pre>
 </blockquote>
-<p>Let’s try calling <code>panic!</code> in a simple program:</p>
+<p>Давайте попробуем вызвать <code>panic!</code> в простой программе:</p>
 <Listing file-name="src/main.rs">
 <pre><pre class="playground"><code class="language-rust should_panic panics edition2021">fn main() {
-    panic!("crash and burn");
+    panic!("критическая ошибка");
 }</code></pre></pre>
 </Listing>
-<p>When you run the program, you’ll see something like this:</p>
+<p>При запуске программы вы увидите подобный вывод:</p>
 <pre><code class="language-console">$ cargo run
    Compiling panic v0.1.0 (file:///projects/panic)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.25s
      Running `target/debug/panic`
 thread 'main' panicked at src/main.rs:2:5:
-crash and burn
+критическая ошибка
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 </code></pre>
-<p>The call to <code>panic!</code> causes the error message contained in the last two lines. The first line shows our panic message and the place in our source code where the panic occurred: <em>src/main.rs:2:5</em> indicates that it’s the second line, fifth character of our <em>src/main.rs</em> file.</p>
-<p>In this case, the line indicated is part of our code, and if we go to that line, we see the <code>panic!</code> macro call. In other cases, the <code>panic!</code> call might be in code that our code calls, and the filename and line number reported by the error message will be someone else’s code where the <code>panic!</code> macro is called, not the line of our code that eventually led to the <code>panic!</code> call.</p>
+<p>Выполнение макроса <code>panic!</code> вызывает сообщение об ошибке, представленное в двух последних строчках выше. Первая строчка содержит сообщение паники и место в исходном коде, где возникла паника: запись <em>src/main.rs:2:5</em> указывает на второй строчки пятый символ внутри файла <em>src/main.rs</em>.</p>
+<p>В нашем случае, сообщение об ошибке указывает на наш собственный код, и если мы перейдём к этой строке, мы увидим вызов макроса <code>panic!</code>. В других случаях вызов <code>panic!</code> мог бы произойти в стороннем коде, вызываемом нашим, и тогда имя файла и номер строки указывали бы именно туда, где конкретно вызывается макрос <code>panic!</code>, а не на тот код, вызов которого привёл к вызову <code>panic!</code>.</p>
 <!-- Old heading. Do not remove or links may break. -->
 <p><a id="using-a-panic-backtrace"></a></p>
-<p>We can use the backtrace of the functions the <code>panic!</code> call came from to figure out the part of our code that is causing the problem. To understand how to use a <code>panic!</code> backtrace, let’s look at another example and see what it’s like when a <code>panic!</code> call comes from a library because of a bug in our code instead of from our code calling the macro directly. Listing 9-1 has some code that attempts to access an index in a vector beyond the range of valid indexes.</p>
+<p>Мы можем использовать развёртку вызовов функций, приводящих к вызову <code>panic!</code>, чтобы выяснить, какая часть нашего кода вызывает проблему. Чтобы понять, как использовать развёртку вызова <code>panic!</code>, давайте рассмотрим другой пример и посмотрим, каково это, когда <code>panic!</code> вызывается не напрямую через вызов макроса, а в библиотечном коде, содержащем баг. В Листинге 9-1 приведен некоторый код, который пытается получить доступ элементу вектора по индексу, лежащему за пределами вектора.</p>
 <Listing number="9-1" file-name="src/main.rs" caption="Attempting to access an element beyond the end of a vector, which will cause a call to `panic!`">
 <pre><pre class="playground"><code class="language-rust should_panic panics edition2021">fn main() {
     let v = vec![1, 2, 3];
@@ -253,9 +253,9 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
     v[99];
 }</code></pre></pre>
 </Listing>
-<p>Here, we’re attempting to access the 100th element of our vector (which is at index 99 because indexing starts at zero), but the vector has only three elements. In this situation, Rust will panic. Using <code>[]</code> is supposed to return an element, but if you pass an invalid index, there’s no element that Rust could return here that would be correct.</p>
-<p>In C, attempting to read beyond the end of a data structure is undefined behavior. You might get whatever is at the location in memory that would correspond to that element in the data structure, even though the memory doesn’t belong to that structure. This is called a <em>buffer overread</em> and can lead to security vulnerabilities if an attacker is able to manipulate the index in such a way as to read data they shouldn’t be allowed to that is stored after the data structure.</p>
-<p>To protect your program from this sort of vulnerability, if you try to read an element at an index that doesn’t exist, Rust will stop execution and refuse to continue. Let’s try it and see:</p>
+<p>Здесь мы пытаемся получить доступ к 100му элементу вектора (который находится по индексу 99, потому что индексирование начинается с нуля), но вектор имеет только 3 элемента. В этой ситуации, Rust будет вызывать панику. Использование <code>[]</code> должно возвращать элемент, но если вы передадите неверный индекс, Rust не сможет найти ничего, что можно было бы корректно вернуть.</p>
+<p>В языке C, попытка прочесть за пределами конца структуры данных (в нашем случае, вектора) приведёт к <em>неопределённому поведению</em>. А именно, вы всё-таки получите значение, которое находится в том месте памяти компьютера, которое соответствовало бы этому элементу в структуре данных — даже несмотря на то, что это место к ней относиться никак не будет. Это называется <em>чтением за границами буфера</em> (<em>buffer overread</em>) — уязвимостью в виде возможности чтения злоумышленником данных, к которым у него не должно быть доступа, вызванной возможностью читать произвольные области памяти с помощью некорректных индексов.</p>
+<p>Чтобы защищать вашу программу от такого рода уязвимостей при попытке прочитать элемент по некорректному индексу, Rust останавливает исполнение и отказывается продолжать работу программы. Посмотрим, как это выглядит:</p>
 <pre><code class="language-console">$ cargo run
    Compiling panic v0.1.0 (file:///projects/panic)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.27s
@@ -264,8 +264,8 @@ thread 'main' panicked at src/main.rs:4:6:
 index out of bounds: the len is 3 but the index is 99
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 </code></pre>
-<p>This error points at line 4 of our <em>main.rs</em> where we attempt to access index <code>99</code> of the vector in <code>v</code>.</p>
-<p>The <code>note:</code> line tells us that we can set the <code>RUST_BACKTRACE</code> environment variable to get a backtrace of exactly what happened to cause the error. A <em>backtrace</em> is a list of all the functions that have been called to get to this point. Backtraces in Rust work as they do in other languages: the key to reading the backtrace is to start from the top and read until you see files you wrote. That’s the spot where the problem originated. The lines above that spot are code that your code has called; the lines below are code that called your code. These before-and-after lines might include core Rust code, standard library code, or crates that you’re using. Let’s try getting a backtrace by setting the <code>RUST_BACKTRACE</code> environment variable to any value except <code>0</code>. Listing 9-2 shows output similar to what you’ll see.</p>
+<p>Эта ошибка указывает на строку 4 нашего <em>main.rs</em>, где мы пытаемся получить доступ по индексу <code>99</code> к элементу вектора <code>v</code>.</p>
+<p>Строка <code>note:</code> сообщает нам, что мы можем установить переменную среды <code>RUST_BACKTRACE</code>, чтобы получать развёртку вызовов, последовательность которых привела к ошибке. <em>Развёртка вызовов</em> (<em>backtrace</em>) — это последовательный список вложенных вызовов. Развёртка вызовов в Rust работает так же, как и в других языках: её нужно читать от начала и до того момента, когда упоминается ваш код. Именно отсюда начинается ваша собственная ошибка. Строки выше —  это указания на код, вызываемый строчкой, где начались проблемы; строки ниже — это указания на код, вызывающий ваш проблемный код. Эти строки выше и ниже могут содержать код ядра Rust, код из стандартной библиотеки или из используемых вами крейтов. Давайте попробуем выполнить развёртку вызовов, установив для переменной окружения <code>RUST_BACKTRACE</code> любое значение, кроме <code>0</code>. В Листинге 9-2 показан соответствующий пример.</p>
 <!-- manual-regeneration
 cd listings/ch09-error-handling/listing-09-01
 RUST_BACKTRACE=1 cargo run
@@ -296,9 +296,9 @@ stack backtrace:
 note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
 </code></pre>
 </Listing>
-<p>That’s a lot of output! The exact output you see might be different depending on your operating system and Rust version. In order to get backtraces with this information, debug symbols must be enabled. Debug symbols are enabled by default when using <code>cargo build</code> or <code>cargo run</code> without the <code>--release</code> flag, as we have here.</p>
-<p>In the output in Listing 9-2, line 6 of the backtrace points to the line in our project that’s causing the problem: line 4 of <em>src/main.rs</em>. If we don’t want our program to panic, we should start our investigation at the location pointed to by the first line mentioning a file we wrote. In Listing 9-1, where we deliberately wrote code that would panic, the way to fix the panic is to not request an element beyond the range of the vector indexes. When your code panics in the future, you’ll need to figure out what action the code is taking with what values to cause the panic and what the code should do instead.</p>
-<p>We’ll come back to <code>panic!</code> and when we should and should not use <code>panic!</code> to handle error conditions in the <a href="ch09-03-to-panic-or-not-to-panic.html#to-panic-or-not-to-panic">“To <code>panic!</code> or Not to <code>panic!</code>”</a><!-- ignore --> section later in this chapter. Next, we’ll look at how to recover from an error using <code>Result</code>.</p>
+<p>Сколько текста! Вывод, который вы увидите, может отличаться от представленного выше, в зависимости от вашей операционной системы и версии Rust. Для того, чтобы получить развёртку вызовов с этой информацией, должны быть включены настройки отладки. Настройки отладки включены по умолчанию при использовании <code>cargo build</code> или <code>cargo run</code>, если вы не указываете флаг <code>--release</code>.</p>
+<p>В развёртке вызовов из Листинга 9-2, строка <code>6: ...</code> указывает на строчку в нашем проекте, которая и вызывала проблему: строчка 4 файла <em>src/main.rs</em>. Если мы не хотим, чтобы наша программа паниковала, мы должны начать анализ с места, на которое указывает первая строка с упоминанием нашего собственного файла. В Листинге 9-1, где мы для демонстрации развёртки вызовов сознательно написали код, который паникует, способ исправления паники состоит в том, чтобы не запрашивать элемент за пределами диапазона значений индексов вектора. Когда вы встретитесь с паникой в своих будущих программах, вам нужно будет выяснить, что над чем конкретно делает код, и что он должен делать по задумке.</p>
+<p>Мы вернёмся к обсуждению макроса <code>panic!</code> и того, когда нам следует и не следует его использовать для обработки ошибок, в разделе <a href="ch09-03-to-panic-or-not-to-panic.html#%D0%9A%D0%BE%D0%B3%D0%B4%D0%B0-%D1%81%D0%BB%D0%B5%D0%B4%D1%83%D0%B5%D1%82-%D0%B8%D1%81%D0%BF%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D1%82%D1%8C-panic">"Когда следует использовать <code>panic!</code>?"</a><!-- ignore --> этой главы. Далее мы рассмотрим, как можно продолжить исполнение программы после ошибки, воспользовавшись типом <code>Result</code>.</p>
 
                     </main>
 

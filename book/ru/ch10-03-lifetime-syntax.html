@@ -217,11 +217,11 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="Валидация-ссылок-по-времени-жизни"><a class="header" href="#Валидация-ссылок-по-времени-жизни">Валидация ссылок по времени жизни</a></h2>
-<p>Lifetimes are another kind of generic that we’ve already been using. Rather than ensuring that a type has the behavior we want, lifetimes ensure that references are valid as long as we need them to be.</p>
-<p>One detail we didn’t discuss in the <a href="ch04-02-references-and-borrowing.html#references-and-borrowing">“References and Borrowing”</a><!-- ignore --> section in Chapter 4 is that every reference in Rust has a <em>lifetime</em>, which is the scope for which that reference is valid. Most of the time, lifetimes are implicit and inferred, just like most of the time, types are inferred. We must annotate types only when multiple types are possible. In a similar way, we must annotate lifetimes when the lifetimes of references could be related in a few different ways. Rust requires us to annotate the relationships using generic lifetime parameters to ensure the actual references used at runtime will definitely be valid.</p>
-<p>Annotating lifetimes is not even a concept most other programming languages have, so this is going to feel unfamiliar. Although we won’t cover lifetimes in their entirety in this chapter, we’ll discuss common ways you might encounter lifetime syntax so you can get comfortable with the concept.</p>
-<h3 id="preventing-dangling-references-with-lifetimes"><a class="header" href="#preventing-dangling-references-with-lifetimes">Preventing Dangling References with Lifetimes</a></h3>
-<p>The main aim of lifetimes is to prevent <em>dangling references</em>, which cause a program to reference data other than the data it’s intended to reference. Consider the program in Listing 10-16, which has an outer scope and an inner scope.</p>
+<p>Времена жизни — это ещё один вид обобщений, с которыми мы уже встречались. Если раньше мы использовали обобщения, чтобы убедиться, что тип обладает нужным нам поведением, то теперь мы будем их использовать, чтобы убедиться, что ссылки действительны столько, сколько требуется.</p>
+<p>В разделе ["Ссылки и заимствование"](ch04-02-references-and-borrowing.html #Ссылки-и-заимствование)<!-- ignore --> Главы 4 мы кое о чём умолчали: у каждой ссылки в Rust есть своё <em>время жизни</em> — промежуток программы, в котором данная ссылка действительна. В большинстве случаев времена жизни выводятся неявно — так же, как и типы. Точно так же мы должны явно объявлять времена жизни тех ссылок, которые комплятор не может самостоятельно однозначно определить. Rust требует от нас объявлять взаимосвязи посредством обобщённых параметров времени жизни, чтобы убедиться в том, что во время исполнения все используемые ссылки будут корректными.</p>
+<p>Аннотирование времени жизни — это концепция, отсутствующая в большинстве других языков программирования, так что она может показаться неясной. Хотя в этой главе мы не будем рассматривать времена жизни во всех деталях, тем не менее, мы обсудим основные ситуации, в которых вы можете столкнуться с ручным указанием времени жизни, что позволит вам получше ознакомиться с этой концепцией.</p>
+<h3 id="Защита-от-висячих-ссылок-с-помощью-времён-жизни"><a class="header" href="#Защита-от-висячих-ссылок-с-помощью-времён-жизни">Защита от висячих ссылок с помощью времён жизни</a></h3>
+<p>Основное предназначение времён жизни — предотвращать появление так называемых <em>висячих ссылок</em> — ссылок, указывающих не на те данные, на которые предполагалось указывать. Рассмотрим программу из Листинга 10-16, имеющую внешнюю и внутреннюю области видимости.</p>
 <Listing number="10-16" caption="An attempt to use a reference whose value has gone out of scope">
 <pre><code class="language-rust ignore does_not_compile">fn main() {
     let r;
@@ -235,9 +235,9 @@
 }</code></pre>
 </Listing>
 <blockquote>
-<p>Note: The examples in Listings 10-16, 10-17, and 10-23 declare variables without giving them an initial value, so the variable name exists in the outer scope. At first glance, this might appear to be in conflict with Rust’s having no null values. However, if we try to use a variable before giving it a value, we’ll get a compile-time error, which shows that Rust indeed does not allow null values.</p>
+<p>Примечание: Примеры в Листингах 10-16, 10-17 и 10-23 объявляют переменные без указания их начального значения, поэтому имя переменной существует во внешней области видимости. На первый взгляд может показаться, что это противоречит отсутствию в Rust значений null. Однако, если мы попытаемся использовать переменную, прежде чем присвоить ей значение, мы получим ошибку компиляции, которая показывает, что Rust действительно не разрешает значения null.</p>
 </blockquote>
-<p>The outer scope declares a variable named <code>r</code> with no initial value, and the inner scope declares a variable named <code>x</code> with the initial value of <code>5</code>. Inside the inner scope, we attempt to set the value of <code>r</code> as a reference to <code>x</code>. Then the inner scope ends, and we attempt to print the value in <code>r</code>. This code won’t compile because the value that <code>r</code> is referring to has gone out of scope before we try to use it. Here is the error message:</p>
+<p>Внешняя область видимости объявляет переменную <code>r</code> без начального значения, а внутренняя область объявляет переменную <code>x</code> с начальным значением <code>5</code>. Во внутренней области мы пытаемся установить значение <code>r</code> как ссылку на <code>x</code>. Затем внутренняя область видимости заканчивается, и мы пытаемся напечатать значение из <code>r</code>. Этот код не будет скомпилирован, потому что значение, на которое ссылается <code>r</code>, исчезает из области видимости раньше, чем мы пытаемся использовать его. Вот сообщение об ошибке:</p>
 <pre><code class="language-console">$ cargo run
    Compiling chapter10 v0.1.0 (file:///projects/chapter10)
 error[E0597]: `x` does not live long enough
@@ -256,36 +256,36 @@ error[E0597]: `x` does not live long enough
 For more information about this error, try `rustc --explain E0597`.
 error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
 </code></pre>
-<p>The error message says that the variable <code>x</code> “does not live long enough.” The reason is that <code>x</code> will be out of scope when the inner scope ends on line 7. But <code>r</code> is still valid for the outer scope; because its scope is larger, we say that it “lives longer.” If Rust allowed this code to work, <code>r</code> would be referencing memory that was deallocated when <code>x</code> went out of scope, and anything we tried to do with <code>r</code> wouldn’t work correctly. So how does Rust determine that this code is invalid? It uses a borrow checker.</p>
-<h3 id="the-borrow-checker"><a class="header" href="#the-borrow-checker">The Borrow Checker</a></h3>
-<p>The Rust compiler has a <em>borrow checker</em> that compares scopes to determine whether all borrows are valid. Listing 10-17 shows the same code as Listing 10-16 but with annotations showing the lifetimes of the variables.</p>
+<p>Ошибка сообщает, что переменная <code>x</code> "живёт недостаточно долго". Причина в том, что <code>x</code> выйдет из области видимости, когда эта внутренняя область закончится в строке 7. Но <code>r</code> всё ещё останется действительной во внешней области видимости; поскольку её охват больше, мы говорим, что она "живёт дольше". Если бы Rust позволил такому коду работать, то переменная <code>r</code> смогла бы ссылаться на память, которая уже была освобождена (в тот момент, когда <code>x</code> вышла из внутренней области видимости), и всё, что мы попытались бы сделать с <code>r</code>, работало бы неправильно. Как же Rust определяет, что этот код некорректен? Он использует для этого анализатор заимствований.</p>
+<h3 id="Анализатор-заимствований"><a class="header" href="#Анализатор-заимствований">Анализатор заимствований</a></h3>
+<p>Компилятор Rust включает в себя <em>анализатор заимствований</em>, который сравнивает области видимости для того, чтобы проверить, являются ли все заимствования действительными. В Листинге 10-17 показан тот же код, что и в Листинге 10-16, но с комментариями, показывающими времена жизни переменных.</p>
 <Listing number="10-17" caption="Annotations of the lifetimes of `r` and `x`, named `'a` and `'b`, respectively">
 <pre><code class="language-rust ignore does_not_compile">fn main() {
-    let r;                // ---------+-- 'a
-                          //          |
-    {                     //          |
-        let x = 5;        // -+-- 'b  |
-        r = &amp;x;           //  |       |
-    }                     // -+       |
-                          //          |
-    println!("r: {r}");   //          |
-}                         // ---------+</code></pre>
+    let r;                // ─────────┬── 'a
+                          //          │
+    {                     //          │
+        let x = 5;        // ━┳━━ 'b  │
+        r = &amp;x;           //  ┃       │
+    }                     // ━┛       │
+                          //          │
+    println!("r: {r}");   //          │
+}                         // ─────────┘</code></pre>
 </Listing>
-<p>Here, we’ve annotated the lifetime of <code>r</code> with <code>'a</code> and the lifetime of <code>x</code> with <code>'b</code>. As you can see, the inner <code>'b</code> block is much smaller than the outer <code>'a</code> lifetime block. At compile time, Rust compares the size of the two lifetimes and sees that <code>r</code> has a lifetime of <code>'a</code> but that it refers to memory with a lifetime of <code>'b</code>. The program is rejected because <code>'b</code> is shorter than <code>'a</code>: the subject of the reference doesn’t live as long as the reference.</p>
-<p>Listing 10-18 fixes the code so it doesn’t have a dangling reference and it compiles without any errors.</p>
+<p>Время жизни <code>r</code> здесь указано как <code>'a</code>, а <code>x</code> — как <code>'b</code>. Как видите, время жизни <code>'b</code> внутреннего блока гораздо меньше, чем время жизни <code>'a</code> внешнего блока. Во время компиляции Rust сравнивает продолжительность двух времён жизни и видит, что <code>r</code> имеет время жизни <code>'a</code>, но ссылается на память со временем жизни <code>'b</code>. Программа отбраковывается, потому что <code>'b</code> короче, чем <code>'a</code>: объект ссылки не живёт так же долго, как сама ссылка.</p>
+<p>Листинг 10-18 содержит исправленный код без висячей ссылки, и он компилируется без ошибок.</p>
 <Listing number="10-18" caption="A valid reference because the data has a longer lifetime than the reference">
 <pre><pre class="playground"><code class="language-rust edition2021">fn main() {
-    let x = 5;            // ----------+-- 'b
-                          //           |
-    let r = &amp;x;           // --+-- 'a  |
-                          //   |       |
-    println!("r: {r}");   //   |       |
-                          // --+       |
-}                         // ----------+</code></pre></pre>
+    let x = 5;            // ━━━━━━━━━━┳━━ 'b
+                          //           ┃
+    let r = &amp;x;           // ──┬── 'a  ┃
+                          //   │       ┃
+    println!("r: {r}");   //   │       ┃
+                          // ──┘       ┃
+}                         // ━━━━━━━━━━┛</code></pre></pre>
 </Listing>
-<p>Here, <code>x</code> has the lifetime <code>'b</code>, which in this case is larger than <code>'a</code>. This means <code>r</code> can reference <code>x</code> because Rust knows that the reference in <code>r</code> will always be valid while <code>x</code> is valid.</p>
-<p>Now that you know where the lifetimes of references are and how Rust analyzes lifetimes to ensure references will always be valid, let’s explore generic lifetimes of parameters and return values in the context of functions.</p>
-<h3 id="generic-lifetimes-in-functions"><a class="header" href="#generic-lifetimes-in-functions">Generic Lifetimes in Functions</a></h3>
+<p>Здесь переменная <code>x</code> имеет время жизни <code>'b</code>, которое больше, чем время жизни <code>'a</code>. Это означает, что переменная <code>r</code> может ссылаться на переменную <code>x</code>, потому что Rust знает, что ссылка в переменной <code>r</code> будет всегда действительной до тех пор, пока действительна переменная <code>x</code>.</p>
+<p>После того, как мы на примерах рассмотрели времена жизни ссылок и обсудили, как Rust их анализирует, давайте поговорим об обобщённых временах жизни параметров и возвращаемых значений функций.</p>
+<h3 id="Обобщённые-времена-жизни-в-функциях"><a class="header" href="#Обобщённые-времена-жизни-в-функциях">Обобщённые времена жизни в функциях</a></h3>
 <p>We’ll write a function that returns the longer of two string slices. This function will take two string slices and return a single string slice. After we’ve implemented the <code>longest</code> function, the code in Listing 10-19 should print <code>The longest string is abcd</code>.</p>
 <Listing number="10-19" file-name="src/main.rs" caption="A `main` function that calls the `longest` function to find the longer of two string slices">
 <pre><code class="language-rust ignore">fn main() {
@@ -293,18 +293,18 @@ error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
     let string2 = "xyz";
 
     let result = longest(string1.as_str(), string2);
-    println!("The longest string is {result}");
+    println!("Самая длинная строка: {result}");
 }</code></pre>
 </Listing>
-<p>Note that we want the function to take string slices, which are references, rather than strings, because we don’t want the <code>longest</code> function to take ownership of its parameters. Refer to <a href="ch04-03-slices.html#string-slices-as-parameters">“String Slices as Parameters”</a><!-- ignore --> in Chapter 4 for more discussion about why the parameters we use in Listing 10-19 are the ones we want.</p>
-<p>If we try to implement the <code>longest</code> function as shown in Listing 10-20, it won’t compile.</p>
+<p>Обратите внимание, что мы хотим, чтобы функция принимала строковые срезы (которые являются ссылками), а не сами строки, потому что мы не хотим, чтобы функция <code>longest</code> забирала во владение свои параметры. Обратитесь к разделу <a href="ch04-03-slices.html#%D0%A1%D1%82%D1%80%D0%BE%D0%BA%D0%BE%D0%B2%D1%8B%D0%B5-%D1%81%D1%80%D0%B5%D0%B7%D1%8B-%D0%BA%D0%B0%D0%BA-%D0%BF%D0%B0%D1%80%D0%B0%D0%BC%D0%B5%D1%82%D1%80%D1%8B">"Строковые срезы как параметры"</a><!-- ignore --> Главы 4, чтобы вспомнить, почему параметры функции в Листинге 10-19 имеют именно такой тип.</p>
+<p>Если мы попробуем реализовать функцию <code>longest</code> так, как это показано в Листинге 10-20, то программа не скомпилируется:</p>
 <Listing number="10-20" file-name="src/main.rs" caption="An implementation of the `longest` function that returns the longer of two string slices but does not yet compile">
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">fn main() {
 </span><span class="boring">    let string1 = String::from("abcd");
 </span><span class="boring">    let string2 = "xyz";
 </span><span class="boring">
 </span><span class="boring">    let result = longest(string1.as_str(), string2);
-</span><span class="boring">    println!("The longest string is {result}");
+</span><span class="boring">    println!("Самая длинная строка: {result}");
 </span><span class="boring">}
 </span><span class="boring">
 </span>fn longest(x: &amp;str, y: &amp;str) -&gt; &amp;str {
@@ -315,7 +315,7 @@ error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
     }
 }</code></pre>
 </Listing>
-<p>Instead, we get the following error that talks about lifetimes:</p>
+<p>Вместо этого мы получим следующую ошибку, говорящую о временах жизни:</p>
 <pre><code class="language-console">$ cargo run
    Compiling chapter10 v0.1.0 (file:///projects/chapter10)
 error[E0106]: missing lifetime specifier
@@ -333,26 +333,26 @@ help: consider introducing a named lifetime parameter
 For more information about this error, try `rustc --explain E0106`.
 error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
 </code></pre>
-<p>The help text reveals that the return type needs a generic lifetime parameter on it because Rust can’t tell whether the reference being returned refers to <code>x</code> or <code>y</code>. Actually, we don’t know either, because the <code>if</code> block in the body of this function returns a reference to <code>x</code> and the <code>else</code> block returns a reference to <code>y</code>!</p>
-<p>When we’re defining this function, we don’t know the concrete values that will be passed into this function, so we don’t know whether the <code>if</code> case or the <code>else</code> case will execute. We also don’t know the concrete lifetimes of the references that will be passed in, so we can’t look at the scopes as we did in Listings 10-17 and 10-18 to determine whether the reference we return will always be valid. The borrow checker can’t determine this either, because it doesn’t know how the lifetimes of <code>x</code> and <code>y</code> relate to the lifetime of the return value. To fix this error, we’ll add generic lifetime parameters that define the relationship between the references so the borrow checker can perform its analysis.</p>
-<h3 id="lifetime-annotation-syntax"><a class="header" href="#lifetime-annotation-syntax">Lifetime Annotation Syntax</a></h3>
-<p>Lifetime annotations don’t change how long any of the references live. Rather, they describe the relationships of the lifetimes of multiple references to each other without affecting the lifetimes. Just as functions can accept any type when the signature specifies a generic type parameter, functions can accept references with any lifetime by specifying a generic lifetime parameter.</p>
-<p>Lifetime annotations have a slightly unusual syntax: the names of lifetime parameters must start with an apostrophe (<code>'</code>) and are usually all lowercase and very short, like generic types. Most people use the name <code>'a</code> for the first lifetime annotation. We place lifetime parameter annotations after the <code>&amp;</code> of a reference, using a space to separate the annotation from the reference’s type.</p>
-<p>Here are some examples: a reference to an <code>i32</code> without a lifetime parameter, a reference to an <code>i32</code> that has a lifetime parameter named <code>'a</code>, and a mutable reference to an <code>i32</code> that also has the lifetime <code>'a</code>.</p>
-<pre><code class="language-rust ignore">&amp;i32        // a reference
-&amp;'a i32     // a reference with an explicit lifetime
-&amp;'a mut i32 // a mutable reference with an explicit lifetime</code></pre>
-<p>One lifetime annotation by itself doesn’t have much meaning because the annotations are meant to tell Rust how generic lifetime parameters of multiple references relate to each other. Let’s examine how the lifetime annotations relate to each other in the context of the <code>longest</code> function.</p>
-<h3 id="lifetime-annotations-in-function-signatures"><a class="header" href="#lifetime-annotations-in-function-signatures">Lifetime Annotations in Function Signatures</a></h3>
-<p>To use lifetime annotations in function signatures, we need to declare the generic <em>lifetime</em> parameters inside angle brackets between the function name and the parameter list, just as we did with generic <em>type</em> parameters.</p>
-<p>We want the signature to express the following constraint: the returned reference will be valid as long as both the parameters are valid. This is the relationship between lifetimes of the parameters and the return value. We’ll name the lifetime <code>'a</code> and then add it to each reference, as shown in Listing 10-21.</p>
+<p>Текст ошибки показывает, что возвращаемому типу нужен обобщённый параметр времени жизни, потому что Rust не может определить, на что указывает возвращаемая ссылка — на <code>x</code> или на <code>y</code>. На самом деле, мы тоже не знаем! — блок <code>if</code> в теле функции возвращает ссылку на <code>x</code>, а блок <code>else</code> — на <code>y</code>.</p>
+<p>Когда мы определяем эту функцию, мы не знаем конкретных значений, которые будут переданы в эту функцию, поэтому мы не знаем, какая из ветвей (<code>if</code> или <code>else</code>) будет исполнена. Мы также не знаем конкретных сроков жизни ссылок, которые будут переданы, поэтому мы не можем просмотреть области видимости, как мы это делали в Листингах 10-17 и 10-18, чтобы определить, всегда ли возвращаемая ссылка будет действительной. Анализатор заимствований тоже бессилен, поскольку он не знает, как времена жизни <code>x</code> и <code>y</code> соотносятся с временем жизни возвращаемого значения. Чтобы исправить эту ошибку, мы добавим обобщённые параметры времени жизни, которые указывают анализатору заимствований то, как ссылки относятся друг к другу.</p>
+<h3 id="Аннотирование-времени-жизни"><a class="header" href="#Аннотирование-времени-жизни">Аннотирование времени жизни</a></h3>
+<p>Аннотации времени жизни не меняют время жизни ссылок. Они скорее описывают, как соотносятся между собой времена жизни нескольких ссылок, не влияя на само время жизни. Точно так же, как функции могут принимать любой тип, когда в сигнатуре указан параметр обобщённого типа, функции могут принимать ссылки с любым временем жизни, указанным с помощью параметра обобщённого времени жизни.</p>
+<p>Аннотации времени жизни имеют немного необычный синтаксис: имена параметров времени жизни должны начинаться с апострофа (<code>'</code>), пишутся маленькими буквами, и обычно очень короткие, как и имена обобщённых типов. Большинство людей использует имя <code>'a</code> в качестве первой аннотации времени жизни. Аннотации параметров времени жизни следуют после символа <code>&amp;</code> и отделяются пробелом от типа значения ссылки.</p>
+<p>Приведём несколько примеров: у нас есть ссылка на <code>i32</code> без указания времени жизни, ссылка на <code>i32</code> с временем жизни <code>'a</code> и изменяемая ссылка на <code>i32</code>, которая также имеет время жизни <code>'a</code>.</p>
+<pre><code class="language-rust ignore">&amp;i32        // ссылка
+&amp;'a i32     // ссылка с явно указанным временем жизни
+&amp;'a mut i32 // изменяемая ссылка с явно указанным временем жизни</code></pre>
+<p>Одна лишь аннотация времени жизни сама по себе не имеет большого значения, поскольку аннотации предназначены для того, чтобы информировать Rust о том, как соотносятся между собой времена жизни нескольких ссылок. Давайте рассмотрим, как аннотации времени жизни соотносятся друг с другом в функции <code>longest</code>.</p>
+<h3 id="Аннотации-времени-жизни-в-сигнатурах-функций"><a class="header" href="#Аннотации-времени-жизни-в-сигнатурах-функций">Аннотации времени жизни в сигнатурах функций</a></h3>
+<p>Чтобы использовать аннотации времени жизни в сигнатурах функций, нам нужно объявить параметры обобщённого <em>времени жизни</em> внутри угловых скобок между именем функции и списком параметров, как мы это делали с параметрами обобщённого <em>типа</em>.</p>
+<p>Мы хотим, чтобы сигнатура отражала следующее ограничение: возвращаемая ссылка будет действительна до тех пор, пока действительны оба параметра. Это и есть связь между временами жизни параметров и возвращаемого значения. Мы назовём это время жизни <code>'a</code>, а затем припишем его каждой ссылке, как показано в Листинге 10-21.</p>
 <Listing number="10-21" file-name="src/main.rs" caption="The `longest` function definition specifying that all the references in the signature must have the same lifetime `'a`">
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
 </span><span class="boring">    let string1 = String::from("abcd");
 </span><span class="boring">    let string2 = "xyz";
 </span><span class="boring">
 </span><span class="boring">    let result = longest(string1.as_str(), string2);
-</span><span class="boring">    println!("The longest string is {result}");
+</span><span class="boring">    println!("Самая длинная строка: {result}");
 </span><span class="boring">}
 </span><span class="boring">
 </span>fn longest&lt;'a&gt;(x: &amp;'a str, y: &amp;'a str) -&gt; &amp;'a str {
@@ -363,20 +363,20 @@ error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
     }
 }</code></pre></pre>
 </Listing>
-<p>This code should compile and produce the result we want when we use it with the <code>main</code> function in Listing 10-19.</p>
-<p>The function signature now tells Rust that for some lifetime <code>'a</code>, the function takes two parameters, both of which are string slices that live at least as long as lifetime <code>'a</code>. The function signature also tells Rust that the string slice returned from the function will live at least as long as lifetime <code>'a</code>. In practice, it means that the lifetime of the reference returned by the <code>longest</code> function is the same as the smaller of the lifetimes of the values referred to by the function arguments. These relationships are what we want Rust to use when analyzing this code.</p>
-<p>Remember, when we specify the lifetime parameters in this function signature, we’re not changing the lifetimes of any values passed in or returned. Rather, we’re specifying that the borrow checker should reject any values that don’t adhere to these constraints. Note that the <code>longest</code> function doesn’t need to know exactly how long <code>x</code> and <code>y</code> will live, only that some scope can be substituted for <code>'a</code> that will satisfy this signature.</p>
-<p>When annotating lifetimes in functions, the annotations go in the function signature, not in the function body. The lifetime annotations become part of the contract of the function, much like the types in the signature. Having function signatures contain the lifetime contract means the analysis the Rust compiler does can be simpler. If there’s a problem with the way a function is annotated or the way it is called, the compiler errors can point to the part of our code and the constraints more precisely. If, instead, the Rust compiler made more inferences about what we intended the relationships of the lifetimes to be, the compiler might only be able to point to a use of our code many steps away from the cause of the problem.</p>
-<p>When we pass concrete references to <code>longest</code>, the concrete lifetime that is substituted for <code>'a</code> is the part of the scope of <code>x</code> that overlaps with the scope of <code>y</code>. In other words, the generic lifetime <code>'a</code> will get the concrete lifetime that is equal to the smaller of the lifetimes of <code>x</code> and <code>y</code>. Because we’ve annotated the returned reference with the same lifetime parameter <code>'a</code>, the returned reference will also be valid for the length of the smaller of the lifetimes of <code>x</code> and <code>y</code>.</p>
-<p>Let’s look at how the lifetime annotations restrict the <code>longest</code> function by passing in references that have different concrete lifetimes. Listing 10-22 is a straightforward example.</p>
+<p>Теперь наша функция будет работать, а код из Листинга 10-19 — скомпилируется.</p>
+<p>Сигнатура функции теперь сообщает Rust, что для некоторого времени жизни <code>'a</code> функция принимает два параметра, оба из которых являются строковыми срезами, имеющими время жизни не меньшее, чем <code>'a</code>. Сигнатура функции также сообщает Rust, что время жизни строкового среза, возвращаемого функцией, будет не меньше, чем <code>'a</code>. На практике это означает, что время жизни ссылки, возвращаемой функцией <code>longest</code>, равно меньшему времени жизни из времён жизней ссылок, передаваемых в неё. Мы хотим, чтобы Rust использовал именно такие отношения времён жизни при анализе этого кода.</p>
+<p>Помните, что когда мы указываем параметры времени жизни в этой сигнатуре функции, мы не меняем времена жизни каких-либо передаваемых или возвращаемых значений. Скорее, мы указываем, что анализатор заимствований должен отклонять любые значения, которые не соответствуют этим ограничениям. Обратите внимание, что самой функции <code>longest</code> не нужно точно знать, как долго будут жить <code>x</code> и <code>y</code>, достаточно того, что некоторая область может быть заменена на <code>'a</code>, которая будет удовлетворять этой сигнатуре.</p>
+<p>При аннотировании времени жизни в функциях, аннотации помещаются в сигнатуру функции, а не в тело функции. Аннотации времени жизни становятся частью контракта функции, так же как и типы в сигнатуре. Наличие в сигнатурах функций аннотаций времён жизни упрощает работу компилятору. Если возникнет проблема с аннотациями функции или тем, как она используется, компилятор сможет более точно и указать на проблемы нашего кода и необходимые ограничения. Если бы вместо этого компилятор Rust пытался самостоятельно выводить, какие времена жизни мы подразумеваем, то это привело бы к тому, что сообщения компилятора стали бы куда более запутанными, и указывали бы на значительно более отдалённые участки кода.</p>
+<p>Когда мы передаём <code>longest</code> конкретные ссылки, конкретное время жизни, которое подставляется вместо <code>'a</code>, становится частью области видимости <code>x</code>, которая перекрывается с областью видимости <code>y</code>. Другими словами, общее время жизни <code>'a</code> получит конкретное время жизни, равное меньшему из времён жизни <code>x</code> и <code>y</code>. Поскольку мы указали возвращаемой ссылке тот же параметр времени жизни (<code>'a</code>), время жизни возвращаемой ссылки будет не меньшим, чем минимальное из времён жизни <code>x</code> и <code>y</code>.</p>
+<p>Давайте посмотрим, как аннотации времени жизни ограничивают функцию <code>longest</code> путём передачи в неё ссылок, которые имеют разные конкретные времена жизни. Посмотрите на Листинг 10-22:</p>
 <Listing number="10-22" file-name="src/main.rs" caption="Using the `longest` function with references to `String` values that have different concrete lifetimes">
 <pre><pre class="playground"><code class="language-rust edition2021">fn main() {
-    let string1 = String::from("long string is long");
+    let string1 = String::from("длинная строка такая длинная");
 
     {
         let string2 = String::from("xyz");
         let result = longest(string1.as_str(), string2.as_str());
-        println!("The longest string is {result}");
+        println!("Самая длинная строка: {result}");
     }
 }
 <span class="boring">
@@ -388,17 +388,17 @@ error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>In this example, <code>string1</code> is valid until the end of the outer scope, <code>string2</code> is valid until the end of the inner scope, and <code>result</code> references something that is valid until the end of the inner scope. Run this code and you’ll see that the borrow checker approves; it will compile and print <code>The longest string is long string is long</code>.</p>
-<p>Next, let’s try an example that shows that the lifetime of the reference in <code>result</code> must be the smaller lifetime of the two arguments. We’ll move the declaration of the <code>result</code> variable outside the inner scope but leave the assignment of the value to the <code>result</code> variable inside the scope with <code>string2</code>. Then we’ll move the <code>println!</code> that uses <code>result</code> to outside the inner scope, after the inner scope has ended. The code in Listing 10-23 will not compile.</p>
+<p>В этом примере переменная <code>string1</code> действительна до конца внешней области видимости <code>string2</code> действует до конца внутренней области видимости, а <code>result</code> ссылается на что-то, что является действительным до конца внутренней области видимости. Запустите этот код, и вы увидите что анализатор заимствований разрешает такой код; он скомпилируется и напечатает <code>Самая длинная строка: длинная строка такая длинная</code>.</p>
+<p>Теперь давайте рассмотрим пример, который показывает, что время жизни ссылки в <code>result</code> должно быть меньшим временем жизни одного из двух аргументов. Мы переместим объявление переменной <code>result</code> за пределы внутренней области видимости, но оставим присвоение значения переменной <code>result</code> в области видимости <code>string2</code>. Затем мы переместим <code>println!</code>, который использует <code>result</code>, за пределы внутренней области видимости — после того как внутренняя область видимости закончилась. Код в Листинге 10-23 не скомпилируется.</p>
 <Listing number="10-23" file-name="src/main.rs" caption="Attempting to use `result` after `string2` has gone out of scope">
 <pre><code class="language-rust ignore does_not_compile">fn main() {
-    let string1 = String::from("long string is long");
+    let string1 = String::from("длинная строка такая длинная");
     let result;
     {
         let string2 = String::from("xyz");
         result = longest(string1.as_str(), string2.as_str());
     }
-    println!("The longest string is {result}");
+    println!("Самая длинная строка: {result}");
 }
 <span class="boring">
 </span><span class="boring">fn longest&lt;'a&gt;(x: &amp;'a str, y: &amp;'a str) -&gt; &amp;'a str {
@@ -409,7 +409,7 @@ error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 </Listing>
-<p>When we try to compile this code, we get this error:</p>
+<p>При попытке скомпилировать этот код, мы получим такую ошибку:</p>
 <pre><code class="language-console">$ cargo run
    Compiling chapter10 v0.1.0 (file:///projects/chapter10)
 error[E0597]: `string2` does not live long enough
@@ -427,41 +427,41 @@ error[E0597]: `string2` does not live long enough
 For more information about this error, try `rustc --explain E0597`.
 error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
 </code></pre>
-<p>The error shows that for <code>result</code> to be valid for the <code>println!</code> statement, <code>string2</code> would need to be valid until the end of the outer scope. Rust knows this because we annotated the lifetimes of the function parameters and return values using the same lifetime parameter <code>'a</code>.</p>
-<p>As humans, we can look at this code and see that <code>string1</code> is longer than <code>string2</code>, and therefore, <code>result</code> will contain a reference to <code>string1</code>. Because <code>string1</code> has not gone out of scope yet, a reference to <code>string1</code> will still be valid for the <code>println!</code> statement. However, the compiler can’t see that the reference is valid in this case. We’ve told Rust that the lifetime of the reference returned by the <code>longest</code> function is the same as the smaller of the lifetimes of the references passed in. Therefore, the borrow checker disallows the code in Listing 10-23 as possibly having an invalid reference.</p>
-<p>Try designing more experiments that vary the values and lifetimes of the references passed in to the <code>longest</code> function and how the returned reference is used. Make hypotheses about whether or not your experiments will pass the borrow checker before you compile; then check to see if you’re right!</p>
-<h3 id="thinking-in-terms-of-lifetimes"><a class="header" href="#thinking-in-terms-of-lifetimes">Thinking in Terms of Lifetimes</a></h3>
-<p>The way in which you need to specify lifetime parameters depends on what your function is doing. For example, if we changed the implementation of the <code>longest</code> function to always return the first parameter rather than the longest string slice, we wouldn’t need to specify a lifetime on the <code>y</code> parameter. The following code will compile:</p>
+<p>Эта ошибка говорит о том, что если мы хотим использовать <code>result</code> в инструкции <code>println!</code>, переменная <code>string2</code> должна быть действительной до конца внешней области видимости. Rust знает об этом, потому что мы аннотировали параметры функции и её возвращаемое значение одинаковым временем жизни <code>'a</code>.</p>
+<p>Будучи людьми, мы можем посмотреть на этот код и увидеть, что <code>string1</code> длиннее, чем <code>string2</code> и, следовательно, <code>result</code> будет содержать ссылку на <code>string1</code>. Поскольку <code>string1</code> ещё не вышла из области видимости, ссылка на <code>string1</code> будет всё ещё действительной в инструкции <code>println!</code>. Однако компилятор не видит, что ссылка в этом случае валидна. Мы сказали Rust, что время жизни ссылки, возвращаемой из функции <code>longest</code>, равняется меньшему из времён жизни переданных в неё ссылок. Таким образом, анализатор заимствований запрещает код в Листинге 10-23, как потенциально имеющий недействительную ссылку.</p>
+<p>Попробуйте провести больше экспериментов с различными значениями и временами жизни ссылок, передаваемыми в функцию <code>longest</code>, а также с тем, как используется возвращаемое значение Перед компиляцией делайте предположения о том, пройдёт ли ваш код анализ заимствований, а затем проверяйте, насколько вы были правы.</p>
+<h3 id="Мышление-в-терминах-времён-жизни"><a class="header" href="#Мышление-в-терминах-времён-жизни">Мышление в терминах времён жизни</a></h3>
+<p>В зависимости от того, что делает ваша функция, следует использовать разные способы указания параметров времени жизни. Например, если мы изменим реализацию функции <code>longest</code> таким образом, чтобы она всегда возвращала свой первый аргумент вместо самого длинного среза строки, то время жизни для параметра <code>y</code> можно совсем не указывать. Этот код скомпилируется:</p>
 <Listing file-name="src/main.rs">
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
 </span><span class="boring">    let string1 = String::from("abcd");
 </span><span class="boring">    let string2 = "efghijklmnopqrstuvwxyz";
 </span><span class="boring">
 </span><span class="boring">    let result = longest(string1.as_str(), string2);
-</span><span class="boring">    println!("The longest string is {result}");
+</span><span class="boring">    println!("Самая длинная строка: {result}");
 </span><span class="boring">}
 </span><span class="boring">
 </span>fn longest&lt;'a&gt;(x: &amp;'a str, y: &amp;str) -&gt; &amp;'a str {
     x
 }</code></pre></pre>
 </Listing>
-<p>We’ve specified a lifetime parameter <code>'a</code> for the parameter <code>x</code> and the return type, but not for the parameter <code>y</code>, because the lifetime of <code>y</code> does not have any relationship with the lifetime of <code>x</code> or the return value.</p>
-<p>When returning a reference from a function, the lifetime parameter for the return type needs to match the lifetime parameter for one of the parameters. If the reference returned does <em>not</em> refer to one of the parameters, it must refer to a value created within this function. However, this would be a dangling reference because the value will go out of scope at the end of the function. Consider this attempted implementation of the <code>longest</code> function that won’t compile:</p>
+<p>Мы указали параметр времени жизни <code>'a</code> для параметра <code>x</code> и возвращаемого значения, но не для параметра <code>y</code>, поскольку время жизни параметра <code>y</code> никак не соотносится с временем жизни параметра <code>x</code> или возвращаемого значения.</p>
+<p>При возврате ссылки из функции, параметр времени жизни для возвращаемого типа должен соответствовать параметру времени жизни одного из аргументов. Если возвращаемая ссылка <em>не</em> ссылается на один из параметров, она должна ссылаться на значение, созданное внутри функции. Однако, это приведёт к недействительной ссылке, поскольку значение, на которое она ссылается, выйдет из области видимости в конце функции. Посмотрите на вот эту попытку реализации функции <code>longest</code>, которая не скомпилируется:</p>
 <Listing file-name="src/main.rs">
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">fn main() {
 </span><span class="boring">    let string1 = String::from("abcd");
 </span><span class="boring">    let string2 = "xyz";
 </span><span class="boring">
 </span><span class="boring">    let result = longest(string1.as_str(), string2);
-</span><span class="boring">    println!("The longest string is {result}");
+</span><span class="boring">    println!("Самая длинная строка: {result}");
 </span><span class="boring">}
 </span><span class="boring">
 </span>fn longest&lt;'a&gt;(x: &amp;str, y: &amp;str) -&gt; &amp;'a str {
-    let result = String::from("really long string");
+    let result = String::from("очень длинная строка");
     result.as_str()
 }</code></pre>
 </Listing>
-<p>Here, even though we’ve specified a lifetime parameter <code>'a</code> for the return type, this implementation will fail to compile because the return value lifetime is not related to the lifetime of the parameters at all. Here is the error message we get:</p>
+<p>Здесь, несмотря на то, что мы указали параметр времени жизни <code>'a</code> для возвращаемого типа, реализация не будет пропущена анализатором, потому что время жизни возвращаемого значения никак не связано с временем жизни параметров. Мы получим такое сообщение об ошибке:</p>
 <pre><code class="language-console">$ cargo run
    Compiling chapter10 v0.1.0 (file:///projects/chapter10)
 error[E0515]: cannot return value referencing local variable `result`
@@ -476,27 +476,27 @@ error[E0515]: cannot return value referencing local variable `result`
 For more information about this error, try `rustc --explain E0515`.
 error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
 </code></pre>
-<p>The problem is that <code>result</code> goes out of scope and gets cleaned up at the end of the <code>longest</code> function. We’re also trying to return a reference to <code>result</code> from the function. There is no way we can specify lifetime parameters that would change the dangling reference, and Rust won’t let us create a dangling reference. In this case, the best fix would be to return an owned data type rather than a reference so the calling function is then responsible for cleaning up the value.</p>
-<p>Ultimately, lifetime syntax is about connecting the lifetimes of various parameters and return values of functions. Once they’re connected, Rust has enough information to allow memory-safe operations and disallow operations that would create dangling pointers or otherwise violate memory safety.</p>
-<h3 id="lifetime-annotations-in-struct-definitions"><a class="header" href="#lifetime-annotations-in-struct-definitions">Lifetime Annotations in Struct Definitions</a></h3>
-<p>So far, the structs we’ve defined all hold owned types. We can define structs to hold references, but in that case we would need to add a lifetime annotation on every reference in the struct’s definition. Listing 10-24 has a struct named <code>ImportantExcerpt</code> that holds a string slice.</p>
+<p>Проблема заключается в том, что <code>result</code> выходит за область видимости и очищается в конце функции <code>longest</code>. Мы также пытаемся вернуть ссылку на <code>result</code> из функции. Мы не можем указать параметры времени жизни, которые могли бы изменить висячую ссылку, а Rust не позволит нам создать висячую ссылку. В этом случае лучшим решением будет вернуть владеемый тип данных, а не ссылку: в этом случае вызывающая функция будет нести ответственность за очистку полученного ею значения.</p>
+<p>В конечном итоге, синтаксис времён жизни реализует связывание времён жизни различных аргументов и возвращаемых значений функций. Описывая времена жизни, мы даём Rust достаточно информации, чтобы разрешить безопасные операции с памятью и запретить операции, которые могли бы создать висячие ссылки или иным способом нарушить безопасность памяти.</p>
+<h3 id="Аннотирование-времён-жизни-в-определениях-структур"><a class="header" href="#Аннотирование-времён-жизни-в-определениях-структур">Аннотирование времён жизни в определениях структур</a></h3>
+<p>До сих пор мы объявляли структуры, которые всегда содержали владеемые типы данных. Структуры могут содержать и ссылки, но при этом необходимо добавлять аннотации времени жизни для каждой ссылки в определении структуры. Посмотрите на Листинг 10-24, описывающий структуру <code>ImportantExcerpt</code>, содержащую срез строки:</p>
 <Listing number="10-24" file-name="src/main.rs" caption="A struct that holds a reference, requiring a lifetime annotation">
 <pre><pre class="playground"><code class="language-rust edition2021">struct ImportantExcerpt&lt;'a&gt; {
     part: &amp;'a str,
 }
 
 fn main() {
-    let novel = String::from("Call me Ishmael. Some years ago...");
+    let novel = String::from("Зовите меня Измаил. Несколько лет тому назад...");
     let first_sentence = novel.split('.').next().unwrap();
     let i = ImportantExcerpt {
         part: first_sentence,
     };
 }</code></pre></pre>
 </Listing>
-<p>This struct has the single field <code>part</code> that holds a string slice, which is a reference. As with generic data types, we declare the name of the generic lifetime parameter inside angle brackets after the name of the struct so we can use the lifetime parameter in the body of the struct definition. This annotation means an instance of <code>ImportantExcerpt</code> can’t outlive the reference it holds in its <code>part</code> field.</p>
-<p>The <code>main</code> function here creates an instance of the <code>ImportantExcerpt</code> struct that holds a reference to the first sentence of the <code>String</code> owned by the variable <code>novel</code>. The data in <code>novel</code> exists before the <code>ImportantExcerpt</code> instance is created. In addition, <code>novel</code> doesn’t go out of scope until after the <code>ImportantExcerpt</code> goes out of scope, so the reference in the <code>ImportantExcerpt</code> instance is valid.</p>
-<h3 id="lifetime-elision"><a class="header" href="#lifetime-elision">Lifetime Elision</a></h3>
-<p>You’ve learned that every reference has a lifetime and that you need to specify lifetime parameters for functions or structs that use references. However, we had a function in Listing 4-9, shown again in Listing 10-25, that compiled without lifetime annotations.</p>
+<p>У этой структуры имеется одно поле <code>part</code>, хранящее строковый срез, который сам по себе является ссылкой. Как и в случае с обобщёнными типами данных, мы объявляем имя обобщённого параметра времени жизни внутри угловых скобок после имени структуры, чтобы иметь возможность использовать его внутри определения структуры. Данная аннотация означает, что экземпляр <code>ImportantExcerpt</code> не может пережить ссылку, которую он содержит в своём поле <code>part</code>.</p>
+<p>Функция <code>main</code> создаёт экземпляр структуры <code>ImportantExcerpt</code>, который содержит ссылку на первое предложение строки <code>String</code>, принадлежащей переменной <code>novel</code>. Данные в <code>novel</code> существовали до создания экземпляра <code>ImportantExcerpt</code>. Кроме того, <code>novel</code> не может выйти из области видимости до тех пор, пока не выйдет <code>ImportantExcerpt</code>, поэтому ссылка внутри экземпляра <code>ImportantExcerpt</code> всегда остаётся действительной.</p>
+<h3 id="Неявный-вывод-времени-жизни"><a class="header" href="#Неявный-вывод-времени-жизни">Неявный вывод времени жизни</a></h3>
+<p>Вы узнали, что у каждой ссылки есть время жизни и что нужно указывать параметры времени жизни для функций или структур, которые используют ссылки. Однако в Главе 4 у нас была функция в Листинге 4-9, которая затем была снова показана в Листинге 10-25: она компилировалась без аннотаций времени жизни.</p>
 <Listing number="10-25" file-name="src/lib.rs" caption="A function we defined in Listing 4-9 that compiled without lifetime annotations, even though the parameter and return type are references">
 <pre><pre class="playground"><code class="language-rust edition2021">fn first_word(s: &amp;str) -&gt; &amp;str {
     let bytes = s.as_bytes();
@@ -513,48 +513,48 @@ fn main() {
 </span><span class="boring">fn main() {
 </span><span class="boring">    let my_string = String::from("hello world");
 </span><span class="boring">
-</span><span class="boring">    // first_word works on slices of `String`s
+</span><span class="boring">    // first_word принимает срезы значений типа `String`
 </span><span class="boring">    let word = first_word(&amp;my_string[..]);
 </span><span class="boring">
 </span><span class="boring">    let my_string_literal = "hello world";
 </span><span class="boring">
-</span><span class="boring">    // first_word works on slices of string literals
+</span><span class="boring">    // first_word принимает срезы строковых литералов
 </span><span class="boring">    let word = first_word(&amp;my_string_literal[..]);
 </span><span class="boring">
-</span><span class="boring">    // Поскольку литералы строк *эквивалентны* срезам строк,
+</span><span class="boring">    // Поскольку строковые литералы *эквивалентны* срезам строк,
 </span><span class="boring">    // это тоже сработает, без необходимости брать срез!
 </span><span class="boring">    let word = first_word(my_string_literal);
 </span><span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>The reason this function compiles without lifetime annotations is historical: in early versions (pre-1.0) of Rust, this code wouldn’t have compiled because every reference needed an explicit lifetime. At that time, the function signature would have been written like this:</p>
+<p>Причина, по которой этот код компилируется — историческая. В ранних (до 1.0) версиях Rust этот код не скомпилировался бы, поскольку каждой ссылке нужно было явно назначать время жизни. В те времена, сигнатура этой функции была бы написана примерно так:</p>
 <pre><code class="language-rust ignore">fn first_word&lt;'a&gt;(s: &amp;'a str) -&gt; &amp;'a str {</code></pre>
-<p>After writing a lot of Rust code, the Rust team found that Rust programmers were entering the same lifetime annotations over and over in particular situations. These situations were predictable and followed a few deterministic patterns. The developers programmed these patterns into the compiler’s code so the borrow checker could infer the lifetimes in these situations and wouldn’t need explicit annotations.</p>
-<p>This piece of Rust history is relevant because it’s possible that more deterministic patterns will emerge and be added to the compiler. In the future, even fewer lifetime annotations might be required.</p>
-<p>The patterns programmed into Rust’s analysis of references are called the <em>lifetime elision rules</em>. These aren’t rules for programmers to follow; they’re a set of particular cases that the compiler will consider, and if your code fits these cases, you don’t need to write the lifetimes explicitly.</p>
-<p>The elision rules don’t provide full inference. If there is still ambiguity as to what lifetimes the references have after Rust applies the rules, the compiler won’t guess what the lifetime of the remaining references should be. Instead of guessing, the compiler will give you an error that you can resolve by adding the lifetime annotations.</p>
-<p>Lifetimes on function or method parameters are called <em>input lifetimes</em>, and lifetimes on return values are called <em>output lifetimes</em>.</p>
-<p>The compiler uses three rules to figure out the lifetimes of the references when there aren’t explicit annotations. The first rule applies to input lifetimes, and the second and third rules apply to output lifetimes. If the compiler gets to the end of the three rules and there are still references for which it can’t figure out lifetimes, the compiler will stop with an error. These rules apply to <code>fn</code> definitions as well as <code>impl</code> blocks.</p>
-<p>The first rule is that the compiler assigns a lifetime parameter to each parameter that’s a reference. In other words, a function with one parameter gets one lifetime parameter: <code>fn foo&lt;'a&gt;(x: &amp;'a i32)</code>; a function with two parameters gets two separate lifetime parameters: <code>fn foo&lt;'a, 'b&gt;(x: &amp;'a i32, y: &amp;'b i32)</code>; and so on.</p>
-<p>The second rule is that, if there is exactly one input lifetime parameter, that lifetime is assigned to all output lifetime parameters: <code>fn foo&lt;'a&gt;(x: &amp;'a i32) -&gt; &amp;'a i32</code>.</p>
-<p>The third rule is that, if there are multiple input lifetime parameters, but one of them is <code>&amp;self</code> or <code>&amp;mut self</code> because this is a method, the lifetime of <code>self</code> is assigned to all output lifetime parameters. This third rule makes methods much nicer to read and write because fewer symbols are necessary.</p>
-<p>Let’s pretend we’re the compiler. We’ll apply these rules to figure out the lifetimes of the references in the signature of the <code>first_word</code> function in Listing 10-25. The signature starts without any lifetimes associated with the references:</p>
+<p>После написания большого количества кода на Rust разработчики языка обнаружили, что в определённых ситуациях программисты описывают одни и те же аннотации времён жизни снова и снова. Эти ситуации были предсказуемы и следовали нескольким однозначным шаблонам. Команда Rust решила запрограммировать эти шаблоны в код компилятора Rust, чтобы анализатор заимствований мог выводить времена жизни в таких ситуациях без необходимости явного указания аннотаций программистами.</p>
+<p>Мы упоминаем этот фрагмент истории Rust, потому что возможно, что в будущем появится больше шаблонов для автоматического выведения времён жизни, которые будут добавлены в компилятор. Таким образом, в будущем может понадобится ещё меньшее количество аннотаций.</p>
+<p>Шаблоны, запрограммированные в анализаторе ссылок языка Rust, называются правилами <em>неявного вывода времени жизни</em>. Это не правила, которым должны следовать программисты, а только набор частных случаев, которые рассмотрит компилятор, и, если ваш код попадает в эти случаи, вам не нужно будет указывать время жизни явно.</p>
+<p>Правила вывода работают далеко не везде и не всегда. Если после применения правил вывода всё ещё остается неопределённость времени жизни ссылок, компилятор не будет догадываться, какими должны быть времена жизни оставшихся ссылок. В этом случае, вместо угадывания компилятор выдаст ошибку, которую вы можете устранить, добавив аннотации времени жизни.</p>
+<p>Времена жизни параметров функции или метода называются <em>временами жизни ввода</em>, а времена жизни возвращаемых значений — <em>временами жизни вывода</em>.</p>
+<p>Компилятор использует три правила, чтобы выяснять времена жизни ссылок при отсутствии явных аннотаций. Первое правило относится ко времени жизни ввода, второе и третье правила применяются ко временам жизни вывода. Если проверил все три правила, но всё ещё есть ссылки, для которых он не может однозначно определить время жизни, компилятор выдаст ошибку. Эти правила применяются к объявлениям <code>fn</code> и блокам <code>impl</code>.</p>
+<p>Первое правило говорит, что каждый параметр, являющийся ссылкой, получает свой собственный параметр времени жизни. Другими словами, функция с одним аргументом получит один параметр времени жизни: <code>fn foo&lt;'a&gt;(x: &amp;'a i32)</code>; функция с двумя аргументами получит два отдельных параметра времени жизни: <code>fn foo&lt;'a, 'b&gt;(x: &amp;'a i32, y: &amp;'b i32)</code>; и так далее.</p>
+<p>Второе правило говорит, что если есть ровно один параметр времени жизни ввода, то его время жизни назначается всем параметрам времени жизни вывода: <code>fn foo&lt;'a&gt;(x: &amp;'a i32) -&gt; &amp;'a i32</code>.</p>
+<p>Третье правило говорит, что если есть множество параметров времени жизни ввода, но один из них является <code>&amp;self</code> или <code>&amp;mut self</code>, так как эта функция является методом, то время жизни <code>self</code> назначается временем жизни всем параметрам времени жизни вывода. Это третье правило делает методы намного приятнее для чтения и записи, потому что требуется меньше символов.</p>
+<p>Представим, что мы — компилятор. Применим эти правила, чтобы вывести времена жизни ссылок в сигнатуре функции <code>first_word</code> из Листинга 10-25. Сигнатура этой функции начинается без объявления времён жизни ссылок:</p>
 <pre><code class="language-rust ignore">fn first_word(s: &amp;str) -&gt; &amp;str {</code></pre>
-<p>Then the compiler applies the first rule, which specifies that each parameter gets its own lifetime. We’ll call it <code>'a</code> as usual, so now the signature is this:</p>
+<p>Теперь мы применим первое правило, утверждающее, что каждый параметр функции получает своё собственное время жизни. Как обычно, назовём его <code>'a</code>, и теперь сигнатура выглядит так:</p>
 <pre><code class="language-rust ignore">fn first_word&lt;'a&gt;(s: &amp;'a str) -&gt; &amp;str {</code></pre>
-<p>The second rule applies because there is exactly one input lifetime. The second rule specifies that the lifetime of the one input parameter gets assigned to the output lifetime, so the signature is now this:</p>
+<p>Далее применяем второе правило, поскольку в функции указан только один входной параметр времени жизни. Второе правило гласит, что время жизни единственного входного параметра назначается выходным параметрам, поэтому сигнатура теперь является такой:</p>
 <pre><code class="language-rust ignore">fn first_word&lt;'a&gt;(s: &amp;'a str) -&gt; &amp;'a str {</code></pre>
-<p>Now all the references in this function signature have lifetimes, and the compiler can continue its analysis without needing the programmer to annotate the lifetimes in this function signature.</p>
-<p>Let’s look at another example, this time using the <code>longest</code> function that had no lifetime parameters when we started working with it in Listing 10-20:</p>
+<p>Теперь все ссылки в этой функции имеют параметры времени жизни и компилятор может продолжить свой анализ без необходимости просить у программиста указать аннотации времён жизни в сигнатуре этой функции.</p>
+<p>Давайте рассмотрим ещё один пример: на этот раз, функцию <code>longest</code>, в которой не было параметров времени жизни, когда мы начали с ней работать в Листинге 10-20:</p>
 <pre><code class="language-rust ignore">fn longest(x: &amp;str, y: &amp;str) -&gt; &amp;str {</code></pre>
-<p>Let’s apply the first rule: each parameter gets its own lifetime. This time we have two parameters instead of one, so we have two lifetimes:</p>
+<p>Применим первое правило: каждому параметру назначается собственное время жизни. На этот раз у функции есть два параметра, поэтому есть два времени жизни:</p>
 <pre><code class="language-rust ignore">fn longest&lt;'a, 'b&gt;(x: &amp;'a str, y: &amp;'b str) -&gt; &amp;str {</code></pre>
-<p>You can see that the second rule doesn’t apply because there is more than one input lifetime. The third rule doesn’t apply either, because <code>longest</code> is a function rather than a method, so none of the parameters are <code>self</code>. After working through all three rules, we still haven’t figured out what the return type’s lifetime is. This is why we got an error trying to compile the code in Listing 10-20: the compiler worked through the lifetime elision rules but still couldn’t figure out all the lifetimes of the references in the signature.</p>
-<p>Because the third rule really only applies in method signatures, we’ll look at lifetimes in that context next to see why the third rule means we don’t have to annotate lifetimes in method signatures very often.</p>
-<h3 id="lifetime-annotations-in-method-definitions"><a class="header" href="#lifetime-annotations-in-method-definitions">Lifetime Annotations in Method Definitions</a></h3>
-<p>When we implement methods on a struct with lifetimes, we use the same syntax as that of generic type parameters, as shown in Listing 10-11. Where we declare and use the lifetime parameters depends on whether they’re related to the struct fields or the method parameters and return values.</p>
-<p>Lifetime names for struct fields always need to be declared after the <code>impl</code> keyword and then used after the struct’s name because those lifetimes are part of the struct’s type.</p>
-<p>In method signatures inside the <code>impl</code> block, references might be tied to the lifetime of references in the struct’s fields, or they might be independent. In addition, the lifetime elision rules often make it so that lifetime annotations aren’t necessary in method signatures. Let’s look at some examples using the struct named <code>ImportantExcerpt</code> that we defined in Listing 10-24.</p>
-<p>First we’ll use a method named <code>level</code> whose only parameter is a reference to <code>self</code> and whose return value is an <code>i32</code>, which is not a reference to anything:</p>
+<p>Можно заметить, что второе правило здесь неприменимо, так как в сигнатуре указано больше одного входного параметра времени жизни. Третье правило также неприменимо, так как <code>longest</code> — функция, а не метод, а значит, в ней нет параметра <code>self</code>. Итак, мы прошли все три правила, но так и не смогли вычислить время жизни выходного параметра. Поэтому мы и получили ошибку при попытке скомпилировать код Листинга 10-20: компилятор работал по правилам неявного вывода времён жизни, но не мог выяснить времена жизни всех ссылок в сигнатуре.</p>
+<p>Так как третье правило применяется только к методам, далее мы рассмотрим времена жизни в их контексте, чтобы понять, почему нам часто не требуется аннотировать времена жизни в сигнатурах методов.</p>
+<h3 id="Аннотирование-времён-жизни-в-определении-методов"><a class="header" href="#Аннотирование-времён-жизни-в-определении-методов">Аннотирование времён жизни в определении методов</a></h3>
+<p>Когда мы реализуем методы для структур с временами жизни, мы используем тот же синтаксис, который применялся для обобщённых типов данных, как было показано в Листинге 10-11. Место, где мы объявляем и используем времена жизни, зависит от того, с чем они связаны — с полями структуры или с аргументами методов и возвращаемыми значениями.</p>
+<p>Имена параметров времени жизни для полей структур всегда описываются после ключевого слова <code>impl</code> и затем используются после имени структуры, поскольку эти времена жизни являются частью типа структуры.</p>
+<p>В сигнатурах методов внутри блока <code>impl</code> ссылки могут быть привязаны ко времени жизни ссылок в полях структуры, либо могут быть независимыми. Вдобавок, правила неявного вывода времён жизни часто делают так, что аннотации переменных времён жизни являются необязательными в сигнатурах методов. Рассмотрим несколько примеров, использующих структуру с названием <code>ImportantExcerpt</code>, которую мы определили в Листинге 10-24.</p>
+<p>Сначала, определим методом <code>level</code>, чьим единственным параметром является ссылка на <code>self</code>, а возвращаемым значением — <code>i32</code> (то есть не ссылка на что бы то ни было):</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">struct ImportantExcerpt&lt;'a&gt; {
 </span><span class="boring">    part: &amp;'a str,
 </span><span class="boring">}
@@ -567,20 +567,20 @@ fn main() {
 <span class="boring">
 </span><span class="boring">impl&lt;'a&gt; ImportantExcerpt&lt;'a&gt; {
 </span><span class="boring">    fn announce_and_return_part(&amp;self, announcement: &amp;str) -&gt; &amp;str {
-</span><span class="boring">        println!("Attention please: {announcement}");
+</span><span class="boring">        println!("Пожалуйста, обратите внимание: {announcement}");
 </span><span class="boring">        self.part
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">fn main() {
-</span><span class="boring">    let novel = String::from("Call me Ishmael. Some years ago...");
+</span><span class="boring">    let novel = String::from("Зовите меня Измаил. Несколько лет тому назад...");
 </span><span class="boring">    let first_sentence = novel.split('.').next().unwrap();
 </span><span class="boring">    let i = ImportantExcerpt {
 </span><span class="boring">        part: first_sentence,
 </span><span class="boring">    };
 </span><span class="boring">}</span></code></pre></pre>
-<p>The lifetime parameter declaration after <code>impl</code> and its use after the type name are required, but we’re not required to annotate the lifetime of the reference to <code>self</code> because of the first elision rule.</p>
-<p>Here is an example where the third lifetime elision rule applies:</p>
+<p>Объявление параметра времени жизни после <code>impl</code> и его использование после имени типа является обязательным, но нам не нужно аннотировать время жизни ссылки на <code>self</code>, благодаря первому правилу неявного вывода времён жизни.</p>
+<p>Вот пример, где применяется третье правило неявного вывода времён жизни:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">struct ImportantExcerpt&lt;'a&gt; {
 </span><span class="boring">    part: &amp;'a str,
 </span><span class="boring">}
@@ -593,29 +593,29 @@ fn main() {
 </span><span class="boring">
 </span>impl&lt;'a&gt; ImportantExcerpt&lt;'a&gt; {
     fn announce_and_return_part(&amp;self, announcement: &amp;str) -&gt; &amp;str {
-        println!("Attention please: {announcement}");
+        println!("Пожалуйста, обратите внимание: {announcement}");
         self.part
     }
 }
 <span class="boring">
 </span><span class="boring">fn main() {
-</span><span class="boring">    let novel = String::from("Call me Ishmael. Some years ago...");
+</span><span class="boring">    let novel = String::from("Зовите меня Измаил. Несколько лет тому назад...");
 </span><span class="boring">    let first_sentence = novel.split('.').next().unwrap();
 </span><span class="boring">    let i = ImportantExcerpt {
 </span><span class="boring">        part: first_sentence,
 </span><span class="boring">    };
 </span><span class="boring">}</span></code></pre></pre>
-<p>There are two input lifetimes, so Rust applies the first lifetime elision rule and gives both <code>&amp;self</code> and <code>announcement</code> their own lifetimes. Then, because one of the parameters is <code>&amp;self</code>, the return type gets the lifetime of <code>&amp;self</code>, and all lifetimes have been accounted for.</p>
-<h3 id="the-static-lifetime"><a class="header" href="#the-static-lifetime">The Static Lifetime</a></h3>
-<p>One special lifetime we need to discuss is <code>'static</code>, which denotes that the affected reference <em>can</em> live for the entire duration of the program. All string literals have the <code>'static</code> lifetime, which we can annotate as follows:</p>
+<p>В этом методе имеется два входных параметра, поэтому Rust применит первое правило и назначит обоим параметрам <code>&amp;self</code> и <code>announcement</code> собственные времена жизни. Далее, поскольку один из параметров является <code>&amp;self</code>, то возвращаемое значение получает время жизни переменой <code>&amp;self</code>. Готово — все времена жизни теперь выведены.</p>
+<h3 id="Время-жизни-static"><a class="header" href="#Время-жизни-static">Время жизни <code>'static</code></a></h3>
+<p>Одно особенное время жизни, которое мы должны обсудить — это <code>'static</code>. Оно означает, что данная ссылка <em>может</em> жить всю продолжительность работы программы. Все строковые литералы по умолчанию имеют время жизни <code>'static</code>, но мы можем указать его и явно:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>let s: &amp;'static str = "I have a static lifetime.";
+</span>let s: &amp;'static str = "Я буду здесь всё время.";
 <span class="boring">}</span></code></pre></pre>
-<p>The text of this string is stored directly in the program’s binary, which is always available. Therefore, the lifetime of all string literals is <code>'static</code>.</p>
-<p>You might see suggestions in error messages to use the <code>'static</code> lifetime. But before specifying <code>'static</code> as the lifetime for a reference, think about whether the reference you have actually lives the entire lifetime of your program or not, and whether you want it to. Most of the time, an error message suggesting the <code>'static</code> lifetime results from attempting to create a dangling reference or a mismatch of the available lifetimes. In such cases, the solution is to fix those problems, not to specify the <code>'static</code> lifetime.</p>
-<h2 id="generic-type-parameters-trait-bounds-and-lifetimes-together"><a class="header" href="#generic-type-parameters-trait-bounds-and-lifetimes-together">Generic Type Parameters, Trait Bounds, and Lifetimes Together</a></h2>
-<p>Let’s briefly look at the syntax of specifying generic type parameters, trait bounds, and lifetimes all in one function!</p>
+<p>Содержание этой строки сохраняется внутри бинарного файла программы и всегда доступно для использования. Следовательно, время жизни всех строковых литералов — <code>'static</code>.</p>
+<p>Сообщения компилятора об ошибках могут предлагать вам использовать в качестве решения проблем время жизни <code>'static</code>. Но прежде чем указывать <code>'static</code> как время жизни для ссылки, подумайте, на самом ли деле данная ссылка будет доступна во всё время работы программы. В большинстве случаев, сообщения об ошибках, предлагающие использовать время жизни <code>'static</code>, появляются при попытках создания висячих ссылок или несовпадения имеющихся времён жизни. В таких случаях, решение заключается в исправлении таких проблем, а не в указании статического времени жизни <code>'static</code>.</p>
+<h2 id="Параметры-обобщённых-типов-ограничения-по-трейтам-и-времена-жизни--все-вместе"><a class="header" href="#Параметры-обобщённых-типов-ограничения-по-трейтам-и-времена-жизни--все-вместе">Параметры обобщённых типов, ограничения по трейтам и времена жизни — все вместе</a></h2>
+<p>Давайте кратко рассмотрим синтаксис задания параметров обобщённых типов, ограничений по трейтам и времён жизни одновременно в одной функции!</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
 </span><span class="boring">    let string1 = String::from("abcd");
 </span><span class="boring">    let string2 = "xyz";
@@ -623,9 +623,9 @@ fn main() {
 </span><span class="boring">    let result = longest_with_an_announcement(
 </span><span class="boring">        string1.as_str(),
 </span><span class="boring">        string2,
-</span><span class="boring">        "Today is someone's birthday!",
+</span><span class="boring">        "Сегодня кто-то — именинник!",
 </span><span class="boring">    );
-</span><span class="boring">    println!("The longest string is {result}");
+</span><span class="boring">    println!("Самая длинная строка: {result}");
 </span><span class="boring">}
 </span><span class="boring">
 </span>use std::fmt::Display;
@@ -638,17 +638,17 @@ fn longest_with_an_announcement&lt;'a, T&gt;(
 where
     T: Display,
 {
-    println!("Announcement! {ann}");
+    println!("Внимание! {ann}");
     if x.len() &gt; y.len() {
         x
     } else {
         y
     }
 }</code></pre></pre>
-<p>This is the <code>longest</code> function from Listing 10-21 that returns the longer of two string slices. But now it has an extra parameter named <code>ann</code> of the generic type <code>T</code>, which can be filled in by any type that implements the <code>Display</code> trait as specified by the <code>where</code> clause. This extra parameter will be printed using <code>{}</code>, which is why the <code>Display</code> trait bound is necessary. Because lifetimes are a type of generic, the declarations of the lifetime parameter <code>'a</code> and the generic type parameter <code>T</code> go in the same list inside the angle brackets after the function name.</p>
+<p>Это — функция <code>longest</code> из Листинга 10-21, которая возвращает наибольший из двух строковых срезов. Но теперь у неё есть дополнительный параметр с именем <code>ann</code> обобщённого типа <code>T</code>, который может быть представлен любым типом, реализующим трейт <code>Display</code>, как указано за <code>where</code>. Этот дополнительный параметр будет печататься с использованием <code>{}</code>,  b необходимо ограничение по трейту <code>Display</code>. Поскольку времена жизни являются обобщениями, то объявления параметра времени жизни <code>'a</code> и параметра обобщённого типа <code>T</code> помещаются в один список внутри угловых скобок после имени функции.</p>
 <h2 id="Подведём-итоги"><a class="header" href="#Подведём-итоги">Подведём итоги</a></h2>
-<p>We covered a lot in this chapter! Now that you know about generic type parameters, traits and trait bounds, and generic lifetime parameters, you’re ready to write code without repetition that works in many different situations. Generic type parameters let you apply the code to different types. Traits and trait bounds ensure that even though the types are generic, they’ll have the behavior the code needs. You learned how to use lifetime annotations to ensure that this flexible code won’t have any dangling references. And all of this analysis happens at compile time, which doesn’t affect runtime performance!</p>
-<p>Believe it or not, there is much more to learn on the topics we discussed in this chapter: Chapter 18 discusses trait objects, which are another way to use traits. There are also more complex scenarios involving lifetime annotations that you will only need in very advanced scenarios; for those, you should read the <a href="../reference/index.html">Rust Reference</a>. But next, you’ll learn how to write tests in Rust so you can make sure your code is working the way it should.</p>
+<p>В этой главе мы рассмотрели много всего! Теперь вы знакомы с параметрами обобщённого типа, с трейтами и ограничениями по трейтам, с обобщёнными параметрами времени жизни. Отныне вы способны писать код без избыточностей, который будет работать во множестве различных ситуаций. Параметры обобщённого типа позволяют использовать код для различных типов данных. Трейты и ограничения по трейтам помогают убедиться, что, хотя типы и обобщённые, они будут вести себя, как этого требует ваш код. Вы изучили, как использовать аннотации времени жизни чтобы убедиться, что ваш новый гибкий код не будет генерировать никаких висячих ссылок. И весь этот анализ происходит в момент компиляции и не влияет на производительность программы во время работы!</p>
+<p>Верьте или нет, но в рамках этой темы всё ещё есть чему поучиться: в Главе 18 обсуждаются трейт-объекты, которые являются ещё одним способом использования трейтов. Существуют также более сложные сценарии аннотирования времени жизни, которые вам понадобятся только в очень сложных случаях; для этого вам следует прочитать <a href="https://rust-lang-translations.org/reference/index.html">Справочник Rust</a>. Далее вы узнаете, как писать тесты на Rust, чтобы быть уверенным, что ваш код работает так, как задумано.</p>
 
                     </main>
 
