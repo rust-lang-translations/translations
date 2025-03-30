@@ -1,6 +1,6 @@
 |Title|ja|ru|
 |-|-|-|
-|The Rust Programming Language|0.02 %|31.90 %|
+|The Rust Programming Language|0.02 %|39.79 %|
 |The Cargo Book|0.16 %||
 |The Rust Edition Guide|||
 |The Embedded Rust Book|||
