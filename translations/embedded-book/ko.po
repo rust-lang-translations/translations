@@ -5577,7 +5577,7 @@ msgstr ""
 
 #: src/concurrency/index.md:71
 msgid "// DANGER - Not actually safe! Could cause data races.\n"
-msgstr ""
+msgstr "// 위험 - 실제로는 안전하지 않음! 데이터 경쟁을 유발할 수 있습니다.\n"
 
 #: src/concurrency/index.md:84
 msgid ""
@@ -5592,10 +5592,18 @@ msgid ""
 "back to 0 would be ignored after the interrupt returns — and we would count "
 "twice as many transitions for that period."
 msgstr ""
+"매초 타이머 인터럽트는 카운터를 0으로 재설정합니다. 한편, 메인 루프는 지속적으로 "
+"신호를 측정하고 낮음에서 높음으로의 변경을 감지하면 카운터를 증가시킵니다. "
+"`COUNTER`는 `static mut`이므로 `unsafe`를 사용하여 접근해야 했으며, 이는 "
+"컴파일러에게 정의되지 않은 동작을 유발하지 않겠다고 약속하는 것을 의미합니다. "
+"경쟁 조건을 발견할 수 있습니까? `COUNTER`의 증가는 원자적이라고 보장되지 "
+"않습니다. 실제로 대부분의 임베디드 플랫폼에서는 로드, 증가, 저장으로 "
+"분할됩니다. 로드 후 저장 전에 인터럽트가 발생하면 인터럽트가 반환된 후 0으로 "
+"재설정하는 것이 무시되고 해당 기간 동안 두 배 많은 전환을 계산하게 됩니다."
 
 #: src/concurrency/index.md:95
 msgid "Critical Sections"
-msgstr ""
+msgstr "임계 영역"
 
 #: src/concurrency/index.md:97
 msgid ""
@@ -5604,10 +5612,14 @@ msgid ""
 "to `COUNTER` in `main` in a critical section, we can be sure the timer "
 "interrupt will not fire until we're finished incrementing `COUNTER`:"
 msgstr ""
+"그렇다면 데이터 경쟁에 대해 무엇을 할 수 있을까요? 간단한 접근 방식은 인터럽트가 "
+"비활성화된 컨텍스트인 _임계 영역_을 사용하는 것입니다. `main`에서 `COUNTER`에 대한 "
+"접근을 임계 영역으로 래핑하면 `COUNTER` 증가가 끝날 때까지 타이머 인터럽트가 "
+"발생하지 않도록 할 수 있습니다:"
 
 #: src/concurrency/index.md:112
 msgid "// New critical section ensures synchronised access to COUNTER\n"
-msgstr ""
+msgstr "// 새 임계 영역은 COUNTER에 대한 동기화된 접근을 보장합니다\n"
 
 #: src/concurrency/index.md:127
 msgid ""
@@ -5616,27 +5628,35 @@ msgid ""
 "is also the same as disabling interrupts, running some code, and then re-"
 "enabling interrupts."
 msgstr ""
+"이 예에서는 `cortex_m::interrupt::free`를 사용하지만 다른 플랫폼에는 임계 영역에서 "
+"코드를 실행하기 위한 유사한 메커니즘이 있습니다. 이것은 또한 인터럽트를 "
+"비활성화하고 일부 코드를 실행한 다음 인터럽트를 다시 활성화하는 것과 동일합니다."
 
 #: src/concurrency/index.md:132
 msgid ""
 "Note we didn't need to put a critical section inside the timer interrupt, "
 "for two reasons:"
 msgstr ""
+"두 가지 이유로 타이머 인터럽트 내부에 임계 영역을 넣을 필요가 없었습니다:"
 
 #: src/concurrency/index.md:135
 msgid ""
 "Writing 0 to `COUNTER` can't be affected by a race since we don't read it"
-msgstr ""
+msgstr "`COUNTER`에 0을 쓰는 것은 읽지 않기 때문에 경쟁의 영향을 받지 않습니다."
 
 #: src/concurrency/index.md:136
 msgid "It will never be interrupted by the `main` thread anyway"
-msgstr ""
+msgstr "어쨌든 `main` 스레드에 의해 중단되지 않습니다."
 
 #: src/concurrency/index.md:138
 msgid ""
 "If `COUNTER` was being shared by multiple interrupt handlers that might "
 "_preempt_ each other, then each one might require a critical section as well."
 msgstr ""
+"`COUNTER`가 서로를 _선점_할 수 있는 여러 인터럽트 핸들러에 의해 공유되고 있었다면 "
+"각각 임계 영역이 필요할 수도 있습니다."
+"`COUNTER`가 서로를 _선점_할 수 있는 여러 인터럽트 핸들러에 의해 공유되고 있었다면 "
+"각각 임계 영역이 필요할 수도 있습니다."
 
 #: src/concurrency/index.md:141
 msgid ""
@@ -5649,6 +5669,18 @@ msgid ""
 "Whether this is a problem depends on your system, but in general, we'd like "
 "to avoid it."
 msgstr ""
+"이것은 즉각적인 문제를 해결하지만, 여전히 신중하게 추론해야 하는 많은 안전하지 "
+"않은 코드를 작성해야 하며, 불필요하게 임계 영역을 사용하고 있을 수도 있습니다. 각 "
+"임계 영역은 일시적으로 인터럽트 처리를 일시 중지하므로 추가 코드 크기 및 더 높은 "
+"인터럽트 대기 시간 및 지터(인터럽트 처리에 더 오래 걸릴 수 있으며 처리될 때까지의 "
+"시간이 더 가변적임)와 관련된 비용이 발생합니다. 이것이 문제인지는 시스템에 따라 "
+"다르지만 일반적으로 피하는 것이 좋습니다."
+"이것은 즉각적인 문제를 해결하지만, 여전히 신중하게 추론해야 하는 많은 안전하지 "
+"않은 코드를 작성해야 하며, 불필요하게 임계 영역을 사용하고 있을 수도 있습니다. 각 "
+"임계 영역은 일시적으로 인터럽트 처리를 일시 중지하므로 추가 코드 크기 및 더 높은 "
+"인터럽트 대기 시간 및 지터(인터럽트 처리에 더 오래 걸릴 수 있으며 처리될 때까지의 "
+"시간이 더 가변적임)와 관련된 비용이 발생합니다. 이것이 문제인지는 시스템에 따라 "
+"다르지만 일반적으로 피하는 것이 좋습니다."
 
 #: src/concurrency/index.md:143
 msgid ""
@@ -5658,10 +5690,18 @@ msgid ""
 "core, even without interrupts. You will need stronger synchronisation "
 "primitives if you are using multiple cores."
 msgstr ""
+"임계 영역이 인터럽트가 발생하지 않도록 보장하지만 다중 코어 시스템에서는 독점성을 "
+"보장하지 않는다는 점은 주목할 가치가 있습니다! 다른 코어는 인터럽트 없이도 코어와 "
+"동일한 메모리에 행복하게 접근할 수 있습니다. 다중 코어를 사용하는 경우 더 강력한 "
+"동기화 기본 요소가 필요합니다."
+"임계 영역이 인터럽트가 발생하지 않도록 보장하지만 다중 코어 시스템에서는 독점성을 "
+"보장하지 않는다는 점은 주목할 가치가 있습니다! 다른 코어는 인터럽트 없이도 코어와 "
+"동일한 메모리에 행복하게 접근할 수 있습니다. 다중 코어를 사용하는 경우 더 강력한 "
+"동기화 기본 요소가 필요합니다."
 
 #: src/concurrency/index.md:149
 msgid "Atomic Access"
-msgstr ""
+msgstr "원자적 접근"
 
 #: src/concurrency/index.md:151
 msgid ""
@@ -5675,14 +5715,28 @@ msgid ""
 "automatically retry the entire increment operation. These atomic operations "
 "are safe even across multiple cores."
 msgstr ""
+"일부 플랫폼에서는 읽기-수정-쓰기 작업에 대한 보장을 제공하는 특수 원자적 "
+"명령을 사용할 수 있습니다. 특히 Cortex-M의 경우: `thumbv6`(Cortex-M0, Cortex-M0+)는 "
+"원자적 로드 및 저장 명령만 제공하는 반면, `thumbv7`(Cortex-M3 이상)은 전체 비교 및 "
+"교환(CAS) 명령을 제공합니다. 이러한 CAS 명령은 모든 인터럽트를 비활성화하는 강력한 "
+"방법에 대한 대안을 제공합니다. 증가를 시도할 수 있으며 대부분의 경우 성공하지만 "
+"중단된 경우 전체 증가 작업을 자동으로 다시 시도합니다. 이러한 원자적 작업은 다중 "
+"코어에서도 안전합니다."
+"일부 플랫폼에서는 읽기-수정-쓰기 작업에 대한 보장을 제공하는 특수 원자적 "
+"명령을 사용할 수 있습니다. 특히 Cortex-M의 경우: `thumbv6`(Cortex-M0, Cortex-M0+)는 "
+"원자적 로드 및 저장 명령만 제공하는 반면, `thumbv7`(Cortex-M3 이상)은 전체 비교 및 "
+"교환(CAS) 명령을 제공합니다. 이러한 CAS 명령은 모든 인터럽트를 비활성화하는 강력한 "
+"방법에 대한 대안을 제공합니다. 증가를 시도할 수 있으며 대부분의 경우 성공하지만 "
+"중단된 경우 전체 증가 작업을 자동으로 다시 시도합니다. 이러한 원자적 작업은 다중 "
+"코어에서도 안전합니다."
 
 #: src/concurrency/index.md:173
 msgid "// Use `fetch_add` to atomically add 1 to COUNTER\n"
-msgstr ""
+msgstr "// `fetch_add`를 사용하여 COUNTER에 원자적으로 1을 더합니다\n"
 
 #: src/concurrency/index.md:182
 msgid "// Use `store` to write 0 directly to COUNTER\n"
-msgstr ""
+msgstr "// `store`를 사용하여 COUNTER에 직접 0을 씁니다\n"
 
 #: src/concurrency/index.md:187
 msgid ""
@@ -5691,6 +5745,14 @@ msgid ""
 "the main thread without disabling interrupts. When possible, this is a "
 "better solution — but it may not be supported on your platform."
 msgstr ""
+"이번에는 `COUNTER`가 안전한 `static` 변수입니다. `AtomicUsize` 타입 덕분에 `COUNTER`는 "
+"인터럽트를 비활성화하지 않고도 인터럽트 핸들러와 메인 스레드 모두에서 안전하게 "
+"수정할 수 있습니다. 가능하면 이것이 더 나은 해결책이지만 플랫폼에서 지원되지 않을 "
+"수 있습니다."
+"이번에는 `COUNTER`가 안전한 `static` 변수입니다. `AtomicUsize` 타입 덕분에 `COUNTER`는 "
+"인터럽트를 비활성화하지 않고도 인터럽트 핸들러와 메인 스레드 모두에서 안전하게 "
+"수정할 수 있습니다. 가능하면 이것이 더 나은 해결책이지만 플랫폼에서 지원되지 않을 "
+"수 있습니다."
 
 #: src/concurrency/index.md:192
 msgid ""
@@ -5703,16 +5765,30 @@ msgid ""
 "what you're using atomics for you may or may not need this! The precise "
 "details of the atomic model are complicated and best described elsewhere."
 msgstr ""
+"[`Ordering`](https://doc.rust-lang.org/core/sync/atomic/enum.Ordering.html)에 "
+"대한 참고 사항: 이것은 컴파일러와 하드웨어가 명령을 재정렬하는 방식에 영향을 "
+"미치며 캐시 가시성에도 영향을 미칩니다. 대상이 단일 코어 플랫폼이라고 가정하면 이 "
+"특정 경우에 `Relaxed`가 충분하고 가장 효율적인 선택입니다. 더 엄격한 순서는 "
+"컴파일러가 원자적 작업 주위에 메모리 장벽을 내보내도록 합니다. 원자적 작업을 "
+"사용하는 목적에 따라 이것이 필요할 수도 있고 필요하지 않을 수도 있습니다! 원자적 "
+"모델의 정확한 세부 사항은 복잡하며 다른 곳에서 가장 잘 설명되어 있습니다."
+"[`Ordering`](https://doc.rust-lang.org/core/sync/atomic/enum.Ordering.html)에 "
+"대한 참고 사항: 이것은 컴파일러와 하드웨어가 명령을 재정렬하는 방식에 영향을 "
+"미치며 캐시 가시성에도 영향을 미칩니다. 대상이 단일 코어 플랫폼이라고 가정하면 이 "
+"특정 경우에 `Relaxed`가 충분하고 가장 효율적인 선택입니다. 더 엄격한 순서는 "
+"컴파일러가 원자적 작업 주위에 메모리 장벽을 내보내도록 합니다. 원자적 작업을 "
+"사용하는 목적에 따라 이것이 필요할 수도 있고 필요하지 않을 수도 있습니다! 원자적 "
+"모델의 정확한 세부 사항은 복잡하며 다른 곳에서 가장 잘 설명되어 있습니다."
 
 #: src/concurrency/index.md:200
 msgid ""
 "For more details on atomics and ordering, see the [nomicon](https://doc.rust-"
 "lang.org/nomicon/atomics.html)."
-msgstr ""
+msgstr "원자성과 순서에 대한 자세한 내용은 [노미콘](https://doc.rust-lang.org/nomicon/atomics.html)을 참조하십시오."
 
 #: src/concurrency/index.md:206
 msgid "Abstractions, Send, and Sync"
-msgstr ""
+msgstr "추상화, 보내기 및 동기화"
 
 #: src/concurrency/index.md:208
 msgid ""
@@ -5720,6 +5796,9 @@ msgid ""
 "`unsafe` blocks which must be very carefully checked and are not ergonomic. "
 "Surely we can do better in Rust!"
 msgstr ""
+"위의 해결책 중 어느 것도 특별히 만족스럽지 않습니다. 매우 신중하게 확인해야 하는 "
+"`unsafe` 블록이 필요하며 인체공학적이지 않습니다. 분명히 Rust에서는 더 잘할 수 "
+"있습니다!"
 
 #: src/concurrency/index.md:212
 msgid ""
@@ -5727,6 +5806,9 @@ msgid ""
 "anywhere else in our code. For this example, we'll use the critical-section "
 "counter, but you could do something very similar with atomics."
 msgstr ""
+"카운터를 코드의 다른 곳에서 안전하게 사용할 수 있는 안전한 인터페이스로 추상화할 "
+"수 있습니다. 이 예에서는 임계 영역 카운터를 사용하지만 원자적 연산으로 매우 유사한 "
+"작업을 수행할 수 있습니다."
 
 #: src/concurrency/index.md:219
 msgid ""
@@ -5736,6 +5818,9 @@ msgid ""
 "// COUNTER be `static` instead of `static mut`, but still able to mutate\n"
 "// its counter value.\n"
 msgstr ""
+"// 우리 카운터는 Rust의 내부 가변성의 핵심인 UnsafeCell<u32>를 감싸는 래퍼일 "
+"뿐입니다. 내부 가변성을 사용하면 COUNTER를 'static mut' 대신 'static'으로 만들 수 "
+"있지만 여전히 카운터 값을 변경할 수 있습니다.\n"
 
 #: src/concurrency/index.md:230
 msgid ""
@@ -5743,20 +5828,25 @@ msgid ""
 "        // be operating inside a CriticalSection, and so can confidently\n"
 "        // use this unsafe block (required to call UnsafeCell::get).\n"
 msgstr ""
+"// CriticalSection을 전달하도록 요구함으로써, 우리는 CriticalSection 내에서 "
+"작동해야 함을 알고 있으므로 이 안전하지 않은 블록(UnsafeCell::get을 호출하는 데 "
+"필요)을 자신 있게 사용할 수 있습니다.\n"
 
 #: src/concurrency/index.md:240
 msgid "// Required to allow static CSCounter. See explanation below.\n"
-msgstr ""
+msgstr "// 정적 CSCounter를 허용하는 데 필요합니다. 아래 설명을 참조하십시오.\n"
 
 #: src/concurrency/index.md:243
 msgid ""
 "// COUNTER is no longer `mut` as it uses interior mutability;\n"
 "// therefore it also no longer requires unsafe blocks to access.\n"
 msgstr ""
+"// COUNTER는 내부 가변성을 사용하므로 더 이상 'mut'가 아닙니다. 따라서 더 이상 "
+"접근하기 위해 안전하지 않은 블록이 필요하지 않습니다.\n"
 
 #: src/concurrency/index.md:255
 msgid "// No unsafe here!\n"
-msgstr ""
+msgstr "// 여기에는 안전하지 않은 것이 없습니다!\n"
 
 #: src/concurrency/index.md:264
 msgid ""
@@ -5764,6 +5854,8 @@ msgid ""
 "    // cs token, even though we know no other interrupt could pre-empt\n"
 "    // this one.\n"
 msgstr ""
+"// 다른 인터럽트가 이 인터럽트를 선점할 수 없다는 것을 알고 있음에도 불구하고 유효한 "
+"cs 토큰을 얻기 위해 여기에 임계 영역을 입력해야 합니다.\n"
 
 #: src/concurrency/index.md:269
 msgid ""
@@ -5771,12 +5863,17 @@ msgid ""
 "    // really wanted to, avoiding the overhead:\n"
 "    // let cs = unsafe { interrupt::CriticalSection::new() };\n"
 msgstr ""
+"// 정말 원한다면 오버헤드를 피하기 위해 안전하지 않은 코드를 사용하여 가짜 "
+"CriticalSection을 생성할 수 있습니다.\n"
+"    // let cs = unsafe { interrupt::CriticalSection::new() };\n"
 
 #: src/concurrency/index.md:275
 msgid ""
 "We've moved our `unsafe` code to inside our carefully-planned abstraction, "
 "and now our application code does not contain any `unsafe` blocks."
 msgstr ""
+"우리는 `unsafe` 코드를 신중하게 계획된 추상화 내부로 옮겼고, 이제 애플리케이션 "
+"코드에는 `unsafe` 블록이 포함되지 않습니다."
 
 #: src/concurrency/index.md:278
 msgid ""
@@ -5788,6 +5885,12 @@ msgid ""
 "with `cs`. If we had multiple counters, they could all be given the same "
 "`cs`, without requiring multiple nested critical sections."
 msgstr ""
+"이 설계는 애플리케이션이 `CriticalSection` 토큰을 전달하도록 요구합니다. 이러한 "
+"토큰은 `interrupt::free`에 의해서만 안전하게 생성되므로, 하나를 전달하도록 "
+"요구함으로써 실제로 잠금을 수행하지 않고도 임계 영역 내에서 작동하고 있음을 "
+"보장합니다. 이 보장은 컴파일러에 의해 정적으로 제공됩니다. `cs`와 관련된 런타임 "
+"오버헤드는 없습니다. 여러 카운터가 있는 경우 여러 중첩된 임계 영역을 요구하지 "
+"않고도 모두 동일한 `cs`를 부여할 수 있습니다."
 
 #: src/concurrency/index.md:286
 msgid ""
@@ -5799,6 +5902,12 @@ msgid ""
 "executing in a separate thread to the application code, so variables "
 "accessed by both an interrupt and the main code must be Sync."
 msgstr ""
+"이것은 또한 Rust의 동시성에 대한 중요한 주제인 [`Send` 및 "
+"`Sync`](https://doc.rust-lang.org/nomicon/send-and-sync.html) 특성을 제기합니다. "
+"Rust 책을 요약하면, 타입은 다른 스레드로 안전하게 이동할 수 있을 때 Send이고, 여러 "
+"스레드 간에 안전하게 공유할 수 있을 때 Sync입니다. 임베디드 컨텍스트에서 우리는 "
+"인터럽트가 애플리케이션 코드와 별도의 스레드에서 실행되는 것으로 간주하므로, "
+"인터럽트와 메인 코드 모두에서 접근하는 변수는 Sync여야 합니다."
 
 #: src/concurrency/index.md:296
 msgid ""
@@ -5808,6 +5917,10 @@ msgid ""
 "Sync, and therefore we could not make a `static CSCounter`: `static` "
 "variables _must_ be Sync, since they can be accessed by multiple threads."
 msgstr ""
+"Rust의 대부분의 타입에 대해 이 두 특성은 컴파일러에 의해 자동으로 파생됩니다. "
+"그러나 `CSCounter`는 [`UnsafeCell`](https://doc.rust-lang.org/core/cell/struct.UnsafeCell.html)을 "
+"포함하므로 Sync가 아니므로 `static CSCounter`를 만들 수 없습니다. `static` 변수는 "
+"여러 스레드에서 접근할 수 있으므로 _반드시_ Sync여야 합니다."
 
 #: src/concurrency/index.md:303
 msgid ""
@@ -5817,21 +5930,26 @@ msgid ""
 "platforms: with multiple cores, you would need to go to greater lengths to "
 "ensure safety."
 msgstr ""
+"`CSCounter`가 실제로 스레드 간에 안전하게 공유되도록 처리했음을 컴파일러에 "
+"알리기 위해 Sync 특성을 명시적으로 구현합니다. 이전의 임계 영역 사용과 마찬가지로 "
+"이것은 단일 코어 플랫폼에서만 안전합니다. 다중 코어의 경우 안전을 보장하기 위해 더 "
+"많은 노력이 필요합니다."
 
 #: src/concurrency/index.md:308
 msgid "Mutexes"
-msgstr ""
+msgstr "뮤텍스"
 
 #: src/concurrency/index.md:310
 msgid ""
 "We've created a useful abstraction specific to our counter problem, but "
 "there are many common abstractions used for concurrency."
 msgstr ""
+"카운터 문제에 특정한 유용한 추상화를 만들었지만 동시성에 사용되는 일반적인 "
+"추상화가 많이 있습니다."
 
 #: src/concurrency/index.md:313
 msgid ""
 "One such _synchronisation primitive_ is a mutex, short for mutual exclusion. "
-"These constructs ensure exclusive access to a variable, such as our counter. "
 "A thread can attempt to _lock_ (or _acquire_) the mutex, and either succeeds "
 "immediately, or blocks waiting for the lock to be acquired, or returns an "
 "error that the mutex could not be locked. While that thread holds the lock, "
@@ -5841,6 +5959,13 @@ msgid ""
 "doc.rust-lang.org/core/ops/trait.Drop.html) trait to ensure it is always "
 "released when the mutex goes out of scope."
 msgstr ""
+"그러한 _동기화 기본 요소_ 중 하나는 상호 배제를 의미하는 뮤텍스입니다. 스레드는 "
+"뮤텍스를 _잠그려고_ (또는 _획득하려고_) 시도할 수 있으며, 즉시 성공하거나 잠금이 "
+"획득될 때까지 차단되거나 뮤텍스를 잠글 수 없다는 오류를 반환합니다. 해당 스레드가 "
+"잠금을 보유하는 동안 보호된 데이터에 대한 접근이 허용됩니다. 스레드가 완료되면 "
+"뮤텍스를 _잠금 해제_ (또는 _해제_)하여 다른 스레드가 잠글 수 있도록 합니다. Rust에서는 "
+"일반적으로 뮤텍스가 범위를 벗어날 때 항상 해제되도록 [`Drop`](https://doc.rust-lang.org/core/ops/trait.Drop.html) "
+"특성을 사용하여 잠금 해제를 구현합니다."
 
 #: src/concurrency/index.md:325
 msgid ""
@@ -5851,6 +5976,12 @@ msgid ""
 "because execution stays in the interrupt handler). Deadlocking is not "
 "considered unsafe: it is possible even in safe Rust."
 msgstr ""
+"인터럽트 핸들러와 함께 뮤텍스를 사용하는 것은 까다로울 수 있습니다. 인터럽트 "
+"핸들러가 차단되는 것은 일반적으로 허용되지 않으며, 메인 스레드가 잠금을 해제하기를 "
+"기다리며 차단되는 것은 특히 재앙적일 것입니다. 그러면 _교착 상태_가 발생하기 "
+"때문입니다(실행이 인터럽트 핸들러에 머물기 때문에 메인 스레드는 잠금을 절대 "
+"해제하지 않습니다). 교착 상태는 안전하지 않은 것으로 간주되지 않으며, 안전한 "
+"Rust에서도 가능합니다."
 
 #: src/concurrency/index.md:332
 msgid ""
@@ -5860,17 +5991,23 @@ msgid ""
 "exclusive access to the wrapped variable without even needing to track the "
 "lock/unlock state of the mutex."
 msgstr ""
+"이러한 동작을 완전히 피하기 위해, 카운터 예제와 같이 잠그기 위해 임계 영역이 "
+"필요한 뮤텍스를 구현할 수 있습니다. 임계 영역이 잠금만큼 오래 지속되어야 하는 한, "
+"뮤텍스의 잠금/잠금 해제 상태를 추적할 필요 없이 래핑된 변수에 대한 독점적인 접근 "
+"권한을 가질 수 있습니다."
 
 #: src/concurrency/index.md:338
 msgid ""
 "This is in fact done for us in the `cortex_m` crate! We could have written "
 "our counter using it:"
 msgstr ""
+"사실 이것은 `cortex_m` 크레이트에서 우리를 위해 수행됩니다! 우리는 그것을 사용하여 "
+"카운터를 작성할 수 있었습니다:"
 
 #: src/concurrency/index.md:363
 msgid ""
 "// We still need to enter a critical section here to satisfy the Mutex.\n"
-msgstr ""
+msgstr "// 뮤텍스를 만족시키기 위해 여기에 임계 영역을 입력해야 합니다.\n"
 
 #: src/concurrency/index.md:368
 msgid ""
@@ -5885,6 +6022,15 @@ msgid ""
 "These constraints mean it's safe to use, but we couldn't use it directly in "
 "a `static` variable as a `static` must be Sync."
 msgstr ""
+"이제 우리는 [`Cell`](https://doc.rust-lang.org/core/cell/struct.Cell.html)을 "
+"사용하고 있습니다. 이것은 형제인 `RefCell`과 함께 안전한 내부 가변성을 제공하는 데 "
+"사용됩니다. 우리는 이미 Rust의 내부 가변성의 가장 낮은 계층인 `UnsafeCell`을 "
+"보았습니다. 이것은 값에 대한 여러 개의 가변 참조를 얻을 수 있지만 안전하지 않은 "
+"코드로만 가능합니다. `Cell`은 `UnsafeCell`과 같지만 안전한 인터페이스를 "
+"제공합니다. 현재 값의 복사본을 가져오거나 교체하는 것만 허용하고 참조를 가져오는 "
+"것은 허용하지 않으며, Sync가 아니므로 스레드 간에 공유할 수 없습니다. 이러한 제약 "
+"조건은 사용하기에 안전하다는 것을 의미하지만, `static`은 Sync여야 하므로 `static` "
+"변수에서 직접 사용할 수 없습니다."
 
 #: src/concurrency/index.md:380
 msgid ""
@@ -5893,6 +6039,10 @@ msgid ""
 "gives access to its contents during a critical section. We're therefore able "
 "to get a safe counter with no unsafe code at all!"
 msgstr ""
+"그렇다면 위의 예제는 왜 작동할까요? `Mutex<T>`는 `Cell`과 같이 Send인 모든 `T`에 "
+"대해 Sync를 구현합니다. 임계 영역 동안에만 내용에 대한 접근을 허용하기 때문에 "
+"안전하게 이 작업을 수행할 수 있습니다. 따라서 우리는 안전하지 않은 코드 없이 안전한 "
+"카운터를 얻을 수 있습니다!"
 
 #: src/concurrency/index.md:385
 msgid ""
@@ -5901,10 +6051,13 @@ msgid ""
 "embedded context is a peripheral struct, which generally is not Copy. For "
 "that, we can turn to `RefCell`."
 msgstr ""
+"이것은 우리 카운터의 `u32`와 같은 간단한 타입에는 좋지만, 복사가 아닌 더 복잡한 "
+"타입은 어떻습니까? 임베디드 컨텍스트에서 매우 일반적인 예는 일반적으로 복사가 아닌 "
+"주변 장치 구조체입니다. 이를 위해 `RefCell`을 사용할 수 있습니다."
 
 #: src/concurrency/index.md:390
 msgid "Sharing Peripherals"
-msgstr ""
+msgstr "주변 장치 공유"
 
 #: src/concurrency/index.md:392
 msgid ""
@@ -5914,6 +6067,10 @@ msgid ""
 "difficult to access a peripheral from both the main thread and an interrupt "
 "handler."
 msgstr ""
+"`svd2rust` 및 유사한 추상화를 사용하여 생성된 장치 크레이트는 한 번에 주변 장치 "
+"구조체의 인스턴스가 하나만 존재하도록 강제하여 주변 장치에 대한 안전한 접근을 "
+"제공합니다. 이것은 안전을 보장하지만 메인 스레드와 인터럽트 핸들러 모두에서 주변 "
+"장치에 접근하기 어렵게 만듭니다."
 
 #: src/concurrency/index.md:398
 msgid ""
@@ -5924,6 +6081,11 @@ msgid ""
 "than the plain `Cell`, but since we are giving out references rather than "
 "copies, we must be sure only one exists at a time."
 msgstr ""
+"주변 장치 접근을 안전하게 공유하기 위해 이전에 본 `Mutex`를 사용할 수 있습니다. "
+"또한 한 번에 주변 장치에 대한 참조가 하나만 제공되도록 런타임 검사를 사용하는 "
+"[`RefCell`](https://doc.rust-lang.org/core/cell/struct.RefCell.html)을 사용해야 "
+"합니다. 이것은 일반 `Cell`보다 오버헤드가 더 많지만, 복사본이 아닌 참조를 "
+"제공하므로 한 번에 하나만 존재하는지 확인해야 합니다."
 
 #: src/concurrency/index.md:406
 msgid ""
@@ -5932,6 +6094,9 @@ msgid ""
 "this we can use the `Option` type, initialised to `None` and later set to "
 "the instance of the peripheral."
 msgstr ""
+"마지막으로, 메인 코드에서 초기화된 후 주변 장치를 공유 변수로 이동하는 방법을 "
+"고려해야 합니다. 이를 위해 `Option` 타입을 사용할 수 있으며, `None`으로 초기화한 다음 "
+"나중에 주변 장치의 인스턴스로 설정합니다."
 
 #: src/concurrency/index.md:421
 msgid ""
@@ -5939,6 +6104,9 @@ msgid ""
 "    // This example is from an svd2rust-generated crate, but\n"
 "    // most embedded device crates will be similar.\n"
 msgstr ""
+"// 주변 장치 싱글톤을 얻고 구성합니다.\n"
+"    // 이 예제는 svd2rust에서 생성된 크레이트에서 가져왔지만\n"
+"    // 대부분의 임베디드 장치 크레이트는 유사합니다.\n"
 
 #: src/concurrency/index.md:427
 msgid ""
@@ -5948,13 +6116,15 @@ msgstr ""
 
 #: src/concurrency/index.md:431
 msgid "// Store the GPIOA in the mutex, moving it.\n"
-msgstr ""
+msgstr "// GPIOA를 뮤텍스에 저장하고 이동합니다.\n"
 
 #: src/concurrency/index.md:433
 msgid ""
 "// We can no longer use `gpioa` or `dp.GPIOA`, and instead have to\n"
 "    // access it via the mutex.\n"
 msgstr ""
+"// 더 이상 'gpioa' 또는 'dp.GPIOA'를 사용할 수 없으며, 대신 뮤텍스를 통해 접근해야 "
+"합니다.\n"
 
 #: src/concurrency/index.md:436
 msgid ""
@@ -5962,18 +6132,21 @@ msgid ""
 "    // otherwise the interrupt might fire while it still contains None,\n"
 "    // and as-written (with `unwrap()`), it would panic.\n"
 msgstr ""
+"// MY_GPIO를 설정한 후에만 인터럽트를 활성화하도록 주의하십시오.\n"
+"    // 그렇지 않으면 인터럽트가 여전히 None을 포함하는 동안 발생할 수 있으며,\n"
+"    // 작성된 대로('unwrap()' 포함) 패닉이 발생합니다.\n"
 
 #: src/concurrency/index.md:442
 msgid "// We'll now read state as a digital input, via the mutex\n"
-msgstr ""
+msgstr "// 이제 뮤텍스를 통해 상태를 디지털 입력으로 읽습니다\n"
 
 #: src/concurrency/index.md:449
 msgid "// Set PA1 high if we've seen a rising edge on PA0.\n"
-msgstr ""
+msgstr "// PA0에서 상승 에지를 감지하면 PA1을 높게 설정합니다.\n"
 
 #: src/concurrency/index.md:461
 msgid "// This time in the interrupt we'll just clear PA0.\n"
-msgstr ""
+msgstr "// 이번에는 인터럽트에서 PA0을 지우기만 하면 됩니다.\n"
 
 #: src/concurrency/index.md:463
 msgid ""
@@ -5982,10 +6155,12 @@ msgid ""
 "potential\n"
 "        // for a None value.\n"
 msgstr ""
+"// 인터럽트가 MY_GPIO가 설정된 후에 활성화되지 않았다는 것을 알고 있으므로 `unwrap()`을 "
+"사용할 수 있습니다. 그렇지 않으면 None 값의 가능성을 처리해야 합니다.\n"
 
 #: src/concurrency/index.md:472
 msgid "That's quite a lot to take in, so let's break down the important lines."
-msgstr ""
+msgstr "상당히 많은 내용이므로 중요한 부분을 분석해 보겠습니다."
 
 #: src/concurrency/index.md:479
 msgid ""
@@ -5998,6 +6173,12 @@ msgid ""
 "We cannot access the peripheral singleton statically, only at runtime, so "
 "this is required."
 msgstr ""
+"이제 공유 변수는 `Option`을 포함하는 `RefCell` 주위의 `Mutex`입니다. `Mutex`는 "
+"임계 영역 동안에만 접근할 수 있도록 보장하므로 일반 `RefCell`이 Sync가 아니더라도 "
+"변수를 Sync로 만듭니다. `RefCell`은 `GPIOA`를 사용하는 데 필요한 참조를 사용하여 "
+"내부 가변성을 제공합니다. `Option`을 사용하면 이 변수를 빈 값으로 초기화하고 "
+"나중에 실제로 변수를 이동할 수 있습니다. 주변 장치 싱글톤에 정적으로 접근할 수 "
+"없으며 런타임에만 접근할 수 있으므로 이것이 필요합니다."
 
 #: src/concurrency/index.md:492
 msgid ""
@@ -6005,6 +6186,8 @@ msgid ""
 "us a reference to the `RefCell`. We then call `replace()` to move our new "
 "value into the `RefCell`."
 msgstr ""
+"임계 영역 내에서 뮤텍스에 대해 `borrow()`를 호출할 수 있으며, 이는 `RefCell`에 대한 "
+"참조를 제공합니다. 그런 다음 `replace()`를 호출하여 새 값을 `RefCell`로 이동합니다."
 
 #: src/concurrency/index.md:503
 msgid ""
@@ -6014,6 +6197,10 @@ msgid ""
 "it remains borrowed - once that reference goes out of scope, the `RefCell` "
 "will be updated to indicate it is no longer borrowed."
 msgstr ""
+"마지막으로, `MY_GPIO`를 안전하고 동시적인 방식으로 사용합니다. 임계 영역은 평소와 "
+"같이 인터럽트 발생을 방지하고 뮤텍스를 빌릴 수 있도록 합니다. 그런 다음 `RefCell`은 "
+"`&Option<GPIOA>`를 제공하고 빌린 상태로 유지되는 기간을 추적합니다. 해당 참조가 "
+"범위를 벗어나면 `RefCell`은 더 이상 빌리지 않았음을 나타내도록 업데이트됩니다."
 
 #: src/concurrency/index.md:509
 msgid ""
@@ -6021,6 +6208,9 @@ msgid ""
 "to an `&Option<&GPIOA>` with `as_ref()`, which we can finally `unwrap()` to "
 "obtain the `&GPIOA` which lets us modify the peripheral."
 msgstr ""
+"`GPIOA`를 `&Option` 밖으로 이동할 수 없으므로 `as_ref()`를 사용하여 `&Option<&GPIOA>`로 "
+"변환해야 합니다. 마지막으로 `unwrap()`하여 주변 장치를 수정할 수 있는 `&GPIOA`를 "
+"얻을 수 있습니다."
 
 #: src/concurrency/index.md:513
 msgid ""
@@ -6028,6 +6218,8 @@ msgid ""
 "`deref_mut` should be used instead. The following code shows an example "
 "using the TIM2 timer."
 msgstr ""
+"공유 리소스에 대한 가변 참조가 필요한 경우 `borrow_mut` 및 `deref_mut`를 대신 "
+"사용해야 합니다. 다음 코드는 TIM2 타이머를 사용하는 예제를 보여줍니다."
 
 #: src/concurrency/index.md:531
 msgid ""
@@ -6035,16 +6227,22 @@ msgid ""
 "    // Assume it configures the TIM2 timer, its NVIC interrupt,\n"
 "    // and finally starts the timer.\n"
 msgstr ""
+"// 어떤 종류의 타이머 구성 함수입니다.\n"
+"    // TIM2 타이머, 해당 NVIC 인터럽트를 구성하고\n"
+"    // 마지막으로 타이머를 시작한다고 가정합니다.\n"
+"// 어떤 종류의 타이머 구성 함수입니다.\n"
+"    // TIM2 타이머, 해당 NVIC 인터럽트를 구성하고\n"
+"    // 마지막으로 타이머를 시작한다고 가정합니다.\n"
 
 #: src/concurrency/index.md:556
 msgid ""
 "Whew! This is safe, but it is also a little unwieldy. Is there anything else "
 "we can do?"
-msgstr ""
+msgstr "휴! 이것은 안전하지만 다루기에는 약간 번거롭습니다. 우리가 할 수 있는 다른 일이 있을까요?"
 
 #: src/concurrency/index.md:559
 msgid "RTIC"
-msgstr ""
+msgstr "RTIC"
 
 #: src/concurrency/index.md:561
 msgid ""
@@ -6057,6 +6255,12 @@ msgid ""
 "as guaranteeing no deadlocks and giving extremely low time and memory "
 "overhead."
 msgstr ""
+"RTIC 프레임워크(실시간 인터럽트 기반 동시성의 약자)는 한 가지 대안입니다. 정적 "
+"우선순위를 적용하고 'static mut' 변수(\"리소스\")에 대한 액세스를 추적하여 공유 "
+"리소스에 항상 안전하게 액세스할 수 있도록 정적으로 보장하며, 항상 임계 영역에 "
+"들어가고 참조 계산(예: 'RefCell')을 사용하는 오버헤드가 필요하지 않습니다. 이는 "
+"교착 상태가 없음을 보장하고 매우 낮은 시간 및 메모리 오버헤드를 제공하는 등 여러 "
+"가지 이점이 있습니다."
 
 #: src/concurrency/index.md:570
 msgid ""
@@ -6065,10 +6269,14 @@ msgid ""
 "tasks to run at a given time, which can be used to implement periodic tasks. "
 "Check out [the documentation](https://rtic.rs) for more information!"
 msgstr ""
+"이 프레임워크에는 명시적인 공유 상태의 필요성을 줄여주는 메시지 전달과 같은 다른 "
+"기능과 주어진 시간에 실행되도록 작업을 예약하는 기능이 포함되어 있어 주기적인 "
+"작업을 구현하는 데 사용할 수 있습니다. 자세한 내용은 [설명서](https://rtic.rs)를 "
+"확인하십시오!"
 
 #: src/concurrency/index.md:577
 msgid "Real Time Operating Systems"
-msgstr ""
+msgstr "실시간 운영 체제"
 
 #: src/concurrency/index.md:579
 msgid ""
@@ -6083,16 +6291,24 @@ msgid ""
 "primitives, and often interoperate with hardware features such as DMA "
 "engines."
 msgstr ""
+"임베디드 동시성을 위한 또 다른 일반적인 모델은 실시간 운영 체제(RTOS)입니다. "
+"현재 Rust에서는 잘 연구되지 않았지만 기존 임베디드 개발에서는 널리 사용됩니다. "
+"오픈 소스 예로는 [FreeRTOS](https://freertos.org/) 및 [ChibiOS](http://chibios.org/)가 "
+"있습니다. 이러한 RTOS는 스레드가 제어를 양보할 때(협력적 멀티태스킹이라고 함) "
+"또는 일반 타이머 또는 인터럽트(선점형 멀티태스킹)를 기반으로 CPU가 전환하는 "
+"여러 애플리케이션 스레드를 실행하기 위한 지원을 제공합니다. RTOS는 일반적으로 "
+"뮤텍스 및 기타 동기화 기본 요소를 제공하며 종종 DMA 엔진과 같은 하드웨어 "
+"기능과 상호 운용됩니다."
 
 #: src/concurrency/index.md:591
 msgid ""
 "At the time of writing, there are not many Rust RTOS examples to point to, "
 "but it's an interesting area so watch this space!"
-msgstr ""
+msgstr "이 글을 쓰는 시점에는 참고할 만한 Rust RTOS 예제가 많지 않지만 흥미로운 분야이므로 이 공간을 주목하십시오!"
 
 #: src/concurrency/index.md:594
 msgid "Multiple Cores"
-msgstr ""
+msgstr "다중 코어"
 
 #: src/concurrency/index.md:596
 msgid ""
@@ -6104,18 +6320,23 @@ msgid ""
 "designed for multiple cores (also called SMP, for symmetric multi-"
 "processing)."
 msgstr ""
+"임베디드 프로세서에 두 개 이상의 코어가 있는 것이 더 일반적이 되어 동시성에 "
+"복잡성을 한층 더 더합니다. 임계 영역을 사용하는 모든 예제(`cortex_m::interrupt::Mutex` "
+"포함)는 유일한 다른 실행 스레드가 인터럽트 스레드라고 가정하지만 다중 코어 "
+"시스템에서는 더 이상 그렇지 않습니다. 대신 다중 코어용으로 설계된 동기화 기본 "
+"요소(대칭 다중 처리를 위해 SMP라고도 함)가 필요합니다."
 
 #: src/concurrency/index.md:603
 msgid ""
 "These typically use the atomic instructions we saw earlier, since the "
 "processing system will ensure that atomicity is maintained over all cores."
-msgstr ""
+msgstr "처리 시스템이 모든 코어에서 원자성이 유지되도록 보장하므로 일반적으로 이전에 본 원자적 명령을 사용합니다."
 
 #: src/concurrency/index.md:606
 msgid ""
 "Covering these topics in detail is currently beyond the scope of this book, "
 "but the general patterns are the same as for the single-core case."
-msgstr ""
+msgstr "이러한 주제를 자세히 다루는 것은 현재 이 책의 범위를 벗어나지만 일반적인 패턴은 단일 코어의 경우와 동일합니다."
 
 #: src/collections/index.md:3
 msgid ""
@@ -6126,13 +6347,19 @@ msgid ""
 "lang.org/std/collections/struct.HashMap.html), etc. All the collections "
 "implemented in `std` use a global dynamic memory allocator (AKA the heap)."
 msgstr ""
+"결국 프로그램에서 동적 데이터 구조(일명 컬렉션)를 사용하고 싶을 것입니다. `std`는 "
+"[`Vec`](https://doc.rust-lang.org/std/vec/struct.Vec.html), [`String`](https://doc.rust-"
+"lang.org/std/string/struct.String.html), [`HashMap`](https://doc.rust-"
+"lang.org/std/collections/struct.HashMap.html) 등과 같은 일반적인 컬렉션 집합을 "
+"제공합니다. `std`에 구현된 모든 컬렉션은 전역 동적 메모리 할당자(일명 힙)를 "
+"사용합니다."
 
 #: src/collections/index.md:12
 msgid ""
 "As `core` is, by definition, free of memory allocations these "
 "implementations are not available there, but they can be found in the "
 "`alloc` crate that's shipped with the compiler."
-msgstr ""
+msgstr "'core'는 정의상 메모리 할당이 없으므로 이러한 구현은 거기에서 사용할 수 없지만 컴파일러와 함께 제공되는 'alloc' 크레이트에서 찾을 수 있습니다."
 
 #: src/collections/index.md:16
 msgid ""
@@ -6141,14 +6368,17 @@ msgid ""
 "implementation can be found in the [`heapless`](https://crates.io/crates/"
 "heapless) crate."
 msgstr ""
+"컬렉션이 필요한 경우 힙 할당 구현이 유일한 옵션은 아닙니다. _고정 용량_ "
+"컬렉션을 사용할 수도 있습니다. 이러한 구현 중 하나는 [`heapless`](https://crates.io/crates/"
+"heapless) 크레이트에서 찾을 수 있습니다."
 
 #: src/collections/index.md:22
 msgid "In this section, we'll explore and compare these two implementations."
-msgstr ""
+msgstr "이 섹션에서는 이 두 가지 구현을 살펴보고 비교합니다."
 
 #: src/collections/index.md:24
 msgid "Using `alloc`"
-msgstr ""
+msgstr "`alloc` 사용"
 
 #: src/collections/index.md:26
 msgid ""
@@ -6156,6 +6386,8 @@ msgid ""
 "the crate you can directly `use` it _without_ declaring it as a dependency "
 "in your `Cargo.toml` file."
 msgstr ""
+"`alloc` 크레이트는 표준 Rust 배포판과 함께 제공됩니다. 크레이트를 가져오려면 "
+"`Cargo.toml` 파일에서 종속성으로 선언하지 않고 직접 `use`할 수 있습니다."
 
 #: src/collections/index.md:38
 msgid ""
@@ -6165,6 +6397,9 @@ msgid ""
 "[`GlobalAlloc`](https://doc.rust-lang.org/core/alloc/trait.GlobalAlloc.html) "
 "trait."
 msgstr ""
+"컬렉션을 사용하려면 먼저 `global_allocator` 속성을 사용하여 프로그램에서 사용할 "
+"전역 할당자를 선언해야 합니다. 선택한 할당자는 [`GlobalAlloc`](https://doc.rust-lang.org/core/alloc/trait.GlobalAlloc.html) "
+"트레이트를 구현해야 합니다."
 
 #: src/collections/index.md:44
 msgid ""
@@ -6173,32 +6408,35 @@ msgid ""
 "allocator. However, we _strongly_ suggest you use a battle tested allocator "
 "from crates.io in your program instead of this allocator."
 msgstr ""
+"완전성을 기하고 이 섹션을 최대한 독립적으로 유지하기 위해 간단한 범프 포인터 "
+"할당자를 구현하고 이를 전역 할당자로 사용할 것입니다. 그러나 이 할당자 대신 "
+"프로그램에서 crates.io의 검증된 할당자를 사용하는 것이 좋습니다."
 
 #: src/collections/index.md:50
 msgid "// Bump pointer allocator implementation\n"
-msgstr ""
+msgstr "// 범프 포인터 할당자 구현\n"
 
 #: src/collections/index.md:57
 msgid "// Bump pointer allocator for *single* core systems\n"
-msgstr ""
+msgstr "// *단일* 코어 시스템용 범프 포인터 할당자\n"
 
 #: src/collections/index.md:68
 msgid ""
 "// `interrupt::free` is a critical section that makes our allocator safe\n"
 "        // to use from within interrupts\n"
-msgstr ""
+msgstr "// `interrupt::free`는 인터럽트 내에서 할당자를 안전하게 사용할 수 있도록 하는 임계 영역입니다\n"
 
 #: src/collections/index.md:76
 msgid "// move start up to the next alignment boundary\n"
-msgstr ""
+msgstr "// 시작을 다음 정렬 경계로 이동\n"
 
 #: src/collections/index.md:80
 msgid "// a null pointer signal an Out Of Memory condition\n"
-msgstr ""
+msgstr "// null 포인터는 메모리 부족 상태를 나타냅니다\n"
 
 #: src/collections/index.md:90
 msgid "// this allocator never deallocates memory\n"
-msgstr ""
+msgstr "// 이 할당자는 메모리를 절대 해제하지 않습니다\n"
 
 #: src/collections/index.md:93
 msgid ""
@@ -6207,6 +6445,9 @@ msgid ""
 "0x2000_0200]`\n"
 "// is not used by other parts of the program\n"
 msgstr ""
+"// 전역 메모리 할당자 선언\n"
+"// 참고: 사용자는 메모리 영역 `[0x2000_0100, 0x2000_0200]`이\n"
+"// 프로그램의 다른 부분에서 사용되지 않도록 해야 합니다\n"
 
 #: src/collections/index.md:104
 msgid ""
@@ -6214,6 +6455,8 @@ msgid ""
 "how Out Of Memory (OOM) errors are handled using the _unstable_ "
 "`alloc_error_handler` attribute."
 msgstr ""
+"전역 할당자를 선택하는 것 외에도 사용자는 _불안정한_ `alloc_error_handler` "
+"속성을 사용하여 메모리 부족(OOM) 오류를 처리하는 방법을 정의해야 합니다."
 
 #: src/collections/index.md:121
 msgid ""
@@ -6225,21 +6468,23 @@ msgstr ""
 msgid ""
 "If you have used the collections in the `std` crate then these will be "
 "familiar as they are exact same implementation."
-msgstr ""
+msgstr "`std` 크레이트의 컬렉션을 사용해 본 적이 있다면 이것들은 정확히 동일한 구현이므로 익숙할 것입니다."
 
 #: src/collections/index.md:140
 msgid "Using `heapless`"
-msgstr ""
+msgstr "`heapless` 사용"
 
 #: src/collections/index.md:142
 msgid ""
 "`heapless` requires no setup as its collections don't depend on a global "
 "memory allocator. Just `use` its collections and proceed to instantiate them:"
 msgstr ""
+"`heapless`는 컬렉션이 전역 메모리 할당자에 의존하지 않으므로 설정이 필요하지 "
+"않습니다. 컬렉션을 `use`하고 인스턴스화하기만 하면 됩니다."
 
 #: src/collections/index.md:146
 msgid "// heapless version: v0.4.x\n"
-msgstr ""
+msgstr "// heapless 버전: v0.4.x\n"
 
 #: src/collections/index.md:160
 msgid ""
@@ -6256,6 +6501,11 @@ msgid ""
 "at most, hold 8 elements. This is indicated by the `U8` (see [`typenum`]"
 "(https://crates.io/crates/typenum)) in the type signature."
 msgstr ""
+"먼저 컬렉션의 용량을 미리 선언해야 합니다. `heapless` 컬렉션은 절대 "
+"재할당되지 않으며 고정 용량을 가집니다. 이 용량은 컬렉션의 유형 서명의 "
+"일부입니다. 이 경우 `xs`의 용량이 8개 요소라고 선언했습니다. 즉, 벡터는 "
+"최대 8개의 요소를 보유할 수 있습니다. 이것은 유형 서명의 `U8`([`typenum`])"
+"(https://crates.io/crates/typenum) 참조)로 표시됩니다."
 
 #: src/collections/index.md:170
 msgid ""
@@ -6266,6 +6516,11 @@ msgid ""
 "or not. In contrast, `alloc` collections will reallocate themselves on the "
 "heap to increase their capacity."
 msgstr ""
+"두 번째로, `push` 메서드와 다른 많은 메서드는 `Result`를 반환합니다. "
+"`heapless` 컬렉션은 고정 용량을 가지므로 컬렉션에 요소를 삽입하는 모든 "
+"작업은 잠재적으로 실패할 수 있습니다. API는 작업 성공 여부를 나타내는 "
+"`Result`를 반환하여 이 문제를 반영합니다. 반면 `alloc` 컬렉션은 용량을 "
+"늘리기 위해 힙에서 자체적으로 재할당됩니다."
 
 #: src/collections/index.md:177
 msgid ""
@@ -6275,20 +6530,23 @@ msgid ""
 "allocate the collection on a `static` variable, or even on the heap "
 "(`Box<Vec<_, _>>`)."
 msgstr ""
+"v0.4.x 버전부터 모든 `heapless` 컬렉션은 모든 요소를 인라인으로 저장합니다. "
+"즉, `let x = heapless::Vec::new();`와 같은 작업은 스택에 컬렉션을 할당하지만 "
+"`static` 변수나 힙(`Box<Vec<_, _>>`)에 컬렉션을 할당할 수도 있습니다."
 
 #: src/collections/index.md:182
 msgid "Trade-offs"
-msgstr ""
+msgstr "절충점"
 
 #: src/collections/index.md:184
 msgid ""
 "Keep these in mind when choosing between heap allocated, relocatable "
 "collections and fixed capacity collections."
-msgstr ""
+msgstr "힙 할당, 재배치 가능 컬렉션과 고정 용량 컬렉션 중에서 선택할 때 다음 사항을 염두에 두십시오."
 
 #: src/collections/index.md:187
 msgid "Out Of Memory and error handling"
-msgstr ""
+msgstr "메모리 부족 및 오류 처리"
 
 #: src/collections/index.md:189
 msgid ""
@@ -6299,6 +6557,12 @@ msgid ""
 "`try_reserve` methods that let you check for potential OOM conditions when "
 "growing the collection but you need be proactive about using them."
 msgstr ""
+"힙 할당을 사용하면 항상 메모리 부족이 발생할 수 있으며 컬렉션이 커져야 하는 "
+"모든 곳에서 발생할 수 있습니다. 예를 들어 모든 `alloc::Vec.push` 호출은 "
+"잠재적으로 OOM 조건을 생성할 수 있습니다. 따라서 일부 작업은 _암시적으로_ "
+"실패할 수 있습니다. 일부 `alloc` 컬렉션은 컬렉션을 늘릴 때 잠재적인 OOM "
+"조건을 확인할 수 있는 `try_reserve` 메서드를 노출하지만 이를 사용하는 데 "
+"적극적이어야 합니다."
 
 #: src/collections/index.md:196
 msgid ""
@@ -6308,6 +6572,10 @@ msgid ""
 "case basis. That is you'll have deal with _all_ the `Result`s returned by "
 "methods like `Vec.push`."
 msgstr ""
+"`heapless` 컬렉션만 독점적으로 사용하고 다른 용도로 메모리 할당자를 사용하지 "
+"않으면 OOM 조건이 불가능합니다. 대신 컬렉션 용량 부족 문제를 사례별로 "
+"처리해야 합니다. 즉, `Vec.push`와 같은 메서드에서 반환되는 모든 `Result`를 "
+"처리해야 합니다."
 
 #: src/collections/index.md:202
 msgid ""
@@ -6318,10 +6586,15 @@ msgid ""
 "exhausted because some other collection was leaking memory (memory leaks are "
 "possible in safe Rust)."
 msgstr ""
+"OOM 오류는 `heapless::Vec.push`에서 반환된 모든 `Result`에 대해 `unwrap`하는 "
+"것보다 디버깅하기 더 어려울 수 있습니다. 왜냐하면 관찰된 오류 위치가 문제의 "
+"원인 위치와 일치하지 않을 수 있기 때문입니다. 예를 들어, 다른 컬렉션에서 "
+"메모리가 누수되어 할당자가 거의 소진된 경우 `vec.reserve(1)`조차도 OOM을 "
+"유발할 수 있습니다(안전한 Rust에서는 메모리 누수가 가능합니다)."
 
 #: src/collections/index.md:209
 msgid "Memory usage"
-msgstr ""
+msgstr "메모리 사용량"
 
 #: src/collections/index.md:211
 msgid ""
@@ -6334,6 +6607,13 @@ msgid ""
 "or not. Additionally, the allocator may have to deal with memory "
 "fragmentation which can increase the _apparent_ memory usage."
 msgstr ""
+"힙 할당 컬렉션의 메모리 사용량을 추론하는 것은 어렵습니다. 왜냐하면 오래 "
+"지속되는 컬렉션의 용량이 런타임에 변경될 수 있기 때문입니다. 일부 작업은 "
+"컬렉션을 암시적으로 재할당하여 메모리 사용량을 늘릴 수 있으며, 일부 컬렉션은 "
+"`shrink_to_fit`과 같은 메서드를 노출하여 컬렉션이 사용하는 메모리를 잠재적으로 "
+"줄일 수 있습니다. 궁극적으로 메모리 할당을 실제로 줄일지 여부는 할당자가 "
+"결정합니다. 또한 할당자는 메모리 단편화를 처리해야 할 수 있으며, 이는 "
+"_겉보기_ 메모리 사용량을 증가시킬 수 있습니다."
 
 #: src/collections/index.md:220
 msgid ""
@@ -6342,6 +6622,9 @@ msgid ""
 "then the linker will detect if you try to use more memory than what's "
 "physically available."
 msgstr ""
+"반면에 고정 용량 컬렉션만 독점적으로 사용하고 대부분을 `static` 변수에 저장하며 "
+"호출 스택의 최대 크기를 설정하면 링커는 물리적으로 사용 가능한 메모리보다 더 "
+"많은 메모리를 사용하려고 하는지 감지합니다."
 
 #: src/collections/index.md:225
 msgid ""
@@ -6351,6 +6634,10 @@ msgid ""
 "analyze stack usage (like [`stack-sizes`](https://crates.io/crates/stack-"
 "sizes)) will include them in their analysis."
 msgstr ""
+"또한 스택에 할당된 고정 용량 컬렉션은 [`-Z emit-stack-sizes`](https://doc.rust-lang.org/beta/unstable-"
+"book/compiler-flags/emit-stack-sizes.html) 플래그에 의해 보고됩니다. 이는 스택 "
+"사용량을 분석하는 도구([`stack-sizes`](https://crates.io/crates/stack-"
+"sizes)와 같은)가 분석에 이를 포함한다는 의미입니다."
 
 #: src/collections/index.md:232
 msgid ""
@@ -6358,10 +6645,12 @@ msgid ""
 "lower load factors (the ratio between the size of the collection and its "
 "capacity) than what relocatable collections can achieve."
 msgstr ""
+"그러나 고정 용량 컬렉션은 축소될 수 없으므로 재배치 가능한 컬렉션이 달성할 수 "
+"있는 것보다 낮은 로드 팩터(컬렉션 크기와 용량 간의 비율)를 초래할 수 있습니다."
 
 #: src/collections/index.md:236
 msgid "Worst Case Execution Time (WCET)"
-msgstr ""
+msgstr "최악의 경우 실행 시간 (WCET)"
 
 #: src/collections/index.md:238
 msgid ""
@@ -6369,6 +6658,8 @@ msgid ""
 "applications then you care, maybe a lot, about the worst case execution time "
 "of the different parts of your program."
 msgstr ""
+"시간에 민감한 애플리케이션 또는 하드 실시간 애플리케이션을 구축하는 경우 "
+"프로그램의 다양한 부분의 최악의 경우 실행 시간에 대해 많이 신경 쓸 것입니다."
 
 #: src/collections/index.md:242
 msgid ""
@@ -6379,6 +6670,10 @@ msgid ""
 "`alloc::Vec.push` operation as it depends on both the allocator being used "
 "and its runtime capacity."
 msgstr ""
+"`alloc` 컬렉션은 재할당될 수 있으므로 컬렉션을 늘릴 수 있는 작업의 WCET에는 "
+"컬렉션을 재할당하는 데 걸리는 시간도 포함되며, 이는 컬렉션의 _런타임_ 용량에 "
+"따라 달라집니다. 이로 인해 예를 들어 `alloc::Vec.push` 작업의 WCET를 결정하기 "
+"어렵습니다. 이는 사용되는 할당자와 런타임 용량 모두에 따라 달라지기 때문입니다."
 
 #: src/collections/index.md:248
 msgid ""
@@ -6386,10 +6681,12 @@ msgid ""
 "operations have a predictable execution time. For example, "
 "`heapless::Vec.push` executes in constant time."
 msgstr ""
+"반면에 고정 용량 컬렉션은 절대 재할당되지 않으므로 모든 작업은 예측 가능한 "
+"실행 시간을 가집니다. 예를 들어 `heapless::Vec.push`는 상수 시간에 실행됩니다."
 
 #: src/collections/index.md:252
 msgid "Ease of use"
-msgstr ""
+msgstr "사용 편의성"
 
 #: src/collections/index.md:254
 msgid ""
@@ -6397,6 +6694,8 @@ msgid ""
 "However, `heapless` requires you to pick the capacity of each collection "
 "that you instantiate."
 msgstr ""
+"`alloc`은 전역 할당자를 설정해야 하지만 `heapless`는 그렇지 않습니다. 그러나 "
+"`heapless`는 인스턴스화하는 각 컬렉션의 용량을 선택해야 합니다."
 
 #: src/collections/index.md:258
 msgid ""
@@ -6405,16 +6704,22 @@ msgid ""
 "exactly the same due to its explicit error handling -- some developers may "
 "feel the explicit error handling is excessive or too cumbersome."
 msgstr ""
+"`alloc` API는 거의 모든 Rust 개발자에게 익숙할 것입니다. `heapless` API는 "
+"`alloc` API를 밀접하게 모방하려고 하지만 명시적인 오류 처리로 인해 정확히 "
+"동일하지는 않을 것입니다. 일부 개발자는 명시적인 오류 처리가 과도하거나 너무 "
+"번거롭다고 느낄 수 있습니다."
 
 #: src/design-patterns/index.md:3
 msgid ""
 "This chapter aims to collect various useful design patterns for embedded "
 "Rust."
 msgstr ""
+"이 장은 임베디드 Rust를 위한 다양하고 유용한 디자인 패턴을 수집하는 것을 "
+"목표로 합니다."
 
 #: src/design-patterns/hal/index.md:1
 msgid "HAL Design Patterns"
-msgstr ""
+msgstr "HAL 디자인 패턴"
 
 #: src/design-patterns/hal/index.md:3
 msgid ""
@@ -6424,51 +6729,59 @@ msgid ""
 "(https://rust-lang.github.io/api-guidelines/) when writing HALs for "
 "microcontrollers."
 msgstr ""
+"이것은 Rust에서 마이크로컨트롤러용 하드웨어 추상화 계층(HAL)을 작성하기 위한 "
+"일반적이고 권장되는 패턴 집합입니다. 이러한 패턴은 마이크로컨트롤러용 HAL을 "
+"작성할 때 기존 [Rust API 가이드라인](https://rust-lang.github.io/api-guidelines/) "
+"외에 추가로 사용하도록 의도되었습니다."
 
 #: src/design-patterns/hal/index.md:10
 msgid "[Checklist](checklist.md)"
-msgstr ""
+msgstr "[체크리스트](checklist.md)"
 
 #: src/design-patterns/hal/index.md:12
 msgid "[Naming](naming.md)"
-msgstr ""
+msgstr "[명명](naming.md)"
 
 #: src/design-patterns/hal/index.md:13
 msgid "[Interoperability](interoperability.md)"
-msgstr ""
+msgstr "[상호 운용성](interoperability.md)"
 
 #: src/design-patterns/hal/index.md:14
 msgid "[Predictability](predictability.md)"
-msgstr ""
+msgstr "[예측 가능성](predictability.md)"
 
 #: src/design-patterns/hal/index.md:15
 msgid "[GPIO](gpio.md)"
-msgstr ""
+msgstr "[GPIO](gpio.md)"
 
 #: src/design-patterns/hal/checklist.md:1
 msgid "HAL Design Patterns Checklist"
-msgstr ""
+msgstr "HAL 디자인 패턴 체크리스트"
 
 #: src/design-patterns/hal/checklist.md:3
 msgid "**Naming** _(crate aligns with Rust naming conventions)_"
-msgstr ""
+msgstr "**명명** _(크레이트가 Rust 명명 규칙과 일치)_"
 
 #: src/design-patterns/hal/checklist.md:4
 msgid ""
 "The crate is named appropriately ([C-CRATE-NAME](naming.html#c-crate-name))"
 msgstr ""
+"크레이트 이름이 적절합니다 ([C-CRATE-NAME](naming.html#c-crate-name))"
 
 #: src/design-patterns/hal/checklist.md:5
 msgid ""
 "**Interoperability** _(crate interacts nicely with other library "
 "functionality)_"
 msgstr ""
+"**상호 운용성** _(크레이트가 다른 라이브러리 기능과 잘 상호 작용)_"
 
 #: src/design-patterns/hal/checklist.md:6
 msgid ""
 "Wrapper types provide a destructor method ([C-FREE](interoperability.html#c-"
 "free))"
 msgstr ""
+"래퍼 타입은 소멸자 메서드를 제공합니다 ([C-FREE](interoperability.html#c-"
+"free))"
 
 #: src/design-patterns/hal/checklist.md:7
 msgid ""
@@ -6481,45 +6794,51 @@ msgid ""
 "Types implement the `embedded-hal` traits ([C-HAL-TRAITS]"
 "(interoperability.html#c-hal-traits))"
 msgstr ""
+"타입은 `embedded-hal` 트레이트를 구현합니다 ([C-HAL-TRAITS]"
 
 #: src/design-patterns/hal/checklist.md:9
 msgid ""
 "**Predictability** _(crate enables legible code that acts how it looks)_"
 msgstr ""
+"**예측 가능성** _(크레이트가 보이는 대로 작동하는 읽기 쉬운 코드를 가능하게 함)_"
 
 #: src/design-patterns/hal/checklist.md:10
 msgid ""
 "Constructors are used instead of extension traits ([C-CTOR]"
-"(predictability.html#c-ctor))"
 msgstr ""
+"확장 트레이트 대신 생성자가 사용됩니다 ([C-CTOR]"
 
 #: src/design-patterns/hal/checklist.md:11
 msgid "**GPIO Interfaces** _(GPIO Interfaces follow a common pattern)_"
-msgstr ""
+msgstr "**GPIO 인터페이스** _(GPIO 인터페이스는 공통 패턴을 따름)_"
 
 #: src/design-patterns/hal/checklist.md:12
 msgid "Pin types are zero-sized by default ([C-ZST-PIN](gpio.md#c-zst-pin))"
-msgstr ""
+msgstr "핀 타입은 기본적으로 제로 크기입니다 ([C-ZST-PIN](gpio.md#c-zst-pin))"
 
 #: src/design-patterns/hal/checklist.md:13
 msgid ""
 "Pin types provide methods to erase pin and port ([C-ERASED-PIN](gpio.md#c-"
 "erased-pin))"
 msgstr ""
+"핀 타입은 핀과 포트를 지우는 메서드를 제공합니다 ([C-ERASED-PIN](gpio.md#c-"
+"erased-pin))"
 
 #: src/design-patterns/hal/checklist.md:14
 msgid ""
 "Pin state should be encoded as type parameters ([C-PIN-STATE](gpio.md#c-pin-"
 "state))"
 msgstr ""
+"핀 상태는 타입 매개변수로 인코딩되어야 합니다 ([C-PIN-STATE](gpio.md#c-pin-"
+"state))"
 
 #: src/design-patterns/hal/naming.md:4
 msgid "<a id=\"c-crate-name\"></a>"
-msgstr ""
+msgstr "<a id=\"c-crate-name\"></a>"
 
 #: src/design-patterns/hal/naming.md:5
 msgid "The crate is named appropriately (C-CRATE-NAME)"
-msgstr ""
+msgstr "크레이트 이름이 적절합니다 (C-CRATE-NAME)"
 
 #: src/design-patterns/hal/naming.md:7
 msgid ""
@@ -6527,14 +6846,17 @@ msgid ""
 "support. Their name should end with `-hal` to distinguish them from register "
 "access crates. The name should not contain underscores (use dashes instead)."
 msgstr ""
+"HAL 크레이트는 지원하려는 칩 또는 칩 제품군의 이름을 따야 합니다. 레지스터 "
+"접근 크레이트와 구별하기 위해 이름은 `-hal`로 끝나야 합니다. 이름에 밑줄을 "
+"포함해서는 안 됩니다(대신 대시를 사용하십시오)."
 
 #: src/design-patterns/hal/interoperability.md:4
 msgid "<a id=\"c-free\"></a>"
-msgstr ""
+msgstr "<a id=\"c-free\"></a>"
 
 #: src/design-patterns/hal/interoperability.md:5
 msgid "Wrapper types provide a destructor method (C-FREE)"
-msgstr ""
+msgstr "래퍼 타입은 소멸자 메서드를 제공합니다 (C-FREE)"
 
 #: src/design-patterns/hal/interoperability.md:7
 msgid ""
@@ -6542,6 +6864,8 @@ msgid ""
 "method that consumes the wrapper and returns back the raw peripheral (and "
 "possibly other objects) it was created from."
 msgstr ""
+"HAL에서 제공하는 모든 비-`Copy` 래퍼 타입은 래퍼를 소비하고 생성된 원시 주변 "
+"장치(및 다른 객체일 수도 있음)를 반환하는 `free` 메서드를 제공해야 합니다."
 
 #: src/design-patterns/hal/interoperability.md:11
 msgid ""
@@ -6549,6 +6873,9 @@ msgid ""
 "`new` with the raw peripheral returned by `free` should not fail due to an "
 "unexpected state of the peripheral."
 msgstr ""
+"메서드는 필요한 경우 주변 장치를 종료하고 재설정해야 합니다. `free`가 반환한 "
+"원시 주변 장치로 `new`를 호출할 때 주변 장치의 예기치 않은 상태로 인해 "
+"실패해서는 안 됩니다."
 
 #: src/design-patterns/hal/interoperability.md:15
 msgid ""
@@ -6556,18 +6883,21 @@ msgid ""
 "example I/O pins), any such object should be released and returned by `free` "
 "as well. `free` should return a tuple in that case."
 msgstr ""
+"HAL 타입이 다른 비-`Copy` 객체(예: I/O 핀)를 구성해야 하는 경우, 해당 객체도 "
+"`free`에 의해 해제되고 반환되어야 합니다. 이 경우 `free`는 튜플을 반환해야 "
+"합니다."
 
 #: src/design-patterns/hal/interoperability.md:19
 msgid "For example:"
-msgstr ""
+msgstr "예를 들어:"
 
 #: src/design-patterns/hal/interoperability.md:36
 msgid "<a id=\"c-reexport-pac\"></a>"
-msgstr ""
+msgstr "<a id=\"c-reexport-pac\"></a>"
 
 #: src/design-patterns/hal/interoperability.md:37
 msgid "HALs reexport their register access crate (C-REEXPORT-PAC)"
-msgstr ""
+msgstr "HAL은 레지스터 접근 크레이트를 재수출합니다 (C-REEXPORT-PAC)"
 
 #: src/design-patterns/hal/interoperability.md:39
 msgid ""
@@ -6576,6 +6906,9 @@ msgid ""
 "register access. HALs should always reexport the register access crate they "
 "are based on in their crate root."
 msgstr ""
+"HAL은 [svd2rust](https://github.com/rust-embedded/svd2rust)로 생성된 PAC 위에 "
+"또는 원시 레지스터 접근을 제공하는 다른 크레이트 위에 작성될 수 있습니다. HAL은 "
+"항상 기반으로 하는 레지스터 접근 크레이트를 크레이트 루트에 재수출해야 합니다."
 
 #: src/design-patterns/hal/interoperability.md:43
 msgid ""
@@ -6583,50 +6916,56 @@ msgid ""
 "name of the crate, as the name of the HAL should already make it clear what "
 "PAC is being accessed."
 msgstr ""
+"PAC는 크레이트의 실제 이름과 관계없이 `pac`라는 이름으로 재수출되어야 합니다. "
+"HAL의 이름이 어떤 PAC에 접근하는지 이미 명확하게 해야 하기 때문입니다."
 
 #: src/design-patterns/hal/interoperability.md:49
 msgid "<a id=\"c-hal-traits\"></a>"
-msgstr ""
+msgstr "<a id=\"c-hal-traits\"></a>"
 
 #: src/design-patterns/hal/interoperability.md:50
 msgid "Types implement the `embedded-hal` traits (C-HAL-TRAITS)"
-msgstr ""
+msgstr "타입은 `embedded-hal` 트레이트를 구현합니다 (C-HAL-TRAITS)"
 
 #: src/design-patterns/hal/interoperability.md:52
 msgid ""
 "Types provided by the HAL should implement all applicable traits provided by "
 "the [`embedded-hal`](https://github.com/rust-embedded/embedded-hal) crate."
 msgstr ""
+"HAL에서 제공하는 타입은 [`embedded-hal`](https://github.com/rust-embedded/embedded-hal) "
+"크레이트에서 제공하는 모든 해당 트레이트를 구현해야 합니다."
 
 #: src/design-patterns/hal/interoperability.md:55
 msgid "Multiple traits may be implemented for the same type."
-msgstr ""
+msgstr "동일한 타입에 대해 여러 트레이트가 구현될 수 있습니다."
 
 #: src/design-patterns/hal/predictability.md:4
 msgid "<a id=\"c-ctor\"></a>"
-msgstr ""
+msgstr "<a id=\"c-ctor\"></a>"
 
 #: src/design-patterns/hal/predictability.md:5
 msgid "Constructors are used instead of extension traits (C-CTOR)"
-msgstr ""
+msgstr "확장 트레이트 대신 생성자가 사용됩니다 (C-CTOR)"
 
 #: src/design-patterns/hal/predictability.md:7
 msgid ""
 "All peripherals to which the HAL adds functionality should be wrapped in a "
 "new type, even if no additional fields are required for that functionality."
 msgstr ""
+"HAL이 기능을 추가하는 모든 주변 장치는 추가 필드가 필요하지 않더라도 새 타입으로 "
+"래핑되어야 합니다."
 
 #: src/design-patterns/hal/predictability.md:10
 msgid "Extension traits implemented for the raw peripheral should be avoided."
-msgstr ""
+msgstr "원시 주변 장치에 구현된 확장 트레이트는 피해야 합니다."
 
 #: src/design-patterns/hal/predictability.md:12
 msgid "<a id=\"c-inline\"></a>"
-msgstr ""
+msgstr "<a id=\"c-inline\"></a>"
 
 #: src/design-patterns/hal/predictability.md:13
 msgid "Methods are decorated with `#[inline]` where appropriate (C-INLINE)"
-msgstr ""
+msgstr "메서드는 적절한 경우 `#[inline]`으로 장식됩니다 (C-INLINE)"
 
 #: src/design-patterns/hal/predictability.md:15
 msgid ""
@@ -6634,6 +6973,9 @@ msgid ""
 "boundaries. As embedded applications are sensitive to unexpected code size "
 "increases, `#[inline]` should be used to guide the compiler as follows:"
 msgstr ""
+"Rust 컴파일러는 기본적으로 크레이트 경계를 넘어 전체 인라이닝을 수행하지 "
+"않습니다. 임베디드 애플리케이션은 예기치 않은 코드 크기 증가에 민감하므로, "
+"`#[inline]`은 다음과 같이 컴파일러를 안내하는 데 사용해야 합니다:"
 
 #: src/design-patterns/hal/predictability.md:19
 msgid ""
@@ -6641,6 +6983,9 @@ msgid ""
 "\"small\" is subjective, but generally all functions that are expected to "
 "compile down to single-digit instruction sequences qualify as small."
 msgstr ""
+"모든 \"작은\" 함수는 `#[inline]`으로 표시되어야 합니다. \"작은\" 것으로 "
+"간주되는 기준은 주관적이지만, 일반적으로 한 자릿수 명령어 시퀀스로 컴파일될 "
+"것으로 예상되는 모든 함수는 작은 것으로 간주됩니다."
 
 #: src/design-patterns/hal/predictability.md:22
 msgid ""
@@ -6649,18 +6994,21 @@ msgid ""
 "complicated initialization logic at compile time, provided the function "
 "inputs are known."
 msgstr ""
+"상수 값을 매개변수로 받을 가능성이 매우 높은 함수는 `#[inline]`으로 표시해야 "
+"합니다. 이렇게 하면 함수 입력이 알려진 경우 컴파일러가 복잡한 초기화 로직도 "
+"컴파일 시간에 계산할 수 있습니다."
 
 #: src/design-patterns/hal/gpio.md:1
 msgid "Recommendations for GPIO Interfaces"
-msgstr ""
+msgstr "GPIO 인터페이스 권장 사항"
 
 #: src/design-patterns/hal/gpio.md:3
 msgid "<a id=\"c-zst-pin\"></a>"
-msgstr ""
+msgstr "<a id=\"c-zst-pin\"></a>"
 
 #: src/design-patterns/hal/gpio.md:4
 msgid "Pin types are zero-sized by default (C-ZST-PIN)"
-msgstr ""
+msgstr "핀 타입은 기본적으로 제로 크기입니다 (C-ZST-PIN)"
 
 #: src/design-patterns/hal/gpio.md:6
 msgid ""
@@ -6668,31 +7016,37 @@ msgid ""
 "for each pin on every interface or port, resulting in a zero-cost GPIO "
 "abstraction when all pin assignments are statically known."
 msgstr ""
+"HAL이 노출하는 GPIO 인터페이스는 모든 인터페이스 또는 포트의 각 핀에 대해 "
+"전용 제로 크기 타입을 제공해야 합니다. 이는 모든 핀 할당이 정적으로 알려진 "
+"경우 제로 비용 GPIO 추상화를 초래합니다."
 
 #: src/design-patterns/hal/gpio.md:10
 msgid ""
 "Each GPIO Interface or Port should implement a `split` method returning a "
 "struct with every pin."
 msgstr ""
+"각 GPIO 인터페이스 또는 포트는 모든 핀을 포함하는 구조체를 반환하는 `split` "
+"메서드를 구현해야 합니다."
 
-#: src/design-patterns/hal/gpio.md:13 src/design-patterns/hal/gpio.md:45
-#: src/design-patterns/hal/gpio.md:127
+#: src/design-patterns/hal/gpio.md:13
 msgid "Example:"
-msgstr ""
+msgstr "예시:"
 
 #: src/design-patterns/hal/gpio.md:39
 msgid "<a id=\"c-erased-pin\"></a>"
-msgstr ""
+msgstr "<a id=\"c-erased-pin\"></a>"
 
 #: src/design-patterns/hal/gpio.md:40
 msgid "Pin types provide methods to erase pin and port (C-ERASED-PIN)"
-msgstr ""
+msgstr "핀 타입은 핀과 포트를 지우는 메서드를 제공합니다 (C-ERASED-PIN)"
 
 #: src/design-patterns/hal/gpio.md:42
 msgid ""
 "Pins should provide type erasure methods that move their properties from "
 "compile time to runtime, and allow more flexibility in applications."
 msgstr ""
+"핀은 컴파일 타임에서 런타임으로 속성을 이동하고 애플리케이션에서 더 많은 "
+"유연성을 허용하는 타입 소거 메서드를 제공해야 합니다."
 
 #: src/design-patterns/hal/gpio.md:48
 msgid "/// Port A, pin 0.\n"
@@ -7830,12 +8184,12 @@ msgid ""
 msgstr ""
 
 #: src/interoperability/rust-with-c.md:103
-msgid "\"my-rust-project.h\""
-msgstr ""
+msgid "\\\"my-rust-project.h\\\""
+msgstr "\"my-rust-project.h\""
 
 #: src/unsorted/speed-vs-size.md:1
 msgid "Optimizations: the speed size tradeoff"
-msgstr ""
+msgstr "최적화: 속도와 크기의 트레이드오프"
 
 #: src/unsorted/speed-vs-size.md:3
 msgid ""
@@ -7844,10 +8198,14 @@ msgid ""
 "the different optimization levels that `rustc` provides and how they affect "
 "the execution time and binary size of a program."
 msgstr ""
+"모든 사람은 자신의 프로그램이 매우 빠르고 매우 작기를 원하지만 일반적으로 두 "
+"가지 특성을 모두 갖는 것은 불가능합니다. 이 섹션에서는 `rustc`가 제공하는 "
+"다양한 최적화 수준과 이러한 수준이 프로그램의 실행 시간 및 바이너리 크기에 "
+"미치는 영향에 대해 설명합니다."
 
 #: src/unsorted/speed-vs-size.md:8
 msgid "No optimizations"
-msgstr ""
+msgstr "최적화 없음"
 
 #: src/unsorted/speed-vs-size.md:10
 msgid ""
@@ -7856,6 +8214,9 @@ msgid ""
 "debug information and does _not_ enable any optimizations, i.e. it uses `-C "
 "opt-level = 0`."
 msgstr ""
+"이것이 기본값입니다. `cargo build`를 호출하면 개발(일명 `dev`) 프로필을 "
+"사용합니다. 이 프로필은 디버깅에 최적화되어 있으므로 디버그 정보를 활성화하고 "
+"최적화를 활성화하지 않습니다. 즉, `-C opt-level = 0`을 사용합니다."
 
 #: src/unsorted/speed-vs-size.md:15
 msgid ""
@@ -7864,6 +8225,10 @@ msgid ""
 "enable debuginfo in the release profile -- it is disabled by default. That "
 "will let you use breakpoints when debugging release builds."
 msgstr ""
+"적어도 베어메탈 개발의 경우, 디버그 정보는 플래시/ROM 공간을 차지하지 않는다는 "
+"점에서 비용이 없습니다. 따라서 릴리스 프로필에서 디버그 정보를 활성화하는 것이 "
+"좋습니다. 기본적으로 비활성화되어 있습니다. 이렇게 하면 릴리스 빌드를 디버깅할 때 "
+"중단점을 사용할 수 있습니다."
 
 #: src/unsorted/speed-vs-size.md:26
 msgid ""
@@ -7873,6 +8238,9 @@ msgid ""
 "optimized, trying to print variables results in `$0 = <value optimized out>` "
 "being printed."
 msgstr ""
+"최적화가 없으면 코드를 한 문장씩 실행하는 것처럼 느껴지기 때문에 디버깅에 "
+"좋습니다. 또한 GDB에서 스택 변수와 함수 인수를 `print`할 수 있습니다. 코드가 "
+"최적화되면 변수를 인쇄하려고 하면 `$0 = <value optimized out>`이 인쇄됩니다."
 
 #: src/unsorted/speed-vs-size.md:31
 msgid ""
@@ -7881,14 +8249,18 @@ msgid ""
 "binaries can occupy dozens of KiB of Flash, which your target device may not "
 "have -- the result: your unoptimized binary doesn't fit in your device!"
 msgstr ""
+"`dev` 프로필의 가장 큰 단점은 결과 바이너리가 거대하고 느리다는 것입니다. "
+"최적화되지 않은 바이너리는 수십 KiB의 플래시를 차지할 수 있으며 대상 장치에 "
+"없을 수 있으므로 크기가 일반적으로 더 큰 문제입니다. 결과: 최적화되지 않은 "
+"바이너리가 장치에 맞지 않습니다!"
 
 #: src/unsorted/speed-vs-size.md:36
 msgid "Can we have smaller, debugger friendly binaries? Yes, there's a trick."
-msgstr ""
+msgstr "더 작고 디버거 친화적인 바이너리를 가질 수 있을까요? 예, 비결이 있습니다."
 
 #: src/unsorted/speed-vs-size.md:38
 msgid "Optimizing dependencies"
-msgstr ""
+msgstr "종속성 최적화"
 
 #: src/unsorted/speed-vs-size.md:40
 msgid ""
@@ -7898,6 +8270,10 @@ msgid ""
 "dependencies for size while keeping the top crate unoptimized and debugger "
 "friendly."
 msgstr ""
+"[`profile-overrides`](https://doc.rust-lang.org/cargo/reference/profiles.html#overrides)라는 "
+"Cargo 기능이 있어 종속성의 최적화 수준을 재정의할 수 있습니다. 이 기능을 "
+"사용하여 모든 종속성을 크기에 맞게 최적화하면서 최상위 크레이트는 최적화되지 "
+"않고 디버거 친화적으로 유지할 수 있습니다."
 
 #: src/unsorted/speed-vs-size.md:45
 msgid ""
@@ -7907,10 +8283,14 @@ msgid ""
 "pulls in code with a large footprint, it may be that increasing the "
 "optimisation level of the relevant dependencies has no effect."
 msgstr ""
+"제네릭 코드는 정의된 크레이트가 아닌 인스턴스화된 크레이트와 함께 최적화될 "
+"수 있다는 점에 유의하십시오. 애플리케이션에서 제네릭 구조체의 인스턴스를 "
+"만들고 큰 공간을 차지하는 코드를 가져오는 경우 관련 종속성의 최적화 수준을 "
+"높여도 효과가 없을 수 있습니다."
 
 #: src/unsorted/speed-vs-size.md:53
 msgid "Here's an example:"
-msgstr ""
+msgstr "다음은 예시입니다."
 
 #: src/unsorted/speed-vs-size.md:55
 msgid ""
@@ -7924,14 +8304,23 @@ msgid ""
 "opt-level = \"z\" # +\n"
 "```"
 msgstr ""
+"```toml\n"
+"# Cargo.toml\n"
+"[package]\n"
+"name = \"app\"\n"
+"# ..\n"
+"\n"
+"[profile.dev.package.\"*\"] # +\n"
+"opt-level = \"z\" # +\n"
+"```"
 
 #: src/unsorted/speed-vs-size.md:65
 msgid "Without the override:"
-msgstr ""
+msgstr "재정의 없이:"
 
 #: src/unsorted/speed-vs-size.md:78
 msgid "With the override:"
-msgstr ""
+msgstr "재정의 포함:"
 
 #: src/unsorted/speed-vs-size.md:91
 msgid ""
@@ -7943,6 +8332,11 @@ msgid ""
 "overrides` feature to exclude a particular dependency from being optimized. "
 "See example below:"
 msgstr ""
+"최상위 크레이트의 디버깅 가능성을 잃지 않고 플래시 사용량이 6KiB "
+"감소했습니다. 종속성으로 들어가면 `<value optimized out>` 메시지가 다시 "
+"표시되지만 일반적으로 종속성이 아닌 최상위 크레이트를 디버그하려는 경우입니다. "
+"그리고 종속성을 디버그해야 하는 경우 `profile-overrides` 기능을 사용하여 특정 "
+"종속성을 최적화에서 제외할 수 있습니다. 아래 예제를 참조하십시오."
 
 #: src/unsorted/speed-vs-size.md:98
 msgid ""
@@ -7962,11 +8356,11 @@ msgstr ""
 
 #: src/unsorted/speed-vs-size.md:111
 msgid "Now the top crate and `cortex-m-rt` are debugger friendly!"
-msgstr ""
+msgstr "이제 최상위 크레이트와 `cortex-m-rt`는 디버거 친화적입니다!"
 
 #: src/unsorted/speed-vs-size.md:113
 msgid "Optimize for speed"
-msgstr ""
+msgstr "속도 최적화"
 
 #: src/unsorted/speed-vs-size.md:115
 msgid ""
@@ -7974,6 +8368,9 @@ msgid ""
 "level = 1`, `2` and `3`. When you run `cargo build --release` you are using "
 "the release profile which defaults to `opt-level = 3`."
 msgstr ""
+"2018-09-18 기준으로 `rustc`는 세 가지 \"속도 최적화\" 수준을 지원합니다: "
+"`opt-level = 1`, `2` 및 `3`. `cargo build --release`를 실행하면 기본적으로 "
+"`opt-level = 3`인 릴리스 프로필을 사용합니다."
 
 #: src/unsorted/speed-vs-size.md:119
 msgid ""
@@ -7985,17 +8382,23 @@ msgid ""
 "halve the execution time given the right conditions (e.g. number of "
 "iterations is big enough)."
 msgstr ""
+"`opt-level = 2`와 `3` 모두 바이너리 크기를 희생하여 속도를 최적화하지만, "
+"수준 `3`은 수준 `2`보다 더 많은 벡터화 및 인라이닝을 수행합니다. 특히 "
+"`opt-level`이 `2` 이상이면 LLVM이 루프를 언롤링하는 것을 볼 수 있습니다. "
+"루프 언롤링은 플래시/ROM 측면에서 비용이 상당히 높지만(예: 이 배열 루프를 "
+"0으로 만드는 데 26바이트에서 194바이트로) 올바른 조건(예: 반복 횟수가 "
+"충분히 큼)이 주어지면 실행 시간을 절반으로 줄일 수도 있습니다."
 
 #: src/unsorted/speed-vs-size.md:127
 msgid ""
 "Currently there's no way to disable loop unrolling in `opt-level = 2` and "
 "`3` so if you can't afford its cost you should optimize your program for "
 "size."
-msgstr ""
+msgstr "현재 `opt-level = 2` 및 `3`에서 루프 언롤링을 비활성화할 방법이 없으므로 비용을 감당할 수 없다면 프로그램을 크기에 맞게 최적화해야 합니다."
 
 #: src/unsorted/speed-vs-size.md:130
 msgid "Optimize for size"
-msgstr ""
+msgstr "크기 최적화"
 
 #: src/unsorted/speed-vs-size.md:132
 msgid ""
@@ -8004,12 +8407,18 @@ msgid ""
 "are not too descriptive but `\"z\"` is meant to give the idea that it "
 "produces smaller binaries than `\"s\"`."
 msgstr ""
+"2018-09-18 기준으로 `rustc`는 두 가지 \"크기 최적화\" 수준을 지원합니다: "
+"`opt-level = \"s\"` 및 `\"z\"`. 이 이름들은 clang / LLVM에서 상속되었으며 "
+"그다지 설명적이지는 않지만 `\"z\"`는 `\"s\"`보다 작은 바이너리를 "
+"생성한다는 아이디어를 제공하기 위한 것입니다."
 
 #: src/unsorted/speed-vs-size.md:137
 msgid ""
 "If you want your release binaries to be optimized for size then change the "
 "`profile.release.opt-level` setting in `Cargo.toml` as shown below."
 msgstr ""
+"릴리스 바이너리를 크기에 맞게 최적화하려면 아래와 같이 `Cargo.toml`에서 "
+"`profile.release.opt-level` 설정을 변경하십시오."
 
 #: src/unsorted/speed-vs-size.md:140
 msgid ""
@@ -8081,7 +8490,7 @@ msgstr ""
 
 #: src/unsorted/math.md:1
 msgid "Performing math functionality with `#[no_std]`"
-msgstr ""
+msgstr "`#[no_std]`로 수학 기능 수행"
 
 #: src/unsorted/math.md:3
 msgid ""
@@ -8089,10 +8498,12 @@ msgid ""
 "squareroot or the exponential of a number and you have the full standard "
 "library available, your code might look like this:"
 msgstr ""
+"숫자의 제곱근 또는 지수를 계산하는 것과 같은 수학 관련 기능을 수행하고 싶고 "
+"전체 표준 라이브러리를 사용할 수 있다면 코드는 다음과 같을 것입니다:"
 
 #: src/unsorted/math.md:8
 msgid "//! Some mathematical functions with standard support available\n"
-msgstr ""
+msgstr "//! 표준 지원을 사용할 수 있는 일부 수학 함수\n"
 
 #: src/unsorted/math.md:19 src/unsorted/math.md:53
 msgid "\"Floored test float {} to {}\""
@@ -8116,33 +8527,38 @@ msgid ""
 "external crate like [`libm`](https://crates.io/crates/libm) can be used "
 "instead. The example code would then look like this:"
 msgstr ""
+"표준 라이브러리 지원 없이는 이러한 함수를 사용할 수 없습니다. 대신 "
+"[`libm`](https://crates.io/crates/libm)과 같은 외부 크레이트를 사용할 수 "
+"있습니다. 그러면 예제 코드는 다음과 같을 것입니다:"
 
 #: src/unsorted/math.md:69
 msgid ""
 "If you need to perform more complex operations like DSP signal processing or "
 "advanced linear algebra on your MCU, the following crates might help you"
 msgstr ""
+"MCU에서 DSP 신호 처리 또는 고급 선형 대수와 같은 더 복잡한 작업을 수행해야 "
+"하는 경우 다음 크레이트가 도움이 될 수 있습니다."
 
 #: src/unsorted/math.md:72
 msgid ""
 "[CMSIS DSP library binding](https://github.com/jacobrosenthal/cmsis-dsp-sys)"
-msgstr ""
+msgstr "[CMSIS DSP 라이브러리 바인딩](https://github.com/jacobrosenthal/cmsis-dsp-sys)"
 
 #: src/unsorted/math.md:73
 msgid "[`constgebra`](https://crates.io/crates/constgebra)"
-msgstr ""
+msgstr "[`constgebra`](https://crates.io/crates/constgebra)"
 
 #: src/unsorted/math.md:74
 msgid "[`micromath`](https://github.com/tarcieri/micromath)"
-msgstr ""
+msgstr "[`micromath`](https://github.com/tarcieri/micromath)"
 
 #: src/unsorted/math.md:75
 msgid "[`microfft`](https://crates.io/crates/microfft)"
-msgstr ""
+msgstr "[`microfft`](https://crates.io/crates/microfft)"
 
 #: src/unsorted/math.md:76
 msgid "[`nalgebra`](https://github.com/dimforge/nalgebra)"
-msgstr ""
+msgstr "[`nalgebra`](https://github.com/dimforge/nalgebra)"
 
 #: src/appendix/glossary.md:3
 msgid ""
@@ -8150,10 +8566,13 @@ msgid ""
 "and vendor-specific things that use their own terms and abbreviations. This "
 "Glossary attempts to list them with pointers for understanding them better."
 msgstr ""
+"임베디드 생태계는 다양한 프로토콜, 하드웨어 구성 요소 및 공급업체별 용어와 "
+"약어를 사용하는 것들로 가득합니다. 이 용어집은 이러한 것들을 더 잘 이해하기 "
+"위한 포인터와 함께 나열하려고 합니다."
 
 #: src/appendix/glossary.md:7
 msgid "BSP"
-msgstr ""
+msgstr "BSP"
 
 #: src/appendix/glossary.md:9
 msgid ""
@@ -8163,20 +8582,25 @@ msgid ""
 "registers.md) or for a broader overview see [this video](https://youtu.be/"
 "vLYit_HHPaY)."
 msgstr ""
+"보드 지원 크레이트는 특정 보드에 대해 구성된 고수준 인터페이스를 제공합니다. "
+"일반적으로 [HAL](#hal) 크레이트에 의존합니다. [메모리 매핑 레지스터 "
+"페이지](../start/registers.md)에 더 자세한 설명이 있거나 더 넓은 개요는 "
+"[이 비디오](https://youtu.be/vLYit_HHPaY)를 참조하십시오."
 
 #: src/appendix/glossary.md:14
 msgid "FPU"
-msgstr ""
+msgstr "FPU"
 
 #: src/appendix/glossary.md:16
 msgid ""
 "Floating-point Unit. A 'math processor' running only operations on floating-"
 "point numbers."
 msgstr ""
+"부동 소수점 장치. 부동 소수점 숫자에 대한 연산만 실행하는 '수학 프로세서'."
 
 #: src/appendix/glossary.md:18
 msgid "HAL"
-msgstr ""
+msgstr "HAL"
 
 #: src/appendix/glossary.md:20
 msgid ""
@@ -8188,6 +8612,12 @@ msgid ""
 "page](../start/registers.md) or for a broader overview see [this video]"
 "(https://youtu.be/vLYit_HHPaY)."
 msgstr ""
+"하드웨어 추상화 계층 크레이트는 마이크로컨트롤러의 기능과 주변 장치에 대한 "
+"개발자 친화적인 인터페이스를 제공합니다. 일반적으로 [주변 장치 접근 "
+"크레이트(PAC)](#pac) 위에 구현됩니다. 또한 [`embedded-hal`](https://crates.io/crates/embedded-hal) "
+"크레이트의 트레이트를 구현할 수도 있습니다. [메모리 매핑 레지스터 "
+"페이지](../start/registers.md)에 더 자세한 설명이 있거나 더 넓은 개요는 "
+"[이 비디오](https://youtu.be/vLYit_HHPaY)를 참조하십시오."
 
 #: src/appendix/glossary.md:28
 msgid ""
@@ -8195,10 +8625,13 @@ msgid ""
 "hardware communication within a single integrated circuit. See [here]"
 "(https://en.wikipedia.org/wiki/I2c) for more details"
 msgstr ""
+"때로는 `I²C` 또는 Inter-IC라고도 합니다. 단일 집적 회로 내에서 하드웨어 통신을 "
+"위한 프로토콜입니다. 자세한 내용은 [여기](https://en.wikipedia.org/wiki/I2c)를 "
+"참조하십시오."
 
 #: src/appendix/glossary.md:33
 msgid "PAC"
-msgstr ""
+msgstr "PAC"
 
 #: src/appendix/glossary.md:35
 msgid ""
@@ -8210,16 +8643,24 @@ msgid ""
 "the [memory-mapped registers page](../start/registers.md) or for a broader "
 "overview see [this video](https://youtu.be/vLYit_HHPaY)."
 msgstr ""
+"주변 장치 접근 크레이트는 마이크로컨트롤러의 주변 장치에 대한 접근을 제공합니다. "
+"이는 저수준 크레이트 중 하나이며 일반적으로 제공된 [SVD](#svd)에서 직접 생성되며, "
+"종종 [svd2rust](https://github.com/rust-embedded/svd2rust/)를 사용합니다. "
+"[하드웨어 추상화 계층](#hal)은 일반적으로 이 크레이트에 의존합니다. [메모리 매핑 "
+"레지스터 페이지](../start/registers.md)에 더 자세한 설명이 있거나 더 넓은 개요는 "
+"[이 비디오](https://youtu.be/vLYit_HHPaY)를 참조하십시오."
 
 #: src/appendix/glossary.md:44
 msgid ""
 "Serial Peripheral Interface. See [here](https://en.wikipedia.org/wiki/"
 "Serial_peripheral_interface) for more information."
 msgstr ""
+"직렬 주변 장치 인터페이스. 자세한 내용은 [여기](https://en.wikipedia.org/wiki/"
+"Serial_peripheral_interface)를 참조하십시오."
 
 #: src/appendix/glossary.md:48
 msgid "SVD"
-msgstr ""
+msgstr "SVD"
 
 #: src/appendix/glossary.md:50
 msgid ""
@@ -8228,10 +8669,13 @@ msgid ""
 "[the ARM CMSIS documentation site](https://www.keil.com/pack/doc/CMSIS/SVD/"
 "html/index.html)."
 msgstr ""
+"시스템 뷰 설명은 마이크로컨트롤러 장치의 프로그래머 뷰를 설명하는 데 사용되는 "
+"XML 파일 형식입니다. [ARM CMSIS 문서 사이트](https://www.keil.com/pack/doc/CMSIS/SVD/"
+"html/index.html)에서 자세한 내용을 읽을 수 있습니다."
 
 #: src/appendix/glossary.md:54
 msgid "UART"
-msgstr ""
+msgstr "UART"
 
 #: src/appendix/glossary.md:56
 msgid ""
@@ -8239,10 +8683,12 @@ msgid ""
 "en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter) for more "
 "information."
 msgstr ""
+"범용 비동기 수신기-송신기. 자세한 내용은 [여기](https://en.wikipedia.org/wiki/"
+"Universal_asynchronous_receiver-transmitter)를 참조하십시오."
 
 #: src/appendix/glossary.md:60
 msgid "USART"
-msgstr ""
+msgstr "USART"
 
 #: src/appendix/glossary.md:62
 msgid ""
@@ -8251,3 +8697,5 @@ msgid ""
 "Universal_synchronous_and_asynchronous_receiver-transmitter) for more "
 "information."
 msgstr ""
+"범용 동기 및 비동기 수신기-송신기. 자세한 내용은 [여기](https://en.wikipedia.org/wiki/"
+"Universal_synchronous_and_asynchronous_receiver-transmitter)를 참조하십시오."
