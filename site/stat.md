@@ -1,11 +1,11 @@
-|Title|ja|ru|
-|-|-|-|
-|The Rust Programming Language|0.02 %|39.79 %|
-|The Cargo Book|0.16 %||
-|The Rust Edition Guide|||
-|The Embedded Rust Book|||
-|The Rustonomicon|||
-|The Rust Reference|||
-|Command Line Applications in Rust|||
-|The rustc book|||
-|The rustdoc book|||
+|Title|ja|ko|ru|
+|-|-|-|-|
+|The Rust Programming Language|0.02 %|28.24 %|39.79 %|
+|The Cargo Book|0.16 %|7.07 %||
+|The Rust Edition Guide||52.97 %||
+|The Embedded Rust Book||82.97 %||
+|The Rustonomicon||13.68 %||
+|The Rust Reference||11.68 %||
+|Command Line Applications in Rust||100.00 %||
+|The rustc book||||
+|The rustdoc book||||
