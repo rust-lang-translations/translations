@@ -1,0 +1,606 @@
+<!DOCTYPE HTML>
+<html lang="ko" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>의존성 지정하기 - The Cargo Book</title>
+
+
+        <!-- Custom HTML head -->
+        <style>
+            dd {
+                margin-bottom: 1em;
+            }
+        </style>
+        
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-L455DH98TK"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+        
+          gtag('config', 'G-L455DH98TK');
+        </script>
+        
+        
+        <script>
+            (function () {
+                // See these pages for details:
+                // https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls
+                // https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics
+        
+                function gen_canonical_href(lang) {
+        
+                    let base = "https://rust-lang-translations.org/cargo";
+        
+                    let canonical_href;
+                    if (lang == "en") {
+                        canonical_href = `${base}/reference/specifying-dependencies.md`;
+                    } else {
+                        canonical_href = `${base}/${lang}/reference/specifying-dependencies.md`;
+                    }
+                    canonical_href = canonical_href.slice(0, -"md".length) + "html";
+                    if (canonical_href.endsWith("/index.html")) {
+                        canonical_href = canonical_href.slice(0, -"index.html".length);
+                    }
+                    return canonical_href;
+                }
+        
+                const canonical_href = gen_canonical_href("ko");
+
+                let link = document.createElement("link");
+                link.rel = "canonical";
+                link.href = canonical_href;
+                document.head.appendChild(link);
+        
+        
+                const langs = ["en"  , "ja"  , "ko" ];
+        
+                for (const lang of langs) {
+                    const canonical_href = gen_canonical_href(lang);
+        
+                    let link = document.createElement("link");
+                    link.rel = "alternate";
+                    link.hreflang = lang;
+                    link.href = canonical_href;
+                    document.head.appendChild(link);
+                }
+            })()
+        </script>
+        
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/language-picker.css">
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Cargo Book</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/rust-lang-translations/project" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/rust-lang/cargo/edit/master/src/doc/src/reference/specifying-dependencies.md" title="Suggest an edit" aria-label="Suggest an edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="의존성-지정하기"><a class="header" href="#의존성-지정하기">의존성 지정하기</a></h1>
+<p>Your crates can depend on other libraries from <a href="https://crates.io/">crates.io</a> or other registries, <code>git</code> repositories, or subdirectories on your local file system. You can also temporarily override the location of a dependency — for example, to be able to test out a bug fix in the dependency that you are working on locally. You can have different dependencies for different platforms, and dependencies that are only used during development. Let’s take a look at how to do each of these.</p>
+<h2 id="specifying-dependencies-from-cratesio"><a class="header" href="#specifying-dependencies-from-cratesio">Specifying dependencies from crates.io</a></h2>
+<p>Cargo is configured to look for dependencies on <a href="https://crates.io/">crates.io</a> by default. Only the name and a version string are required in this case. In <a href="../guide/index.html">the cargo guide</a>, we specified a dependency on the <code>time</code> crate:</p>
+<pre><code class="language-toml">[dependencies]
+time = "0.1.12"
+</code></pre>
+<p>The version string <code>"0.1.12"</code> is called a <a href="#version-requirement-syntax">version requirement</a>. It specifies a range of versions that can be selected from when <a href="resolver.html">resolving dependencies</a>. In this case, <code>"0.1.12"</code> represents the version range <code>&gt;=0.1.12, &lt;0.2.0</code>. An update is allowed if it is within that range. In this case, if we ran <code>cargo update time</code>, cargo should update us to version <code>0.1.13</code> if it is the latest <code>0.1.z</code> release, but would not update us to <code>0.2.0</code>.</p>
+<h2 id="version-requirement-syntax"><a class="header" href="#version-requirement-syntax">Version requirement syntax</a></h2>
+<h3 id="default-requirements"><a class="header" href="#default-requirements">Default requirements</a></h3>
+<p><strong>Default requirements</strong> specify a minimum version with the ability to update to <a href="https://semver.org">SemVer</a> compatible versions. Versions are considered compatible if their left-most non-zero major/minor/patch component is the same. This is different from <a href="https://semver.org">SemVer</a> which considers all pre-1.0.0 packages to be incompatible.</p>
+<p><code>1.2.3</code> is an example of a default requirement.</p>
+<pre><code class="language-notrust">1.2.3  :=  &gt;=1.2.3, &lt;2.0.0
+1.2    :=  &gt;=1.2.0, &lt;2.0.0
+1      :=  &gt;=1.0.0, &lt;2.0.0
+0.2.3  :=  &gt;=0.2.3, &lt;0.3.0
+0.2    :=  &gt;=0.2.0, &lt;0.3.0
+0.0.3  :=  &gt;=0.0.3, &lt;0.0.4
+0.0    :=  &gt;=0.0.0, &lt;0.1.0
+0      :=  &gt;=0.0.0, &lt;1.0.0
+</code></pre>
+<h3 id="caret-requirements"><a class="header" href="#caret-requirements">Caret requirements</a></h3>
+<p><strong>Caret requirements</strong> are the default version requirement strategy. This version strategy allows <a href="https://semver.org">SemVer</a> compatible updates. They are specified as version requirements with a leading caret (<code>^</code>).</p>
+<p><code>^1.2.3</code> is an example of a caret requirement.</p>
+<p>Leaving off the caret is a simplified equivalent syntax to using caret requirements. While caret requirements are the default, it is recommended to use the simplified syntax when possible.</p>
+<p><code>log = "^1.2.3"</code> is exactly equivalent to <code>log = "1.2.3"</code>.</p>
+<h3 id="tilde-requirements"><a class="header" href="#tilde-requirements">Tilde requirements</a></h3>
+<p><strong>Tilde requirements</strong> specify a minimal version with some ability to update. If you specify a major, minor, and patch version or only a major and minor version, only patch-level changes are allowed. If you only specify a major version, then minor- and patch-level changes are allowed.</p>
+<p><code>~1.2.3</code> is an example of a tilde requirement.</p>
+<pre><code class="language-notrust">~1.2.3  := &gt;=1.2.3, &lt;1.3.0
+~1.2    := &gt;=1.2.0, &lt;1.3.0
+~1      := &gt;=1.0.0, &lt;2.0.0
+</code></pre>
+<h3 id="wildcard-requirements"><a class="header" href="#wildcard-requirements">Wildcard requirements</a></h3>
+<p><strong>Wildcard requirements</strong> allow for any version where the wildcard is positioned.</p>
+<p><code>*</code>, <code>1.*</code> and <code>1.2.*</code> are examples of wildcard requirements.</p>
+<pre><code class="language-notrust">*     := &gt;=0.0.0
+1.*   := &gt;=1.0.0, &lt;2.0.0
+1.2.* := &gt;=1.2.0, &lt;1.3.0
+</code></pre>
+<blockquote>
+<p><strong>Note</strong>: <a href="https://crates.io/">crates.io</a> does not allow bare <code>*</code> versions.</p>
+</blockquote>
+<h3 id="comparison-requirements"><a class="header" href="#comparison-requirements">Comparison requirements</a></h3>
+<p><strong>Comparison requirements</strong> allow manually specifying a version range or an exact version to depend on.</p>
+<p>Here are some examples of comparison requirements:</p>
+<pre><code class="language-notrust">&gt;= 1.2.0
+&gt; 1
+&lt; 2
+= 1.2.3
+</code></pre>
+<p><span id="multiple-requirements"></span></p>
+<h3 id="multiple-version-requirements"><a class="header" href="#multiple-version-requirements">Multiple version requirements</a></h3>
+<p>As shown in the examples above, multiple version requirements can be separated with a comma, e.g., <code>&gt;= 1.2, &lt; 1.5</code>.</p>
+<h3 id="pre-releases"><a class="header" href="#pre-releases">Pre-releases</a></h3>
+<p>Version requirements exclude <a href="manifest.html#the-version-field">pre-release versions</a>, such as <code>1.0.0-alpha</code>, unless specifically asked for. For example, if <code>1.0.0-alpha</code> of package <code>foo</code> is published, then a requirement of <code>foo = "1.0"</code> will <em>not</em> match, and will return an error. The pre-release must be specified, such as <code>foo = "1.0.0-alpha"</code>. Similarly <a href="../commands/cargo-install.html"><code>cargo install</code></a> will avoid pre-releases unless explicitly asked to install one.</p>
+<p>Cargo allows “newer” pre-releases to be used automatically. For example, if <code>1.0.0-beta</code> is published, then a requirement <code>foo = "1.0.0-alpha"</code> will allow updating to the <code>beta</code> version. Note that this only works on the same release version, <code>foo = "1.0.0-alpha"</code> will not allow updating to <code>foo = "1.0.1-alpha"</code> or <code>foo = "1.0.1-beta"</code>.</p>
+<p>Cargo will also upgrade automatically to semver-compatible released versions from prereleases. The requirement <code>foo = "1.0.0-alpha"</code> will allow updating to <code>foo = "1.0.0"</code> as well as <code>foo = "1.2.0"</code>.</p>
+<p>Beware that pre-release versions can be unstable, and as such care should be taken when using them. Some projects may choose to publish breaking changes between pre-release versions. It is recommended to not use pre-release dependencies in a library if your library is not also a pre-release. Care should also be taken when updating your <code>Cargo.lock</code>, and be prepared if a pre-release update causes issues.</p>
+<h3 id="version-metadata"><a class="header" href="#version-metadata">Version metadata</a></h3>
+<p><a href="manifest.html#the-version-field">Version metadata</a>, such as <code>1.0.0+21AF26D3</code>, is ignored and should not be used in version requirements.</p>
+<blockquote>
+<p><strong>Recommendation:</strong> When in doubt, use the default version requirement operator.</p>
+<p>In rare circumstances, a package with a “public dependency” (re-exports the dependency or interoperates with it in its public API) that is compatible with multiple semver-incompatible versions (e.g. only uses a simple type that hasn’t changed between releases, like an <code>Id</code>) may support users choosing which version of the “public dependency” to use. In this case, a version requirement like <code>"&gt;=0.4, &lt;2"</code> may be of interest. <em>However</em> users of the package will likely run into errors and need to manually select a version of the “public dependency” via <code>cargo update</code> if they also depend on it as Cargo might pick different versions of the “public dependency” when <a href="resolver.html">resolving dependency versions</a>  (see <a href="https://github.com/rust-lang/cargo/issues/10599">#10599</a>).</p>
+<p>Avoid constraining the upper bound of a version to be anything less than the next semver incompatible version (e.g. avoid <code>"&gt;=2.0, &lt;2.4"</code>) as other packages in the dependency tree may require a newer version, leading to an unresolvable error (see <a href="https://github.com/rust-lang/cargo/issues/9029">#9029</a>). Consider whether controlling the version in your <a href="../guide/cargo-toml-vs-cargo-lock.html"><code>Cargo.lock</code></a> would be more appropriate.</p>
+<p>In some instances this won’t matter or the benefits might outweigh the cost, including:</p>
+<ul>
+<li>When no one else depends on your package e.g. it only has a <code>[[bin]]</code></li>
+<li>When depending on a pre-release package and wishing to avoid breaking changes then a fully specified <code>"=1.2.3-alpha.3"</code> might be warranted (see <a href="https://github.com/rust-lang/cargo/issues/2222">#2222</a>)</li>
+<li>When a library re-exports a proc-macro but the proc-macro generates code that calls into the re-exporting library then a fully specified <code>=1.2.3</code> might be warranted to ensure the proc-macro isn’t newer than the re-exporting library and generating code that uses parts of the API that don’t exist within the current version</li>
+</ul>
+</blockquote>
+<h2 id="specifying-dependencies-from-other-registries"><a class="header" href="#specifying-dependencies-from-other-registries">Specifying dependencies from other registries</a></h2>
+<p>To specify a dependency from a registry other than <a href="https://crates.io/">crates.io</a> set the <code>registry</code> key to the name of the registry to use:</p>
+<pre><code class="language-toml">[dependencies]
+some-crate = { version = "1.0", registry = "my-registry" }
+</code></pre>
+<p>where <code>my-registry</code> is the registry name configured in <code>.cargo/config.toml</code> file. See the <a href="registries.html">registries documentation</a> for more information.</p>
+<blockquote>
+<p><strong>Note</strong>: <a href="https://crates.io/">crates.io</a> does not allow packages to be published with dependencies on code published outside of <a href="https://crates.io/">crates.io</a>.</p>
+</blockquote>
+<h2 id="specifying-dependencies-from-git-repositories"><a class="header" href="#specifying-dependencies-from-git-repositories">Specifying dependencies from <code>git</code> repositories</a></h2>
+<p>To depend on a library located in a <code>git</code> repository, the minimum information you need to specify is the location of the repository with the <code>git</code> key:</p>
+<pre><code class="language-toml">[dependencies]
+regex = { git = "https://github.com/rust-lang/regex.git" }
+</code></pre>
+<p>Cargo fetches the <code>git</code> repository at that location and traverses the file tree to find <code>Cargo.toml</code> file for the requested crate anywhere inside the <code>git</code> repository. For example, <code>regex-lite</code> and <code>regex-syntax</code> are members of <code>rust-lang/regex</code> repo and can be referred to by the repo’s root URL (<code>https://github.com/rust-lang/regex.git</code>) regardless of where in the file tree they reside.</p>
+<pre><code class="language-toml">regex-lite   = { git = "https://github.com/rust-lang/regex.git" }
+regex-syntax = { git = "https://github.com/rust-lang/regex.git" }
+</code></pre>
+<p>The above rule does not apply to <a href="#specifying-path-dependencies"><code>path</code> dependencies</a>.</p>
+<h3 id="choice-of-commit"><a class="header" href="#choice-of-commit">Choice of commit</a></h3>
+<p>Cargo assumes that we intend to use the latest commit on the default branch to build our package if we only specify the repo URL, as in the examples above.</p>
+<p>You can combine the <code>git</code> key with the <code>rev</code>, <code>tag</code>, or <code>branch</code> keys to be more specific about which commit to use. Here’s an example of using the latest commit on a branch named <code>next</code>:</p>
+<pre><code class="language-toml">[dependencies]
+regex = { git = "https://github.com/rust-lang/regex.git", branch = "next" }
+</code></pre>
+<p>Anything that is not a branch or a tag falls under <code>rev</code> key. This can be a commit hash like <code>rev = "4c59b707"</code>, or a named reference exposed by the remote repository such as <code>rev = "refs/pull/493/head"</code>.</p>
+<p>What references are available for the <code>rev</code> key varies by where the repo is hosted.<br />
+GitHub exposes a reference to the most recent commit of every pull request as in the example above. Other git hosts may provide something equivalent under a different naming scheme.</p>
+<p><strong>More <code>git</code> dependency examples:</strong></p>
+<pre><code class="language-toml"># .git suffix can be omitted if the host accepts such URLs - both examples work the same
+regex = { git = "https://github.com/rust-lang/regex" }
+regex = { git = "https://github.com/rust-lang/regex.git" }
+
+# a commit with a particular tag
+regex = { git = "https://github.com/rust-lang/regex.git", tag = "1.10.3" }
+
+# a commit by its SHA1 hash
+regex = { git = "https://github.com/rust-lang/regex.git", rev = "0c0990399270277832fbb5b91a1fa118e6f63dba" }
+
+# HEAD commit of PR 493
+regex = { git = "https://github.com/rust-lang/regex.git", rev = "refs/pull/493/head" }
+
+# INVALID EXAMPLES
+
+# specifying the commit after # ignores the commit ID and generates a warning
+regex = { git = "https://github.com/rust-lang/regex.git#4c59b70" }
+
+# git and path cannot be used at the same time
+regex = { git = "https://github.com/rust-lang/regex.git#4c59b70", path = "../regex" }
+</code></pre>
+<p>Cargo locks the commits of <code>git</code> dependencies in <code>Cargo.lock</code> file at the time of their addition and checks for updates only when you run <code>cargo update</code> command.</p>
+<h3 id="the-role-of-the-version-key"><a class="header" href="#the-role-of-the-version-key">The role of the <code>version</code> key</a></h3>
+<p>The <code>version</code> key always implies that the package is available in a registry, regardless of the presence of <code>git</code> or <code>path</code> keys.</p>
+<p>The <code>version</code> key does <em>not</em> affect which commit is used when Cargo retrieves the <code>git</code> dependency, but Cargo checks the version information in the dependency’s <code>Cargo.toml</code> file against the <code>version</code> key and raises an error if the check fails.</p>
+<p>In this example, Cargo retrieves the HEAD commit of the branch called <code>next</code> from Git and checks if the crate’s version is compatible with <code>version = "1.10.3"</code>:</p>
+<pre><code class="language-toml">[dependencies]
+regex = { version = "1.10.3", git = "https://github.com/rust-lang/regex.git", branch = "next" }
+</code></pre>
+<p><code>version</code>, <code>git</code>, and <code>path</code> keys are considered separate locations for resolving the dependency. See <a href="#multiple-locations">Multiple locations</a> section below for detailed explanations.</p>
+<blockquote>
+<p><strong>Note</strong>: <a href="https://crates.io/">crates.io</a> does not allow packages to be published with dependencies on code published outside of <a href="https://crates.io/">crates.io</a> itself (<a href="#development-dependencies">dev-dependencies</a> are ignored). See the <a href="#multiple-locations">Multiple locations</a> section for a fallback alternative for <code>git</code> and <code>path</code> dependencies.</p>
+</blockquote>
+<h3 id="accessing-private-git-repositories"><a class="header" href="#accessing-private-git-repositories">Accessing private Git repositories</a></h3>
+<p>See <a href="../appendix/git-authentication.html">Git Authentication</a> for help with Git authentication for private repos.</p>
+<h2 id="specifying-path-dependencies"><a class="header" href="#specifying-path-dependencies">Specifying path dependencies</a></h2>
+<p>Over time, our <code>hello_world</code> package from <a href="../guide/index.html">the guide</a> has grown significantly in size! It’s gotten to the point that we probably want to split out a separate crate for others to use. To do this Cargo supports <strong>path dependencies</strong> which are typically sub-crates that live within one repository. Let’s start by making a new crate inside of our <code>hello_world</code> package:</p>
+<pre><code class="language-console"># inside of hello_world/
+$ cargo new hello_utils
+</code></pre>
+<p>This will create a new folder <code>hello_utils</code> inside of which a <code>Cargo.toml</code> and <code>src</code> folder are ready to be configured. To tell Cargo about this, open up <code>hello_world/Cargo.toml</code> and add <code>hello_utils</code> to your dependencies:</p>
+<pre><code class="language-toml">[dependencies]
+hello_utils = { path = "hello_utils" }
+</code></pre>
+<p>This tells Cargo that we depend on a crate called <code>hello_utils</code> which is found in the <code>hello_utils</code> folder, relative to the <code>Cargo.toml</code> file it’s written in.</p>
+<p>The next <code>cargo build</code> will automatically build <code>hello_utils</code> and all of its dependencies.</p>
+<h3 id="no-local-path-traversal"><a class="header" href="#no-local-path-traversal">No local path traversal</a></h3>
+<p>The local paths must point to the exact folder with the dependency’s <code>Cargo.toml</code>. Unlike with <code>git</code> dependencies, Cargo does not traverse local paths. For example, if <code>regex-lite</code> and <code>regex-syntax</code> are members of a locally cloned <code>rust-lang/regex</code> repo, they have to be referred to by the full path:</p>
+<pre><code class="language-toml"># git key accepts the repo root URL and Cargo traverses the tree to find the crate
+[dependencies]
+regex-lite   = { git = "https://github.com/rust-lang/regex.git" }
+regex-syntax = { git = "https://github.com/rust-lang/regex.git" }
+
+# path key requires the member name to be included in the local path
+[dependencies]
+regex-lite   = { path = "../regex/regex-lite" }
+regex-syntax = { path = "../regex/regex-syntax" }
+</code></pre>
+<h3 id="local-paths-in-published-crates"><a class="header" href="#local-paths-in-published-crates">Local paths in published crates</a></h3>
+<p>Crates that use dependencies specified with only a path are not permitted on <a href="https://crates.io/">crates.io</a>.</p>
+<p>If we wanted to publish our <code>hello_world</code> crate, we would need to publish a version of <code>hello_utils</code> to <a href="https://crates.io/">crates.io</a> as a separate crate and specify its version in the dependencies line of <code>hello_world</code>:</p>
+<pre><code class="language-toml">[dependencies]
+hello_utils = { path = "hello_utils", version = "0.1.0" }
+</code></pre>
+<p>The use of <code>path</code> and <code>version</code> keys together is explained in the <a href="#multiple-locations">Multiple locations</a> section.</p>
+<blockquote>
+<p><strong>Note</strong>: <a href="https://crates.io/">crates.io</a> does not allow packages to be published with dependencies on code outside of <a href="https://crates.io/">crates.io</a>, except for <a href="#development-dependencies">dev-dependencies</a>. See the <a href="#multiple-locations">Multiple locations</a> section for a fallback alternative for <code>git</code> and <code>path</code> dependencies.</p>
+</blockquote>
+<h2 id="multiple-locations"><a class="header" href="#multiple-locations">Multiple locations</a></h2>
+<p>It is possible to specify both a registry version and a <code>git</code> or <code>path</code> location. The <code>git</code> or <code>path</code> dependency will be used locally (in which case the <code>version</code> is checked against the local copy), and when published to a registry like <a href="https://crates.io/">crates.io</a>, it will use the registry version. Other combinations are not allowed. Examples:</p>
+<pre><code class="language-toml">[dependencies]
+# Uses `my-bitflags` when used locally, and uses
+# version 1.0 from crates.io when published.
+bitflags = { path = "my-bitflags", version = "1.0" }
+
+# Uses the given git repo when used locally, and uses
+# version 1.0 from crates.io when published.
+smallvec = { git = "https://github.com/servo/rust-smallvec.git", version = "1.0" }
+
+# Note: if a version doesn't match, Cargo will fail to compile!
+</code></pre>
+<p>One example where this can be useful is when you have split up a library into multiple packages within the same workspace. You can then use <code>path</code> dependencies to point to the local packages within the workspace to use the local version during development, and then use the <a href="https://crates.io/">crates.io</a> version once it is published. This is similar to specifying an <a href="overriding-dependencies.html">override</a>, but only applies to this one dependency declaration.</p>
+<h2 id="platform-specific-dependencies"><a class="header" href="#platform-specific-dependencies">Platform specific dependencies</a></h2>
+<p>Platform-specific dependencies take the same format, but are listed under a <code>target</code> section. Normally Rust-like <a href="../../reference/conditional-compilation.html"><code>#[cfg]</code> syntax</a> will be used to define these sections:</p>
+<pre><code class="language-toml">[target.'cfg(windows)'.dependencies]
+winhttp = "0.4.0"
+
+[target.'cfg(unix)'.dependencies]
+openssl = "1.0.1"
+
+[target.'cfg(target_arch = "x86")'.dependencies]
+native-i686 = { path = "native/i686" }
+
+[target.'cfg(target_arch = "x86_64")'.dependencies]
+native-x86_64 = { path = "native/x86_64" }
+</code></pre>
+<p>Like with Rust, the syntax here supports the <code>not</code>, <code>any</code>, and <code>all</code> operators to combine various cfg name/value pairs.</p>
+<p>If you want to know which cfg targets are available on your platform, run <code>rustc --print=cfg</code> from the command line. If you want to know which <code>cfg</code> targets are available for another platform, such as 64-bit Windows, run <code>rustc --print=cfg --target=x86_64-pc-windows-msvc</code>.</p>
+<p>Unlike in your Rust source code, you cannot use <code>[target.'cfg(feature = "fancy-feature")'.dependencies]</code> to add dependencies based on optional features. Use <a href="features.html">the <code>[features]</code> section</a> instead:</p>
+<pre><code class="language-toml">[dependencies]
+foo = { version = "1.0", optional = true }
+bar = { version = "1.0", optional = true }
+
+[features]
+fancy-feature = ["foo", "bar"]
+</code></pre>
+<p>The same applies to <code>cfg(debug_assertions)</code>, <code>cfg(test)</code> and <code>cfg(proc_macro)</code>. These values will not work as expected and will always have the default value returned by <code>rustc --print=cfg</code>. There is currently no way to add dependencies based on these configuration values.</p>
+<p>In addition to <code>#[cfg]</code> syntax, Cargo also supports listing out the full target the dependencies would apply to:</p>
+<pre><code class="language-toml">[target.x86_64-pc-windows-gnu.dependencies]
+winhttp = "0.4.0"
+
+[target.i686-unknown-linux-gnu.dependencies]
+openssl = "1.0.1"
+</code></pre>
+<h3 id="custom-target-specifications"><a class="header" href="#custom-target-specifications">Custom target specifications</a></h3>
+<p>If you’re using a custom target specification (such as <code>--target foo/bar.json</code>), use the base filename without the <code>.json</code> extension:</p>
+<pre><code class="language-toml">[target.bar.dependencies]
+winhttp = "0.4.0"
+
+[target.my-special-i686-platform.dependencies]
+openssl = "1.0.1"
+native = { path = "native/i686" }
+</code></pre>
+<blockquote>
+<p><strong>Note</strong>: Custom target specifications are not usable on the stable channel.</p>
+</blockquote>
+<h2 id="development-dependencies"><a class="header" href="#development-dependencies">Development dependencies</a></h2>
+<p>You can add a <code>[dev-dependencies]</code> section to your <code>Cargo.toml</code> whose format is equivalent to <code>[dependencies]</code>:</p>
+<pre><code class="language-toml">[dev-dependencies]
+tempdir = "0.3"
+</code></pre>
+<p>Dev-dependencies are not used when compiling a package for building, but are used for compiling tests, examples, and benchmarks.</p>
+<p>These dependencies are <em>not</em> propagated to other packages which depend on this package.</p>
+<p>You can also have target-specific development dependencies by using <code>dev-dependencies</code> in the target section header instead of <code>dependencies</code>. For example:</p>
+<pre><code class="language-toml">[target.'cfg(unix)'.dev-dependencies]
+mio = "0.0.1"
+</code></pre>
+<blockquote>
+<p><strong>Note</strong>: When a package is published, only dev-dependencies that specify a <code>version</code> will be included in the published crate. For most use cases, dev-dependencies are not needed when published, though some users (like OS packagers) may want to run tests within a crate, so providing a <code>version</code> if possible can still be beneficial.</p>
+</blockquote>
+<h2 id="build-dependencies"><a class="header" href="#build-dependencies">Build dependencies</a></h2>
+<p>You can depend on other Cargo-based crates for use in your build scripts. Dependencies are declared through the <code>build-dependencies</code> section of the manifest:</p>
+<pre><code class="language-toml">[build-dependencies]
+cc = "1.0.3"
+</code></pre>
+<p>You can also have target-specific build dependencies by using <code>build-dependencies</code> in the target section header instead of <code>dependencies</code>. For example:</p>
+<pre><code class="language-toml">[target.'cfg(unix)'.build-dependencies]
+cc = "1.0.3"
+</code></pre>
+<p>In this case, the dependency will only be built when the host platform matches the specified target.</p>
+<p>The build script <strong>does not</strong> have access to the dependencies listed in the <code>dependencies</code> or <code>dev-dependencies</code> section. Build dependencies will likewise not be available to the package itself unless listed under the <code>dependencies</code> section as well. A package itself and its build script are built separately, so their dependencies need not coincide. Cargo is kept simpler and cleaner by using independent dependencies for independent purposes.</p>
+<h2 id="choosing-features"><a class="header" href="#choosing-features">Choosing features</a></h2>
+<p>If a package you depend on offers conditional features, you can specify which to use:</p>
+<pre><code class="language-toml">[dependencies.awesome]
+version = "1.3.5"
+default-features = false # do not include the default features, and optionally
+                         # cherry-pick individual features
+features = ["secure-password", "civet"]
+</code></pre>
+<p>More information about features can be found in the <a href="features.html#dependency-features">features chapter</a>.</p>
+<h2 id="renaming-dependencies-in-cargotoml"><a class="header" href="#renaming-dependencies-in-cargotoml">Renaming dependencies in <code>Cargo.toml</code></a></h2>
+<p>When writing a <code>[dependencies]</code> section in <code>Cargo.toml</code> the key you write for a dependency typically matches up to the name of the crate you import from in the code. For some projects, though, you may wish to reference the crate with a different name in the code regardless of how it’s published on crates.io. For example you may wish to:</p>
+<ul>
+<li>Avoid the need to  <code>use foo as bar</code> in Rust source.</li>
+<li>Depend on multiple versions of a crate.</li>
+<li>Depend on crates with the same name from different registries.</li>
+</ul>
+<p>To support this Cargo supports a <code>package</code> key in the <code>[dependencies]</code> section of which package should be depended on:</p>
+<pre><code class="language-toml">[package]
+name = "mypackage"
+version = "0.0.1"
+
+[dependencies]
+foo = "0.1"
+bar = { git = "https://github.com/example/project.git", package = "foo" }
+baz = { version = "0.1", registry = "custom", package = "foo" }
+</code></pre>
+<p>In this example, three crates are now available in your Rust code:</p>
+<pre><code class="language-rust ignore">extern crate foo; // crates.io
+extern crate bar; // git repository
+extern crate baz; // registry `custom`</code></pre>
+<p>All three of these crates have the package name of <code>foo</code> in their own <code>Cargo.toml</code>, so we’re explicitly using the <code>package</code> key to inform Cargo that we want the <code>foo</code> package even though we’re calling it something else locally. The <code>package</code> key, if not specified, defaults to the name of the dependency being requested.</p>
+<p>Note that if you have an optional dependency like:</p>
+<pre><code class="language-toml">[dependencies]
+bar = { version = "0.1", package = 'foo', optional = true }
+</code></pre>
+<p>you’re depending on the crate <code>foo</code> from crates.io, but your crate has a <code>bar</code> feature instead of a <code>foo</code> feature. That is, names of features take after the name of the dependency, not the package name, when renamed.</p>
+<p>Enabling transitive dependencies works similarly, for example we could add the following to the above manifest:</p>
+<pre><code class="language-toml">[features]
+log-debug = ['bar/log-debug'] # using 'foo/log-debug' would be an error!
+</code></pre>
+<h2 id="inheriting-a-dependency-from-a-workspace"><a class="header" href="#inheriting-a-dependency-from-a-workspace">Inheriting a dependency from a workspace</a></h2>
+<p>Dependencies can be inherited from a workspace by specifying the dependency in the workspace’s <a href="workspaces.html#the-dependencies-table"><code>[workspace.dependencies]</code></a> table. After that, add it to the <code>[dependencies]</code> table with <code>workspace = true</code>.</p>
+<p>Along with the <code>workspace</code> key, dependencies can also include these keys:</p>
+<ul>
+<li><a href="features.html#optional-dependencies"><code>optional</code></a>: Note that the<code>[workspace.dependencies]</code> table is not allowed to specify <code>optional</code>.</li>
+<li><a href="features.html"><code>features</code></a>: These are additive with the features declared in the <code>[workspace.dependencies]</code></li>
+</ul>
+<p>Other than <code>optional</code> and <code>features</code>, inherited dependencies cannot use any other dependency key (such as <code>version</code> or <code>default-features</code>).</p>
+<p>Dependencies in the <code>[dependencies]</code>, <code>[dev-dependencies]</code>, <code>[build-dependencies]</code>, and <code>[target."...".dependencies]</code> sections support the ability to reference the <code>[workspace.dependencies]</code> definition of dependencies.</p>
+<pre><code class="language-toml">[package]
+name = "bar"
+version = "0.2.0"
+
+[dependencies]
+regex = { workspace = true, features = ["unicode"] }
+
+[build-dependencies]
+cc.workspace = true
+
+[dev-dependencies]
+rand = { workspace = true, optional = true }
+</code></pre>
+<script>
+(function() {
+    var fragments = {
+        "#overriding-dependencies": "overriding-dependencies.html",
+        "#testing-a-bugfix": "overriding-dependencies.html#testing-a-bugfix",
+        "#working-with-an-unpublished-minor-version": "overriding-dependencies.html#working-with-an-unpublished-minor-version",
+        "#overriding-repository-url": "overriding-dependencies.html#overriding-repository-url",
+        "#prepublishing-a-breaking-change": "overriding-dependencies.html#prepublishing-a-breaking-change",
+        "#overriding-with-local-dependencies": "overriding-dependencies.html#paths-overrides",
+    };
+    var target = fragments[window.location.hash];
+    if (target) {
+        var url = window.location.toString();
+        var base = url.substring(0, url.lastIndexOf('/'));
+        window.location.replace(base + "/" + target);
+    }
+})();
+</script>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../reference/workspaces.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../reference/overriding-dependencies.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../reference/workspaces.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../reference/overriding-dependencies.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/language-picker.js"></script>
+
+
+    </div>
+    </body>
+</html>

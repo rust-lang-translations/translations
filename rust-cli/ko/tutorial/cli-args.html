@@ -1,0 +1,383 @@
+<!DOCTYPE HTML>
+<html lang="ko" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>명령줄 인수 구문 분석 - Command Line Applications in Rust</title>
+
+
+        <!-- Custom HTML head -->
+
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-L455DH98TK"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+        
+          gtag('config', 'G-L455DH98TK');
+        </script>
+        
+        
+        <script>
+            (function () {
+                // See these pages for details:
+                // https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls
+                // https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics
+        
+                function gen_canonical_href(lang) {
+        
+                    let base = "https://rust-lang-translations.org/rust-cli";
+        
+                    let canonical_href;
+                    if (lang == "en") {
+                        canonical_href = `${base}/tutorial/cli-args.md`;
+                    } else {
+                        canonical_href = `${base}/${lang}/tutorial/cli-args.md`;
+                    }
+                    canonical_href = canonical_href.slice(0, -"md".length) + "html";
+                    if (canonical_href.endsWith("/index.html")) {
+                        canonical_href = canonical_href.slice(0, -"index.html".length);
+                    }
+                    return canonical_href;
+                }
+        
+                const canonical_href = gen_canonical_href("ko");
+
+                let link = document.createElement("link");
+                link.rel = "canonical";
+                link.href = canonical_href;
+                document.head.appendChild(link);
+        
+        
+                const langs = ["en"  , "ko" ];
+        
+                for (const lang of langs) {
+                    const canonical_href = gen_canonical_href(lang);
+        
+                    let link = document.createElement("link");
+                    link.rel = "alternate";
+                    link.hreflang = lang;
+                    link.href = canonical_href;
+                    document.head.appendChild(link);
+                }
+            })()
+        </script>
+        
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../src/special-content.css">
+        <link rel="stylesheet" href="../theme/language-picker.css">
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Command Line Applications in Rust</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/rust-lang-translations/project" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="명령줄-인수-구문-분석"><a class="header" href="#명령줄-인수-구문-분석">명령줄 인수 구문 분석</a></h1>
+<p>CLI 도구의 일반적인 호출은 다음과 같습니다.</p>
+<pre><code class="language-console">$ grrs foobar test.txt
+</code></pre>
+<p>우리는 프로그램이 <code>test.txt</code>를 보고 <code>foobar</code>를 포함하는 줄을 인쇄하기를 기대합니다. 하지만 이 두 값을 어떻게 얻을 수 있을까요?</p>
+<p>프로그램 이름 뒤의 텍스트는 종종 “명령줄 인수” 또는 “명령줄 플래그”(특히 <code>--this</code>처럼 보일 때)라고 합니다. 내부적으로 운영 체제는 일반적으로 이를 문자열 목록으로 나타냅니다. 대략적으로 말하면 공백으로 구분됩니다.</p>
+<p>이러한 인수에 대해 생각하고 더 쉽게 작업할 수 있는 것으로 구문 분석하는 방법에는 여러 가지가 있습니다. 또한 프로그램 사용자에게 어떤 인수를 어떤 형식으로 제공해야 하는지 알려야 합니다.</p>
+<h2 id="인수-가져오기"><a class="header" href="#인수-가져오기">인수 가져오기</a></h2>
+<p>The standard library contains the function <a href="https://doc.rust-lang.org/1.39.0/std/env/fn.args.html"><code>std::env::args()</code></a> that gives you an <a href="https://doc.rust-lang.org/1.39.0/std/iter/index.html">iterator</a> of the given arguments. The first entry (at index <code>0</code>) will be the name your program was called as (e.g. <code>grrs</code>), the ones that follow are what the user wrote afterwards.</p>
+<p>이러한 방식으로 원시 인수를 얻는 것은 매우 쉽습니다(<code>src/main.rs</code> 파일에서).</p>
+<pre><code class="language-rust ignore">fn main() {
+    let pattern = std::env::args().nth(1).expect("no pattern given");
+    let path = std::env::args().nth(2).expect("no path given");
+
+    println!("pattern: {:?}, path: {:?}", pattern, path)
+}</code></pre>
+<p><code>cargo run</code>을 사용하여 실행할 수 있으며, <code>--</code> 뒤에 인수를 작성하여 전달합니다.</p>
+<pre><code class="language-console">$ cargo run -- some-pattern some-file
+    Finished dev [unoptimized + debuginfo] target(s) in 0.11s
+     Running `target/debug/grrs some-pattern some-file`
+pattern: "some-pattern", path: "some-file"
+</code></pre>
+<h2 id="데이터-유형으로서의-cli-인수"><a class="header" href="#데이터-유형으로서의-cli-인수">데이터 유형으로서의 CLI 인수</a></h2>
+<p>텍스트 뭉치로 생각하는 대신 CLI 인수를 프로그램에 대한 입력을 나타내는 사용자 지정 데이터 유형으로 생각하는 것이 종종 더 좋습니다.</p>
+<p><code>grrs foobar test.txt</code>를 보세요. 두 개의 인수가 있습니다. 첫 번째는 <code>pattern</code>(찾을 문자열)이고 두 번째는 <code>path</code>(찾을 파일)입니다.</p>
+<p>그것들에 대해 더 무엇을 말할 수 있을까요? 음, 우선 둘 다 필요합니다. 기본값에 대해 이야기하지 않았으므로 사용자가 항상 두 값을 제공할 것으로 예상합니다. 또한 유형에 대해 약간 말할 수 있습니다. 패턴은 문자열이어야 하고 두 번째 인수는 파일 경로여야 합니다.</p>
+<p>Rust에서는 처리하는 데이터를 중심으로 프로그램을 구성하는 것이 일반적이므로 이러한 CLI 인수를 보는 방식이 매우 적합합니다. 이것부터 시작해 봅시다(<code>src/main.rs</code> 파일에서 <code>fn main() {</code> 이전).</p>
+<pre><code class="language-rust ignore">struct Cli {
+    pattern: String,
+    path: std::path::PathBuf,
+}</code></pre>
+<p>이것은 데이터를 저장할 두 개의 필드, 즉 <code>pattern</code>과 <code>path</code>를 가진 새로운 구조체(<a href="https://doc.rust-lang.org/1.39.0/book/ch05-00-structs.html"><code>struct</code></a>)를 정의합니다.</p>
+<aside>
+<p><strong>참고:</strong> <a href="https://doc.rust-lang.org/1.39.0/std/path/struct.PathBuf.html"><code>PathBuf</code></a>는 <a href="https://doc.rust-lang.org/1.39.0/std/string/struct.String.html"><code>String</code></a>과 같지만 크로스 플랫폼에서 작동하는 파일 시스템 경로용입니다.</p>
+</aside>
+<p>이제 프로그램이 얻은 실제 인수를 이 형식으로 가져와야 합니다. 한 가지 옵션은 운영 체제에서 얻은 문자열 목록을 수동으로 구문 분석하고 구조를 직접 빌드하는 것입니다. 다음과 같이 보일 것입니다.</p>
+<pre><code class="language-rust ignore">fn main() {
+    let pattern = std::env::args().nth(1).expect("no pattern given");
+    let path = std::env::args().nth(2).expect("no path given");
+
+    let args = Cli {
+        pattern,
+        path: std::path::PathBuf::from(path),
+    };
+
+    println!("pattern: {:?}, path: {:?}", args.pattern, args.path);
+}</code></pre>
+<p>이것은 작동하지만 그다지 편리하지 않습니다. <code>--pattern="foo"</code> 또는 <code>--pattern "foo"</code>를 지원해야 하는 요구 사항을 어떻게 처리하시겠습니까? <code>--help</code>를 어떻게 구현하시겠습니까?</p>
+<h2 id="clap으로-cli-인수-구문-분석"><a class="header" href="#clap으로-cli-인수-구문-분석">Clap으로 CLI 인수 구문 분석</a></h2>
+<p>더 좋은 방법은 사용 가능한 많은 라이브러리 중 하나를 사용하는 것입니다. 명령줄 인수를 구문 분석하는 가장 인기 있는 라이브러리는 <a href="https://docs.rs/clap/"><code>clap</code></a>입니다. 하위 명령, <a href="https://docs.rs/clap_complete/">셸 완성</a> 및 훌륭한 도움말 메시지를 포함하여 기대하는 모든 기능을 갖추고 있습니다.</p>
+<p>먼저 <code>Cargo.toml</code> 파일의 <code>[dependencies]</code> 섹션에 <code>clap = { version = "4.0", features = ["derive"] }</code>를 추가하여 <code>clap</code>을 가져옵니다.</p>
+<p>이제 코드에 <code>use clap::Parser;</code>를 작성하고 <code>struct Cli</code> 바로 위에 <code>#[derive(Parser)]</code>를 추가할 수 있습니다. 그 과정에서 몇 가지 문서 주석도 작성해 봅시다.</p>
+<p>다음과 같이 보일 것입니다(<code>src/main.rs</code> 파일에서 <code>fn main() {</code> 이전).</p>
+<pre><code class="language-rust ignore">use clap::Parser;
+
+/// 파일에서 패턴을 검색하고 해당 패턴을 포함하는 줄을 표시합니다.
+#[derive(Parser)]
+struct Cli {
+    /// 찾을 패턴
+    pattern: String,
+    /// 읽을 파일의 경로
+    path: std::path::PathBuf,
+}</code></pre>
+<aside class="node">
+<p><strong>참고:</strong> 필드에 추가할 수 있는 사용자 지정 속성이 많이 있습니다. 예를 들어 <code>-o</code> 또는 <code>--output</code> 뒤의 인수에 이 필드를 사용하려면 <code>#[arg(short = 'o', long = "output")]</code>를 추가합니다. 자세한 내용은 <a href="https://docs.rs/clap/">clap 문서</a>를 참조하세요.</p>
+</aside>
+<p><code>Cli</code> 구조체 바로 아래에 템플릿에 <code>main</code> 함수가 포함되어 있습니다. 프로그램이 시작되면 이 함수를 호출합니다.</p>
+<pre><code class="language-rust ignore">fn main() {
+    let args = Cli::parse();
+
+    println!("pattern: {:?}, path: {:?}", args.pattern, args.path)
+}</code></pre>
+<p>이렇게 하면 인수를 <code>Cli</code> 구조체로 구문 분석하려고 시도합니다.</p>
+<p>하지만 실패하면 어떻게 될까요? 이것이 이 접근 방식의 장점입니다. Clap은 어떤 필드를 예상해야 하는지, 그리고 예상 형식이 무엇인지 알고 있습니다. <code>--help</code> 메시지를 자동으로 생성하고 <code>--putput</code>을 작성했을 때 <code>--output</code>을 전달하도록 제안하는 훌륭한 오류를 제공할 수 있습니다.</p>
+<aside class="note">
+<p><strong>참고:</strong> <code>parse</code> 메서드는 <code>main</code> 함수에서 사용하기 위한 것입니다. 실패하면 오류 또는 도움말 메시지를 인쇄하고 즉시 프로그램을 종료합니다. 다른 곳에서는 사용하지 마세요!</p>
+</aside>
+<h2 id="마무리"><a class="header" href="#마무리">마무리</a></h2>
+<p>이제 코드는 다음과 같아야 합니다.</p>
+<pre><code class="language-rust ignore">use clap::Parser;
+
+/// 파일에서 패턴을 검색하고 해당 패턴을 포함하는 줄을 표시합니다.
+#[derive(Parser)]
+struct Cli {
+    /// 찾을 패턴
+    pattern: String,
+    /// 읽을 파일의 경로
+    path: std::path::PathBuf,
+}
+
+fn main() {
+    let args = Cli::parse();
+
+    println!("pattern: {:?}, path: {:?}", args.pattern, args.path)
+}</code></pre>
+<p>인수 없이 실행:</p>
+<pre><code class="language-console">$ cargo run
+    Finished dev [unoptimized + debuginfo] target(s) in 10.16s
+     Running `target/debug/grrs`
+error: The following required arguments were not provided:
+    &lt;pattern&gt;
+    &lt;path&gt;
+
+USAGE:
+    grrs &lt;pattern&gt; &lt;path&gt;
+
+For more information try --help
+</code></pre>
+<p>인수를 전달하여 실행:</p>
+<pre><code class="language-console">$ cargo run -- some-pattern some-file
+    Finished dev [unoptimized + debuginfo] target(s) in 0.11s
+     Running `target/debug/grrs some-pattern some-file`
+pattern: "some-pattern", path: "some-file"
+</code></pre>
+<p>출력은 프로그램이 인수를 <code>Cli</code> 구조체로 성공적으로 구문 분석했음을 보여줍니다.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../tutorial/setup.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../tutorial/impl-draft.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../tutorial/setup.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../tutorial/impl-draft.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/language-picker.js"></script>
+
+
+    </div>
+    </body>
+</html>

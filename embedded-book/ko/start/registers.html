@@ -1,0 +1,413 @@
+<!DOCTYPE HTML>
+<html lang="ko" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>메모리 매핑 레지스터 - The Embedded Rust Book</title>
+
+
+        <!-- Custom HTML head -->
+
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-L455DH98TK"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+        
+          gtag('config', 'G-L455DH98TK');
+        </script>
+        
+        
+        <script>
+            (function () {
+                // See these pages for details:
+                // https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls
+                // https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics
+        
+                function gen_canonical_href(lang) {
+        
+                    let base = "https://rust-lang-translations.org/embedded-book";
+        
+                    let canonical_href;
+                    if (lang == "en") {
+                        canonical_href = `${base}/start/registers.md`;
+                    } else {
+                        canonical_href = `${base}/${lang}/start/registers.md`;
+                    }
+                    canonical_href = canonical_href.slice(0, -"md".length) + "html";
+                    if (canonical_href.endsWith("/index.html")) {
+                        canonical_href = canonical_href.slice(0, -"index.html".length);
+                    }
+                    return canonical_href;
+                }
+        
+                const canonical_href = gen_canonical_href("ko");
+
+                let link = document.createElement("link");
+                link.rel = "canonical";
+                link.href = canonical_href;
+                document.head.appendChild(link);
+        
+        
+                const langs = ["en"  , "ko" ];
+        
+                for (const lang of langs) {
+                    const canonical_href = gen_canonical_href(lang);
+        
+                    let link = document.createElement("link");
+                    link.rel = "alternate";
+                    link.hreflang = lang;
+                    link.href = canonical_href;
+                    document.head.appendChild(link);
+                }
+            })()
+        </script>
+        
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/language-picker.css">
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Embedded Rust Book</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/rust-lang-translations/project" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="메모리-매핑-레지스터"><a class="header" href="#메모리-매핑-레지스터">메모리 매핑 레지스터</a></h1>
+<p>임베디드 시스템은 일반 Rust 코드를 실행하고 RAM에서 데이터를 이동하는 것만으로는 한계가 있습니다. 시스템으로 정보를 가져오거나 시스템에서 정보를 내보내려면(LED 깜박임, 버튼 누름 감지 또는 특정 버스를 통해 오프칩 주변 장치와 통신 등) 주변 장치와 해당 '메모리 매핑 레지스터'의 세계로 들어가야 합니다.</p>
+<p>마이크로컨트롤러의 주변 장치에 접근하는 데 필요한 코드가 다음 수준 중 하나로 이미 작성되어 있음을 알 수 있습니다:</p>
+<p align="center">
+<img title="Common crates" src="../assets/crates.png">
+</p>
+<ul>
+<li>마이크로아키텍처 크레이트 - 이 종류의 크레이트는 마이크로컨트롤러가 사용하는 프로세서 코어에 공통적인 유용한 루틴과 해당 특정 유형의 프로세서 코어를 사용하는 모든 마이크로컨트롤러에 공통적인 주변 장치를 처리합니다. 예를 들어, <a href="https://crates.io/crates/cortex-m">cortex-m</a> 크레이트는 모든 Cortex-M 기반 마이크로컨트롤러에 동일한 인터럽트 활성화 및 비활성화 기능을 제공합니다. 또한 모든 Cortex-M 기반 마이크로컨트롤러에 포함된 'SysTick' 주변 장치에 대한 접근을 제공합니다.</li>
+<li>주변 장치 접근 크레이트(PAC) - 이 종류의 크레이트는 사용 중인 마이크로컨트롤러의 특정 부품 번호에 대해 정의된 다양한 메모리 래퍼 레지스터에 대한 얇은 래퍼입니다. 예를 들어, 텍사스 인스트루먼트 Tiva-C TM4C123 시리즈용 <a href="https://crates.io/crates/tm4c123x">tm4c123x</a> 또는 ST-Micro STM32F30x 시리즈용 <a href="https://crates.io/crates/stm32f30x">stm32f30x</a>가 있습니다. 여기서는 마이크로컨트롤러의 기술 참조 설명서에 제공된 각 주변 장치의 작동 지침에 따라 레지스터와 직접 상호 작용하게 됩니다.</li>
+<li>HAL 크레이트 - 이러한 크레이트는 <a href="https://crates.io/crates/embedded-hal">embedded-hal</a>에 정의된 일부 공통 특성을 구현하여 특정 프로세서에 대해 더 사용자 친화적인 API를 제공합니다. 예를 들어, 이 크레이트는 적절한 GPIO 핀 세트와 전송 속도를 사용하는 생성자가 있는 <code>Serial</code> 구조체를 제공하고 데이터를 보내기 위한 일종의 <code>write_byte</code> 함수를 제공할 수 있습니다. <a href="https://crates.io/crates/embedded-hal">embedded-hal</a>에 대한 자세한 내용은 <a href="../portability/index.html">이식성</a> 장을 참조하십시오.</li>
+<li>보드 크레이트 - 이러한 크레이트는 STM32F3DISCOVERY 보드용 <a href="https://crates.io/crates/stm32f3-discovery">stm32f3-discovery</a>와 같이 사용 중인 특정 개발자 키트 또는 보드에 맞게 다양한 주변 장치 및 GPIO 핀을 미리 구성하여 HAL 크레이트보다 한 단계 더 나아갑니다.</li>
+</ul>
+<h2 id="보드-크레이트"><a class="header" href="#보드-크레이트">보드 크레이트</a></h2>
+<p>보드 크레이트는 임베디드 Rust를 처음 접하는 경우 완벽한 시작점입니다. 이 주제를 공부하기 시작할 때 압도적일 수 있는 HW 세부 정보를 멋지게 추상화하고 LED를 켜거나 끄는 것과 같은 표준 작업을 쉽게 만듭니다. 노출하는 기능은 보드마다 많이 다릅니다. 이 책은 하드웨어에 구애받지 않는 것을 목표로 하므로 보드 크레이트는 이 책에서 다루지 않습니다.</p>
+<p>STM32F3DISCOVERY 보드로 실험하고 싶다면 보드 LED를 깜박이고 나침반, 블루투스 등에 액세스하는 기능을 제공하는 <a href="https://crates.io/crates/stm32f3-discovery">stm32f3-discovery</a> 보드 크레이트를 살펴보는 것이 좋습니다. <a href="https://rust-embedded.github.io/discovery/">Discovery</a> 책은 보드 크레이트 사용에 대한 훌륭한 소개를 제공합니다.</p>
+<p>하지만 아직 전용 보드 크레이트가 없는 시스템에서 작업 중이거나 기존 크레이트에서 제공하지 않는 기능이 필요한 경우 마이크로 아키텍처 크레이트부터 시작하여 계속 읽으십시오.</p>
+<h2 id="마이크로-아키텍처-크레이트"><a class="header" href="#마이크로-아키텍처-크레이트">마이크로 아키텍처 크레이트</a></h2>
+<p>모든 Cortex-M 기반 마이크로컨트롤러에 공통적인 SysTick 주변 장치를 살펴보겠습니다. <a href="https://crates.io/crates/cortex-m">cortex-m</a> 크레이트에서 매우 낮은 수준의 API를 찾을 수 있으며 다음과 같이 사용할 수 있습니다.</p>
+<pre><code class="language-rust ignore">#![no_std]
+#![no_main]
+use cortex_m::peripheral::{syst, Peripherals};
+use cortex_m_rt::entry;
+use panic_halt as _;
+
+#[entry]
+fn main() -&gt; ! {
+    let peripherals = Peripherals::take().unwrap();
+    let mut systick = peripherals.SYST;
+    systick.set_clock_source(syst::SystClkSource::Core);
+    systick.set_reload(1_000);
+    systick.clear_current();
+    systick.enable_counter();
+    while !systick.has_wrapped() {
+        // 루프
+    }
+
+    loop {}
+}</code></pre>
+<p><code>SYST</code> 구조체의 함수는 이 주변 장치에 대한 ARM 기술 참조 설명서에 정의된 기능과 매우 유사합니다. 이 API에는 'X밀리초 지연'에 대한 내용이 없으므로 <code>while</code> 루프를 사용하여 직접 구현해야 합니다. <code>Peripherals::take()</code>를 호출하기 전까지는 <code>SYST</code> 구조체에 액세스할 수 없습니다. 이는 전체 프로그램에 <code>SYST</code> 구조체가 하나만 있도록 보장하는 특수 루틴입니다. 자세한 내용은 <a href="../peripherals/index.html">주변 장치</a> 섹션을 참조하십시오.</p>
+<h2 id="주변-장치-접근-크레이트pac-사용"><a class="header" href="#주변-장치-접근-크레이트pac-사용">주변 장치 접근 크레이트(PAC) 사용</a></h2>
+<p>모든 Cortex-M에 포함된 기본 주변 장치에만 국한한다면 임베디드 소프트웨어 개발에 큰 진전을 이루지 못할 것입니다. 어느 시점에는 사용 중인 특정 마이크로컨트롤러에 특정한 코드를 작성해야 합니다. 이 예에서는 256KiB의 플래시가 있는 중간급 80MHz Cortex-M4인 Texas Instruments TM4C123이 있다고 가정해 보겠습니다. 이 칩을 사용하기 위해 <a href="https://crates.io/crates/tm4c123x">tm4c123x</a> 크레이트를 가져올 것입니다.</p>
+<pre><code class="language-rust ignore">#![no_std]
+#![no_main]
+
+use panic_halt as _; // 패닉 핸들러
+
+use cortex_m_rt::entry;
+use tm4c123x;
+
+#[entry]
+pub fn init() -&gt; (Delay, Leds) {
+    let cp = cortex_m::Peripherals::take().unwrap();
+    let p = tm4c123x::Peripherals::take().unwrap();
+
+    let pwm = p.PWM0;
+    pwm.ctl.write(|w| w.globalsync0().clear_bit());
+    // 모드 = 1 =&gt; 카운트 업/다운 모드
+    pwm._2_ctl.write(|w| w.enable().set_bit().mode().set_bit());
+    pwm._2_gena.write(|w| w.actcmpau().zero().actcmpad().one());
+    // 528 사이클 (264 업 및 다운) = 비디오 라인당 4 루프 (2112 사이클)
+    pwm._2_load.write(|w| unsafe { w.load().bits(263) });
+    pwm._2_cmpa.write(|w| unsafe { w.compa().bits(64) });
+    pwm.enable.write(|w| w.pwm4en().set_bit());
+}
+</code></pre>
+<p><code>SYST</code> 주변 장치에 액세스한 것과 똑같은 방식으로 <code>PWM0</code> 주변 장치에 액세스했지만 <code>tm4c123x::Peripherals::take()</code>를 호출했습니다. 이 크레이트는 <a href="https://crates.io/crates/svd2rust">svd2rust</a>를 사용하여 자동 생성되었으므로 레지스터 필드에 대한 액세스 함수는 숫자 인수가 아닌 클로저를 사용합니다. 이것은 많은 코드처럼 보이지만 Rust 컴파일러는 이를 사용하여 여러 검사를 수행한 다음 손으로 작성한 어셈블러에 매우 가까운 기계 코드를 생성할 수 있습니다! 자동 생성된 코드가 특정 접근자 함수에 대한 모든 가능한 인수가 유효한지 확인할 수 없는 경우(예: SVD가 레지스터를 32비트로 정의하지만 해당 32비트 값 중 일부에 특별한 의미가 있는지 여부를 명시하지 않은 경우) 함수는 <code>unsafe</code>로 표시됩니다. 위의 예에서 <code>bits()</code> 함수를 사용하여 <code>load</code> 및 <code>compa</code> 하위 필드를 설정할 때 이를 볼 수 있습니다.</p>
+<h3 id="읽기"><a class="header" href="#읽기">읽기</a></h3>
+<p><code>read()</code> 함수는 이 칩에 대한 제조업체의 SVD 파일에 정의된 대로 이 레지스터 내의 다양한 하위 필드에 대한 읽기 전용 액세스를 제공하는 객체를 반환합니다. 이 특정 칩의 이 특정 주변 장치에 있는 이 특정 레지스터에 대한 특수 <code>R</code> 반환 유형에서 사용 가능한 모든 함수는 <a href="https://docs.rs/tm4c123x/0.7.0/tm4c123x/pwm0/ctl/struct.R.html">tm4c123x 설명서</a>에서 찾을 수 있습니다.</p>
+<pre><code class="language-rust ignore">if pwm.ctl.read().globalsync0().is_set() {
+    // 무언가 하기
+}</code></pre>
+<h3 id="쓰기"><a class="header" href="#쓰기">쓰기</a></h3>
+<p><code>write()</code> 함수는 단일 인수를 가진 클로저를 사용합니다. 일반적으로 이를 <code>w</code>라고 부릅니다. 이 인수는 이 칩에 대한 제조업체의 SVD 파일에 정의된 대로 이 레지스터 내의 다양한 하위 필드에 대한 읽기-쓰기 액세스를 제공합니다. 다시 말하지만, 이 특정 칩의 이 특정 주변 장치에 있는 이 특정 레지스터에 대한 'w'에서 사용 가능한 모든 함수는 <a href="https://docs.rs/tm4c123x/0.7.0/tm4c123x/pwm0/ctl/struct.W.html">tm4c123x 설명서</a>에서 찾을 수 있습니다. 설정하지 않은 모든 하위 필드는 기본값으로 설정되며 레지스터의 기존 내용은 손실됩니다.</p>
+<pre><code class="language-rust ignore">pwm.ctl.write(|w| w.globalsync0().clear_bit());</code></pre>
+<h3 id="수정"><a class="header" href="#수정">수정</a></h3>
+<p>이 레지스터에서 특정 하위 필드 하나만 변경하고 다른 하위 필드는 변경하지 않으려면 <code>modify</code> 함수를 사용할 수 있습니다. 이 함수는 읽기용과 쓰기용 두 개의 인수를 가진 클로저를 사용합니다. 일반적으로 각각 <code>r</code>과 <code>w</code>라고 부릅니다. <code>r</code> 인수는 레지스터의 현재 내용을 검사하는 데 사용할 수 있고 <code>w</code> 인수는 레지스터 내용을 수정하는 데 사용할 수 있습니다.</p>
+<pre><code class="language-rust ignore">pwm.ctl.modify(|r, w| w.globalsync0().clear_bit());</code></pre>
+<p><code>modify</code> 함수는 여기서 클로저의 힘을 실제로 보여줍니다. C에서는 임시 값으로 읽고 올바른 비트를 수정한 다음 값을 다시 써야 합니다. 이는 오류의 여지가 상당히 많다는 것을 의미합니다.</p>
+<pre><code class="language-C">uint32_t temp = pwm0.ctl.read();
+temp |= PWM0_CTL_GLOBALSYNC0;
+pwm0.ctl.write(temp);
+uint32_t temp2 = pwm0.enable.read();
+temp2 |= PWM0_ENABLE_PWM4EN;
+pwm0.enable.write(temp); // 어お! 잘못된 변수!
+</code></pre>
+<h2 id="hal-크레이트-사용"><a class="header" href="#hal-크레이트-사용">HAL 크레이트 사용</a></h2>
+<p>칩용 HAL 크레이트는 일반적으로 PAC에서 노출하는 원시 구조체에 대한 사용자 지정 Trait를 구현하여 작동합니다. 종종 이 트레이트는 단일 주변 장치에 대해 <code>constrain()</code>이라는 함수를 정의하거나 여러 핀이 있는 GPIO 포트와 같은 것에 대해 <code>split()</code>을 정의합니다. 이 함수는 기본 원시 주변 장치 구조체를 사용하고 더 높은 수준의 API를 가진 새 객체를 반환합니다. 이 API는 또한 직렬 포트 <code>new</code> 함수가 PLL을 구성하고 모든 클록 주파수를 설정하는 함수를 호출해야만 생성할 수 있는 일부 <code>Clock</code> 구조체에 대한 빌림을 요구하는 것과 같은 작업을 수행할 수 있습니다. 이러한 방식으로 클록 속도를 먼저 구성하지 않고 직렬 포트 객체를 생성하거나 직렬 포트 객체가 전송 속도를 클록 틱으로 잘못 변환하는 것은 정적으로 불가능합니다. 일부 크레이트는 각 GPIO 핀이 있을 수 있는 상태에 대한 특수 트레이트를 정의하기도 하여 사용자가 핀을 주변 장치로 전달하기 전에 핀을 올바른 상태(예: 적절한 대체 기능 모드 선택)로 설정하도록 요구합니다. 모두 런타임 비용 없이!</p>
+<p>예를 들어 보겠습니다.</p>
+<pre><code class="language-rust ignore">#![no_std]
+#![no_main]
+
+use panic_halt as _; // 패닉 핸들러
+
+use cortex_m_rt::entry;
+use tm4c123x_hal as hal;
+use tm4c123x_hal::prelude::*;
+use tm4c123x_hal::serial::{NewlineMode, Serial};
+use tm4c123x_hal::sysctl;
+
+#[entry]
+fn main() -&gt; ! {
+    let p = hal::Peripherals::take().unwrap();
+    let cp = hal::CorePeripherals::take().unwrap();
+
+    // SYSCTL 구조체를 더 높은 수준의 API를 가진 객체로 래핑
+    let mut sc = p.SYSCTL.constrain();
+    // 진동 설정 선택
+    sc.clock_setup.oscillator = sysctl::Oscillator::Main(
+        sysctl::CrystalFrequency::_16mhz,
+        sysctl::SystemClock::UsePll(sysctl::PllOutputFrequency::_80_00mhz),
+    );
+    // 해당 설정으로 PLL 구성
+    let clocks = sc.clock_setup.freeze();
+
+    // GPIO_PORTA 구조체를 더 높은 수준의 API를 가진 객체로 래핑합니다.
+    // GPIO 주변 장치를 자동으로 켤 수 있도록 `sc.power_control`을 빌려야 합니다.
+    let mut porta = p.GPIO_PORTA.split(&amp;sc.power_control);
+
+    // UART 활성화.
+    let uart = Serial::uart0(
+        p.UART0,
+        // 전송 핀
+        porta
+            .pa1
+            .into_af_push_pull::&lt;hal::gpio::AF1&gt;(&amp;mut porta.control),
+        // 수신 핀
+        porta
+            .pa0
+            .into_af_push_pull::&lt;hal::gpio::AF1&gt;(&amp;mut porta.control),
+        // RTS 또는 CTS 필요 없음
+        (),
+        (),
+        // 전송 속도
+        115200_u32.bps(),
+        // 출력 처리
+        NewlineMode::SwapLFtoCRLF,
+        // 전송 속도 제수를 계산하려면 클록 속도가 필요합니다
+        &amp;clocks,
+        // UART 주변 장치를 켜려면 이것이 필요합니다
+        &amp;sc.power_control,
+    );
+
+    loop {
+        writeln!(uart, "Hello, World!\r\n").unwrap();
+    }
+}</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../start/hardware.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../start/semihosting.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../start/hardware.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../start/semihosting.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/language-picker.js"></script>
+
+
+    </div>
+    </body>
+</html>

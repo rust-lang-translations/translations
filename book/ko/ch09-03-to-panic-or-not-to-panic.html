@@ -1,0 +1,378 @@
+<!DOCTYPE HTML>
+<html lang="ko" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>panic!을 사용할지 말지 - The Rust Programming Language</title>
+
+
+        <!-- Custom HTML head -->
+
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-L455DH98TK"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+        
+          gtag('config', 'G-L455DH98TK');
+        </script>
+        
+        
+        <script>
+            (function () {
+                // See these pages for details:
+                // https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls
+                // https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics
+        
+                function gen_canonical_href(lang) {
+        
+                    let base = "https://rust-lang-translations.org/book";
+        
+                    let canonical_href;
+                    if (lang == "en") {
+                        canonical_href = `${base}/ch09-03-to-panic-or-not-to-panic.md`;
+                    } else {
+                        canonical_href = `${base}/${lang}/ch09-03-to-panic-or-not-to-panic.md`;
+                    }
+                    canonical_href = canonical_href.slice(0, -"md".length) + "html";
+                    if (canonical_href.endsWith("/index.html")) {
+                        canonical_href = canonical_href.slice(0, -"index.html".length);
+                    }
+                    return canonical_href;
+                }
+        
+                const canonical_href = gen_canonical_href("ko");
+
+                let link = document.createElement("link");
+                link.rel = "canonical";
+                link.href = canonical_href;
+                document.head.appendChild(link);
+        
+        
+                const langs = ["en"  , "ja"  , "ru"  , "ko" ];
+        
+                for (const lang of langs) {
+                    const canonical_href = gen_canonical_href(lang);
+        
+                    let link = document.createElement("link");
+                    link.rel = "alternate";
+                    link.hreflang = lang;
+                    link.href = canonical_href;
+                    document.head.appendChild(link);
+                }
+            })()
+        </script>
+        
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="ferris.css">
+        <link rel="stylesheet" href="theme/2018-edition.css">
+        <link rel="stylesheet" href="theme/semantic-notes.css">
+        <link rel="stylesheet" href="theme/listing.css">
+        <link rel="stylesheet" href="theme/language-picker.css">
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rust Programming Language</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/rust-lang-translations/project" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h2 id="panic을-사용할지-말지"><a class="header" href="#panic을-사용할지-말지"><code>panic!</code>을 사용할지 말지</a></h2>
+<p>So how do you decide when you should call <code>panic!</code> and when you should return <code>Result</code>? When code panics, there’s no way to recover. You could call <code>panic!</code> for any error situation, whether there’s a possible way to recover or not, but then you’re making the decision that a situation is unrecoverable on behalf of the calling code. When you choose to return a <code>Result</code> value, you give the calling code options. The calling code could choose to attempt to recover in a way that’s appropriate for its situation, or it could decide that an <code>Err</code> value in this case is unrecoverable, so it can call <code>panic!</code> and turn your recoverable error into an unrecoverable one. Therefore, returning <code>Result</code> is a good default choice when you’re defining a function that might fail.</p>
+<p>In situations such as examples, prototype code, and tests, it’s more appropriate to write code that panics instead of returning a <code>Result</code>. Let’s explore why, then discuss situations in which the compiler can’t tell that failure is impossible, but you as a human can. The chapter will conclude with some general guidelines on how to decide whether to panic in library code.</p>
+<h3 id="examples-prototype-code-and-tests"><a class="header" href="#examples-prototype-code-and-tests">Examples, Prototype Code, and Tests</a></h3>
+<p>When you’re writing an example to illustrate some concept, also including robust error-handling code can make the example less clear. In examples, it’s understood that a call to a method like <code>unwrap</code> that could panic is meant as a placeholder for the way you’d want your application to handle errors, which can differ based on what the rest of your code is doing.</p>
+<p>Similarly, the <code>unwrap</code> and <code>expect</code> methods are very handy when prototyping, before you’re ready to decide how to handle errors. They leave clear markers in your code for when you’re ready to make your program more robust.</p>
+<p>If a method call fails in a test, you’d want the whole test to fail, even if that method isn’t the functionality under test. Because <code>panic!</code> is how a test is marked as a failure, calling <code>unwrap</code> or <code>expect</code> is exactly what should happen.</p>
+<h3 id="cases-in-which-you-have-more-information-than-the-compiler"><a class="header" href="#cases-in-which-you-have-more-information-than-the-compiler">Cases in Which You Have More Information Than the Compiler</a></h3>
+<p>It would also be appropriate to call <code>unwrap</code> or <code>expect</code> when you have some other logic that ensures the <code>Result</code> will have an <code>Ok</code> value, but the logic isn’t something the compiler understands. You’ll still have a <code>Result</code> value that you need to handle: whatever operation you’re calling still has the possibility of failing in general, even though it’s logically impossible in your particular situation. If you can ensure by manually inspecting the code that you’ll never have an <code>Err</code> variant, it’s perfectly acceptable to call <code>unwrap</code>, and even better to document the reason you think you’ll never have an <code>Err</code> variant in the <code>expect</code> text. Here’s an example:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+</span>    use std::net::IpAddr;
+
+    let home: IpAddr = "127.0.0.1"
+        .parse()
+        .expect("Hardcoded IP address should be valid");
+<span class="boring">}</span></code></pre></pre>
+<p>We’re creating an <code>IpAddr</code> instance by parsing a hardcoded string. We can see that <code>127.0.0.1</code> is a valid IP address, so it’s acceptable to use <code>expect</code> here. However, having a hardcoded, valid string doesn’t change the return type of the <code>parse</code> method: we still get a <code>Result</code> value, and the compiler will still make us handle the <code>Result</code> as if the <code>Err</code> variant is a possibility because the compiler isn’t smart enough to see that this string is always a valid IP address. If the IP address string came from a user rather than being hardcoded into the program and therefore <em>did</em> have a possibility of failure, we’d definitely want to handle the <code>Result</code> in a more robust way instead. Mentioning the assumption that this IP address is hardcoded will prompt us to change <code>expect</code> to better error-handling code if, in the future, we need to get the IP address from some other source instead.</p>
+<h3 id="guidelines-for-error-handling"><a class="header" href="#guidelines-for-error-handling">Guidelines for Error Handling</a></h3>
+<p>It’s advisable to have your code panic when it’s possible that your code could end up in a bad state. In this context, a <em>bad state</em> is when some assumption, guarantee, contract, or invariant has been broken, such as when invalid values, contradictory values, or missing values are passed to your code—plus one or more of the following:</p>
+<ul>
+<li>The bad state is something that is unexpected, as opposed to something that will likely happen occasionally, like a user entering data in the wrong format.</li>
+<li>Your code after this point needs to rely on not being in this bad state, rather than checking for the problem at every step.</li>
+<li>There’s not a good way to encode this information in the types you use. We’ll work through an example of what we mean in <a href="ch18-03-oo-design-patterns.html#encoding-states-and-behavior-as-types">“Encoding States and Behavior as Types”</a><!-- ignore --> in Chapter 18.</li>
+</ul>
+<p>If someone calls your code and passes in values that don’t make sense, it’s best to return an error if you can so the user of the library can decide what they want to do in that case. However, in cases where continuing could be insecure or harmful, the best choice might be to call <code>panic!</code> and alert the person using your library to the bug in their code so they can fix it during development. Similarly, <code>panic!</code> is often appropriate if you’re calling external code that is out of your control and it returns an invalid state that you have no way of fixing.</p>
+<p>However, when failure is expected, it’s more appropriate to return a <code>Result</code> than to make a <code>panic!</code> call. Examples include a parser being given malformed data or an HTTP request returning a status that indicates you have hit a rate limit. In these cases, returning a <code>Result</code> indicates that failure is an expected possibility that the calling code must decide how to handle.</p>
+<p>When your code performs an operation that could put a user at risk if it’s called using invalid values, your code should verify the values are valid first and panic if the values aren’t valid. This is mostly for safety reasons: attempting to operate on invalid data can expose your code to vulnerabilities. This is the main reason the standard library will call <code>panic!</code> if you attempt an out-of-bounds memory access: trying to access memory that doesn’t belong to the current data structure is a common security problem. Functions often have <em>contracts</em>: their behavior is only guaranteed if the inputs meet particular requirements. Panicking when the contract is violated makes sense because a contract violation always indicates a caller-side bug, and it’s not a kind of error you want the calling code to have to explicitly handle. In fact, there’s no reasonable way for calling code to recover; the calling <em>programmers</em> need to fix the code. Contracts for a function, especially when a violation will cause a panic, should be explained in the API documentation for the function.</p>
+<p>하지만 모든 함수에 많은 오류 검사를 넣는 것은 장황하고 번거로울 것입니다. 다행히 러스트의 타입 시스템(따라서 컴파일러가 수행하는 타입 검사)을 사용하여 많은 검사를 대신 수행할 수 있습니다. 함수가 특정 타입을 매개변수로 가진다면, 컴파일러가 이미 유효한 값을 가지고 있음을 보장했으므로 코드의 로직을 진행할 수 있습니다. 예를 들어, <code>Option</code> 대신 타입을 가지고 있다면, 프로그램은 _아무것도 없음_이 아니라 _무언가_를 가질 것으로 예상합니다. 그러면 코드는 <code>Some</code>과 <code>None</code> variant에 대해 두 가지 경우를 처리할 필요가 없습니다. 확실히 값을 가지는 한 가지 경우만 처리하면 됩니다. 함수에 아무것도 전달하지 않으려는 코드는 컴파일조차 되지 않으므로, 함수는 런타임에 해당 경우를 확인할 필요가 없습니다. 또 다른 예는 매개변수가 절대 음수가 아님을 보장하는 <code>u32</code>와 같은 부호 없는 정수 타입을 사용하는 것입니다.</p>
+<h3 id="유효성-검사를-위한-사용자-정의-타입-생성하기"><a class="header" href="#유효성-검사를-위한-사용자-정의-타입-생성하기">유효성 검사를 위한 사용자 정의 타입 생성하기</a></h3>
+<p>러스트의 타입 시스템을 사용하여 유효한 값을 보장하는 아이디어를 한 단계 더 나아가 유효성 검사를 위한 사용자 정의 타입을 생성하는 방법을 살펴보겠습니다. 2장의 추측 게임에서 우리 코드가 사용자에게 1에서 100 사이의 숫자를 추측하도록 요청했던 것을 기억하세요. 우리는 사용자의 추측이 비밀 숫자와 비교하기 전에 해당 숫자들 사이에 있는지 유효성 검사를 하지 않았습니다. 단지 추측이 양수인지 여부만 유효성 검사했습니다. 이 경우 결과는 그리 심각하지 않았습니다. "너무 높음" 또는 "너무 낮음"이라는 출력은 여전히 올바를 것입니다. 하지만 사용자가 유효한 추측을 하도록 안내하고, 사용자가 범위를 벗어난 숫자를 추측하거나 예를 들어 문자를 입력할 때 다른 동작을 하도록 하는 유용한 개선 사항이 될 것입니다.</p>
+<p>이를 수행하는 한 가지 방법은 추측을 <code>u32</code> 대신 <code>i32</code>로 파싱하여 잠재적으로 음수를 허용하고, 그런 다음 다음과 같이 숫자가 범위 내에 있는지 확인하는 검사를 추가하는 것입니다:</p>
+<Listing file-name="src/main.rs">
+<pre><code class="language-rust ignore"><span class="boring">use rand::Rng;
+</span><span class="boring">use std::cmp::Ordering;
+</span><span class="boring">use std::io;
+</span><span class="boring">
+</span><span class="boring">fn main() {
+</span><span class="boring">    println!("숫자를 맞춰보세요!");
+</span><span class="boring">
+</span><span class="boring">    let secret_number = rand::thread_rng().gen_range(1..=100);
+</span><span class="boring">
+</span>    loop {
+        // --생략--
+
+<span class="boring">        println!(추측을 입력하세요.);
+</span><span class="boring">
+</span><span class="boring">        let mut guess = String::new();
+</span><span class="boring">
+</span><span class="boring">        io::stdin()
+</span><span class="boring">            .read_line(&amp;mut guess)
+</span><span class="boring">            .expect("줄 읽기 실패");
+</span><span class="boring">
+</span>        let guess: i32 = match guess.trim().parse() {
+            Ok(num) =&gt; num,
+            Err(_) =&gt; continue,
+        };
+
+        if guess &lt; 1 || guess &gt; 100 {
+            println!("비밀 숫자는 1에서 100 사이입니다.");
+            continue;
+        }
+
+        match guess.cmp(&amp;secret_number) {
+            // --생략--
+<span class="boring">            Ordering::Less =&gt; println!("너무 작아요!"),
+</span><span class="boring">            Ordering::Greater =&gt; println!("너무 커요!"),
+</span><span class="boring">            Ordering::Equal =&gt; {
+</span><span class="boring">                println!("당신이 이겼습니다!");
+</span><span class="boring">                break;
+</span><span class="boring">            }
+</span><span class="boring">        }
+</span>    }
+<span class="boring">}</span></code></pre>
+</Listing>
+<p><code>if</code> 표현식은 값이 범위를 벗어났는지 확인하고, 사용자에게 문제를 알리고, <code>continue</code>를 호출하여 루프의 다음 반복을 시작하고 다른 추측을 요청합니다. <code>if</code> 표현식 이후에는 <code>guess</code>가 1에서 100 사이임을 알고 <code>guess</code>와 비밀 숫자 간의 비교를 진행할 수 있습니다.</p>
+<p>하지만 이것은 이상적인 해결책이 아닙니다. 만약 프로그램이 1에서 100 사이의 값으로만 작동하는 것이 절대적으로 중요하고, 이러한 요구 사항을 가진 함수가 많다면, 모든 함수에 이러한 검사를 포함하는 것은 지루할 것이며 (성능에 영향을 미칠 수도 있습니다).</p>
+<p>대신, 새로운 타입을 만들고 유효성 검사를 함수에 넣어 타입의 인스턴스를 생성하도록 할 수 있습니다. 이렇게 하면 모든 곳에서 유효성 검사를 반복할 필요가 없습니다. 그렇게 하면 함수가 시그니처에서 새로운 타입을 안전하게 사용하고 받은 값을 확신을 가지고 사용할 수 있습니다. 목록 9-13은 <code>new</code> 함수가 1에서 100 사이의 값을 받을 때만 <code>Guess</code>의 인스턴스를 생성하는 <code>Guess</code> 타입을 정의하는 한 가지 방법을 보여줍니다.</p>
+<Listing number="9-13" caption="A `Guess` type that will only continue with values between 1 and 100">
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct Guess {
+    value: i32,
+}
+
+impl Guess {
+    pub fn new(value: i32) -&gt; Guess {
+        if value &lt; 1 || value &gt; 100 {
+            panic!(추측 값은 1에서 100 사이여야 합니다. {value}를 받았습니다.);
+        }
+
+        Guess { value }
+    }
+
+    pub fn value(&amp;self) -&gt; i32 {
+        self.value
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+</Listing>
+<p>먼저 <code>value</code>라는 <code>i32</code> 타입의 필드를 가진 <code>Guess</code>라는 구조체를 정의합니다. 여기에 숫자가 저장될 것입니다.</p>
+<p>그런 다음 <code>Guess</code>에 <code>new</code>라는 연관 함수를 구현하여 <code>Guess</code> 값의 인스턴스를 생성합니다. <code>new</code> 함수는 <code>i32</code> 타입의 <code>value</code>라는 매개변수 하나를 가지고 <code>Guess</code>를 반환하도록 정의됩니다. <code>new</code> 함수의 본문 코드는 <code>value</code>가 1에서 100 사이인지 확인합니다. 만약 <code>value</code>가 이 테스트를 통과하지 못하면 <code>panic!</code> 호출을 발생시켜, 호출 코드를 작성하는 프로그래머에게 수정해야 할 버그가 있음을 알립니다. 왜냐하면 이 범위를 벗어난 <code>value</code>로 <code>Guess</code>를 생성하는 것은 <code>Guess::new</code>가 의존하는 계약을 위반하기 때문입니다. <code>Guess::new</code>가 패닉을 일으킬 수 있는 조건은 공개 API 문서에서 논의되어야 합니다. 14장에서 생성할 API 문서에서 <code>panic!</code> 가능성을 나타내는 문서화 규칙을 다룰 것입니다. 만약 <code>value</code>가 테스트를 통과하면, <code>value</code> 필드가 <code>value</code> 매개변수로 설정된 새로운 <code>Guess</code>를 생성하고 <code>Guess</code>를 반환합니다.</p>
+<p>다음으로, <code>self</code>를 빌리고 다른 매개변수는 없으며 <code>i32</code>를 반환하는 <code>value</code>라는 메서드를 구현합니다. 이러한 종류의 메서드는 필드에서 데이터를 가져와 반환하는 것이 목적이므로 때때로 _게터_라고 불립니다. 이 공개 메서드는 <code>Guess</code> 구조체의 <code>value</code> 필드가 비공개이기 때문에 필요합니다. <code>value</code> 필드가 비공개인 것이 중요한데, 이는 <code>Guess</code> 구조체를 사용하는 코드가 <code>value</code>를 직접 설정할 수 없도록 하기 위함입니다. 모듈 외부의 코드는 <code>Guess::new</code> 함수를 사용하여 <code>Guess</code> 인스턴스를 생성해야 하며, 이를 통해 <code>Guess</code>가 <code>Guess::new</code> 함수의 조건에 의해 확인되지 않은 <code>value</code>를 가질 수 없도록 보장합니다.</p>
+<p>매개변수를 가지거나 1에서 100 사이의 숫자만 반환하는 함수는 시그니처에서 <code>i32</code> 대신 <code>Guess</code>를 받거나 반환한다고 선언할 수 있으며, 본문에서 추가적인 검사를 할 필요가 없습니다.</p>
+<h2 id="요약"><a class="header" href="#요약">요약</a></h2>
+<p>러스트의 오류 처리 기능은 더 견고한 코드를 작성하는 데 도움이 되도록 설계되었습니다. <code>panic!</code> 매크로는 프로그램이 처리할 수 없는 상태에 있음을 알리고, 유효하지 않거나 잘못된 값으로 계속 진행하려고 시도하는 대신 프로세스를 중지하도록 지시합니다. <code>Result</code> 열거형은 러스트의 타입 시스템을 사용하여 코드가 복구할 수 있는 방식으로 작업이 실패할 수 있음을 나타냅니다. <code>Result</code>를 사용하여 코드를 호출하는 코드에 잠재적인 성공 또는 실패를 처리해야 한다고 알릴 수 있습니다. 적절한 상황에서 <code>panic!</code>과 <code>Result</code>를 사용하면 피할 수 없는 문제에 직면했을 때 코드를 더 안정적으로 만들 수 있습니다.</p>
+<p>이제 표준 라이브러리가 <code>Option</code> 및 <code>Result</code> 열거형과 함께 제네릭을 사용하는 유용한 방법을 보았으니, 제네릭이 어떻게 작동하고 코드에서 어떻게 사용할 수 있는지에 대해 이야기할 것입니다.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="ch09-02-recoverable-errors-with-result.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="ch10-00-generics.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="ch09-02-recoverable-errors-with-result.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="ch10-00-generics.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="ferris.js"></script>
+        <script src="theme/language-picker.js"></script>
+
+
+    </div>
+    </body>
+</html>

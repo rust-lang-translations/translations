@@ -1,0 +1,396 @@
+<!DOCTYPE HTML>
+<html lang="ko" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>클로저에서의 분리된 캡처 - The Rust Edition Guide</title>
+
+
+        <!-- Custom HTML head -->
+
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-L455DH98TK"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+        
+          gtag('config', 'G-L455DH98TK');
+        </script>
+        
+        
+        <script>
+            (function () {
+                // See these pages for details:
+                // https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls
+                // https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics
+        
+                function gen_canonical_href(lang) {
+        
+                    let base = "https://rust-lang-translations.org/edition-guide";
+        
+                    let canonical_href;
+                    if (lang == "en") {
+                        canonical_href = `${base}/rust-2021/disjoint-capture-in-closures.md`;
+                    } else {
+                        canonical_href = `${base}/${lang}/rust-2021/disjoint-capture-in-closures.md`;
+                    }
+                    canonical_href = canonical_href.slice(0, -"md".length) + "html";
+                    if (canonical_href.endsWith("/index.html")) {
+                        canonical_href = canonical_href.slice(0, -"index.html".length);
+                    }
+                    return canonical_href;
+                }
+        
+                const canonical_href = gen_canonical_href("ko");
+
+                let link = document.createElement("link");
+                link.rel = "canonical";
+                link.href = canonical_href;
+                document.head.appendChild(link);
+        
+        
+                const langs = ["en"  , "ko" ];
+        
+                for (const lang of langs) {
+                    const canonical_href = gen_canonical_href(lang);
+        
+                    let link = document.createElement("link");
+                    link.rel = "alternate";
+                    link.hreflang = lang;
+                    link.href = canonical_href;
+                    document.head.appendChild(link);
+                }
+            })()
+        </script>
+        
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/language-picker.css">
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rust Edition Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/rust-lang-translations/project" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/rust-lang/edition-guide/edit/master/src/rust-2021/disjoint-capture-in-closures.md" title="Suggest an edit" aria-label="Suggest an edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="클로저에서의-분리된-캡처"><a class="header" href="#클로저에서의-분리된-캡처">클로저에서의 분리된 캡처</a></h1>
+<h2 id="요약"><a class="header" href="#요약">요약</a></h2>
+<ul>
+<li><code>|| a.x + 1</code>은 이제 <code>a</code> 대신 <code>a.x</code>만 캡처합니다.</li>
+<li>이로 인해 다른 시간에 항목이 삭제되거나 클로저가 <code>Send</code> 또는 <code>Clone</code>과 같은 트레이트를 구현하는지 여부에 영향을 줄 수 있습니다.
+<ul>
+<li>가능한 변경 사항이 감지되면 <code>cargo fix</code>는 클로저가 전체 변수를 캡처하도록 강제하기 위해 <code>let _ = &amp;a</code>와 같은 문을 삽입합니다.</li>
+</ul>
+</li>
+</ul>
+<h2 id="세부-정보"><a class="header" href="#세부-정보">세부 정보</a></h2>
+<p><a href="https://doc.rust-lang.org/book/ch13-01-closures.html">클로저</a>는 본문 내에서 참조하는 모든 것을 자동으로 캡처합니다. 예를 들어 <code>|| a + 1</code>은 주변 컨텍스트에서 <code>a</code>에 대한 참조를 자동으로 캡처합니다.</p>
+<p>Rust 2018 및 이전 버전에서 클로저는 클로저가 하나의 필드만 사용하더라도 전체 변수를 캡처합니다. 예를 들어 <code>|| a.x + 1</code>은 <code>a.x</code>뿐만 아니라 <code>a</code>에 대한 참조를 캡처합니다. <code>a</code> 전체를 캡처하면 <code>a</code>의 다른 필드에서 변경 또는 이동이 방지되므로 다음과 같은 코드는 컴파일되지 않습니다.</p>
+<pre><code class="language-rust ignore">let a = SomeStruct::new();
+drop(a.x); // Move out of one field of the struct
+println!("{}", a.y); // Ok: 구조체의 다른 필드를 계속 사용
+let c = || println!("{}", a.y); // Error: Tries to capture all of `a`
+c();</code></pre>
+<p>Rust 2021부터 클로저 캡처는 더 정확해집니다. 일반적으로 사용하는 필드만 캡처합니다(경우에 따라 사용하는 것 이상을 캡처할 수 있으며 자세한 내용은 Rust 참조를 참조하십시오). 따라서 위의 예는 Rust 2021에서 잘 컴파일됩니다.</p>
+<p>분리된 캡처는 <a href="https://github.com/rust-lang/rfcs/blob/master/text/2229-capture-disjoint-fields.md">RFC 2229</a>의 일부로 제안되었으며 RFC에는 동기에 대한 자세한 내용이 포함되어 있습니다.</p>
+<h2 id="마이그레이션"><a class="header" href="#마이그레이션">마이그레이션</a></h2>
+<p>2021 에디션의 일부로 Rust 2018 코드베이스를 Rust 2021로 자동 마이그레이션하는 데 도움이 되도록 마이그레이션 린트인 <code>rust_2021_incompatible_closure_captures</code>가 추가되었습니다.</p>
+<p>코드를 Rust 2021 에디션과 호환되도록 마이그레이션하려면 다음을 실행하십시오.</p>
+<pre><code class="language-sh">cargo fix --edition
+</code></pre>
+<p>아래에서는 자동 마이그레이션이 실패하거나 마이그레이션 작동 방식을 더 잘 이해하고 싶은 경우 Rust 2021과 호환되는 클로저 캡처를 사용하도록 코드를 수동으로 마이그레이션하는 방법을 살펴봅니다.</p>
+<p>클로저에 의해 캡처된 변수를 변경하면 두 가지 경우에 프로그램 동작이 변경되거나 컴파일이 중지될 수 있습니다.</p>
+<ul>
+<li>삭제 순서 변경 또는 소멸자가 실행될 때(<a href="#drop-order">세부 정보</a>);</li>
+<li>클로저가 구현하는 트레이트 변경(<a href="#trait-implementations">세부 정보</a>).</li>
+</ul>
+<p>Whenever any of the scenarios below are detected, <code>cargo fix</code> will insert a "dummy let" into your closure to force it to capture the entire variable:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let x = (vec![22], vec![23]);
+let c = move || {
+    // "Dummy let" that forces `x` to be captured in its entirety
+    let _ = &amp;x;
+
+    // 그렇지 않으면 여기에서 `x.0`만 캡처됩니다
+    println!("{:?}", x.0);
+};
+<span class="boring">}</span></code></pre></pre>
+<p>이것은 보수적인 분석입니다. 많은 경우 이러한 더미 let은 안전하게 제거할 수 있으며 프로그램은 정상적으로 작동합니다.</p>
+<h3 id="와일드카드-패턴"><a class="header" href="#와일드카드-패턴">와일드카드 패턴</a></h3>
+<p>이제 클로저는 읽어야 할 데이터만 캡처하므로 다음 클로저는 <code>x</code>를 캡처하지 않습니다.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let x = 10;
+let c = || {
+    let _ = x; // 아무 작업도 안 함
+};
+
+let c = || match x {
+    _ =&gt; println!("Hello World!")
+};
+<span class="boring">}</span></code></pre></pre>
+<p>여기서 <code>let _ = x</code> 문은 <code>_</code> 패턴이 오른쪽을 완전히 무시하고 <code>x</code>가 메모리의 한 위치(이 경우 변수)에 대한 참조이므로 아무 작업도 수행하지 않습니다.</p>
+<p>이 변경 자체(더 적은 값 캡처)는 제안을 트리거하지 않지만 아래의 "삭제 순서" 변경과 함께 트리거할 수 있습니다.</p>
+<p><strong>미묘함:</strong> 우리가 삽입하는 "더미 let" <code>let _ = &amp;x</code>와 같이 no-op이 아닌 다른 유사한 표현식이 있습니다. 이것은 오른쪽(<code>&amp;x</code>)이 메모리의 한 위치에 대한 참조가 아니라 먼저 평가되어야 하는 표현식이기 때문입니다(그리고 그 결과는 버려집니다).</p>
+<h3 id="삭제-순서"><a class="header" href="#삭제-순서">삭제 순서</a></h3>
+<p>클로저가 변수 <code>t</code>에서 값의 소유권을 가져오면 해당 값은 변수 <code>t</code>가 범위를 벗어날 때가 아니라 클로저가 삭제될 때 삭제됩니다.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">fn move_value&lt;T&gt;(_: T){}
+</span>{
+    let t = (vec![0], vec![0]);
+
+    {
+        let c = || move_value(t); // t가 여기로 이동됩니다
+    } // c is dropped, which drops the tuple `t` as well
+} // t goes out of scope here
+<span class="boring">}</span></code></pre></pre>
+<p>위의 코드는 Rust 2018과 Rust 2021 모두에서 동일하게 실행됩니다. 그러나 클로저가 변수의 _일부_에 대한 소유권만 갖는 경우에는 차이가 있을 수 있습니다.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">fn move_value&lt;T&gt;(_: T){}
+</span>{
+    let t = (vec![0], vec![0]);
+
+    {
+        let c = || {
+            // In Rust 2018, captures all of `t`.
+            // In Rust 2021, captures only `t.0`
+            move_value(t.0);
+        };
+
+        // In Rust 2018, `c` (and `t`) are both dropped when we
+        // exit this block.
+        //
+        // In Rust 2021, `c` and `t.0` are both dropped when we
+        // exit this block.
+    }
+
+// Rust 2018에서는 `t`의 값이 이동되어 삭제되지 않습니다.
+//
+// Rust 2021에서는 `t.0`의 값이 이동되었지만 `t.1`은 남아 있으므로 여기서 삭제됩니다.
+}
+<span class="boring">}</span></code></pre></pre>
+<p>대부분의 경우 다른 시간에 값을 삭제하는 것은 메모리가 해제되는 시점에만 영향을 미치며 중요하지 않습니다. 그러나 일부 <code>Drop</code> 구현(일명 소멸자)에는 부작용이 있으며 이러한 경우 삭제 순서를 변경하면 프로그램의 의미 체계가 변경될 수 있습니다. 이러한 경우 컴파일러는 전체 변수를 캡처하도록 강제하기 위해 더미 <code>let</code>을 삽입하도록 제안합니다.</p>
+<h3 id="트레이트-구현"><a class="header" href="#트레이트-구현">트레이트 구현</a></h3>
+<p>클로저는 캡처하는 값에 따라 다음 트레이트를 자동으로 구현합니다.</p>
+<ul>
+<li><a href="https://doc.rust-lang.org/std/clone/trait.Clone.html"><code>Clone</code></a>: 모든 캡처된 값이 <code>Clone</code>인 경우.</li>
+<li><a href="https://doc.rust-lang.org/nightly/reference/special-types-and-traits.html#auto-traits">자동 트레이트</a>와 같은 <a href="https://doc.rust-lang.org/std/marker/trait.Send.html"><code>Send</code></a>, <a href="https://doc.rust-lang.org/std/marker/trait.Sync.html"><code>Sync</code></a> 및 <a href="https://doc.rust-lang.org/std/panic/trait.UnwindSafe.html"><code>UnwindSafe</code></a>: 모든 캡처된 값이 주어진 트레이트를 구현하는 경우.</li>
+</ul>
+<p>Rust 2021에서는 다른 값이 캡처되므로 클로저가 구현할 트레이트에 영향을 줄 수 있습니다. 마이그레이션 린트는 각 클로저를 테스트하여 이전에 주어진 트레이트를 구현했는지 여부와 지금도 구현하는지 여부를 확인합니다. 이전에 구현되었지만 더 이상 구현되지 않는 트레이트를 발견하면 "더미 let"이 삽입됩니다.</p>
+<p>예를 들어, 스레드 간에 원시 포인터를 전달할 수 있도록 허용하는 일반적인 방법은 이를 구조체로 래핑한 다음 래퍼에 대해 <code>Send</code>/<code>Sync</code> 자동 트레이트를 구현하는 것입니다. <code>thread::spawn</code>에 전달되는 클로저는 래퍼 내의 특정 필드를 사용하지만 전체 래퍼는 관계없이 캡처됩니다. 래퍼가 <code>Send</code>/<code>Sync</code>이므로 코드는 안전한 것으로 간주되어 성공적으로 컴파일됩니다.</p>
+<p>분리된 캡처를 사용하면 클로저에 언급된 특정 필드만 캡처되므로 원래 <code>Send</code>/<code>Sync</code>가 아니었던 래퍼의 목적을 무효화합니다.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::thread;
+
+struct Ptr(*mut i32);
+unsafe impl Send for Ptr {}
+
+
+let mut x = 5;
+let px = Ptr(&amp;mut x as *mut i32);
+
+let c = thread::spawn(move || {
+    unsafe {
+        *(px.0) += 10;
+    }
+}); // 클로저가 Send가 아닌 px.0을 캡처했습니다
+<span class="boring">}</span></code></pre></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../rust-2021/IntoIterator-for-arrays.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../rust-2021/panic-macro-consistency.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../rust-2021/IntoIterator-for-arrays.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../rust-2021/panic-macro-consistency.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/language-picker.js"></script>
+
+
+    </div>
+    </body>
+</html>
