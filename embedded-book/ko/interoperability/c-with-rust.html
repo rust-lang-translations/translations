@@ -213,18 +213,18 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="rust와-함께하는-약간의-c"><a class="header" href="#rust와-함께하는-약간의-c">Rust와 함께하는 약간의 C</a></h1>
-<p>Using C or C++ inside of a Rust project consists of two major parts:</p>
+<p>Rust 프로젝트 내에서 C 또는 C++를 사용하는 것은 두 가지 주요 부분으로 구성됩니다.</p>
 <ul>
-<li>Wrapping the exposed C API for use with Rust</li>
-<li>Building your C or C++ code to be integrated with the Rust code</li>
+<li>노출된 C API를 Rust에서 사용하도록 래핑</li>
+<li>Rust 코드와 통합될 C 또는 C++ 코드 빌드</li>
 </ul>
-<p>As C++ does not have a stable ABI for the Rust compiler to target, it is recommended to use the <code>C</code> ABI when combining Rust with C or C++.</p>
-<h2 id="defining-the-interface"><a class="header" href="#defining-the-interface">Defining the interface</a></h2>
-<p>Before consuming C or C++ code from Rust, it is necessary to define (in Rust) what data types and function signatures exist in the linked code. In C or C++, you would include a header (<code>.h</code> or <code>.hpp</code>) file which defines this data. In Rust, it is necessary to either manually translate these definitions to Rust, or use a tool to generate these definitions.</p>
-<p>First, we will cover manually translating these definitions from C/C++ to Rust.</p>
-<h3 id="wrapping-c-functions-and-datatypes"><a class="header" href="#wrapping-c-functions-and-datatypes">Wrapping C functions and Datatypes</a></h3>
-<p>Typically, libraries written in C or C++ will provide a header file defining all types and functions used in public interfaces. An example file may look like this:</p>
-<pre><code class="language-C">/* File: cool.h */
+<p>C++는 Rust 컴파일러가 대상으로 할 안정적인 ABI를 가지고 있지 않으므로, Rust와 C 또는 C++를 결합할 때 <code>C</code> ABI를 사용하는 것이 좋습니다.</p>
+<h2 id="인터페이스-정의"><a class="header" href="#인터페이스-정의">인터페이스 정의</a></h2>
+<p>Rust에서 C 또는 C++ 코드를 사용하기 전에, 링크된 코드에 어떤 데이터 타입과 함수 시그니처가 존재하는지 (Rust에서) 정의해야 합니다. C 또는 C++에서는 이 데이터를 정의하는 헤더(<code>.h</code> 또는 <code>.hpp</code>) 파일을 포함합니다. Rust에서는 이러한 정의를 수동으로 Rust로 번역하거나, 도구를 사용하여 이러한 정의를 생성해야 합니다.</p>
+<p>먼저, C/C++에서 Rust로 이러한 정의를 수동으로 번역하는 방법을 다룰 것입니다.</p>
+<h3 id="c-함수-및-데이터-타입-래핑"><a class="header" href="#c-함수-및-데이터-타입-래핑">C 함수 및 데이터 타입 래핑</a></h3>
+<p>일반적으로 C 또는 C++로 작성된 라이브러리는 공개 인터페이스에서 사용되는 모든 타입과 함수를 정의하는 헤더 파일을 제공합니다. 예시 파일은 다음과 같을 수 있습니다.</p>
+<pre><code class="language-C">/* 파일: cool.h */
 typedef struct CoolStruct {
     int x;
     int y;
@@ -232,8 +232,8 @@ typedef struct CoolStruct {
 
 void cool_function(int i, char c, CoolStruct* cs);
 </code></pre>
-<p>When translated to Rust, this interface would look as such:</p>
-<pre><code class="language-rust ignore">/* File: cool_bindings.rs */
+<p>Rust로 번역하면 이 인터페이스는 다음과 같을 것입니다.</p>
+<pre><code class="language-rust ignore">/* 파일: cool_bindings.rs */
 #[repr(C)]
 pub struct CoolStruct {
     pub x: cty::c_int,
@@ -247,48 +247,48 @@ extern "C" {
         cs: *mut CoolStruct
     );
 }</code></pre>
-<p>Let's take a look at this definition one piece at a time, to explain each of the parts.</p>
+<p>이 정의를 한 번에 한 부분씩 살펴보면서 각 부분을 설명해 봅시다.</p>
 <pre><code class="language-rust ignore">#[repr(C)]
 pub struct CoolStruct { ... }</code></pre>
-<p>By default, Rust does not guarantee order, padding, or the size of data included in a <code>struct</code>. In order to guarantee compatibility with C code, we include the <code>#[repr(C)]</code> attribute, which instructs the Rust compiler to always use the same rules C does for organizing data within a struct.</p>
+<p>기본적으로 Rust는 <code>struct</code>에 포함된 데이터의 순서, 패딩 또는 크기를 보장하지 않습니다. C 코드와의 호환성을 보장하기 위해 <code>#[repr(C)]</code> 속성을 포함하는데, 이는 Rust 컴파일러에게 구조체 내에서 데이터를 구성할 때 C와 동일한 규칙을 항상 사용하도록 지시합니다.</p>
 <pre><code class="language-rust ignore">pub x: cty::c_int,
 pub y: cty::c_int,</code></pre>
-<p>Due to the flexibility of how C or C++ defines an <code>int</code> or <code>char</code>, it is recommended to use primitive data types defined in <code>cty</code>, which will map types from C to types in Rust.</p>
+<p>C 또는 C++가 <code>int</code> 또는 <code>char</code>를 정의하는 방식의 유연성 때문에, C의 타입을 Rust의 타입으로 매핑하는 <code>cty</code>에 정의된 기본 데이터 타입을 사용하는 것이 좋습니다.</p>
 <pre><code class="language-rust ignore">extern "C" { pub fn cool_function( ... ); }</code></pre>
-<p>This statement defines the signature of a function that uses the C ABI, called <code>cool_function</code>. By defining the signature without defining the body of the function, the definition of this function will need to be provided elsewhere, or linked into the final library or binary from a static library.</p>
+<p>이 문장은 C ABI를 사용하는 <code>cool_function</code>이라는 함수의 시그니처를 정의합니다. 함수의 본문을 정의하지 않고 시그니처만 정의함으로써, 이 함수의 정의는 다른 곳에서 제공되거나 정적 라이브러리에서 최종 라이브러리 또는 바이너리로 링크되어야 합니다.</p>
 <pre><code class="language-rust ignore">    i: cty::c_int,
     c: cty::c_char,
     cs: *mut CoolStruct</code></pre>
-<p>Similar to our datatype above, we define the datatypes of the function arguments using C-compatible definitions. We also retain the same argument names, for clarity.</p>
-<p>We have one new type here, <code>*mut CoolStruct</code>. As C does not have a concept of Rust's references, which would look like this: <code>&amp;mut CoolStruct</code>, we instead have a raw pointer. As dereferencing this pointer is <code>unsafe</code>, and the pointer may in fact be a <code>null</code> pointer, care must be taken to ensure the guarantees typical of Rust when interacting with C or C++ code.</p>
-<h3 id="automatically-generating-the-interface"><a class="header" href="#automatically-generating-the-interface">Automatically generating the interface</a></h3>
-<p>Rather than manually generating these interfaces, which may be tedious and error prone, there is a tool called <a href="https://github.com/rust-lang/rust-bindgen">bindgen</a> which will perform these conversions automatically. For instructions of the usage of <a href="https://github.com/rust-lang/rust-bindgen">bindgen</a>, please refer to the <a href="https://rust-lang.github.io/rust-bindgen/">bindgen user's manual</a>, however the typical process consists of the following:</p>
+<p>위의 데이터 타입과 유사하게, 우리는 C 호환 정의를 사용하여 함수 인수의 데이터 타입을 정의합니다. 명확성을 위해 동일한 인수 이름도 유지합니다.</p>
+<p>여기에는 새로운 타입인 <code>*mut CoolStruct</code>가 있습니다. C는 Rust의 참조(예: <code>&amp;mut CoolStruct</code>) 개념이 없으므로, 대신 원시 포인터를 사용합니다. 이 포인터를 역참조하는 것은 <code>unsafe</code>이며, 포인터가 실제로 <code>null</code> 포인터일 수 있으므로 C 또는 C++ 코드와 상호 작용할 때 Rust의 일반적인 보장을 유지하도록 주의해야 합니다.</p>
+<h3 id="인터페이스-자동-생성"><a class="header" href="#인터페이스-자동-생성">인터페이스 자동 생성</a></h3>
+<p>지루하고 오류가 발생하기 쉬운 이러한 인터페이스를 수동으로 생성하는 대신, 이러한 변환을 자동으로 수행하는 <a href="https://github.com/rust-lang/rust-bindgen">bindgen</a>이라는 도구가 있습니다. <a href="https://github.com/rust-lang/rust-bindgen">bindgen</a> 사용 방법에 대한 지침은 <a href="https://rust-lang.github.io/rust-bindgen/">bindgen 사용자 매뉴얼</a>을 참조하십시오. 일반적인 과정은 다음과 같습니다.</p>
 <ol>
-<li>Gather all C or C++ headers defining interfaces or datatypes you would like to use with Rust.</li>
-<li>Write a <code>bindings.h</code> file, which <code>#include "..."</code>'s each of the files you gathered in step one.</li>
-<li>Feed this <code>bindings.h</code> file, along with any compilation flags used to compile your code into <code>bindgen</code>. Tip: use <code>Builder.ctypes_prefix("cty")</code> / <code>--ctypes-prefix=cty</code> and <code>Builder.use_core()</code> / <code>--use-core</code> to make the generated code <code>#![no_std]</code> compatible.</li>
-<li><code>bindgen</code> will produce the generated Rust code to the output of the terminal window. This output may be piped to a file in your project, such as <code>bindings.rs</code>. You may use this file in your Rust project to interact with C/C++ code compiled and linked as an external library. Tip: don't forget to use the <a href="https://crates.io/crates/cty"><code>cty</code></a> crate if your types in the generated bindings are prefixed with <code>cty</code>.</li>
+<li>Rust와 함께 사용하려는 인터페이스 또는 데이터 타입을 정의하는 모든 C 또는 C++ 헤더를 수집합니다.</li>
+<li>1단계에서 수집한 각 파일을 <code>#include "..."</code>하는 <code>bindings.h</code> 파일을 작성합니다.</li>
+<li>이 <code>bindings.h</code> 파일을 코드 컴파일에 사용된 모든 컴파일 플래그와 함께 <code>bindgen</code>에 공급합니다. 팁: 생성된 코드를 <code>#![no_std]</code> 호환 가능하게 만들려면 <code>Builder.ctypes_prefix("cty")</code> / <code>--ctypes-prefix=cty</code> 및 <code>Builder.use_core()</code> / <code>--use-core</code>를 사용하세요.</li>
+<li><code>bindgen</code>은 생성된 Rust 코드를 터미널 창의 출력으로 생성합니다. 이 출력은 <code>bindings.rs</code>와 같이 프로젝트의 파일로 파이프될 수 있습니다. 이 파일을 Rust 프로젝트에서 외부 라이브러리로 컴파일 및 링크된 C/C++ 코드와 상호 작용하는 데 사용할 수 있습니다. 팁: 생성된 바인딩의 타입에 <code>cty</code> 접두사가 붙어 있다면 <a href="https://crates.io/crates/cty"><code>cty</code></a> 크레이트를 사용하는 것을 잊지 마세요.</li>
 </ol>
-<h2 id="building-your-cc-code"><a class="header" href="#building-your-cc-code">Building your C/C++ code</a></h2>
-<p>As the Rust compiler does not directly know how to compile C or C++ code (or code from any other language, which presents a C interface), it is necessary to compile your non-Rust code ahead of time.</p>
-<p>For embedded projects, this most commonly means compiling the C/C++ code to a static archive (such as <code>cool-library.a</code>), which can then be combined with your Rust code at the final linking step.</p>
-<p>If the library you would like to use is already distributed as a static archive, it is not necessary to rebuild your code. Just convert the provided interface header file as described above, and include the static archive at compile/link time.</p>
-<p>If your code exists as a source project, it will be necessary to compile your C/C++ code to a static library, either by triggering your existing build system (such as <code>make</code>, <code>CMake</code>, etc.), or by porting the necessary compilation steps to use a tool called the <code>cc</code> crate. For both of these steps, it is necessary to use a <code>build.rs</code> script.</p>
-<h3 id="rust-buildrs-build-scripts"><a class="header" href="#rust-buildrs-build-scripts">Rust <code>build.rs</code> build scripts</a></h3>
-<p>A <code>build.rs</code> script is a file written in Rust syntax, that is executed on your compilation machine, AFTER dependencies of your project have been built, but BEFORE your project is built.</p>
-<p>The full reference may be found <a href="https://doc.rust-lang.org/cargo/reference/build-scripts.html">here</a>. <code>build.rs</code> scripts are useful for generating code (such as via <a href="https://github.com/rust-lang/rust-bindgen">bindgen</a>), calling out to external build systems such as <code>Make</code>, or directly compiling C/C++ through use of the <code>cc</code> crate.</p>
-<h3 id="triggering-external-build-systems"><a class="header" href="#triggering-external-build-systems">Triggering external build systems</a></h3>
-<p>For projects with complex external projects or build systems, it may be easiest to use <a href="https://doc.rust-lang.org/std/process/struct.Command.html"><code>std::process::Command</code></a> to "shell out" to your other build systems by traversing relative paths, calling a fixed command (such as <code>make library</code>), and then copying the resulting static library to the proper location in the <code>target</code> build directory.</p>
-<p>While your crate may be targeting a <code>no_std</code> embedded platform, your <code>build.rs</code> executes only on machines compiling your crate. This means you may use any Rust crates which will run on your compilation host.</p>
-<h3 id="building-cc-code-with-the-cc-crate"><a class="header" href="#building-cc-code-with-the-cc-crate">Building C/C++ code with the <code>cc</code> crate</a></h3>
-<p>For projects with limited dependencies or complexity, or for projects where it is difficult to modify the build system to produce a static library (rather than a final binary or executable), it may be easier to instead utilize the <a href="https://github.com/alexcrichton/cc-rs"><code>cc</code> crate</a>, which provides an idiomatic Rust interface to the compiler provided by the host.</p>
-<p>In the simplest case of compiling a single C file as a dependency to a static library, an example <code>build.rs</code> script using the <a href="https://github.com/alexcrichton/cc-rs"><code>cc</code> crate</a> would look like this:</p>
+<h2 id="cc-코드-빌드"><a class="header" href="#cc-코드-빌드">C/C++ 코드 빌드</a></h2>
+<p>Rust 컴파일러는 C 또는 C++ 코드(또는 C 인터페이스를 제공하는 다른 언어의 코드)를 직접 컴파일하는 방법을 모르기 때문에, 비 Rust 코드를 미리 컴파일해야 합니다.</p>
+<p>임베디드 프로젝트의 경우, 이는 일반적으로 C/C++ 코드를 정적 아카이브(예: <code>cool-library.a</code>)로 컴파일하는 것을 의미하며, 이는 최종 링크 단계에서 Rust 코드와 결합될 수 있습니다.</p>
+<p>사용하려는 라이브러리가 이미 정적 아카이브로 배포되어 있다면 코드를 다시 빌드할 필요가 없습니다. 위에서 설명한 대로 제공된 인터페이스 헤더 파일을 변환하고, 컴파일/링크 시점에 정적 아카이브를 포함하기만 하면 됩니다.</p>
+<p>코드가 소스 프로젝트로 존재하는 경우, 기존 빌드 시스템(<code>make</code>, <code>CMake</code> 등)을 트리거하거나 필요한 컴파일 단계를 <code>cc</code> 크레이트라는 도구를 사용하도록 포팅하여 C/C++ 코드를 정적 라이브러리로 컴파일해야 합니다. 이 두 단계 모두 <code>build.rs</code> 스크립트를 사용해야 합니다.</p>
+<h3 id="rust-buildrs-빌드-스크립트"><a class="header" href="#rust-buildrs-빌드-스크립트">Rust <code>build.rs</code> 빌드 스크립트</a></h3>
+<p>A <code>build.rs</code> 스크립트는 Rust 문법으로 작성된 파일로, 프로젝트의 종속성이 빌드된 후, 프로젝트가 빌드되기 전에 컴파일 머신에서 실행됩니다.</p>
+<p>전체 참조는 <a href="https://doc.rust-lang.org/cargo/reference/build-scripts.html">여기</a>에서 찾을 수 있습니다. <code>build.rs</code> 스크립트는 코드 생성(<a href="https://github.com/rust-lang/rust-bindgen">bindgen</a>을 통해), <code>Make</code>와 같은 외부 빌드 시스템 호출, 또는 <code>cc</code> 크레이트를 사용하여 C/C++를 직접 컴파일하는 데 유용합니다.</p>
+<h3 id="외부-빌드-시스템-트리거링"><a class="header" href="#외부-빌드-시스템-트리거링">외부 빌드 시스템 트리거링</a></h3>
+<p>복잡한 외부 프로젝트 또는 빌드 시스템을 가진 프로젝트의 경우, 상대 경로를 탐색하고 고정된 명령(<code>make library</code> 등)을 호출한 다음 결과 정적 라이브러리를 <code>target</code> 빌드 디렉토리의 적절한 위치로 복사하여 <a href="https://doc.rust-lang.org/std/process/struct.Command.html"><code>std::process::Command</code></a>를 사용하여 다른 빌드 시스템으로 "셸 아웃"하는 것이 가장 쉬울 수 있습니다.</p>
+<p>크레이트가 <code>no_std</code> 임베디드 플랫폼을 대상으로 할 수 있지만, <code>build.rs</code>는 크레이트를 컴파일하는 머신에서만 실행됩니다. 이는 컴파일 호스트에서 실행될 수 있는 모든 Rust 크레이트를 사용할 수 있음을 의미합니다.</p>
+<h3 id="cc-크레이트를-사용하여-cc-코드-빌드"><a class="header" href="#cc-크레이트를-사용하여-cc-코드-빌드"><code>cc</code> 크레이트를 사용하여 C/C++ 코드 빌드</a></h3>
+<p>제한된 종속성 또는 복잡성을 가진 프로젝트, 또는 빌드 시스템을 수정하여 정적 라이브러리(최종 바이너리 또는 실행 파일 대신)를 생성하기 어려운 프로젝트의 경우, 호스트에서 제공하는 컴파일러에 대한 관용적인 Rust 인터페이스를 제공하는 <a href="https://github.com/alexcrichton/cc-rs"><code>cc</code> 크레이트</a>를 활용하는 것이 더 쉬울 수 있습니다.</p>
+<p>단일 C 파일을 정적 라이브러리의 종속성으로 컴파일하는 가장 간단한 경우, <a href="https://github.com/alexcrichton/cc-rs"><code>cc</code> 크레이트</a>를 사용하는 <code>build.rs</code> 스크립트 예시는 다음과 같습니다.</p>
 <pre><code class="language-rust ignore">fn main() {
     cc::Build::new()
         .file("src/foo.c")
         .compile("foo");
 }</code></pre>
-<p>The <code>build.rs</code> is placed at the root of the package. Then <code>cargo build</code> will compile and execute it before the build of the package. A static archive named <code>libfoo.a</code> is generated and placed in the <code>target</code> directory.</p>
+<p>The <code>build.rs</code>는 패키지 루트에 배치됩니다. 그러면 <code>cargo build</code>는 패키지 빌드 전에 이를 컴파일하고 실행합니다. <code>libfoo.a</code>라는 이름의 정적 아카이브가 생성되어 <code>target</code> 디렉토리에 배치됩니다.</p>
 
                     </main>
 

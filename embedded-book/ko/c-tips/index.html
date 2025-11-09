@@ -213,26 +213,26 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="임베디드-c-개발자를-위한-팁"><a class="header" href="#임베디드-c-개발자를-위한-팁">임베디드 C 개발자를 위한 팁</a></h1>
-<p>This chapter collects a variety of tips that might be useful to experienced embedded C developers looking to start writing Rust. It will especially highlight how things you might already be used to in C are different in Rust.</p>
-<h2 id="preprocessor"><a class="header" href="#preprocessor">Preprocessor</a></h2>
-<p>In embedded C it is very common to use the preprocessor for a variety of purposes, such as:</p>
+<p>이 장에서는 Rust 작성을 시작하려는 숙련된 임베디드 C 개발자에게 유용할 수 있는 다양한 팁을 수집합니다. 특히 C에서 이미 익숙할 수 있는 것들이 Rust에서 어떻게 다른지 강조할 것입니다.</p>
+<h2 id="전처리기"><a class="header" href="#전처리기">전처리기</a></h2>
+<p>임베디드 C에서는 다음과 같은 다양한 목적으로 전처리기를 사용하는 것이 매우 일반적입니다.</p>
 <ul>
-<li>Compile-time selection of code blocks with <code>#ifdef</code></li>
-<li>Compile-time array sizes and computations</li>
-<li>Macros to simplify common patterns (to avoid function call overhead)</li>
+<li><code>#ifdef</code>를 사용한 컴파일 타임 코드 블록 선택</li>
+<li>컴파일 타임 배열 크기 및 계산</li>
+<li>일반적인 패턴을 단순화하기 위한 매크로 (함수 호출 오버헤드를 피하기 위해)</li>
 </ul>
-<p>In Rust there is no preprocessor, and so many of these use cases are addressed differently. In the rest of this section we cover various alternatives to using the preprocessor.</p>
-<h3 id="compile-time-code-selection"><a class="header" href="#compile-time-code-selection">Compile-Time Code Selection</a></h3>
-<p>The closest match to <code>#ifdef ... #endif</code> in Rust are <a href="https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section">Cargo features</a>. These are a little more formal than the C preprocessor: all possible features are explicitly listed per crate, and can only be either on or off. Features are turned on when you list a crate as a dependency, and are additive: if any crate in your dependency tree enables a feature for another crate, that feature will be enabled for all users of that crate.</p>
-<p>For example, you might have a crate which provides a library of signal processing primitives. Each one might take some extra time to compile or declare some large table of constants which you'd like to avoid. You could declare a Cargo feature for each component in your <code>Cargo.toml</code>:</p>
+<p>Rust에는 전처리기가 없으므로 이러한 많은 사용 사례가 다르게 처리됩니다. 이 섹션의 나머지 부분에서는 전처리기 사용에 대한 다양한 대안을 다룹니다.</p>
+<h3 id="컴파일-타임-코드-선택"><a class="header" href="#컴파일-타임-코드-선택">컴파일 타임 코드 선택</a></h3>
+<p>Rust에서 <code>#ifdef ... #endif</code>와 가장 가까운 것은 <a href="https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section">Cargo 기능</a>입니다. 이것들은 C 전처리기보다 약간 더 형식적입니다. 모든 가능한 기능은 크레이트별로 명시적으로 나열되며 켜거나 끌 수만 있습니다. 기능은 크레이트를 종속성으로 나열할 때 켜지며 추가적입니다. 종속성 트리의 모든 크레이트가 다른 크레이트에 대한 기능을 활성화하면 해당 기능은 해당 크레이트의 모든 사용자에게 활성화됩니다.</p>
+<p>예를 들어, 신호 처리 기본 요소 라이브러리를 제공하는 크레이트가 있을 수 있습니다. 각 기본 요소는 컴파일하는 데 추가 시간이 걸리거나 피하고 싶은 큰 상수 테이블을 선언할 수 있습니다. <code>Cargo.toml</code>에서 각 구성 요소에 대한 Cargo 기능을 선언할 수 있습니다.</p>
 <pre><code class="language-toml">[features]
 FIR = []
 IIR = []
 </code></pre>
-<p>Then, in your code, use <code>#[cfg(feature="FIR")]</code> to control what is included.</p>
+<p>그런 다음 코드에서 <code>#[cfg(feature="FIR")]</code>을 사용하여 포함할 내용을 제어합니다.</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>/// In your top-level lib.rs
+</span>/// 최상위 lib.rs에서
 
 #[cfg(feature="FIR")]
 pub mod fir;
@@ -240,11 +240,11 @@ pub mod fir;
 #[cfg(feature="IIR")]
 pub mod iir;
 <span class="boring">}</span></code></pre></pre>
-<p>You can similarly include code blocks only if a feature is <em>not</em> enabled, or if any combination of features are or are not enabled.</p>
-<p>Additionally, Rust provides a number of automatically-set conditions you can use, such as <code>target_arch</code> to select different code based on architecture. For full details of the conditional compilation support, refer to the <a href="https://doc.rust-lang.org/reference/conditional-compilation.html">conditional compilation</a> chapter of the Rust reference.</p>
-<p>The conditional compilation will only apply to the next statement or block. If a block can not be used in the current scope then the <code>cfg</code> attribute will need to be used multiple times.  It's worth noting that most of the time it is better to simply include all the code and allow the compiler to remove dead code when optimising: it's simpler for you and your users, and in general the compiler will do a good job of removing unused code.</p>
-<h3 id="compile-time-sizes-and-computation"><a class="header" href="#compile-time-sizes-and-computation">Compile-Time Sizes and Computation</a></h3>
-<p>Rust supports <code>const fn</code>, functions which are guaranteed to be evaluable at compile-time and can therefore be used where constants are required, such as in the size of arrays. This can be used alongside features mentioned above, for example:</p>
+<p>마찬가지로 기능이 활성화되지 <em>않은</em> 경우에만 코드 블록을 포함하거나 기능의 조합이 활성화되거나 활성화되지 않은 경우에만 포함할 수 있습니다.</p>
+<p>또한 Rust는 아키텍처에 따라 다른 코드를 선택하기 위해 <code>target_arch</code>와 같이 사용할 수 있는 여러 가지 자동으로 설정된 조건을 제공합니다. 조건부 컴파일 지원에 대한 자세한 내용은 Rust 참조의 <a href="https://doc.rust-lang.org/reference/conditional-compilation.html">조건부 컴파일</a> 장을 참조하십시오.</p>
+<p>조건부 컴파일은 다음 문장이나 블록에만 적용됩니다. 현재 범위에서 블록을 사용할 수 없는 경우 <code>cfg</code> 속성을 여러 번 사용해야 합니다. 대부분의 경우 모든 코드를 포함하고 컴파일러가 최적화할 때 죽은 코드를 제거하도록 허용하는 것이 더 낫다는 점은 주목할 가치가 있습니다. 이는 사용자와 사용자에게 더 간단하며 일반적으로 컴파일러는 사용되지 않는 코드를 제거하는 데 좋은 역할을 합니다.</p>
+<h3 id="컴파일-타임-크기-및-계산"><a class="header" href="#컴파일-타임-크기-및-계산">컴파일 타임 크기 및 계산</a></h3>
+<p>Rust는 컴파일 타임에 평가될 수 있음이 보장되는 함수인 <code>const fn</code>을 지원하므로 배열 크기와 같이 상수가 필요한 곳에 사용할 수 있습니다. 이것은 위에서 언급한 기능과 함께 사용할 수 있습니다. 예를 들어:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>const fn array_size() -&gt; usize {
@@ -256,98 +256,97 @@ pub mod iir;
 
 static BUF: [u32; array_size()] = [0u32; array_size()];
 <span class="boring">}</span></code></pre></pre>
-<p>These are new to stable Rust as of 1.31, so documentation is still sparse. The functionality available to <code>const fn</code> is also very limited at the time of writing; in future Rust releases it is expected to expand on what is permitted in a <code>const fn</code>.</p>
-<h3 id="macros"><a class="header" href="#macros">Macros</a></h3>
-<p>Rust provides an extremely powerful <a href="https://doc.rust-lang.org/book/ch19-06-macros.html">macro system</a>. While the C preprocessor operates almost directly on the text of your source code, the Rust macro system operates at a higher level. There are two varieties of Rust macro: <em>macros by example</em> and <em>procedural macros</em>. The former are simpler and most common; they look like function calls and can expand to a complete expression, statement, item, or pattern. Procedural macros are more complex but permit extremely powerful additions to the Rust language: they can transform arbitrary Rust syntax into new Rust syntax.</p>
-<p>In general, where you might have used a C preprocessor macro, you probably want to see if a macro-by-example can do the job instead. They can be defined in your crate and easily used by your own crate or exported for other users. Be aware that since they must expand to complete expressions, statements, items, or patterns, some use cases of C preprocessor macros will not work, for example a macro that expands to part of a variable name or an incomplete set of items in a list.</p>
-<p>As with Cargo features, it is worth considering if you even need the macro. In many cases a regular function is easier to understand and will be inlined to the same code as a macro. The <code>#[inline]</code> and <code>#[inline(always)]</code> <a href="https://doc.rust-lang.org/reference/attributes.html#inline-attribute">attributes</a> give you further control over this process, although care should be taken here as well — the compiler will automatically inline functions from the same crate where appropriate, so forcing it to do so inappropriately might actually lead to decreased performance.</p>
-<p>Explaining the entire Rust macro system is out of scope for this tips page, so you are encouraged to consult the Rust documentation for full details.</p>
-<h2 id="build-system"><a class="header" href="#build-system">Build System</a></h2>
-<p>Most Rust crates are built using Cargo (although it is not required). This takes care of many difficult problems with traditional build systems. However, you may wish to customise the build process. Cargo provides <a href="https://doc.rust-lang.org/cargo/reference/build-scripts.html"><code>build.rs</code> scripts</a> for this purpose. They are Rust scripts which can interact with the Cargo build system as required.</p>
-<p>Common use cases for build scripts include:</p>
+<p>이것들은 1.31부터 안정적인 Rust에 새로 추가되었으므로 문서는 아직 부족합니다. 이 글을 쓰는 시점에서 <code>const fn</code>에서 사용할 수 있는 기능도 매우 제한적입니다. 향후 Rust 릴리스에서는 <code>const fn</code>에서 허용되는 내용이 확장될 것으로 예상됩니다.</p>
+<h3 id="매크로"><a class="header" href="#매크로">매크로</a></h3>
+<p>Rust는 매우 강력한 <a href="https://doc.rust-lang.org/book/ch19-06-macros.html">매크로 시스템</a>을 제공합니다. C 전처리기는 소스 코드의 텍스트에 거의 직접적으로 작동하는 반면, Rust 매크로 시스템은 더 높은 수준에서 작동합니다. Rust 매크로에는 _예제별 매크로_와 _절차적 매크로_의 두 가지 종류가 있습니다. 전자는 더 간단하고 가장 일반적입니다. 함수 호출처럼 보이며 완전한 표현식, 문장, 항목 또는 패턴으로 확장될 수 있습니다. 절차적 매크로는 더 복잡하지만 Rust 언어에 매우 강력한 추가 기능을 허용합니다. 임의의 Rust 구문을 새로운 Rust 구문으로 변환할 수 있습니다.</p>
+<p>일반적으로 C 전처리기 매크로를 사용했을 수 있는 곳에서는 대신 예제별 매크로가 작업을 수행할 수 있는지 확인하는 것이 좋습니다. 크레이트에서 정의하고 자신의 크레이트에서 쉽게 사용하거나 다른 사용자를 위해 내보낼 수 있습니다. 완전한 표현식, 문장, 항목 또는 패턴으로 확장되어야 하므로 변수 이름의 일부나 목록의 불완전한 항목 집합으로 확장되는 매크로와 같은 C 전처리기 매크로의 일부 사용 사례는 작동하지 않는다는 점에 유의하십시오.</p>
+<p>Cargo 기능과 마찬가지로 매크로가 필요한지 여부를 고려해 볼 가치가 있습니다. 많은 경우 일반 함수가 더 이해하기 쉽고 매크로와 동일한 코드로 인라인됩니다. <code>#[inline]</code> 및 <code>#[inline(always)]</code> <a href="https://doc.rust-lang.org/reference/attributes.html#inline-attribute">속성</a>은 이 프로세스에 대한 추가 제어를 제공하지만 여기에서도 주의해야 합니다. 컴파일러는 적절한 경우 동일한 크레이트의 함수를 자동으로 인라인하므로 부적절하게 강제하면 실제로 성능이 저하될 수 있습니다.</p>
+<p>전체 Rust 매크로 시스템을 설명하는 것은 이 팁 페이지의 범위를 벗어나므로 자세한 내용은 Rust 설명서를 참조하는 것이 좋습니다.</p>
+<h2 id="빌드-시스템"><a class="header" href="#빌드-시스템">빌드 시스템</a></h2>
+<p>대부분의 Rust 크레이트는 Cargo를 사용하여 빌드됩니다(필수는 아님). 이것은 전통적인 빌드 시스템의 많은 어려운 문제를 해결합니다. 그러나 빌드 프로세스를 사용자 정의하고 싶을 수도 있습니다. Cargo는 이 목적을 위해 <a href="https://doc.rust-lang.org/cargo/reference/build-scripts.html"><code>build.rs</code> 스크립트</a>를 제공합니다. 이들은 필요에 따라 Cargo 빌드 시스템과 상호 작용할 수 있는 Rust 스크립트입니다.</p>
+<p>빌드 스크립트의 일반적인 사용 사례는 다음과 같습니다.</p>
 <ul>
-<li>provide build-time information, for example statically embedding the build date or Git commit hash into your executable</li>
-<li>generate linker scripts at build time depending on selected features or other logic</li>
-<li>change the Cargo build configuration</li>
-<li>add extra static libraries to link against</li>
+<li>빌드 시간 정보 제공, 예를 들어 빌드 날짜 또는 Git 커밋 해시를 실행 파일에 정적으로 포함</li>
+<li>선택된 기능 또는 기타 로직에 따라 빌드 시 링커 스크립트 생성</li>
+<li>Cargo 빌드 구성 변경</li>
+<li>링크할 추가 정적 라이브러리 추가</li>
 </ul>
-<p>At present there is no support for post-build scripts, which you might traditionally have used for tasks like automatic generation of binaries from the build objects or printing build information.</p>
-<h3 id="cross-compiling"><a class="header" href="#cross-compiling">Cross-Compiling</a></h3>
-<p>Using Cargo for your build system also simplifies cross-compiling. In most cases it suffices to tell Cargo <code>--target thumbv6m-none-eabi</code> and find a suitable executable in <code>target/thumbv6m-none-eabi/debug/myapp</code>.</p>
-<p>For platforms not natively supported by Rust, you will need to build <code>libcore</code> for that target yourself. On such platforms, <a href="https://github.com/japaric/xargo">Xargo</a> can be used as a stand-in for Cargo which automatically builds <code>libcore</code> for you.</p>
-<h2 id="iterators-vs-array-access"><a class="header" href="#iterators-vs-array-access">Iterators vs Array Access</a></h2>
-<p>In C you are probably used to accessing arrays directly by their index:</p>
+<p>현재 빌드 후 스크립트에 대한 지원은 없습니다. 이는 빌드 객체에서 바이너리를 자동으로 생성하거나 빌드 정보를 인쇄하는 것과 같은 작업에 전통적으로 사용했을 수 있습니다.</p>
+<h3 id="크로스-컴파일"><a class="header" href="#크로스-컴파일">크로스 컴파일</a></h3>
+<p>빌드 시스템으로 Cargo를 사용하면 크로스 컴파일도 단순화됩니다. 대부분의 경우 Cargo에 <code>--target thumbv6m-none-eabi</code>를 알려주고 <code>target/thumbv6m-none-eabi/debug/myapp</code>에서 적절한 실행 파일을 찾으면 충분합니다.</p>
+<p>Rust에서 기본적으로 지원하지 않는 플랫폼의 경우 해당 대상에 대해 <code>libcore</code>를 직접 빌드해야 합니다. 이러한 플랫폼에서는 Cargo를 대신하여 <code>libcore</code>를 자동으로 빌드해 주는 <a href="https://github.com/japaric/xargo">Xargo</a>를 사용할 수 있습니다.</p>
+<h2 id="이터레이터-vs-배열-접근"><a class="header" href="#이터레이터-vs-배열-접근">이터레이터 vs 배열 접근</a></h2>
+<p>C에서는 아마도 인덱스를 통해 배열에 직접 접근하는 데 익숙할 것입니다.</p>
 <pre><code class="language-c">int16_t arr[16];
 int i;
 for(i=0; i&lt;sizeof(arr)/sizeof(arr[0]); i++) {
     process(arr[i]);
 }
 </code></pre>
-<p>In Rust this is an anti-pattern: indexed access can be slower (as it needs to be bounds checked) and may prevent various compiler optimisations. This is an important distinction and worth repeating: Rust will check for out-of-bounds access on manual array indexing to guarantee memory safety, while C will happily index outside the array.</p>
-<p>Instead, use iterators:</p>
+<p>Rust에서는 이것이 안티패턴입니다. 인덱스 접근은 더 느릴 수 있고(경계 검사가 필요하므로) 다양한 컴파일러 최적화를 방해할 수 있습니다. 이것은 중요한 차이점이며 반복할 가치가 있습니다. Rust는 메모리 안전을 보장하기 위해 수동 배열 인덱싱에서 범위를 벗어난 접근을 확인하는 반면, C는 배열 외부를 기꺼이 인덱싱합니다.</p>
+<p>대신 이터레이터를 사용하세요:</p>
 <pre><code class="language-rust ignore">let arr = [0u16; 16];
 for element in arr.iter() {
     process(*element);
 }</code></pre>
-<p>Iterators provide a powerful array of functionality you would have to implement manually in C, such as chaining, zipping, enumerating, finding the min or max, summing, and more. Iterator methods can also be chained, giving very readable data processing code.</p>
+<p>이터레이터는 C에서 수동으로 구현해야 하는 연결, 압축, 열거, 최소 또는 최대 찾기, 합계 등과 같은 강력한 기능을 제공합니다. 이터레이터 메서드는 또한 연결될 수 있어 매우 읽기 쉬운 데이터 처리 코드를 제공합니다.</p>
 <p>See the <a href="https://doc.rust-lang.org/book/ch13-02-iterators.html">Iterators in the Book</a> and <a href="https://doc.rust-lang.org/core/iter/trait.Iterator.html">Iterator documentation</a> for more details.</p>
-<h2 id="references-vs-pointers"><a class="header" href="#references-vs-pointers">References vs Pointers</a></h2>
-<p>In Rust, pointers (called <a href="https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html#dereferencing-a-raw-pointer"><em>raw pointers</em></a>) exist but are only used in specific circumstances, as dereferencing them is always considered <code>unsafe</code> -- Rust cannot provide its usual guarantees about what might be behind the pointer.</p>
-<p>In most cases, we instead use <em>references</em>, indicated by the <code>&amp;</code> symbol, or <em>mutable references</em>, indicated by <code>&amp;mut</code>. References behave similarly to pointers, in that they can be dereferenced to access the underlying values, but they are a key part of Rust's ownership system: Rust will strictly enforce that you may only have one mutable reference <em>or</em> multiple non-mutable references to the same value at any given time.</p>
-<p>In practice this means you have to be more careful about whether you need mutable access to data: where in C the default is mutable and you must be explicit about <code>const</code>, in Rust the opposite is true.</p>
-<p>One situation where you might still use raw pointers is interacting directly with hardware (for example, writing a pointer to a buffer into a DMA peripheral register), and they are also used under the hood for all peripheral access crates to allow you to read and write memory-mapped registers.</p>
-<h2 id="volatile-access"><a class="header" href="#volatile-access">Volatile Access</a></h2>
-<p>In C, individual variables may be marked <code>volatile</code>, indicating to the compiler that the value in the variable may change between accesses. Volatile variables are commonly used in an embedded context for memory-mapped registers.</p>
-<p>In Rust, instead of marking a variable as <code>volatile</code>, we use specific methods to perform volatile access: <a href="https://doc.rust-lang.org/core/ptr/fn.read_volatile.html"><code>core::ptr::read_volatile</code></a> and <a href="https://doc.rust-lang.org/core/ptr/fn.write_volatile.html"><code>core::ptr::write_volatile</code></a>. These methods take a <code>*const T</code> or a <code>*mut T</code> (<em>raw pointers</em>, as discussed above) and perform a volatile read or write.</p>
-<p>For example, in C you might write:</p>
+<h2 id="참조-vs-포인터"><a class="header" href="#참조-vs-포인터">참조 vs 포인터</a></h2>
+<p>Rust에서 포인터(<a href="https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html#dereferencing-a-raw-pointer"><em>원시 포인터</em></a>라고 불림)는 존재하지만, 역참조하는 것이 항상 <code>unsafe</code>로 간주되므로 특정 상황에서만 사용됩니다. Rust는 포인터 뒤에 무엇이 있을지에 대한 일반적인 보장을 제공할 수 없습니다.</p>
+<p>대부분의 경우, 우리는 대신 <code>&amp;</code> 기호로 표시되는 <em>참조</em> 또는 <code>&amp;mut</code>로 표시되는 _가변 참조_를 사용합니다. 참조는 기본 값에 접근하기 위해 역참조될 수 있다는 점에서 포인터와 유사하게 동작하지만, Rust의 소유권 시스템의 핵심 부분입니다. Rust는 주어진 시간에 동일한 값에 대해 하나의 가변 참조 <em>또는</em> 여러 개의 비가변 참조만 가질 수 있도록 엄격하게 강제합니다.</p>
+<p>실제로 이는 데이터에 대한 가변 접근이 필요한지 여부에 대해 더 신중해야 함을 의미합니다. C에서는 기본값이 가변이며 <code>const</code>에 대해 명시해야 하지만, Rust에서는 그 반대입니다.</p>
+<p>원시 포인터를 여전히 사용할 수 있는 한 가지 상황은 하드웨어와 직접 상호 작용하는 경우(예: 버퍼에 대한 포인터를 DMA 주변 장치 레지스터에 쓰는 경우)이며, 모든 주변 장치 접근 크레이트에서 메모리 매핑된 레지스터를 읽고 쓸 수 있도록 내부적으로도 사용됩니다.</p>
+<h2 id="휘발성-접근"><a class="header" href="#휘발성-접근">휘발성 접근</a></h2>
+<p>C에서는 개별 변수에 <code>volatile</code>을 표시하여 컴파일러에게 변수 값이 접근 사이에 변경될 수 있음을 나타낼 수 있습니다. 휘발성 변수는 임베디드 컨텍스트에서 메모리 매핑된 레지스터에 일반적으로 사용됩니다.</p>
+<p>Rust에서는 변수를 <code>volatile</code>로 표시하는 대신, 휘발성 접근을 수행하기 위해 특정 메서드를 사용합니다: <a href="https://doc.rust-lang.org/core/ptr/fn.read_volatile.html"><code>core::ptr::read_volatile</code></a> 및 <a href="https://doc.rust-lang.org/core/ptr/fn.write_volatile.html"><code>core::ptr::write_volatile</code></a>. 이 메서드들은 <code>*const T</code> 또는 <code>*mut T</code>(<em>원시 포인터</em>, 위에서 논의됨)를 받아 휘발성 읽기 또는 쓰기를 수행합니다.</p>
+<p>예를 들어, C에서는 다음과 같이 작성할 수 있습니다.</p>
 <pre><code class="language-c">volatile bool signalled = false;
 
 void ISR() {
-    // Signal that the interrupt has occurred
+    // 인터럽트가 발생했음을 알립니다
     signalled = true;
 }
 
 void driver() {
     while(true) {
-        // Sleep until signalled
+        // 신호가 올 때까지 대기
         while(!signalled) { WFI(); }
-        // Reset signalled indicator
+        // 신호 표시기 재설정
         signalled = false;
-        // Perform some task that was waiting for the interrupt
+        // 인터럽트를 기다리던 작업을 수행
         run_task();
     }
 }
 </code></pre>
-<p>The equivalent in Rust would use volatile methods on each access:</p>
+<p>Rust에서 이에 상응하는 것은 각 접근에 휘발성 메서드를 사용하는 것입니다.</p>
 <pre><code class="language-rust ignore">static mut SIGNALLED: bool = false;
 
 #[interrupt]
 fn ISR() {
-    // Signal that the interrupt has occurred
-    // (In real code, you should consider a higher level primitive,
-    //  such as an atomic type).
+    // 인터럽트가 발생했음을 알립니다
+    // (실제 코드에서는 원자적 타입과 같은 더 높은 수준의 기본 요소를 고려해야 합니다).
     unsafe { core::ptr::write_volatile(&amp;mut SIGNALLED, true) };
 }
 
 fn driver() {
     loop {
-        // Sleep until signalled
+        // 신호가 올 때까지 대기
         while unsafe { !core::ptr::read_volatile(&amp;SIGNALLED) } {}
-        // Reset signalled indicator
+        // 신호 표시기 재설정
         unsafe { core::ptr::write_volatile(&amp;mut SIGNALLED, false) };
-        // Perform some task that was waiting for the interrupt
+        // 인터럽트를 기다리던 작업을 수행
         run_task();
     }
 }</code></pre>
-<p>A few things are worth noting in the code sample:</p>
+<p>코드 샘플에서 몇 가지 주목할 점이 있습니다.</p>
 <ul>
-<li>We can pass <code>&amp;mut SIGNALLED</code> into the function requiring <code>*mut T</code>, since <code>&amp;mut T</code> automatically converts to a <code>*mut T</code> (and the same for <code>*const T</code>)</li>
-<li>We need <code>unsafe</code> blocks for the <code>read_volatile</code>/<code>write_volatile</code> methods, since they are <code>unsafe</code> functions. It is the programmer's responsibility to ensure safe use: see the methods' documentation for further details.</li>
+<li><code>&amp;mut SIGNALLED</code>를 <code>*mut T</code>를 요구하는 함수에 전달할 수 있습니다. <code>&amp;mut T</code>는 자동으로 <code>*mut T</code>로 변환되기 때문입니다(<code>*const T</code>도 마찬가지입니다).</li>
+<li><code>read_volatile</code>/<code>write_volatile</code> 메서드는 <code>unsafe</code> 함수이므로 <code>unsafe</code> 블록이 필요합니다. 안전한 사용을 보장하는 것은 프로그래머의 책임입니다. 자세한 내용은 메서드 문서를 참조하십시오.</li>
 </ul>
-<p>It is rare to require these functions directly in your code, as they will usually be taken care of for you by higher-level libraries. For memory mapped peripherals, the peripheral access crates will implement volatile access automatically, while for concurrency primitives there are better abstractions available (see the <a href="../concurrency/index.html">Concurrency chapter</a>).</p>
-<h2 id="packed-and-aligned-types"><a class="header" href="#packed-and-aligned-types">Packed and Aligned Types</a></h2>
-<p>In embedded C it is common to tell the compiler a variable must have a certain alignment or a struct must be packed rather than aligned, usually to meet specific hardware or protocol requirements.</p>
-<p>In Rust this is controlled by the <code>repr</code> attribute on a struct or union. The default representation provides no guarantees of layout, so should not be used for code that interoperates with hardware or C. The compiler may re-order struct members or insert padding and the behaviour may change with future versions of Rust.</p>
+<p>이러한 함수를 코드에서 직접 요구하는 경우는 드뭅니다. 일반적으로 상위 수준 라이브러리에서 처리해 주기 때문입니다. 메모리 매핑된 주변 장치의 경우 주변 장치 접근 크레이트가 휘발성 접근을 자동으로 구현하며, 동시성 기본 요소의 경우 더 나은 추상화가 제공됩니다(<a href="../concurrency/index.html">동시성 장</a> 참조).</p>
+<h2 id="팩-및-정렬된-타입"><a class="header" href="#팩-및-정렬된-타입">팩 및 정렬된 타입</a></h2>
+<p>임베디드 C에서는 특정 하드웨어 또는 프로토콜 요구 사항을 충족하기 위해 변수가 특정 정렬을 가져야 하거나 구조체가 정렬되지 않고 팩되어야 한다고 컴파일러에 알리는 것이 일반적입니다.</p>
+<p>Rust에서는 이것이 구조체 또는 유니온의 <code>repr</code> 속성에 의해 제어됩니다. 기본 표현은 레이아웃을 보장하지 않으므로 하드웨어 또는 C와 상호 운용되는 코드에는 사용해서는 안 됩니다. 컴파일러는 구조체 멤버를 재정렬하거나 패딩을 삽입할 수 있으며, 동작은 Rust의 향후 버전에서 변경될 수 있습니다.</p>
 <pre><pre class="playground"><code class="language-rust">struct Foo {
     x: u16,
     y: u8,
@@ -360,8 +359,8 @@ fn main() {
 }
 
 // 0x7ffecb3511d0 0x7ffecb3511d4 0x7ffecb3511d2
-// Note ordering has been changed to x, z, y to improve packing.</code></pre></pre>
-<p>To ensure layouts that are interoperable with C, use <code>repr(C)</code>:</p>
+// 패킹 개선을 위해 순서가 x, z, y로 변경되었습니다.</code></pre></pre>
+<p>C와 상호 운용 가능한 레이아웃을 보장하려면 <code>repr(C)</code>를 사용하세요.</p>
 <pre><pre class="playground"><code class="language-rust">#[repr(C)]
 struct Foo {
     x: u16,
@@ -375,9 +374,9 @@ fn main() {
 }
 
 // 0x7fffd0d84c60 0x7fffd0d84c62 0x7fffd0d84c64
-// Ordering is preserved and the layout will not change over time.
-// `z` is two-byte aligned so a byte of padding exists between `y` and `z`.</code></pre></pre>
-<p>To ensure a packed representation, use <code>repr(packed)</code>:</p>
+// 순서는 유지되며 레이아웃은 시간이 지나도 변경되지 않습니다.
+// `z`는 2바이트 정렬되어 있으므로 `y`와 `z` 사이에 1바이트 패딩이 존재합니다.</code></pre></pre>
+<p>팩된 표현을 보장하려면 <code>repr(packed)</code>를 사용하세요.</p>
 <pre><pre class="playground"><code class="language-rust">#[repr(packed)]
 struct Foo {
     x: u16,
@@ -387,9 +386,8 @@ struct Foo {
 
 fn main() {
     let v = Foo { x: 0, y: 0, z: 0 };
-    // References must always be aligned, so to check the addresses of the
-    // struct's fields, we use `std::ptr::addr_of!()` to get a raw pointer
-    // instead of just printing `&amp;v.x`.
+    // 참조는 항상 정렬되어야 하므로, 구조체 필드의 주소를 확인하려면
+    // `&amp;v.x`를 단순히 출력하는 대신 `std::ptr::addr_of!()`를 사용하여 원시 포인터를 얻습니다.
     let px = std::ptr::addr_of!(v.x);
     let py = std::ptr::addr_of!(v.y);
     let pz = std::ptr::addr_of!(v.z);
@@ -397,9 +395,9 @@ fn main() {
 }
 
 // 0x7ffd33598490 0x7ffd33598492 0x7ffd33598493
-// No padding has been inserted between `y` and `z`, so now `z` is unaligned.</code></pre></pre>
-<p>Note that using <code>repr(packed)</code> also sets the alignment of the type to <code>1</code>.</p>
-<p>Finally, to specify a specific alignment, use <code>repr(align(n))</code>, where <code>n</code> is the number of bytes to align to (and must be a power of two):</p>
+// `y`와 `z` 사이에 패딩이 삽입되지 않아 `z`가 정렬되지 않았습니다.</code></pre></pre>
+<p><code>repr(packed)</code>를 사용하면 타입의 정렬도 <code>1</code>로 설정됩니다.</p>
+<p>마지막으로, 특정 정렬을 지정하려면 <code>repr(align(n))</code>을 사용하세요. 여기서 <code>n</code>은 정렬할 바이트 수이며 (2의 거듭제곱이어야 합니다):</p>
 <pre><pre class="playground"><code class="language-rust">#[repr(C)]
 #[repr(align(4096))]
 struct Foo {
@@ -417,21 +415,21 @@ fn main() {
 
 // 0x7ffec909a000 0x7ffec909a002 0x7ffec909a004
 // 0x7ffec909b000 0x7ffec909b002 0x7ffec909b004
-// The two instances `u` and `v` have been placed on 4096-byte alignments,
-// evidenced by the `000` at the end of their addresses.</code></pre></pre>
-<p>Note we can combine <code>repr(C)</code> with <code>repr(align(n))</code> to obtain an aligned and C-compatible layout. It is not permissible to combine <code>repr(align(n))</code> with <code>repr(packed)</code>, since <code>repr(packed)</code> sets the alignment to <code>1</code>. It is also not permissible for a <code>repr(packed)</code> type to contain a <code>repr(align(n))</code> type.</p>
-<p>For further details on type layouts, refer to the <a href="https://doc.rust-lang.org/reference/type-layout.html">type layout</a> chapter of the Rust Reference.</p>
+// 두 인스턴스 `u`와 `v`는 4096바이트 정렬에 배치되었으며,
+// 주소 끝의 `000`으로 증명됩니다.</code></pre></pre>
+<p><code>repr(C)</code>와 <code>repr(align(n))</code>을 결합하여 정렬되고 C 호환 가능한 레이아웃을 얻을 수 있습니다. <code>repr(packed)</code>는 정렬을 <code>1</code>로 설정하므로 <code>repr(align(n))</code>과 <code>repr(packed)</code>를 결합하는 것은 허용되지 않습니다. 또한 <code>repr(packed)</code> 타입이 <code>repr(align(n))</code> 타입을 포함하는 것도 허용되지 않습니다.</p>
+<p>타입 레이아웃에 대한 자세한 내용은 Rust 참조의 <a href="https://doc.rust-lang.org/reference/type-layout.html">타입 레이아웃</a> 장을 참조하십시오.</p>
 <h2 id="기타-자료"><a class="header" href="#기타-자료">기타 자료</a></h2>
 <ul>
-<li>In this book:
+<li>이 책에서:
 <ul>
-<li><a href="../interoperability/c-with-rust.html">A little C with your Rust</a></li>
-<li><a href="../interoperability/rust-with-c.html">A little Rust with your C</a></li>
+<li><a href="../interoperability/c-with-rust.html">Rust와 함께하는 약간의 C</a></li>
+<li><a href="../interoperability/rust-with-c.html">C와 함께하는 약간의 Rust</a></li>
 </ul>
 </li>
-<li><a href="https://docs.rust-embedded.org/faq.html">The Rust Embedded FAQs</a></li>
-<li><a href="http://blahg.josefsipek.net/?p=580">Rust Pointers for C Programmers</a></li>
-<li><a href="https://github.com/diwic/reffers-rs/blob/master/docs/Pointers.md">I used to use pointers - now what?</a></li>
+<li><a href="https://docs.rust-embedded.org/faq.html">Rust 임베디드 FAQ</a></li>
+<li><a href="http://blahg.josefsipek.net/?p=580">C 프로그래머를 위한 Rust 포인터</a></li>
+<li><a href="https://github.com/diwic/reffers-rs/blob/master/docs/Pointers.md">포인터를 사용했었는데 - 이제 무엇을?</a></li>
 </ul>
 
                     </main>

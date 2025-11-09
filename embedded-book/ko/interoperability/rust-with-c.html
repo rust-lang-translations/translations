@@ -213,48 +213,48 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="c와-함께하는-약간의-rust"><a class="header" href="#c와-함께하는-약간의-rust">C와 함께하는 약간의 Rust</a></h1>
-<p>Using Rust code inside a C or C++ project mostly consists of two parts.</p>
+<p>C 또는 C++ 프로젝트 내에서 Rust 코드를 사용하는 것은 주로 두 부분으로 구성됩니다.</p>
 <ul>
-<li>Creating a C-friendly API in Rust</li>
-<li>Embedding your Rust project into an external build system</li>
+<li>Rust에서 C 친화적인 API 생성</li>
+<li>Rust 프로젝트를 외부 빌드 시스템에 임베딩</li>
 </ul>
-<p>Apart from <code>cargo</code> and <code>meson</code>, most build systems don't have native Rust support. So you're most likely best off just using <code>cargo</code> for compiling your crate and any dependencies.</p>
-<h2 id="setting-up-a-project"><a class="header" href="#setting-up-a-project">Setting up a project</a></h2>
-<p>Create a new <code>cargo</code> project as usual.</p>
-<p>There are flags to tell <code>cargo</code> to emit a systems library, instead of its regular rust target. This also allows you to set a different output name for your library, if you want it to differ from the rest of your crate.</p>
+<p><code>cargo</code>와 <code>meson</code>을 제외하고 대부분의 빌드 시스템은 네이티브 Rust 지원이 없습니다. 따라서 크레이트와 모든 종속성을 컴파일하는 데 <code>cargo</code>를 사용하는 것이 가장 좋습니다.</p>
+<h2 id="프로젝트-설정"><a class="header" href="#프로젝트-설정">프로젝트 설정</a></h2>
+<p>평소처럼 새로운 <code>cargo</code> 프로젝트를 생성하세요.</p>
+<p><code>cargo</code>에게 일반적인 Rust 타겟 대신 시스템 라이브러리를 생성하도록 지시하는 플래그가 있습니다. 이는 또한 라이브러리의 출력 이름을 크레이트의 나머지 부분과 다르게 설정하려는 경우 다른 이름으로 설정할 수 있도록 합니다.</p>
 <pre><code class="language-toml">[lib]
 name = "your_crate"
-crate-type = ["cdylib"]      # Creates dynamic lib
-# crate-type = ["staticlib"] # Creates static lib
+crate-type = ["cdylib"]      # 동적 라이브러리 생성
+# crate-type = ["staticlib"] # 정적 라이브러리 생성
 </code></pre>
-<h2 id="building-a-c-api"><a class="header" href="#building-a-c-api">Building a <code>C</code> API</a></h2>
-<p>Because C++ has no stable ABI for the Rust compiler to target, we use <code>C</code> for any interoperability between different languages. This is no exception when using Rust inside of C and C++ code.</p>
+<h2 id="c-api-빌드"><a class="header" href="#c-api-빌드"><code>C</code> API 빌드</a></h2>
+<p>C++는 Rust 컴파일러가 대상으로 할 안정적인 ABI를 가지고 있지 않으므로, 다른 언어 간의 모든 상호 운용성을 위해 <code>C</code>를 사용합니다. 이는 C 및 C++ 코드 내에서 Rust를 사용할 때도 예외는 아닙니다.</p>
 <h3 id="no_mangle"><a class="header" href="#no_mangle"><code>#[no_mangle]</code></a></h3>
-<p>The Rust compiler mangles symbol names differently than native code linkers expect. As such, any function that Rust exports to be used outside of Rust needs to be told not to be mangled by the compiler.</p>
+<p>Rust 컴파일러는 네이티브 코드 링커가 예상하는 것과 다르게 심볼 이름을 맹글링합니다. 따라서 Rust 외부에서 사용될 Rust가 내보내는 모든 함수는 컴파일러에 의해 맹글링되지 않도록 지시해야 합니다.</p>
 <h3 id="extern-c"><a class="header" href="#extern-c"><code>extern "C"</code></a></h3>
-<p>By default, any function you write in Rust will use the Rust ABI (which is also not stabilized). Instead, when building outwards facing FFI APIs we need to tell the compiler to use the system ABI.</p>
-<p>Depending on your platform, you might want to target a specific ABI version, which are documented <a href="https://doc.rust-lang.org/reference/items/external-blocks.html">here</a>.</p>
+<p>기본적으로 Rust로 작성하는 모든 함수는 Rust ABI를 사용합니다(이 또한 안정화되지 않았습니다). 대신, 외부를 향하는 FFI API를 빌드할 때는 컴파일러에게 시스템 ABI를 사용하도록 지시해야 합니다.</p>
+<p>플랫폼에 따라 특정 ABI 버전을 대상으로 지정할 수 있으며, 이는 <a href="https://doc.rust-lang.org/reference/items/external-blocks.html">여기</a>에 문서화되어 있습니다.</p>
 <hr />
-<p>Putting these parts together, you get a function that looks roughly like this.</p>
+<p>이러한 부분들을 종합하면 대략 다음과 같은 함수를 얻을 수 있습니다.</p>
 <pre><code class="language-rust ignore">#[no_mangle]
 pub extern "C" fn rust_function() {
 
 }</code></pre>
-<p>Just as when using <code>C</code> code in your Rust project you now need to transform data from and to a form that the rest of the application will understand.</p>
-<h2 id="linking-and-greater-project-context"><a class="header" href="#linking-and-greater-project-context">Linking and greater project context.</a></h2>
-<p>So then, that's one half of the problem solved. How do you use this now?</p>
-<p><strong>This very much depends on your project and/or build system</strong></p>
-<p><code>cargo</code> will create a <code>my_lib.so</code>/<code>my_lib.dll</code> or <code>my_lib.a</code> file, depending on your platform and settings. This library can simply be linked by your build system.</p>
-<p>However, calling a Rust function from C requires a header file to declare the function signatures.</p>
-<p>Every function in your Rust-ffi API needs to have a corresponding header function.</p>
+<p>Rust 프로젝트에서 <code>C</code> 코드를 사용할 때와 마찬가지로, 이제 나머지 애플리케이션이 이해할 수 있는 형식으로 데이터를 변환해야 합니다.</p>
+<h2 id="링크-및-더-넓은-프로젝트-컨텍스트"><a class="header" href="#링크-및-더-넓은-프로젝트-컨텍스트">링크 및 더 넓은 프로젝트 컨텍스트.</a></h2>
+<p>그렇다면 문제의 절반은 해결되었습니다. 이제 이것을 어떻게 사용합니까?</p>
+<p><strong>이는 프로젝트 및/또는 빌드 시스템에 따라 크게 달라집니다</strong></p>
+<p><code>cargo</code>는 플랫폼 및 설정에 따라 <code>my_lib.so</code>/<code>my_lib.dll</code> 또는 <code>my_lib.a</code> 파일을 생성합니다. 이 라이브러리는 빌드 시스템에 의해 간단히 링크될 수 있습니다.</p>
+<p>그러나 C에서 Rust 함수를 호출하려면 함수 시그니처를 선언하는 헤더 파일이 필요합니다.</p>
+<p>Rust-ffi API의 모든 함수는 해당 헤더 함수를 가져야 합니다.</p>
 <pre><code class="language-rust ignore">#[no_mangle]
 pub extern "C" fn rust_function() {}</code></pre>
-<p>would then become</p>
+<p>그러면 ~가 됩니다</p>
 <pre><code class="language-C">void rust_function();
 </code></pre>
-<p>etc.</p>
-<p>There is a tool to automate this process, called <a href="https://github.com/eqrion/cbindgen">cbindgen</a> which analyses your Rust code and then generates headers for your C and C++ projects from it.</p>
-<p>At this point, using the Rust functions from C is as simple as including the header and calling them!</p>
+<p>등.</p>
+<p>이 과정을 자동화하는 도구인 <a href="https://github.com/eqrion/cbindgen">cbindgen</a>이 있습니다. 이 도구는 Rust 코드를 분석한 다음 C 및 C++ 프로젝트용 헤더를 생성합니다.</p>
+<p>이 시점에서 C에서 Rust 함수를 사용하는 것은 헤더를 포함하고 호출하는 것만큼 간단합니다!</p>
 <pre><code class="language-C">#include "my-rust-project.h"
 rust_function();
 </code></pre>
