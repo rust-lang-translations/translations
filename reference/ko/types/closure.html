@@ -219,7 +219,7 @@
                         <div class="rule" id="r-type.closure"><a class="rule-link" href="#r-type.closure" title="type.closure"><span>[type<wbr>.closure]<span/></a></div>
 <h1 id="클로저-타입"><a class="header" href="#클로저-타입">클로저 타입</a></h1>
 <div class="rule" id="r-type.closure.intro"><a class="rule-link" href="#r-type.closure.intro" title="type.closure.intro"><span>[type<wbr>.closure<wbr>.intro]<span/></a></div>
-<p>A <a href="../expressions/closure-expr.html">closure expression</a> produces a closure value with a unique, anonymous type that cannot be written out. A closure type is approximately equivalent to a struct which contains the captured values. For instance, the following closure:</p>
+<p><a href="../expressions/closure-expr.html">클로저 표현식</a>은 직접 작성할 수 없는 고유하고 익명인 타입을 가진 클로저 값을 생성합니다. 클로저 타입은 캡처된 값들을 포함하는 구조체와 거의 동일합니다. 예를 들어, 다음과 같은 클로저는:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Debug)]
@@ -240,12 +240,11 @@ let c = || {
     rect.right_bottom.x += 1;
     format!("{:?}", rect.left_top)
 };
-f(c); // Prints "Point { x: 2, y: 1 }".
+f(c); // "Point { x: 2, y: 1 }"을 출력합니다.
 <span class="boring">}</span></code></pre></pre>
-<p>generates a closure type roughly like the following:</p>
+<p>대략 다음과 같은 클로저 타입을 생성합니다:</p>
 <!-- ignore: simplified -->
-<pre><code class="language-rust ignore">// Note: This is not exactly how it is translated, this is only for
-// illustration.
+<pre><code class="language-rust ignore">// 참고: 이것은 실제 번역되는 방식과 정확히 일치하지 않으며, 단지 설명을 위한 것입니다.
 
 struct Closure&lt;'a&gt; {
     left_top : &amp;'a mut Point,
@@ -260,44 +259,44 @@ impl&lt;'a&gt; FnOnce&lt;()&gt; for Closure&lt;'a&gt; {
         format!("{:?}", self.left_top)
     }
 }</code></pre>
-<p>so that the call to <code>f</code> works as if it were:</p>
+<p>그리하여 <code>f</code>에 대한 호출이 다음과 같이 작동하도록 합니다:</p>
 <!-- ignore: continuation of above -->
-<pre><code class="language-rust ignore">// Note: This is not valid Rust due to the duplicate mutable borrows.
-// This is only provided as an illustration.
+<pre><code class="language-rust ignore">// 참고: 중복된 가변 차용으로 인해 이는 유효한 러스트 코드가 아닙니다.
+// 이는 오직 설명을 위해서만 제공됩니다.
 f(Closure{ left_top: &amp;mut rect.left_top, right_bottom_x: &amp;mut rect.left_top.x });</code></pre>
 <div class="rule" id="r-type.closure.capture"><a class="rule-link" href="#r-type.closure.capture" title="type.closure.capture"><span>[type<wbr>.closure<wbr>.capture]<span/></a></div>
-<h2 id="capture-modes"><a class="header" href="#capture-modes">Capture modes</a></h2>
+<h2 id="캡처-모드"><a class="header" href="#캡처-모드">캡처 모드</a></h2>
 <div class="rule" id="r-type.closure.capture.intro"><a class="rule-link" href="#r-type.closure.capture.intro" title="type.closure.capture.intro"><span>[type<wbr>.closure<wbr>.capture<wbr>.intro]<span/></a></div>
-<p>A <em>capture mode</em> determines how a <a href="../expressions.html#place-expressions-and-value-expressions">place expression</a> from the environment is borrowed or moved into the closure. The capture modes are:</p>
+<p>_캡처 모드_는 환경의 <a href="../expressions.html#place-expressions-and-value-expressions">장소 표현식(place expression)</a>이 클로저 내부로 어떻게 차용되거나 이동되는지를 결정합니다. 캡처 모드는 다음과 같습니다:</p>
 <ol>
-<li>Immutable borrow (<code>ImmBorrow</code>) — The place expression is captured as a <a href="pointer.html#references--and-mut">shared reference</a>.</li>
-<li>Unique immutable borrow (<code>UniqueImmBorrow</code>) — This is similar to an immutable borrow, but must be unique as described <a href="#unique-immutable-borrows-in-captures">below</a>.</li>
-<li>Mutable borrow (<code>MutBorrow</code>) — The place expression is captured as a <a href="pointer.html#mutable-references-mut">mutable reference</a>.</li>
-<li>Move (<code>ByValue</code>) — The place expression is captured by <a href="../expressions.html#moved-and-copied-types">moving the value</a> into the closure.</li>
+<li>불변 차용 (<code>ImmBorrow</code>) — 장소 표현식이 <a href="pointer.html#references--and-mut">공유 참조</a>로 캡처됩니다.</li>
+<li>고유 불변 차용 (<code>UniqueImmBorrow</code>) — 이는 불변 차용과 유사하지만, <a href="#unique-immutable-borrows-in-captures">아래</a>에 설명된 대로 고유해야 합니다.</li>
+<li>가변 차용 (<code>MutBorrow</code>) — 장소 표현식이 <a href="pointer.html#mutable-references-mut">가변 참조</a>로 캡처됩니다.</li>
+<li>이동 (<code>ByValue</code>) — <a href="../expressions.html#moved-and-copied-types">값을 이동</a>시켜서 장소 표현식을 캡처합니다.</li>
 </ol>
 <div class="rule" id="r-type.closure.capture.precedence"><a class="rule-link" href="#r-type.closure.capture.precedence" title="type.closure.capture.precedence"><span>[type<wbr>.closure<wbr>.capture<wbr>.precedence]<span/></a></div>
-<p>Place expressions from the environment are captured from the first mode that is compatible with how the captured value is used inside the closure body. The mode is not affected by the code surrounding the closure, such as the lifetimes of involved variables or fields, or of the closure itself.</p>
+<p>환경의 장소 표현식은 클로저 본문 내에서 캡처된 값이 사용되는 방식과 호환되는 첫 번째 모드로 캡처됩니다. 캡처 모드는 관련된 변수나 필드의 라이프타임, 또는 클로저 자체의 라이프타임과 같은 클로저 주변의 코드에 의해 영향을 받지 않습니다.</p>
 <div class="rule" id="r-type.closure.capture.copy"><a class="rule-link" href="#r-type.closure.capture.copy" title="type.closure.capture.copy"><span>[type<wbr>.closure<wbr>.capture<wbr>.copy]<span/></a></div>
-<h3 id="copy-values"><a class="header" href="#copy-values"><code>Copy</code> values</a></h3>
-<p>Values that implement <a href="../special-types-and-traits.html#copy"><code>Copy</code></a> that are moved into the closure are captured with the <code>ImmBorrow</code> mode.</p>
+<h3 id="copy-값"><a class="header" href="#copy-값"><code>Copy</code> 값</a></h3>
+<p>클로저 내부로 이동된 <a href="../special-types-and-traits.html#copy"><code>Copy</code></a>를 구현하는 값은 <code>ImmBorrow</code> 모드로 캡처됩니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let x = [0; 1024];
 let c = || {
-    let y = x; // x captured by ImmBorrow
+    let y = x; // x는 ImmBorrow로 캡처됨
 };
 <span class="boring">}</span></code></pre></pre>
 <div class="rule" id="r-type.closure.async.input"><a class="rule-link" href="#r-type.closure.async.input" title="type.closure.async.input"><span>[type<wbr>.closure<wbr>.async<wbr>.input]<span/></a></div>
-<h3 id="async-input-capture"><a class="header" href="#async-input-capture">Async input capture</a></h3>
-<p>Async closures always capture all input arguments, regardless of whether or not they are used within the body.</p>
-<h2 id="capture-precision"><a class="header" href="#capture-precision">Capture Precision</a></h2>
+<h3 id="비동기-입력-캡처"><a class="header" href="#비동기-입력-캡처">비동기 입력 캡처</a></h3>
+<p>비동기 클로저는 본문에서 사용되는지 여부에 관계없이 항상 모든 입력 인자를 캡처합니다.</p>
+<h2 id="캡처-정밀도"><a class="header" href="#캡처-정밀도">캡처 정밀도</a></h2>
 <div class="rule" id="r-type.closure.capture.precision.capture-path"><a class="rule-link" href="#r-type.closure.capture.precision.capture-path" title="type.closure.capture.precision.capture-path"><span>[type<wbr>.closure<wbr>.capture<wbr>.precision<wbr>.capture-path]<span/></a></div>
-<p>A <em>capture path</em> is a sequence starting with a variable from the environment followed by zero or more place projections that were applied to that variable.</p>
+<p>_캡처 경로_는 환경의 변수에서 시작하여 해당 변수에 적용된 0개 이상의 장소 투영(place projection)으로 이어지는 시퀀스입니다.</p>
 <div class="rule" id="r-type.closure.capture.precision.place-projection"><a class="rule-link" href="#r-type.closure.capture.precision.place-projection" title="type.closure.capture.precision.place-projection"><span>[type<wbr>.closure<wbr>.capture<wbr>.precision<wbr>.place-projection]<span/></a></div>
-<p>A <em>place projection</em> is a <a href="../expressions/field-expr.html">field access</a>, <a href="../expressions/tuple-expr.html#tuple-indexing-expressions">tuple index</a>, <a href="../expressions/operator-expr.html#the-dereference-operator">dereference</a> (and automatic dereferences), or <a href="../expressions/array-expr.html#array-and-slice-indexing-expressions">array or slice index</a> expression applied to a variable.</p>
+<p>_장소 투영_은 변수에 적용된 <a href="../expressions/field-expr.html">필드 접근</a>, <a href="../expressions/tuple-expr.html#tuple-indexing-expressions">튜플 인덱스</a>, <a href="../expressions/operator-expr.html#the-dereference-operator">역참조</a>(및 자동 역참조), 또는 <a href="../expressions/array-expr.html#array-and-slice-indexing-expressions">배열이나 슬라이스 인덱스</a> 표현식입니다.</p>
 <div class="rule" id="r-type.closure.capture.precision.intro"><a class="rule-link" href="#r-type.closure.capture.precision.intro" title="type.closure.capture.precision.intro"><span>[type<wbr>.closure<wbr>.capture<wbr>.precision<wbr>.intro]<span/></a></div>
-<p>The closure borrows or moves the capture path, which may be truncated based on the rules described below.</p>
-<p>For example:</p>
+<p>클로저는 캡처 경로를 차용하거나 이동하며, 이는 아래에 설명된 규칙에 따라 잘릴(truncated) 수 있습니다.</p>
+<p>예:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct SomeStruct {
@@ -306,37 +305,37 @@ let c = || {
 let s = SomeStruct { f1: (1, 2) };
 
 let c = || {
-    let x = s.f1.1; // s.f1.1 captured by ImmBorrow
+    let x = s.f1.1; // s.f1.1은 ImmBorrow로 캡처됨
 };
 c();
 <span class="boring">}</span></code></pre></pre>
-<p>Here the capture path is the local variable <code>s</code>, followed by a field access <code>.f1</code>, and then a tuple index <code>.1</code>. This closure captures an immutable borrow of <code>s.f1.1</code>.</p>
+<p>여기서 캡처 경로는 로컬 변수 <code>s</code>, 필드 접근 <code>.f1</code>, 그리고 튜플 인덱스 <code>.1</code>로 이어집니다. 이 클로저는 <code>s.f1.1</code>의 불변 차용을 캡처합니다.</p>
 <div class="rule" id="r-type.closure.capture.precision.shared-prefix"><a class="rule-link" href="#r-type.closure.capture.precision.shared-prefix" title="type.closure.capture.precision.shared-prefix"><span>[type<wbr>.closure<wbr>.capture<wbr>.precision<wbr>.shared-prefix]<span/></a></div>
-<h3 id="shared-prefix"><a class="header" href="#shared-prefix">Shared prefix</a></h3>
-<p>In the case where a capture path and one of the ancestor’s of that path are both captured by a closure, the ancestor path is captured with the highest capture mode among the two captures, <code>CaptureMode = max(AncestorCaptureMode, DescendantCaptureMode)</code>, using the strict weak ordering:</p>
+<h3 id="공유-접두어"><a class="header" href="#공유-접두어">공유 접두어</a></h3>
+<p>캡처 경로와 그 경로의 조상 중 하나가 모두 클로저에 의해 캡처되는 경우, 조상 경로는 두 캡처 중 가장 높은 캡처 모드로 캡처됩니다. <code>CaptureMode = max(조상캡처모드, 자손캡처모드)</code>이며, 다음의 엄격한 약순서(strict weak ordering)를 사용합니다:</p>
 <p><code>ImmBorrow &lt; UniqueImmBorrow &lt; MutBorrow &lt; ByValue</code></p>
-<p>Note that this might need to be applied recursively.</p>
+<p>이는 재귀적으로 적용되어야 할 수도 있음에 유의하십시오.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// In this example, there are three different capture paths with a shared ancestor:
+</span>// 이 예시에서, 공유된 조상을 가진 세 가지 서로 다른 캡처 경로가 있습니다:
 <span class="boring">fn move_value&lt;T&gt;(_: T){}
 </span>let s = String::from("S");
 let t = (s, String::from("T"));
 let mut u = (t, String::from("U"));
 
 let c = || {
-    println!("{:?}", u); // u captured by ImmBorrow
-    u.1.truncate(0); // u.0 captured by MutBorrow
-    move_value(u.0.0); // u.0.0 captured by ByValue
+    println!("{:?}", u); // u는 ImmBorrow로 캡처됨
+    u.1.truncate(0); // u.0은 MutBorrow로 캡처됨
+    move_value(u.0.0); // u.0.0은 ByValue로 캡처됨
 };
 c();
 <span class="boring">}</span></code></pre></pre>
-<p>Overall this closure will capture <code>u</code> by <code>ByValue</code>.</p>
+<p>전체적으로 이 클로저는 <code>u</code>를 <code>ByValue</code>로 캡처하게 됩니다.</p>
 <div class="rule" id="r-type.closure.capture.precision.dereference-shared"><a class="rule-link" href="#r-type.closure.capture.precision.dereference-shared" title="type.closure.capture.precision.dereference-shared"><span>[type<wbr>.closure<wbr>.capture<wbr>.precision<wbr>.dereference-shared]<span/></a></div>
-<h3 id="rightmost-shared-reference-truncation"><a class="header" href="#rightmost-shared-reference-truncation">Rightmost shared reference truncation</a></h3>
-<p>The capture path is truncated at the rightmost dereference in the capture path if the dereference is applied to a shared reference.</p>
-<p>This truncation is allowed because fields that are read through a shared reference will always be read via a shared reference or a copy. This helps reduce the size of the capture when the extra precision does not yield any benefit from a borrow checking perspective.</p>
-<p>The reason it is the <em>rightmost</em> dereference is to help avoid a shorter lifetime than is necessary. Consider the following example:</p>
+<h3 id="가장-오른쪽-공유-참조-자르기"><a class="header" href="#가장-오른쪽-공유-참조-자르기">가장 오른쪽 공유 참조 자르기</a></h3>
+<p>공유 참조에 대해 역참조가 적용되는 경우, 캡처 경로는 가장 오른쪽 역참조 지점에서 잘립니다.</p>
+<p>이러한 자르기가 허용되는 이유는 공유 참조를 통해 읽는 필드는 항상 공유 참조나 복사를 통해 읽히기 때문입니다. 이는 추가적인 정밀도가 차용 검사 관점에서 아무런 이득을 주지 않을 때 캡처 크기를 줄이는 데 도움이 됩니다.</p>
+<p><em>가장 오른쪽</em> 역참조인 이유는 필요 이상으로 짧은 라이프타임을 피하기 위해서입니다. 다음 예시를 보십시오:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Int(i32);
@@ -352,32 +351,32 @@ fn foo&lt;'a, 'b&gt;(m: &amp;'a MyStruct&lt;'b&gt;) -&gt; impl FnMut() + 'static
     c
 }
 <span class="boring">}</span></code></pre></pre>
-<p>If this were to capture <code>m</code>, then the closure would no longer outlive <code>'static</code>, since <code>m</code> is constrained to <code>'a</code>. Instead, it captures <code>(*(*m).a)</code> by <code>ImmBorrow</code>.</p>
+<p>만약 이것이 <code>m</code>을 캡처한다면, <code>m</code>은 <code>'a</code>로 제한되어 있으므로 클로저는 더 이상 <code>'static</code>보다 오래 살 수 없게 됩니다. 대신, <code>(*(*m).a)</code>를 <code>ImmBorrow</code>로 캡처합니다.</p>
 <div class="rule" id="r-type.closure.capture.precision.wildcard"><a class="rule-link" href="#r-type.closure.capture.precision.wildcard" title="type.closure.capture.precision.wildcard"><span>[type<wbr>.closure<wbr>.capture<wbr>.precision<wbr>.wildcard]<span/></a></div>
-<h3 id="wildcard-pattern-bindings"><a class="header" href="#wildcard-pattern-bindings">Wildcard pattern bindings</a></h3>
-<p>Closures only capture data that needs to be read. Binding a value with a <a href="../patterns.html#wildcard-pattern">wildcard pattern</a> does not count as a read, and thus won’t be captured. For example, the following closures will not capture <code>x</code>:</p>
+<h3 id="와일드카드-패턴-바인딩"><a class="header" href="#와일드카드-패턴-바인딩">와일드카드 패턴 바인딩</a></h3>
+<p>클로저는 읽어야 할 필요가 있는 데이터만 캡처합니다. <a href="../patterns.html#wildcard-pattern">와일드카드 패턴</a>으로 값을 바인딩하는 것은 읽기로 간주되지 않으며, 따라서 캡처되지 않습니다. 예를 들어, 다음 클로저들은 <code>x</code>를 캡처하지 않습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let x = String::from("hello");
 let c = || {
-    let _ = x;  // x is not captured
+    let _ = x;  // x는 캡처되지 않음
 };
 c();
 
-let c = || match x {  // x is not captured
+let c = || match x {  // x는 캡처되지 않음
     _ =&gt; println!("Hello World!")
 };
 c();
 <span class="boring">}</span></code></pre></pre>
-<p>This also includes destructuring of tuples, structs, and enums. Fields matched with the <a href="../patterns.html#rest-patterns"><em>RestPattern</em></a> or <a href="../patterns.html#struct-patterns"><em>StructPatternEtCetera</em></a> are also not considered as read, and thus those fields will not be captured. The following illustrates some of these:</p>
+<p>이는 튜플, 구조체, 열거형의 구조 분해에도 포함됩니다. <a href="../patterns.html#rest-patterns"><em>나머지 패턴</em></a>이나 <a href="../patterns.html#struct-patterns"><em>구조체패턴기타</em></a>와 매치되는 필드들도 읽기로 간주되지 않으며, 따라서 해당 필드들은 캡처되지 않습니다. 다음은 이에 대한 몇 가지 설명입니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let x = (String::from("a"), String::from("b"));
 let c = || {
-    let (first, ..) = x;  // captures `x.0` ByValue
+    let (first, ..) = x;  // `x.0`을 ByValue로 캡처함
 };
-// The first tuple field has been moved into the closure.
-// The second tuple field is still accessible.
+// 첫 번째 튜플 필드는 클로저 내부로 이동되었습니다.
+// 두 번째 튜플 필드는 여전히 접근 가능합니다.
 println!("{:?}", x.1);
 c();
 <span class="boring">}</span></code></pre></pre>
@@ -393,15 +392,15 @@ let e = Example {
     f2: String::from("second"),
 };
 let c = || {
-    let Example { f2, .. } = e; // captures `e.f2` ByValue
+    let Example { f2, .. } = e; // `e.f2`를 ByValue로 캡처함
 };
-// Field f2 cannot be accessed since it is moved into the closure.
-// Field f1 is still accessible.
+// f2 필드는 클로저 내부로 이동되었으므로 접근할 수 없습니다.
+// f1 필드는 여전히 접근 가능합니다.
 println!("{:?}", e.f1);
 c();
 <span class="boring">}</span></code></pre></pre>
 <div class="rule" id="r-type.closure.capture.precision.wildcard.array-slice"><a class="rule-link" href="#r-type.closure.capture.precision.wildcard.array-slice" title="type.closure.capture.precision.wildcard.array-slice"><span>[type<wbr>.closure<wbr>.capture<wbr>.precision<wbr>.wildcard<wbr>.array-slice]<span/></a></div>
-<p>Partial captures of arrays and slices are not supported; the entire slice or array is always captured even if used with wildcard pattern matching, indexing, or sub-slicing. For example:</p>
+<p>배열과 슬라이스의 부분 캡처는 지원되지 않습니다. 와일드카드 패턴 매칭, 인덱싱 또는 서브 슬라이싱과 함께 사용되더라도 항상 전체 슬라이스나 배열이 캡처됩니다. 예시:</p>
 <pre><pre class="playground"><code class="language-rust compile_fail E0382 edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Debug)]
@@ -409,23 +408,23 @@ struct Example;
 let x = [Example, Example];
 
 let c = || {
-    let [first, _] = x; // captures all of `x` ByValue
+    let [first, _] = x; // `x` 전체를 ByValue로 캡처함
 };
 c();
-println!("{:?}", x[1]); // ERROR: borrow of moved value: `x`
+println!("{:?}", x[1]); // ERROR: 이동된 값의 차용: `x`
 <span class="boring">}</span></code></pre></pre>
 <div class="rule" id="r-type.closure.capture.precision.wildcard.initialized"><a class="rule-link" href="#r-type.closure.capture.precision.wildcard.initialized" title="type.closure.capture.precision.wildcard.initialized"><span>[type<wbr>.closure<wbr>.capture<wbr>.precision<wbr>.wildcard<wbr>.initialized]<span/></a></div>
-<p>Values that are matched with wildcards must still be initialized.</p>
+<p>와일드카드와 매치되는 값들도 여전히 초기화되어 있어야 합니다.</p>
 <pre><pre class="playground"><code class="language-rust compile_fail E0381 edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let x: i32;
 let c = || {
-    let _ = x; // ERROR: used binding `x` isn't initialized
+    let _ = x; // ERROR: 사용된 바인딩 `x`가 초기화되지 않음
 };
 <span class="boring">}</span></code></pre></pre>
 <div class="rule" id="r-type.closure.capture.precision.move-dereference"><a class="rule-link" href="#r-type.closure.capture.precision.move-dereference" title="type.closure.capture.precision.move-dereference"><span>[type<wbr>.closure<wbr>.capture<wbr>.precision<wbr>.move-dereference]<span/></a></div>
-<h3 id="capturing-references-in-move-contexts"><a class="header" href="#capturing-references-in-move-contexts">Capturing references in move contexts</a></h3>
-<p>Because it is not allowed to move fields out of a reference, <code>move</code> closures will only capture the prefix of a capture path that runs up to, but not including, the first dereference of a reference. The reference itself will be moved into the closure.</p>
+<h3 id="이동-컨텍스트에서의-참조-캡처"><a class="header" href="#이동-컨텍스트에서의-참조-캡처">이동 컨텍스트에서의 참조 캡처</a></h3>
+<p>참조에서 필드를 끄집어내어 이동하는 것은 허용되지 않으므로, <code>move</code> 클로저는 참조의 첫 번째 역참조 전까지의 캡처 경로 접두어만 캡처합니다. 참조 자체는 클로저 내부로 이동됩니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct T(String, String);
@@ -433,13 +432,13 @@ let c = || {
 let mut t = T(String::from("foo"), String::from("bar"));
 let t_mut_ref = &amp;mut t;
 let mut c = move || {
-    t_mut_ref.0.push_str("123"); // captures `t_mut_ref` ByValue
+    t_mut_ref.0.push_str("123"); // `t_mut_ref`를 ByValue로 캡처함
 };
 c();
 <span class="boring">}</span></code></pre></pre>
 <div class="rule" id="r-type.closure.capture.precision.raw-pointer-dereference"><a class="rule-link" href="#r-type.closure.capture.precision.raw-pointer-dereference" title="type.closure.capture.precision.raw-pointer-dereference"><span>[type<wbr>.closure<wbr>.capture<wbr>.precision<wbr>.raw-pointer-dereference]<span/></a></div>
-<h3 id="raw-pointer-dereference"><a class="header" href="#raw-pointer-dereference">Raw pointer dereference</a></h3>
-<p>Because it is <code>unsafe</code> to dereference a raw pointer, closures will only capture the prefix of a capture path that runs up to, but not including, the first dereference of a raw pointer.</p>
+<h3 id="원시-포인터-역참조"><a class="header" href="#원시-포인터-역참조">원시 포인터 역참조</a></h3>
+<p>원시 포인터를 역참조하는 것은 <code>unsafe</code>하므로, 클로저는 원시 포인터의 첫 번째 역참조 전까지의 캡처 경로 접두어만 캡처합니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct T(String, String);
@@ -448,13 +447,13 @@ let t = T(String::from("foo"), String::from("bar"));
 let t_ptr = &amp;t as *const T;
 
 let c = || unsafe {
-    println!("{}", (*t_ptr).0); // captures `t_ptr` by ImmBorrow
+    println!("{}", (*t_ptr).0); // `t_ptr`을 ImmBorrow로 캡처함
 };
 c();
 <span class="boring">}</span></code></pre></pre>
 <div class="rule" id="r-type.closure.capture.precision.union"><a class="rule-link" href="#r-type.closure.capture.precision.union" title="type.closure.capture.precision.union"><span>[type<wbr>.closure<wbr>.capture<wbr>.precision<wbr>.union]<span/></a></div>
-<h3 id="union-fields"><a class="header" href="#union-fields">Union fields</a></h3>
-<p>Because it is <code>unsafe</code> to access a union field, closures will only capture the prefix of a capture path that runs up to the union itself.</p>
+<h3 id="공용체-필드"><a class="header" href="#공용체-필드">공용체 필드</a></h3>
+<p>공용체 필드에 접근하는 것은 <code>unsafe</code>하므로, 클로저는 공용체 자체까지만의 캡처 경로 접두어를 캡처합니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>union U {
@@ -464,20 +463,20 @@ c();
 let u = U { a: (123, 456) };
 
 let c = || {
-    let x = unsafe { u.a.0 }; // captures `u` ByValue
+    let x = unsafe { u.a.0 }; // `u`를 ByValue로 캡처함
 };
 c();
 
-// This also includes writing to fields.
+// 이는 필드에 쓰는 경우도 포함합니다.
 let mut u = U { a: (123, 456) };
 
 let mut c = || {
-    u.b = true; // captures `u` with MutBorrow
+    u.b = true; // `u`를 MutBorrow로 캡처함
 };
 c();
 <span class="boring">}</span></code></pre></pre>
 <div class="rule" id="r-type.closure.capture.precision.unaligned"><a class="rule-link" href="#r-type.closure.capture.precision.unaligned" title="type.closure.capture.precision.unaligned"><span>[type<wbr>.closure<wbr>.capture<wbr>.precision<wbr>.unaligned]<span/></a></div>
-<h3 id="reference-into-unaligned-structs"><a class="header" href="#reference-into-unaligned-structs">Reference into unaligned <code>struct</code>s</a></h3>
+<h3 id="정렬되지-않은-struct로의-참조"><a class="header" href="#정렬되지-않은-struct로의-참조">정렬되지 않은 <code>struct</code>로의 참조</a></h3>
 <p>Because it is <a href="../behavior-considered-undefined.html">undefined behavior</a> to create references to unaligned fields in a structure, closures will only capture the prefix of the capture path that runs up to, but not including, the first field access into a structure that uses <a href="../type-layout.html#the-alignment-modifiers">the <code>packed</code> representation</a>. This includes all fields, even those that are aligned, to protect against compatibility concerns should any of the fields in the structure change in the future.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -486,13 +485,13 @@ struct T(i32, i32);
 
 let t = T(2, 5);
 let c = || {
-    let a = t.0; // captures `t` with ImmBorrow
+    let a = t.0; // `t`를 ImmBorrow로 캡처함
 };
-// Copies out of `t` are ok.
+// `t`에서 복사하는 것은 괜찮습니다.
 let (a, b) = (t.0, t.1);
 c();
 <span class="boring">}</span></code></pre></pre>
-<p>Similarly, taking the address of an unaligned field also captures the entire struct:</p>
+<p>마찬가지로, 정렬되지 않은 필드의 주소를 취하는 것도 구조체 전체를 캡처합니다:</p>
 <pre><pre class="playground"><code class="language-rust compile_fail E0505 edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[repr(packed)]
@@ -500,112 +499,111 @@ struct T(String, String);
 
 let mut t = T(String::new(), String::new());
 let c = || {
-    let a = std::ptr::addr_of!(t.1); // captures `t` with ImmBorrow
+    let a = std::ptr::addr_of!(t.1); // `t`를 ImmBorrow로 캡처함
 };
-let a = t.0; // ERROR: cannot move out of `t.0` because it is borrowed
+let a = t.0; // ERROR: `t.0`이 차용되었으므로 이동할 수 없음
 c();
 <span class="boring">}</span></code></pre></pre>
-<p>but the above works if it is not packed since it captures the field precisely:</p>
+<p>하지만 packed가 아니라면 필드를 정밀하게 캡처하므로 위 코드가 작동합니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct T(String, String);
 
 let mut t = T(String::new(), String::new());
 let c = || {
-    let a = std::ptr::addr_of!(t.1); // captures `t.1` with ImmBorrow
+    let a = std::ptr::addr_of!(t.1); // `t.1`을 ImmBorrow로 캡처함
 };
-// The move here is allowed.
+// 여기서의 이동은 허용됩니다.
 let a = t.0;
 c();
 <span class="boring">}</span></code></pre></pre>
 <div class="rule" id="r-type.closure.capture.precision.box-deref"><a class="rule-link" href="#r-type.closure.capture.precision.box-deref" title="type.closure.capture.precision.box-deref"><span>[type<wbr>.closure<wbr>.capture<wbr>.precision<wbr>.box-deref]<span/></a></div>
-<h3 id="box-vs-other-deref-implementations"><a class="header" href="#box-vs-other-deref-implementations"><code>Box</code> vs other <code>Deref</code> implementations</a></h3>
-<p>The implementation of the <a href="../special-types-and-traits.html#deref-and-derefmut"><code>Deref</code></a> trait for <a href="../special-types-and-traits.html#boxt"><code>Box</code></a> is treated differently from other <code>Deref</code> implementations, as it is considered a special entity.</p>
-<p>For example, let us look at examples involving <code>Rc</code> and <code>Box</code>. The <code>*rc</code> is desugared to a call to the trait method <code>deref</code> defined on <code>Rc</code>, but since <code>*box</code> is treated differently, it is possible to do a precise capture of the contents of the <code>Box</code>.</p>
+<h3 id="box-대-다른-deref-구현체"><a class="header" href="#box-대-다른-deref-구현체"><code>Box</code> 대 다른 <code>Deref</code> 구현체</a></h3>
+<p><code>Box</code>에 대한 <a href="../special-types-and-traits.html#deref-and-derefmut"><code>Deref</code></a> 트레잇 구현은 특별한 엔티티로 간주되어 다른 <code>Deref</code> 구현과 다르게 취급됩니다.</p>
+<p>예를 들어, <code>Rc</code>와 <code>Box</code>가 포함된 예시를 보겠습니다. <code>*rc</code>는 <code>Rc</code>에 정의된 트레잇 메서드 <code>deref</code>의 호출로 디슈거링(desugar)되지만, <code>*box</code>는 다르게 취급되므로 <code>Box</code> 내부 콘텐츠의 정밀한 캡처가 가능합니다.</p>
 <div class="rule" id="r-type.closure.capture.precision.box-non-move.not-moved"><a class="rule-link" href="#r-type.closure.capture.precision.box-non-move.not-moved" title="type.closure.capture.precision.box-non-move.not-moved"><span>[type<wbr>.closure<wbr>.capture<wbr>.precision<wbr>.box-non-move<wbr>.not-moved]<span/></a></div>
-<h4 id="box-with-non-move-closure"><a class="header" href="#box-with-non-move-closure"><code>Box</code> with non-<code>move</code> closure</a></h4>
-<p>In a non-<code>move</code> closure, if the contents of the <code>Box</code> are not moved into the closure body, the contents of the <code>Box</code> are precisely captured.</p>
+<h4 id="non-move-클로저에서의-box"><a class="header" href="#non-move-클로저에서의-box">non-<code>move</code> 클로저에서의 <code>Box</code></a></h4>
+<p>non-<code>move</code> 클로저에서 <code>Box</code>의 내용물이 클로저 본문으로 이동되지 않는다면, <code>Box</code>의 내용물은 정밀하게 캡처됩니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct S(String);
 
 let b = Box::new(S(String::new()));
 let c_box = || {
-    let x = &amp;(*b).0; // captures `(*b).0` by ImmBorrow
+    let x = &amp;(*b).0; // `(*b).0`을 ImmBorrow로 캡처함
 };
 c_box();
 
-// Contrast `Box` with another type that implements Deref:
+// `Box`를 Deref를 구현하는 다른 타입과 비교해 보십시오:
 let r = std::rc::Rc::new(S(String::new()));
 let c_rc = || {
-    let x = &amp;(*r).0; // captures `r` by ImmBorrow
+    let x = &amp;(*r).0; // `r`을 ImmBorrow로 캡처함
 };
 c_rc();
 <span class="boring">}</span></code></pre></pre>
 <div class="rule" id="r-type.closure.capture.precision.box-non-move.moved"><a class="rule-link" href="#r-type.closure.capture.precision.box-non-move.moved" title="type.closure.capture.precision.box-non-move.moved"><span>[type<wbr>.closure<wbr>.capture<wbr>.precision<wbr>.box-non-move<wbr>.moved]<span/></a></div>
-<p>However, if the contents of the <code>Box</code> are moved into the closure, then the box is entirely captured. This is done so the amount of data that needs to be moved into the closure is minimized.</p>
+<p>그러나 <code>Box</code>의 내용물이 클로저로 이동된다면, 박스 전체가 캡처됩니다. 이는 클로저로 이동해야 하는 데이터의 양을 최소화하기 위함입니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// This is the same as the example above except the closure
-// moves the value instead of taking a reference to it.
+</span>// 클로저가 참조를 취하는 대신 값을 이동시킨다는 점을 제외하면 위 예시와 동일합니다.
 
 struct S(String);
 
 let b = Box::new(S(String::new()));
 let c_box = || {
-    let x = (*b).0; // captures `b` with ByValue
+    let x = (*b).0; // `b`를 ByValue로 캡처함
 };
 c_box();
 <span class="boring">}</span></code></pre></pre>
 <div class="rule" id="r-type.closure.capture.precision.box-move.read"><a class="rule-link" href="#r-type.closure.capture.precision.box-move.read" title="type.closure.capture.precision.box-move.read"><span>[type<wbr>.closure<wbr>.capture<wbr>.precision<wbr>.box-move<wbr>.read]<span/></a></div>
-<h4 id="box-with-move-closure"><a class="header" href="#box-with-move-closure"><code>Box</code> with move closure</a></h4>
-<p>Similarly to moving contents of a <code>Box</code> in a non-<code>move</code> closure, reading the contents of a <code>Box</code> in a <code>move</code> closure will capture the <code>Box</code> entirely.</p>
+<h4 id="move-클로저에서의-box"><a class="header" href="#move-클로저에서의-box"><code>move</code> 클로저에서의 <code>Box</code></a></h4>
+<p>non-<code>move</code> 클로저에서 <code>Box</code>의 내용을 이동시키는 것과 유사하게, <code>move</code> 클로저에서 <code>Box</code>의 내용을 읽는 것은 <code>Box</code> 전체를 캡처하게 됩니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct S(i32);
 
 let b = Box::new(S(10));
 let c_box = move || {
-    let x = (*b).0; // captures `b` with ByValue
+    let x = (*b).0; // `b`를 ByValue로 캡처함
 };
 <span class="boring">}</span></code></pre></pre>
 <div class="rule" id="r-type.closure.unique-immutable"><a class="rule-link" href="#r-type.closure.unique-immutable" title="type.closure.unique-immutable"><span>[type<wbr>.closure<wbr>.unique-immutable]<span/></a></div>
-<h2 id="unique-immutable-borrows-in-captures"><a class="header" href="#unique-immutable-borrows-in-captures">Unique immutable borrows in captures</a></h2>
-<p>Captures can occur by a special kind of borrow called a <em>unique immutable borrow</em>, which cannot be used anywhere else in the language and cannot be written out explicitly. It occurs when modifying the referent of a mutable reference, as in the following example:</p>
+<h2 id="캡처에서의-고유-불변-차용"><a class="header" href="#캡처에서의-고유-불변-차용">캡처에서의 고유 불변 차용</a></h2>
+<p>캡처는 _고유 불변 차용(unique immutable borrow)_이라고 불리는 특수한 종류의 차용을 통해 발생할 수 있습니다. 이는 언어의 다른 어디에서도 사용될 수 없으며 명시적으로 작성할 수도 없습니다. 다음 예시와 같이 가변 참조의 대상(referent)을 수정할 때 발생합니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut b = false;
 let x = &amp;mut b;
 let mut c = || {
-    // An ImmBorrow and a MutBorrow of `x`.
+    // `x`의 ImmBorrow 및 MutBorrow.
     let a = &amp;x;
-    *x = true; // `x` captured by UniqueImmBorrow
+    *x = true; // `x`는 UniqueImmBorrow로 캡처됨
 };
-// The following line is an error:
+// 다음 줄은 오류입니다:
 // let y = &amp;x;
 c();
-// However, the following is OK.
+// 그러나 다음은 괜찮습니다.
 let z = &amp;x;
 <span class="boring">}</span></code></pre></pre>
 <p>In this case, borrowing <code>x</code> mutably is not possible, because <code>x</code> is not <code>mut</code>. But at the same time, borrowing <code>x</code> immutably would make the assignment illegal, because a <code>&amp; &amp;mut</code> reference might not be unique, so it cannot safely be used to modify a value. So a unique immutable borrow is used: it borrows <code>x</code> immutably, but like a mutable borrow, it must be unique.</p>
-<p>In the above example, uncommenting the declaration of <code>y</code> will produce an error because it would violate the uniqueness of the closure’s borrow of <code>x</code>; the declaration of z is valid because the closure’s lifetime has expired at the end of the block, releasing the borrow.</p>
+<p>위의 예시에서 <code>y</code>의 선언을 주석 해제하면 클로저의 <code>x</code> 차용에 대한 고유성을 위반하므로 오류가 발생합니다. z의 선언은 블록 끝에서 클로저의 라이프타임이 만료되어 차용이 해제되었으므로 유효합니다.</p>
 <div class="rule" id="r-type.closure.call"><a class="rule-link" href="#r-type.closure.call" title="type.closure.call"><span>[type<wbr>.closure<wbr>.call]<span/></a></div>
-<h2 id="call-traits-and-coercions"><a class="header" href="#call-traits-and-coercions">Call traits and coercions</a></h2>
+<h2 id="호출-트레잇-및-강제-변환"><a class="header" href="#호출-트레잇-및-강제-변환">호출 트레잇 및 강제 변환</a></h2>
 <div class="rule" id="r-type.closure.call.intro"><a class="rule-link" href="#r-type.closure.call.intro" title="type.closure.call.intro"><span>[type<wbr>.closure<wbr>.call<wbr>.intro]<span/></a></div>
-<p>Closure types all implement <a href="../../core/ops/function/trait.FnOnce.html"><code>FnOnce</code></a>, indicating that they can be called once by consuming ownership of the closure. Additionally, some closures implement more specific call traits:</p>
+<p>모든 클로저 타입은 <a href="../../core/ops/function/trait.FnOnce.html"><code>FnOnce</code></a>를 구현하며, 이는 클로저의 소유권을 소비함으로써 한 번 호출될 수 있음을 나타냅니다. 또한 일부 클로저는 더 구체적인 호출 트레잇을 구현합니다:</p>
 <div class="rule" id="r-type.closure.call.fn-mut"><a class="rule-link" href="#r-type.closure.call.fn-mut" title="type.closure.call.fn-mut"><span>[type<wbr>.closure<wbr>.call<wbr>.fn-mut]<span/></a></div>
 <ul>
-<li>A closure which does not move out of any captured variables implements <a href="../../core/ops/function/trait.FnMut.html"><code>FnMut</code></a>, indicating that it can be called by mutable reference.</li>
+<li>캡처된 변수 중 어느 것도 밖으로 이동시키지 않는 클로저는 <a href="../../core/ops/function/trait.FnMut.html"><code>FnMut</code></a>를 구현하며, 이는 가변 참조로 호출될 수 있음을 나타냅니다.</li>
 </ul>
 <div class="rule" id="r-type.closure.call.fn"><a class="rule-link" href="#r-type.closure.call.fn" title="type.closure.call.fn"><span>[type<wbr>.closure<wbr>.call<wbr>.fn]<span/></a></div>
 <ul>
-<li>A closure which does not mutate or move out of any captured variables implements <a href="../../core/ops/function/trait.Fn.html"><code>Fn</code></a>, indicating that it can be called by shared reference.</li>
+<li>캡처된 변수를 변경하거나 밖으로 이동시키지 않는 클로저는 <a href="../../core/ops/function/trait.Fn.html"><code>Fn</code></a>를 구현하며, 이는 공유 참조로 호출될 수 있음을 나타냅니다.</li>
 </ul>
 <blockquote>
-<p>Note: <code>move</code> closures may still implement <a href="../../core/ops/function/trait.Fn.html"><code>Fn</code></a> or <a href="../../core/ops/function/trait.FnMut.html"><code>FnMut</code></a>, even though they capture variables by move. This is because the traits implemented by a closure type are determined by what the closure does with captured values, not how it captures them.</p>
+<p>참고: <code>move</code> 클로저는 변수를 이동으로 캡처하더라도 여전히 <a href="../../core/ops/function/trait.Fn.html"><code>Fn</code></a> 또는 <a href="../../core/ops/function/trait.FnMut.html"><code>FnMut</code></a>을 구현할 수 있습니다. 이는 클로저 타입이 구현하는 트레잇이 변수를 어떻게 캡처하느냐가 아니라, 캡처된 값으로 무엇을 하느냐에 따라 결정되기 때문입니다.</p>
 </blockquote>
 <div class="rule" id="r-type.closure.non-capturing"><a class="rule-link" href="#r-type.closure.non-capturing" title="type.closure.non-capturing"><span>[type<wbr>.closure<wbr>.non-capturing]<span/></a></div>
-<p><em>Non-capturing closures</em> are closures that don’t capture anything from their environment. Non-async, non-capturing closures can be coerced to function pointers (e.g., <code>fn()</code>) with the matching signature.</p>
+<p>_비캡처 클로저(Non-capturing closures)_는 환경에서 아무것도 캡처하지 않는 클로저입니다. 비동기가 아닌 비캡처 클로저는 일치하는 시그니처를 가진 함수 포인터(예: <code>fn()</code>)로 강제 변환될 수 있습니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let add = |x, y| x + y;
@@ -617,17 +615,17 @@ let bo: Binop = add;
 x = bo(5,7);
 <span class="boring">}</span></code></pre></pre>
 <div class="rule" id="r-type.closure.async.traits"><a class="rule-link" href="#r-type.closure.async.traits" title="type.closure.async.traits"><span>[type<wbr>.closure<wbr>.async<wbr>.traits]<span/></a></div>
-<h3 id="async-closure-traits"><a class="header" href="#async-closure-traits">Async closure traits</a></h3>
+<h3 id="비동기-클로저-트레잇"><a class="header" href="#비동기-클로저-트레잇">비동기 클로저 트레잇</a></h3>
 <div class="rule" id="r-type.closure.async.traits.fn-family"><a class="rule-link" href="#r-type.closure.async.traits.fn-family" title="type.closure.async.traits.fn-family"><span>[type<wbr>.closure<wbr>.async<wbr>.traits<wbr>.fn-family]<span/></a></div>
-<p>Async closures have a further restriction of whether or not they implement <a href="../../core/ops/function/trait.FnMut.html"><code>FnMut</code></a> or <a href="../../core/ops/function/trait.Fn.html"><code>Fn</code></a>.</p>
-<p>The <a href="../../core/future/future/trait.Future.html"><code>Future</code></a> returned by the async closure has similar capturing characteristics as a closure. It captures place expressions from the async closure based on how they are used. The async closure is said to be <em>lending</em> to its <a href="../../core/future/future/trait.Future.html"><code>Future</code></a> if it has either of the following properties:</p>
+<p>비동기 클로저는 <a href="../../core/ops/function/trait.FnMut.html"><code>FnMut</code></a> 또는 <a href="../../core/ops/function/trait.Fn.html"><code>Fn</code></a> 구현 여부에 대해 추가적인 제한을 가집니다.</p>
+<p>비동기 클로저가 반환하는 <a href="../../core/future/future/trait.Future.html"><code>Future</code></a>는 클로저와 유사한 캡처 특성을 가집니다. 이는 사용 방식에 따라 비동기 클로저로부터 장소 표현식을 캡처합니다. 비동기 클로저가 다음 속성 중 하나를 가지면 <a href="../../core/future/future/trait.Future.html"><code>Future</code></a>에게 <em>대여(lending)</em> 중이라고 합니다:</p>
 <ul>
-<li>The <code>Future</code> includes a mutable capture.</li>
-<li>The async closure captures by value, except when the value is accessed with a dereference projection.</li>
+<li><code>Future</code>가 가변 캡처를 포함하는 경우.</li>
+<li>비동기 클로저가 값으로 캡처하는 경우 (단, 역참조 투영을 통해 값에 접근하는 경우는 제외).</li>
 </ul>
-<p>If the async closure is lending to its <code>Future</code>, then <a href="../../core/ops/function/trait.FnMut.html"><code>FnMut</code></a> and <a href="../../core/ops/function/trait.Fn.html"><code>Fn</code></a> are <em>not</em> implemented. <a href="../../core/ops/function/trait.FnOnce.html"><code>FnOnce</code></a> is always implemented.</p>
+<p>비동기 클로저가 <code>Future</code>에게 대여 중인 경우, <a href="../../core/ops/function/trait.FnMut.html"><code>FnMut</code></a> 및 <a href="../../core/ops/function/trait.Fn.html"><code>Fn</code></a>은 구현되지 <em>않습니다</em>. <a href="../../core/ops/function/trait.FnOnce.html"><code>FnOnce</code></a>는 항상 구현됩니다.</p>
 <blockquote>
-<p><strong>Example</strong>: The first clause for a mutable capture can be illustrated with the following:</p>
+<p><strong>예시</strong>: 가변 캡처에 대한 첫 번째 조건은 다음과 같이 설명될 수 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn takes_callback&lt;Fut: Future&gt;(c: impl FnMut() -&gt; Fut) {}
@@ -635,12 +633,12 @@ x = bo(5,7);
 fn f() {
     let mut x = 1i32;
     let c = async || {
-        x = 2;  // x captured with MutBorrow
+        x = 2;  // x는 MutBorrow로 캡처됨
     };
-    takes_callback(c);  // ERROR: async closure does not implement `FnMut`
+    takes_callback(c);  // ERROR: 비동기 클로저가 `FnMut`를 구현하지 않음
 }
 <span class="boring">}</span></code></pre></pre>
-<p>The second clause for a regular value capture can be illustrated with the following:</p>
+<p>일반 값 캡처에 대한 두 번째 조건은 다음과 같이 설명될 수 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn takes_callback&lt;Fut: Future&gt;(c: impl Fn() -&gt; Fut) {}
@@ -648,12 +646,12 @@ fn f() {
 fn f() {
     let x = &amp;1i32;
     let c = async move || {
-        let a = x + 2;  // x captured ByValue
+        let a = x + 2;  // x는 ByValue로 캡처됨
     };
-    takes_callback(c);  // ERROR: async closure does not implement `Fn`
+    takes_callback(c);  // ERROR: 비동기 클로저가 `Fn`을 구현하지 않음
 }
 <span class="boring">}</span></code></pre></pre>
-<p>The exception of the the second clause can be illustrated by using a dereference, which does allow <code>Fn</code> and <code>FnMut</code> to be implemented:</p>
+<p>두 번째 조건의 예외는 역참조를 사용하여 설명될 수 있으며, 이 경우 <code>Fn</code> 및 <code>FnMut</code> 구현이 허용됩니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn takes_callback&lt;Fut: Future&gt;(c: impl Fn() -&gt; Fut) {}
@@ -663,16 +661,16 @@ fn f() {
     let c = async move || {
         let a = *x + 2;
     };
-    takes_callback(c);  // OK: implements `Fn`
+    takes_callback(c);  // OK: `Fn`을 구현함
 }
 <span class="boring">}</span></code></pre></pre>
 </blockquote>
 <div class="rule" id="r-type.closure.async.traits.async-family"><a class="rule-link" href="#r-type.closure.async.traits.async-family" title="type.closure.async.traits.async-family"><span>[type<wbr>.closure<wbr>.async<wbr>.traits<wbr>.async-family]<span/></a></div>
-<p>Async closures implement <a href="../../core/ops/async_function/trait.AsyncFn.html"><code>AsyncFn</code></a>, <a href="../../core/ops/async_function/trait.AsyncFnMut.html"><code>AsyncFnMut</code></a>, and <a href="../../core/ops/async_function/trait.AsyncFnOnce.html"><code>AsyncFnOnce</code></a> in an analogous way as regular closures implement <a href="../../core/ops/function/trait.Fn.html"><code>Fn</code></a>, <a href="../../core/ops/function/trait.FnMut.html"><code>FnMut</code></a>, and <a href="../../core/ops/function/trait.FnOnce.html"><code>FnOnce</code></a>; that is, depending on the use of the captured variables in its body.</p>
+<p>비동기 클로저는 일반 클로저가 <a href="../../core/ops/function/trait.Fn.html"><code>Fn</code></a>, <a href="../../core/ops/function/trait.FnMut.html"><code>FnMut</code></a>, <a href="../../core/ops/function/trait.FnOnce.html"><code>FnOnce</code></a>을 구현하는 것과 유사한 방식으로 <a href="../../core/ops/async_function/trait.AsyncFn.html"><code>AsyncFn</code></a>, <a href="../../core/ops/async_function/trait.AsyncFnMut.html"><code>AsyncFnMut</code></a>, <a href="../../core/ops/async_function/trait.AsyncFnOnce.html"><code>AsyncFnOnce</code></a>을 구현합니다. 즉, 본문에서 캡처된 변수들이 어떻게 사용되느냐에 따라 결정됩니다.</p>
 <div class="rule" id="r-type.closure.traits"><a class="rule-link" href="#r-type.closure.traits" title="type.closure.traits"><span>[type<wbr>.closure<wbr>.traits]<span/></a></div>
-<h3 id="other-traits"><a class="header" href="#other-traits">Other traits</a></h3>
+<h3 id="기타-트레잇"><a class="header" href="#기타-트레잇">기타 트레잇</a></h3>
 <div class="rule" id="r-type.closure.traits.intro"><a class="rule-link" href="#r-type.closure.traits.intro" title="type.closure.traits.intro"><span>[type<wbr>.closure<wbr>.traits<wbr>.intro]<span/></a></div>
-<p>All closure types implement <a href="../special-types-and-traits.html#sized"><code>Sized</code></a>. Additionally, closure types implement the following traits if allowed to do so by the types of the captures it stores:</p>
+<p>모든 클로저 타입은 <a href="../special-types-and-traits.html#sized"><code>Sized</code></a>를 구현합니다. 또한 클로저 타입은 저장된 캡처 타입들이 허용하는 경우 다음 트레잇들을 구현합니다:</p>
 <ul>
 <li><a href="../special-types-and-traits.html#clone"><code>Clone</code></a></li>
 <li><a href="../special-types-and-traits.html#copy"><code>Copy</code></a></li>
@@ -680,16 +678,16 @@ fn f() {
 <li><a href="../special-types-and-traits.html#send"><code>Send</code></a></li>
 </ul>
 <div class="rule" id="r-type.closure.traits.behavior"><a class="rule-link" href="#r-type.closure.traits.behavior" title="type.closure.traits.behavior"><span>[type<wbr>.closure<wbr>.traits<wbr>.behavior]<span/></a></div>
-<p>The rules for <a href="../special-types-and-traits.html#send"><code>Send</code></a> and <a href="../special-types-and-traits.html#sync"><code>Sync</code></a> match those for normal struct types, while <a href="../special-types-and-traits.html#clone"><code>Clone</code></a> and <a href="../special-types-and-traits.html#copy"><code>Copy</code></a> behave as if <a href="../attributes/derive.html">derived</a>. For <a href="../special-types-and-traits.html#clone"><code>Clone</code></a>, the order of cloning of the captured values is left unspecified.</p>
-<p>Because captures are often by reference, the following general rules arise:</p>
+<p><a href="../special-types-and-traits.html#send"><code>Send</code></a> 및 <a href="../special-types-and-traits.html#sync"><code>Sync</code></a>에 대한 규칙은 일반 구조체 타입과 일치하며, <a href="../special-types-and-traits.html#clone"><code>Clone</code></a> 및 <a href="../special-types-and-traits.html#copy"><code>Copy</code></a>는 마치 <a href="../attributes/derive.html">파생(derived)</a>된 것처럼 작동합니다. <a href="../special-types-and-traits.html#clone"><code>Clone</code></a>의 경우, 캡처된 값들이 클로닝되는 순서는 지정되지 않습니다.</p>
+<p>캡처는 종종 참조에 의해 발생하므로 다음과 같은 일반적인 규칙이 나타납니다:</p>
 <ul>
-<li>A closure is <a href="../special-types-and-traits.html#sync"><code>Sync</code></a> if all captured values are <a href="../special-types-and-traits.html#sync"><code>Sync</code></a>.</li>
-<li>A closure is <a href="../special-types-and-traits.html#send"><code>Send</code></a> if all values captured by non-unique immutable reference are <a href="../special-types-and-traits.html#sync"><code>Sync</code></a>, and all values captured by unique immutable or mutable reference, copy, or move are <a href="../special-types-and-traits.html#send"><code>Send</code></a>.</li>
-<li>A closure is <a href="../special-types-and-traits.html#clone"><code>Clone</code></a> or <a href="../special-types-and-traits.html#copy"><code>Copy</code></a> if it does not capture any values by unique immutable or mutable reference, and if all values it captures by copy or move are <a href="../special-types-and-traits.html#clone"><code>Clone</code></a> or <a href="../special-types-and-traits.html#copy"><code>Copy</code></a>, respectively.</li>
+<li>모든 캡처된 값이 <a href="../special-types-and-traits.html#sync"><code>Sync</code></a>이면 클로저는 <a href="../special-types-and-traits.html#sync"><code>Sync</code></a>입니다.</li>
+<li>비고유 불변 참조로 캡처된 모든 값이 <a href="../special-types-and-traits.html#sync"><code>Sync</code></a>이고, 고유 불변 참조나 가변 참조, 복사 또는 이동으로 캡처된 모든 값이 <a href="../special-types-and-traits.html#send"><code>Send</code></a>이면 클로저는 <a href="../special-types-and-traits.html#send"><code>Send</code></a>입니다.</li>
+<li>클로저가 고유 불변 참조나 가변 참조로 값을 캡처하지 않고, 복사나 이동으로 캡처하는 모든 값이 각각 <a href="../special-types-and-traits.html#clone"><code>Clone</code></a> 또는 <a href="../special-types-and-traits.html#copy"><code>Copy</code></a>이면 클로저는 <a href="../special-types-and-traits.html#clone"><code>Clone</code></a> 또는 <a href="../special-types-and-traits.html#copy"><code>Copy</code></a>입니다.</li>
 </ul>
 <div class="rule" id="r-type.closure.drop-order"><a class="rule-link" href="#r-type.closure.drop-order" title="type.closure.drop-order"><span>[type<wbr>.closure<wbr>.drop-order]<span/></a></div>
-<h2 id="drop-order"><a class="header" href="#drop-order">Drop Order</a></h2>
-<p>If a closure captures a field of a composite types such as structs, tuples, and enums by value, the field’s lifetime would now be tied to the closure. As a result, it is possible for disjoint fields of a composite types to be dropped at different times.</p>
+<h2 id="드롭-순서"><a class="header" href="#드롭-순서">드롭 순서</a></h2>
+<p>클로저가 구조체, 튜플, 열거형과 같은 복합 타입의 필드를 값으로 캡처하면, 해당 필드의 라이프타임은 이제 클로저에 묶이게 됩니다. 결과적으로 복합 타입의 서로 다른 필드들이 서로 다른 시점에 드롭될 수 있습니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>{
@@ -697,16 +695,16 @@ fn f() {
       (String::from("foo"), String::from("bar")); // --+
     { //                                               |
         let c = || { // ----------------------------+  |
-            // tuple.0 is captured into the closure |  |
+            // tuple.0은 클로저 내부로 캡처됨 |  |
             drop(tuple.0); //                       |  |
         }; //                                       |  |
-    } // 'c' and 'tuple.0' dropped here ------------+  |
-} // tuple.1 dropped here -----------------------------+
+    } // 'c'와 'tuple.0'이 여기서 드롭됨 ------------+  |
+} // tuple.1이 여기서 드롭됨 -----------------------------+
 <span class="boring">}</span></code></pre></pre>
 <div class="rule" id="r-type.closure.capture.precision.edition2018.entirety"><a class="rule-link" href="#r-type.closure.capture.precision.edition2018.entirety" title="type.closure.capture.precision.edition2018.entirety"><span>[type<wbr>.closure<wbr>.capture<wbr>.precision<wbr>.edition2018<wbr>.entirety]<span/></a></div>
-<h2 id="edition-2018-and-before"><a class="header" href="#edition-2018-and-before">Edition 2018 and before</a></h2>
-<h3 id="closure-types-difference"><a class="header" href="#closure-types-difference">Closure types difference</a></h3>
-<p>In Edition 2018 and before, closures always capture a variable in its entirety, without its precise capture path. This means that for the example used in the <a href="#closure-types">Closure types</a> section, the generated closure type would instead look something like this:</p>
+<h2 id="2018-에디션-및-이전"><a class="header" href="#2018-에디션-및-이전">2018 에디션 및 이전</a></h2>
+<h3 id="클로저-타입의-차이점"><a class="header" href="#클로저-타입의-차이점">클로저 타입의 차이점</a></h3>
+<p>2018 에디션 및 이전 버전에서, 클로저는 항상 변수 전체를 캡처하며 정밀한 캡처 경로를 사용하지 않습니다. 이는 <a href="#closure-types">클로저 타입</a> 섹션에서 사용된 예시의 경우, 생성된 클로저 타입이 대신 다음과 같은 모습이 됨을 의미합니다:</p>
 <!-- ignore: simplified -->
 <pre><code class="language-rust ignore">struct Closure&lt;'a&gt; {
     rect : &amp;'a mut Rectangle,
@@ -720,12 +718,12 @@ impl&lt;'a&gt; FnOnce&lt;()&gt; for Closure&lt;'a&gt; {
         format!("{:?}", self.rect.left_top)
     }
 }</code></pre>
-<p>and the call to <code>f</code> would work as follows:</p>
+<p>그리고 <code>f</code>에 대한 호출은 다음과 같이 작동합니다:</p>
 <!-- ignore: continuation of above -->
 <pre><code class="language-rust ignore">f(Closure { rect: rect });</code></pre>
 <div class="rule" id="r-type.closure.capture.precision.edition2018.composite"><a class="rule-link" href="#r-type.closure.capture.precision.edition2018.composite" title="type.closure.capture.precision.edition2018.composite"><span>[type<wbr>.closure<wbr>.capture<wbr>.precision<wbr>.edition2018<wbr>.composite]<span/></a></div>
-<h3 id="capture-precision-difference"><a class="header" href="#capture-precision-difference">Capture precision difference</a></h3>
-<p>Composite types such as structs, tuples, and enums are always captured in its entirety, not by individual fields. As a result, it may be necessary to borrow into a local variable in order to capture a single field:</p>
+<h3 id="캡처-정밀도의-차이"><a class="header" href="#캡처-정밀도의-차이">캡처 정밀도의 차이</a></h3>
+<p>구조체, 튜플, 열거형과 같은 복합 타입은 개별 필드가 아니라 항상 전체가 캡처됩니다. 결과적으로, 단일 필드만 캡처하려면 로컬 변수로 차용해야 할 수도 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use std::collections::HashSet;
@@ -744,14 +742,14 @@ impl SetVec {
     }
 }
 <span class="boring">}</span></code></pre></pre>
-<p>If, instead, the closure were to use <code>self.vec</code> directly, then it would attempt to capture <code>self</code> by mutable reference. But since <code>self.set</code> is already borrowed to iterate over, the code would not compile.</p>
+<p>만약 클로저가 <code>self.vec</code>을 직접 사용했다면 <code>self</code>를 가변 참조로 캡처하려고 시도했을 것입니다. 하지만 <code>self.set</code>이 이미 반복을 위해 차용된 상태이므로 코드가 컴파일되지 않았을 것입니다.</p>
 <div class="rule" id="r-type.closure.capture.precision.edition2018.move"><a class="rule-link" href="#r-type.closure.capture.precision.edition2018.move" title="type.closure.capture.precision.edition2018.move"><span>[type<wbr>.closure<wbr>.capture<wbr>.precision<wbr>.edition2018<wbr>.move]<span/></a></div>
-<p>If the <code>move</code> keyword is used, then all captures are by move or, for <code>Copy</code> types, by copy, regardless of whether a borrow would work. The <code>move</code> keyword is usually used to allow the closure to outlive the captured values, such as if the closure is being returned or used to spawn a new thread.</p>
+<p><code>move</code> 키워드가 사용되면, 차용이 가능하더라도 모든 캡처는 이동(또는 <code>Copy</code> 타입의 경우 복사)에 의해 이루어집니다. <code>move</code> 키워드는 보통 클로저가 반환되거나 새 스레드를 생성하는 데 사용되는 경우와 같이, 클로저가 캡처된 값보다 더 오래 살아남을 수 있도록 하기 위해 사용됩니다.</p>
 <div class="rule" id="r-type.closure.capture.precision.edition2018.wildcard"><a class="rule-link" href="#r-type.closure.capture.precision.edition2018.wildcard" title="type.closure.capture.precision.edition2018.wildcard"><span>[type<wbr>.closure<wbr>.capture<wbr>.precision<wbr>.edition2018<wbr>.wildcard]<span/></a></div>
-<p>Regardless of if the data will be read by the closure, i.e. in case of wild card patterns, if a variable defined outside the closure is mentioned within the closure the variable will be captured in its entirety.</p>
+<p>와일드카드 패턴의 경우처럼 클로저가 데이터를 실제로 읽는지 여부와 관계없이, 클로저 외부에서 정의된 변수가 클로저 내부에서 언급되면 해당 변수는 전체가 캡처됩니다.</p>
 <div class="rule" id="r-type.closure.capture.precision.edition2018.drop-order"><a class="rule-link" href="#r-type.closure.capture.precision.edition2018.drop-order" title="type.closure.capture.precision.edition2018.drop-order"><span>[type<wbr>.closure<wbr>.capture<wbr>.precision<wbr>.edition2018<wbr>.drop-order]<span/></a></div>
-<h3 id="drop-order-difference"><a class="header" href="#drop-order-difference">Drop order difference</a></h3>
-<p>As composite types are captured in their entirety, a closure which captures one of those composite types by value would drop the entire captured variable at the same time as the closure gets dropped.</p>
+<h3 id="드롭-순서의-차이"><a class="header" href="#드롭-순서의-차이">드롭 순서의 차이</a></h3>
+<p>복합 타입은 전체가 캡처되므로, 이러한 복합 타입 중 하나를 값으로 캡처하는 클로저는 클로저가 드롭될 때 캡처된 변수 전체를 동시에 드롭합니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>{
@@ -759,10 +757,12 @@ impl SetVec {
       (String::from("foo"), String::from("bar"));
     {
         let c = || { // --------------------------+
-            // tuple is captured into the closure |
+            // tuple은 클로저 내부로 캡처됨 |
+// --------------------------+
+            // tuple은 클로저 내부로 캡처됨 |
             drop(tuple.0); //                     |
         }; //                                     |
-    } // 'c' and 'tuple' dropped here ------------+
+    } // 'c'와 'tuple'이 여기서 드롭됨 ------------+
 }
 <span class="boring">}</span></code></pre></pre>
 
