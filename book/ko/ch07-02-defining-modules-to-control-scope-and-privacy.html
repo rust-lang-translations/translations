@@ -217,30 +217,30 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="스코프와-프라이버시를-제어하는-모듈-정의하기"><a class="header" href="#스코프와-프라이버시를-제어하는-모듈-정의하기">스코프와 프라이버시를 제어하는 모듈 정의하기</a></h2>
-<p>In this section, we’ll talk about modules and other parts of the module system, namely <em>paths</em>, which allow you to name items; the <code>use</code> keyword that brings a path into scope; and the <code>pub</code> keyword to make items public. We’ll also discuss the <code>as</code> keyword, external packages, and the glob operator.</p>
+<p>이번 섹션에서는 모듈과 모듈 시스템의 다른 부분들, 즉 항목에 이름을 붙일 수 있게 해주는 <em>경로(paths)</em>, 경로를 스코프로 가져오는 <code>use</code> 키워드, 그리고 항목을 공개로 만드는 <code>pub</code> 키워드에 대해 이야기하겠습니다. 또한 <code>as</code> 키워드, 외부 패키지, 그리고 글롭(glob) 연산자에 대해서도 논의할 것입니다.</p>
 <h3 id="모듈-치트-시트"><a class="header" href="#모듈-치트-시트">모듈 치트 시트</a></h3>
-<p>Before we get to the details of modules and paths, here we provide a quick reference on how modules, paths, the <code>use</code> keyword, and the <code>pub</code> keyword work in the compiler, and how most developers organize their code. We’ll be going through examples of each of these rules throughout this chapter, but this is a great place to refer to as a reminder of how modules work.</p>
+<p>모듈과 경로에 대한 자세한 내용을 살펴보기 전에, 여기서는 모듈, 경로, <code>use</code> 키워드, 그리고 <code>pub</code> 키워드가 컴파일러에서 어떻게 작동하는지, 그리고 대부분의 개발자들이 코드를 어떻게 조직화하는지에 대한 빠른 참조를 제공합니다. 이번 장 전반에 걸쳐 이러한 규칙들의 각 예제를 살펴볼 것이지만, 이곳은 모듈의 작동 방식을 상기하고 싶을 때 참조하기에 아주 좋은 곳입니다.</p>
 <ul>
-<li><strong>Start from the crate root</strong>: When compiling a crate, the compiler first looks in the crate root file (usually <em>src/lib.rs</em> for a library crate or <em>src/main.rs</em> for a binary crate) for code to compile.</li>
-<li><strong>Declaring modules</strong>: In the crate root file, you can declare new modules; say you declare a “garden” module with <code>mod garden;</code>. The compiler will look for the module’s code in these places:
+<li><strong>크레이트 루트에서 시작</strong>: 크레이트를 컴파일할 때, 컴파일러는 먼저 크레이트 루트 파일(보통 라이브러리 크레이트의 경우 <em>src/lib.rs</em>, 바이너리 크레이트의 경우 <em>src/main.rs</em>)에서 컴파일할 코드를 찾습니다.</li>
+<li><strong>모듈 선언</strong>: 크레이트 루트 파일에서 새로운 모듈을 선언할 수 있습니다. 예를 들어 <code>mod garden;</code>으로 “garden” 모듈을 선언한다고 해봅시다. 컴파일러는 다음 장소들에서 모듈의 코드를 찾을 것입니다:
 <ul>
-<li>Inline, within curly brackets that replace the semicolon following <code>mod garden</code></li>
+<li><code>mod garden</code> 뒤의 세미콜론을 대신하는 중괄호 안의 인라인 코드</li>
 <li><em>src/garden.rs</em> 파일에</li>
 <li><em>src/garden/mod.rs</em> 파일에</li>
 </ul>
 </li>
-<li><strong>Declaring submodules</strong>: In any file other than the crate root, you can declare submodules. For example, you might declare <code>mod vegetables;</code> in <em>src/garden.rs</em>. The compiler will look for the submodule’s code within the directory named for the parent module in these places:
+<li><strong>서브모듈 선언</strong>: 크레이트 루트가 아닌 다른 파일에서 서브모듈을 선언할 수 있습니다. 예를 들어 _src/garden.rs_에서 <code>mod vegetables;</code>를 선언할 수 있습니다. 컴파일러는 부모 모듈의 이름을 딴 디렉토리 내의 다음 장소들에서 서브모듈의 코드를 찾을 것입니다:
 <ul>
-<li>Inline, directly following <code>mod vegetables</code>, within curly brackets instead of the semicolon</li>
+<li><code>mod vegetables</code> 바로 뒤의 세미콜론 대신 중괄호 안의 인라인 코드</li>
 <li><em>src/garden/vegetables.rs</em> 파일에</li>
 <li><em>src/garden/vegetables/mod.rs</em> 파일에</li>
 </ul>
 </li>
-<li><strong>Paths to code in modules</strong>: Once a module is part of your crate, you can refer to code in that module from anywhere else in that same crate, as long as the privacy rules allow, using the path to the code. For example, an <code>Asparagus</code> type in the garden vegetables module would be found at <code>crate::garden::vegetables::Asparagus</code>.</li>
-<li><strong>Private vs. public</strong>: Code within a module is private from its parent modules by default. To make a module public, declare it with <code>pub mod</code> instead of <code>mod</code>. To make items within a public module public as well, use <code>pub</code> before their declarations.</li>
-<li><strong>The <code>use</code> keyword</strong>: Within a scope, the <code>use</code> keyword creates shortcuts to items to reduce repetition of long paths. In any scope that can refer to <code>crate::garden::vegetables::Asparagus</code>, you can create a shortcut with <code>use crate::garden::vegetables::Asparagus;</code> and from then on you only need to write <code>Asparagus</code> to make use of that type in the scope.</li>
+<li><strong>모듈 내 코드에 대한 경로</strong>: 모듈이 크레이트의 일부가 되면, 프라이버시 규칙이 허용하는 한 해당 크레이트 내의 어디에서나 코드 경로를 사용하여 그 모듈의 코드를 참조할 수 있습니다. 예를 들어, garden vegetables 모듈의 <code>Asparagus</code> 타입은 <code>crate::garden::vegetables::Asparagus</code>에서 찾을 수 있습니다.</li>
+<li><strong>비공개 vs 공개</strong>: 모듈 내의 코드는 기본적으로 부모 모듈로부터 비공개(private) 상태입니다. 모듈을 공개(public)로 만들려면 <code>mod</code> 대신 <code>pub mod</code>로 선언합니다. 공개 모듈 내의 항목들도 공개로 만들려면 선언 앞에 <code>pub</code>을 사용합니다.</li>
+<li><strong><code>use</code> 키워드</strong>: 스코프 내에서 <code>use</code> 키워드는 긴 경로의 반복을 줄이기 위해 항목에 대한 바로가기를 만듭니다. <code>crate::garden::vegetables::Asparagus</code>를 참조할 수 있는 어떤 스코프에서든 <code>use crate::garden::vegetables::Asparagus;</code>로 바로가기를 만들 수 있으며, 그 이후로는 해당 스코프에서 그 타입을 사용하기 위해 <code>Asparagus</code>만 쓰면 됩니다.</li>
 </ul>
-<p>Here, we create a binary crate named <code>backyard</code> that illustrates these rules. The crate’s directory, also named <code>backyard</code>, contains these files and directories:</p>
+<p>여기서는 이러한 규칙들을 설명하기 위해 <code>backyard</code>라는 이름의 바이너리 크레이트를 만듭니다. 크레이트의 디렉토리(이름도 <code>backyard</code>)에는 다음과 같은 파일들과 디렉토리들이 포함되어 있습니다.</p>
 <pre><code class="language-text">backyard
 ├── Cargo.lock
 ├── Cargo.toml
@@ -258,22 +258,22 @@ pub mod garden;
 
 fn main() {
     let plant = Asparagus {};
-    println!("I'm growing {plant:?}!");
+    println!("저는 {plant:?}를 키우고 있어요!");
 }</code></pre>
 </Listing>
-<p>The <code>pub mod garden;</code> line tells the compiler to include the code it finds in <em>src/garden.rs</em>, which is:</p>
+<p><code>pub mod garden;</code> 줄은 컴파일러에게 _src/garden.rs_에서 찾은 코드를 포함하라고 지시하며, 그 내용은 다음과 같습니다.</p>
 <Listing file-name="src/garden.rs">
 <pre><code class="language-rust noplayground ignore">pub mod vegetables;</code></pre>
 </Listing>
-<p>Here, <code>pub mod vegetables;</code> means the code in <em>src/garden/vegetables.rs</em> is included too. That code is:</p>
+<p>여기서 <code>pub mod vegetables;</code>는 _src/garden/vegetables.rs_의 코드도 포함됨을 의미합니다. 그 코드는 다음과 같습니다.</p>
 <pre><code class="language-rust noplayground ignore">#[derive(Debug)]
 pub struct Asparagus {}</code></pre>
-<p>Now let’s get into the details of these rules and demonstrate them in action!</p>
+<p>이제 이러한 규칙들의 세부 사항을 살펴보고 실제 작동하는 모습을 확인해 봅시다!</p>
 <h3 id="모듈로-관련-코드-그룹화하기"><a class="header" href="#모듈로-관련-코드-그룹화하기">모듈로 관련 코드 그룹화하기</a></h3>
-<p><em>Modules</em> let us organize code within a crate for readability and easy reuse. Modules also allow us to control the <em>privacy</em> of items because code within a module is private by default. Private items are internal implementation details not available for outside use. We can choose to make modules and the items within them public, which exposes them to allow external code to use and depend on them.</p>
-<p>As an example, let’s write a library crate that provides the functionality of a restaurant. We’ll define the signatures of functions but leave their bodies empty to concentrate on the organization of the code rather than the implementation of a restaurant.</p>
-<p>In the restaurant industry, some parts of a restaurant are referred to as <em>front of house</em> and others as <em>back of house</em>. Front of house is where customers are; this encompasses where the hosts seat customers, servers take orders and payment, and bartenders make drinks. Back of house is where the chefs and cooks work in the kitchen, dishwashers clean up, and managers do administrative work.</p>
-<p>To structure our crate in this way, we can organize its functions into nested modules. Create a new library named <code>restaurant</code> by running <code>cargo new restaurant --lib</code>. Then enter the code in Listing 7-1 into <em>src/lib.rs</em> to define some modules and function signatures; this code is the front of house section.</p>
+<p>_모듈(Modules)_은 가독성과 재사용성을 위해 크레이트 내의 코드를 조직화할 수 있게 해줍니다. 모듈 내의 코드는 기본적으로 비공개이므로, 모듈을 통해 항목의 _프라이버시(privacy)_를 제어할 수 있습니다. 비공개 항목은 외부에서 사용할 수 없는 내부 구현 세부 사항입니다. 모듈과 그 안의 항목들을 공개로 선택할 수 있으며, 이를 통해 외부 코드가 그들을 사용하고 의존할 수 있도록 노출할 수 있습니다.</p>
+<p>예를 들어, 레스토랑의 기능을 제공하는 라이브러리 크레이트를 작성해 봅시다. 레스토랑의 실제 구현보다는 코드의 조직화에 집중하기 위해 함수의 시그니처만 정의하고 본문은 비워두겠습니다.</p>
+<p>레스토랑 업계에서 레스토랑의 일부는 _프런트 오브 하우스(front of house)_라고 불리고 다른 부분은 _백 오브 하우스(back of house)_라고 불립니다. 프런트 오브 하우스는 고객이 있는 곳으로, 호스트가 고객을 안내하고, 서버가 주문과 결제를 받고, 바텐더가 음료를 만드는 곳을 포함합니다. 백 오브 하우스는 셰프와 요리사들이 주방에서 일하고, 식기 세척기가 청소하고, 매니저가 행정 업무를 보는 곳입니다.</p>
+<p>이런 방식으로 우리 크레이트를 구성하기 위해, 함수들을 중첩된 모듈로 조직화할 수 있습니다. <code>cargo new restaurant --lib</code>를 실행하여 <code>restaurant</code>라는 새 라이브러리를 만드세요. 그런 다음 목록 7-1의 코드를 _src/lib.rs_에 입력하여 몇 개의 모듈과 함수 시그니처를 정의하세요. 이 코드는 프런트 오브 하우스 섹션입니다.</p>
 <Listing number="7-1" file-name="src/lib.rs" caption="A `front_of_house` module containing other modules that then contain functions">
 <pre><code class="language-rust noplayground">mod front_of_house {
     mod hosting {
@@ -291,9 +291,9 @@ pub struct Asparagus {}</code></pre>
     }
 }</code></pre>
 </Listing>
-<p>We define a module with the <code>mod</code> keyword followed by the name of the module (in this case, <code>front_of_house</code>). The body of the module then goes inside curly brackets. Inside modules, we can place other modules, as in this case with the modules <code>hosting</code> and <code>serving</code>. Modules can also hold definitions for other items, such as structs, enums, constants, traits, and—as in Listing 7-1—functions.</p>
-<p>By using modules, we can group related definitions together and name why they’re related. Programmers using this code can navigate the code based on the groups rather than having to read through all the definitions, making it easier to find the definitions relevant to them. Programmers adding new functionality to this code would know where to place the code to keep the program organized.</p>
-<p>Earlier, we mentioned that <em>src/main.rs</em> and <em>src/lib.rs</em> are called crate roots. The reason for their name is that the contents of either of these two files form a module named <code>crate</code> at the root of the crate’s module structure, known as the <em>module tree</em>.</p>
+<p>모듈은 <code>mod</code> 키워드 뒤에 모듈의 이름(이 경우 <code>front_of_house</code>)을 붙여 정의합니다. 모듈의 본문은 중괄호 안에 들어갑니다. 모듈 안에는 이번 예제의 <code>hosting</code>과 <code>serving</code> 모듈처럼 다른 모듈을 넣을 수 있습니다. 또한 모듈은 구조체, 열거형, 상수, 트레이트, 그리고 목록 7-1에서와 같이 함수 등 다른 항목에 대한 정의도 가질 수 있습니다.</p>
+<p>모듈을 사용함으로써 관련 있는 정의들을 하나로 묶고 그들이 왜 관련 있는지 이름을 붙일 수 있습니다. 이 코드를 사용하는 프로그래머는 모든 정의를 읽을 필요 없이 그룹을 바탕으로 코드를 탐색할 수 있어, 자신에게 필요한 정의를 더 쉽게 찾을 수 있습니다. 또한 새로운 기능을 추가하는 프로그래머는 프로그램의 조직화를 유지하기 위해 코드를 어디에 두어야 할지 알 수 있습니다.</p>
+<p>앞서 우리는 _src/main.rs_와 _src/lib.rs_를 크레이트 루트라고 부른다고 언급했습니다. 그렇게 불리는 이유는 이 두 파일 중 하나의 내용이 크레이트의 모듈 구조( _모듈 트리(module tree)_라고 알려진)의 루트에서 <code>crate</code>라는 이름의 모듈을 형성하기 때문입니다.</p>
 <p>목록 7-2는 목록 7-1의 구조에 대한 모듈 트리를 보여줍니다.</p>
 <Listing number="7-2" caption="The module tree for the code in Listing 7-1">
 <pre><code class="language-text">crate
@@ -307,8 +307,8 @@ pub struct Asparagus {}</code></pre>
          └── take_payment
 </code></pre>
 </Listing>
-<p>This tree shows how some of the modules nest inside other modules; for example, <code>hosting</code> nests inside <code>front_of_house</code>. The tree also shows that some modules are <em>siblings</em>, meaning they’re defined in the same module; <code>hosting</code> and <code>serving</code> are siblings defined within <code>front_of_house</code>. If module A is contained inside module B, we say that module A is the <em>child</em> of module B and that module B is the <em>parent</em> of module A. Notice that the entire module tree is rooted under the implicit module named <code>crate</code>.</p>
-<p>The module tree might remind you of the filesystem’s directory tree on your computer; this is a very apt comparison! Just like directories in a filesystem, you use modules to organize your code. And just like files in a directory, we need a way to find our modules.</p>
+<p>이 트리는 어떤 모듈이 다른 모듈 안에 어떻게 중첩되는지 보여줍니다. 예를 들어, <code>hosting</code>은 <code>front_of_house</code> 안에 중첩되어 있습니다. 또한 트리는 일부 모듈이 <em>형제(siblings)</em> 관계임을 보여주는데, 이는 그들이 동일한 모듈 내에 정의되어 있음을 의미합니다. <code>hosting</code>과 <code>serving</code>은 <code>front_of_house</code> 내에 정의된 형제입니다. 만약 모듈 A가 모듈 B 안에 포함되어 있다면, 모듈 A는 모듈 B의 _자식(child)_이고 모듈 B는 모듈 A의 _부모(parent)_라고 말합니다. 전체 모듈 트리는 <code>crate</code>라는 이름의 암시적 모듈 아래에 뿌리를 두고 있음에 주목하세요.</p>
+<p>모듈 트리는 컴퓨터의 파일 시스템 디렉토리 트리를 연상시킬 수 있는데, 이는 매우 적절한 비유입니다! 파일 시스템의 디렉토리와 마찬가지로, 여러분은 코드를 조직화하기 위해 모듈을 사용합니다. 그리고 디렉토리 안의 파일들처럼, 우리에게는 모듈을 찾을 방법이 필요합니다.</p>
 
                     </main>
 

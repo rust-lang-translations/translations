@@ -217,11 +217,11 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="우아한-종료와-정리"><a class="header" href="#우아한-종료와-정리">우아한 종료와 정리</a></h2>
-<p>The code in Listing 21-20 is responding to requests asynchronously through the use of a thread pool, as we intended. We get some warnings about the <code>workers</code>, <code>id</code>, and <code>thread</code> fields that we’re not using in a direct way that reminds us we’re not cleaning up anything. When we use the less elegant <kbd>ctrl</kbd>-<kbd>c</kbd> method to halt the main thread, all other threads are stopped immediately as well, even if they’re in the middle of serving a request.</p>
-<p>Next, then, we’ll implement the <code>Drop</code> trait to call <code>join</code> on each of the threads in the pool so they can finish the requests they’re working on before closing. Then we’ll implement a way to tell the threads they should stop accepting new requests and shut down. To see this code in action, we’ll modify our server to accept only two requests before gracefully shutting down its thread pool.</p>
-<p>One thing to notice as we go: none of this affects the parts of the code that handle executing the closures, so everything here would be just the same if we were using a thread pool for an async runtime.</p>
-<h3 id="implementing-the-drop-trait-on-threadpool"><a class="header" href="#implementing-the-drop-trait-on-threadpool">Implementing the <code>Drop</code> Trait on <code>ThreadPool</code></a></h3>
-<p>Let’s start with implementing <code>Drop</code> on our thread pool. When the pool is dropped, our threads should all join to make sure they finish their work. Listing 21-22 shows a first attempt at a <code>Drop</code> implementation; this code won’t quite work yet.</p>
+<p>예제 21-20의 코드는 의도한 대로 스레드 풀을 사용하여 요청에 비동기적으로 응답하고 있습니다. 우리가 직접적으로 사용하지 않는 <code>workers</code>, <code>id</code>, <code>thread</code> 필드에 대한 경고가 발생하는데, 이는 우리가 아직 아무것도 정리하지 않았음을 상기시켜 줍니다. 덜 우아한 방식인 <kbd>ctrl</kbd>-<kbd>c</kbd>를 사용하여 메인 스레드를 중단하면, 다른 모든 스레드들도 요청을 처리하는 도중이더라도 즉시 중단됩니다.</p>
+<p>그다음으로, 풀에 있는 각 스레드에 대해 <code>join</code>을 호출하도록 <code>Drop</code> 트레이트를 구현하겠습니다. 이를 통해 각 스레드가 종료되기 전에 처리 중인 요청을 완료할 수 있게 됩니다. 그런 다음 스레드들에게 새로운 요청 수락을 중단하고 종료해야 함을 알리는 방법을 구현할 것입니다. 이 코드가 실제로 작동하는지 확인하기 위해, 서버가 두 개의 요청만 수락한 뒤 스레드 풀을 우아하게 종료하도록 수정하겠습니다.</p>
+<p>진행하면서 한 가지 주목할 점은, 이 중 어느 것도 클로저 실행을 처리하는 코드 부분에는 영향을 주지 않는다는 것입니다. 따라서 비동기 런타임을 위해 스레드 풀을 사용하는 경우에도 여기의 모든 내용은 동일하게 적용될 것입니다.</p>
+<h3 id="threadpool에-drop-트레이트-구현하기"><a class="header" href="#threadpool에-drop-트레이트-구현하기"><code>ThreadPool</code>에 <code>Drop</code> 트레이트 구현하기</a></h3>
+<p>먼저 스레드 풀에 <code>Drop</code>을 구현하는 것부터 시작하겠습니다. 풀이 드롭될 때, 모든 스레드들이 작업을 마칠 수 있도록 <code>join</code>을 호출해야 합니다. 예제 21-22는 <code>Drop</code> 구현의 첫 번째 시도를 보여줍니다. 이 코드는 아직 제대로 작동하지 않을 것입니다.</p>
 <Listing number="21-22" file-name="src/lib.rs" caption="Joining each thread when the thread pool goes out of scope">
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">use std::{
 </span><span class="boring">    sync::{mpsc, Arc, Mutex},
@@ -236,13 +236,13 @@
 </span><span class="boring">type Job = Box&lt;dyn FnOnce() + Send + 'static&gt;;
 </span><span class="boring">
 </span><span class="boring">impl ThreadPool {
-</span><span class="boring">    /// Create a new ThreadPool.
+</span><span class="boring">    /// 새로운 ThreadPool을 생성합니다.
 </span><span class="boring">    ///
-</span><span class="boring">    /// The size is the number of threads in the pool.
+</span><span class="boring">    /// size는 풀의 스레드 개수입니다.
 </span><span class="boring">    ///
 </span><span class="boring">    /// # Panics
 </span><span class="boring">    ///
-</span><span class="boring">    /// The `new` function will panic if the size is zero.
+</span><span class="boring">    /// `new` 함수는 size가 0일 경우 패닉을 일으킵니다.
 </span><span class="boring">    pub fn new(size: usize) -&gt; ThreadPool {
 </span><span class="boring">        assert!(size &gt; 0);
 </span><span class="boring">
@@ -272,7 +272,7 @@
 </span>impl Drop for ThreadPool {
     fn drop(&amp;mut self) {
         for worker in &amp;mut self.workers {
-            println!("Shutting down worker {}", worker.id);
+            println!("워커 {}를 종료합니다", worker.id);
 
             worker.thread.join().unwrap();
         }
@@ -289,7 +289,7 @@
 </span><span class="boring">        let thread = thread::spawn(move || loop {
 </span><span class="boring">            let job = receiver.lock().unwrap().recv().unwrap();
 </span><span class="boring">
-</span><span class="boring">            println!("Worker {id} got a job; executing.");
+</span><span class="boring">            println!("워커 {id}가 작업을 받았습니다. 실행합니다.");
 </span><span class="boring">
 </span><span class="boring">            job();
 </span><span class="boring">        });
@@ -298,8 +298,8 @@
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 </Listing>
-<p>First, we loop through each of the thread pool <code>workers</code>. We use <code>&amp;mut</code> for this because <code>self</code> is a mutable reference, and we also need to be able to mutate <code>worker</code>. For each worker, we print a message saying that this particular <code>Worker</code> instance is shutting down, and then we call <code>join</code> on that <code>Worker</code> instance’s thread. If the call to <code>join</code> fails, we use <code>unwrap</code> to make Rust panic and go into an ungraceful shutdown.</p>
-<p>Here is the error we get when we compile this code:</p>
+<p>먼저, 스레드 풀의 각 <code>workers</code>에 대해 루프를 돕니다. <code>self</code>가 가변 참조자이고 <code>worker</code>를 수정할 수 있어야 하므로 <code>&amp;mut</code>을 사용합니다. 각 워커에 대해 해당 <code>Worker</code> 인스턴스가 종료된다는 메시지를 출력한 다음, 그 <code>Worker</code> 인스턴스의 스레드에 대해 <code>join</code>을 호출합니다. 만약 <code>join</code> 호출이 실패하면, <code>unwrap</code>을 사용하여 러스트가 패닉을 일으키고 우아하지 않은 종료(ungraceful shutdown) 상태가 되도록 합니다.</p>
+<p>이 코드를 컴파일할 때 발생하는 에러는 다음과 같습니다.</p>
 <pre><code class="language-console">$ cargo check
     Checking hello v0.1.0 (file:///projects/hello)
 error[E0507]: cannot move out of `worker.thread` which is behind a mutable reference
@@ -319,10 +319,10 @@ note: `JoinHandle::&lt;T&gt;::join` takes ownership of the receiver `self`, whic
 For more information about this error, try `rustc --explain E0507`.
 error: could not compile `hello` (lib) due to 1 previous error
 </code></pre>
-<p>The error tells us we can’t call <code>join</code> because we only have a mutable borrow of each <code>worker</code> and <code>join</code> takes ownership of its argument. To solve this issue, we need to move the thread out of the <code>Worker</code> instance that owns <code>thread</code> so <code>join</code> can consume the thread. One way to do this is by taking the same approach we did in Listing 18-15. If <code>Worker</code> held an <code>Option&lt;thread::JoinHandle&lt;()&gt;&gt;</code>, we could call the <code>take</code> method on the <code>Option</code> to move the value out of the <code>Some</code> variant and leave a <code>None</code> variant in its place. In other words, a <code>Worker</code> that is running would have a <code>Some</code> variant in <code>thread</code>, and when we wanted to clean up a <code>Worker</code>, we’d replace <code>Some</code> with <code>None</code> so the <code>Worker</code> wouldn’t have a thread to run.</p>
-<p>However, the <em>only</em> time this would come up would be when dropping the <code>Worker</code>. In exchange, we’d have to deal with an <code>Option&lt;thread::JoinHandle&lt;()&gt;&gt;</code> anywhere we accessed <code>worker.thread</code>. Idiomatic Rust uses <code>Option</code> quite a bit, but when you find yourself wrapping something you know will always be present in <code>Option</code> as a workaround like this, it’s a good idea to look for alternative approaches. They can make your code cleaner and less error-prone.</p>
-<p>In this case, a better alternative exists: the <code>Vec::drain</code> method. It accepts a range parameter to specify which items to remove from the <code>Vec</code>, and returns an iterator of those items. Passing the <code>..</code> range syntax will remove <em>every</em> value from the <code>Vec</code>.</p>
-<p>So we need to update the <code>ThreadPool</code> <code>drop</code> implementation like this:</p>
+<p>이 에러는 우리가 각 <code>worker</code>에 대해 가변 대여(mutable borrow)만 가지고 있고 <code>join</code>은 그 인수의 소유권을 가져가기 때문에 <code>join</code>을 호출할 수 없음을 알려줍니다. 이 문제를 해결하려면 <code>join</code>이 스레드를 소비할 수 있도록 <code>thread</code>를 소유하고 있는 <code>Worker</code> 인스턴스 밖으로 스레드를 이동시켜야 합니다. 한 가지 방법은 예제 18-15에서 했던 것과 같은 방식을 취하는 것입니다. 만약 <code>Worker</code>가 <code>Option&lt;thread::JoinHandle&lt;()&gt;&gt;</code>를 들고 있다면, <code>Option</code>에 대해 <code>take</code> 메서드를 호출하여 <code>Some</code> 변형에서 값을 꺼내오고 그 자리에 <code>None</code> 변형을 남겨둘 수 있습니다. 즉, 실행 중인 <code>Worker</code>는 <code>thread</code> 필드에 <code>Some</code> 변형을 가지고 있을 것이고, <code>Worker</code>를 정리하고 싶을 때는 <code>Some</code>을 <code>None</code>으로 교체하여 해당 <code>Worker</code>가 실행할 스레드를 가지지 않도록 만드는 것입니다.</p>
+<p>하지만 이 방식은 <code>Worker</code>를 드롭할 때에만 필요한 반면, 그 대가로 <code>worker.thread</code>에 접근하는 모든 곳에서 <code>Option&lt;thread::JoinHandle&lt;()&gt;&gt;</code>를 다뤄야만 합니다. 관용적인 러스트는 <code>Option</code>을 꽤 많이 사용하지만, 이처럼 항상 존재할 것임을 알고 있는 무언가를 임시방편으로 <code>Option</code>으로 감싸고 있다는 것을 알게 된다면, 대안적인 접근 방식을 찾아보는 것이 좋습니다. 대안을 통해 코드를 더 깔끔하고 에러가 적게 만들 수 있습니다.</p>
+<p>이 경우에는 더 나은 대안이 존재합니다. 바로 <code>Vec::drain</code> 메서드입니다. 이 메서드는 <code>Vec</code>에서 제거할 아이템들의 범위를 파라미터로 받으며, 해당 아이템들의 반복자를 반환합니다. <code>..</code> 범위 문법을 전달하면 <code>Vec</code>에서 <em>모든</em> 값을 제거합니다.</p>
+<p>따라서 <code>ThreadPool</code>의 <code>drop</code> 구현을 다음과 같이 업데이트해야 합니다.</p>
 <Listing file-name="src/lib.rs">
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -339,13 +339,13 @@ error: could not compile `hello` (lib) due to 1 previous error
 </span><span class="boring">type Job = Box&lt;dyn FnOnce() + Send + 'static&gt;;
 </span><span class="boring">
 </span><span class="boring">impl ThreadPool {
-</span><span class="boring">    /// Create a new ThreadPool.
+</span><span class="boring">    /// 새로운 ThreadPool을 생성합니다.
 </span><span class="boring">    ///
-</span><span class="boring">    /// The size is the number of threads in the pool.
+</span><span class="boring">    /// size는 풀의 스레드 개수입니다.
 </span><span class="boring">    ///
 </span><span class="boring">    /// # Panics
 </span><span class="boring">    ///
-</span><span class="boring">    /// The `new` function will panic if the size is zero.
+</span><span class="boring">    /// `new` 함수는 size가 0일 경우 패닉을 일으킵니다.
 </span><span class="boring">    pub fn new(size: usize) -&gt; ThreadPool {
 </span><span class="boring">        assert!(size &gt; 0);
 </span><span class="boring">
@@ -375,7 +375,7 @@ error: could not compile `hello` (lib) due to 1 previous error
 </span>impl Drop for ThreadPool {
     fn drop(&amp;mut self) {
         for worker in self.workers.drain(..) {
-            println!("Shutting down worker {}", worker.id);
+            println!("워커 {}를 종료합니다", worker.id);
 
             worker.thread.join().unwrap();
         }
@@ -392,7 +392,7 @@ error: could not compile `hello` (lib) due to 1 previous error
 </span><span class="boring">        let thread = thread::spawn(move || loop {
 </span><span class="boring">            let job = receiver.lock().unwrap().recv().unwrap();
 </span><span class="boring">
-</span><span class="boring">            println!("Worker {id} got a job; executing.");
+</span><span class="boring">            println!("워커 {id}가 작업을 받았습니다. 실행합니다.");
 </span><span class="boring">
 </span><span class="boring">            job();
 </span><span class="boring">        });
@@ -402,11 +402,11 @@ error: could not compile `hello` (lib) due to 1 previous error
 </span><span class="boring">}
 </span><span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>This resolves the compiler error and does not require any other changes to our code.</p>
-<h3 id="signaling-to-the-threads-to-stop-listening-for-jobs"><a class="header" href="#signaling-to-the-threads-to-stop-listening-for-jobs">Signaling to the Threads to Stop Listening for Jobs</a></h3>
-<p>With all the changes we’ve made, our code compiles without any warnings. However, the bad news is that this code doesn’t function the way we want it to yet. The key is the logic in the closures run by the threads of the <code>Worker</code> instances: at the moment, we call <code>join</code>, but that won’t shut down the threads because they <code>loop</code> forever looking for jobs. If we try to drop our <code>ThreadPool</code> with our current implementation of <code>drop</code>, the main thread will block forever, waiting for the first thread to finish.</p>
-<p>To fix this problem, we’ll need a change in the <code>ThreadPool</code> <code>drop</code> implementation and then a change in the <code>Worker</code> loop.</p>
-<p>First we’ll change the <code>ThreadPool</code> <code>drop</code> implementation to explicitly drop the <code>sender</code> before waiting for the threads to finish. Listing 21-23 shows the changes to <code>ThreadPool</code> to explicitly drop <code>sender</code>. Unlike with the thread, here we <em>do</em> need to use an <code>Option</code> to be able to move <code>sender</code> out of <code>ThreadPool</code> with <code>Option::take</code>.</p>
+<p>이것으로 컴파일러 에러가 해결되며 우리 코드에 다른 변경 사항은 필요하지 않습니다.</p>
+<h3 id="스레드들에게-작업-대기-중단을-신호하기"><a class="header" href="#스레드들에게-작업-대기-중단을-신호하기">스레드들에게 작업 대기 중단을 신호하기</a></h3>
+<p>지금까지의 모든 변경 사항을 적용하면 코드는 경고 없이 컴파일됩니다. 하지만 안타깝게도 이 코드는 아직 우리가 원하는 대로 작동하지 않습니다. 핵심은 <code>Worker</code> 인스턴스의 스레드들이 실행하는 클로저 내부의 로직입니다. 현재 우리는 <code>join</code>을 호출하고 있지만, 스레드들은 작업을 찾기 위해 영원히 루프(<code>loop</code>)를 돌고 있기 때문에 종료되지 않을 것입니다. 현재의 <code>drop</code> 구현으로 <code>ThreadPool</code>을 드롭하려고 시도하면, 메인 스레드는 첫 번째 스레드가 끝나기를 기다리며 영원히 블록될 것입니다.</p>
+<p>이 문제를 해결하려면 <code>ThreadPool</code>의 <code>drop</code> 구현을 변경하고, 이어서 <code>Worker</code>의 루프를 변경해야 합니다.</p>
+<p>먼저 스레드들이 종료되기를 기다리기 전에 <code>sender</code>를 명시적으로 드롭하도록 <code>ThreadPool</code>의 <code>drop</code> 구현을 변경하겠습니다. 예제 21-23은 <code>sender</code>를 명시적으로 드롭하기 위한 <code>ThreadPool</code>의 변경 사항을 보여줍니다. 스레드 때와 마찬가지로, 여기서도 <code>Option::take</code>를 사용하여 <code>sender</code>를 <code>ThreadPool</code> 밖으로 꺼내오기 위해 <code>Option</code>을 사용해야 합니다.</p>
 <Listing number="21-23" file-name="src/lib.rs" caption="Explicitly drop `sender` before joining the `Worker` threads">
 <pre><code class="language-rust noplayground not_desired_behavior"><span class="boring">use std::{
 </span><span class="boring">    sync::{mpsc, Arc, Mutex},
@@ -422,13 +422,13 @@ error: could not compile `hello` (lib) due to 1 previous error
 </span><span class="boring">type Job = Box&lt;dyn FnOnce() + Send + 'static&gt;;
 </span><span class="boring">
 </span>impl ThreadPool {
-<span class="boring">    /// Create a new ThreadPool.
+<span class="boring">    /// 새로운 ThreadPool을 생성합니다.
 </span><span class="boring">    ///
-</span><span class="boring">    /// The size is the number of threads in the pool.
+</span><span class="boring">    /// size는 풀의 스레드 개수입니다.
 </span><span class="boring">    ///
 </span><span class="boring">    /// # Panics
 </span><span class="boring">    ///
-</span><span class="boring">    /// The `new` function will panic if the size is zero.
+</span><span class="boring">    /// `new` 함수는 size가 0일 경우 패닉을 일으킵니다.
 </span>    pub fn new(size: usize) -&gt; ThreadPool {
         // --생략--
 
@@ -465,7 +465,7 @@ impl Drop for ThreadPool {
         drop(self.sender.take());
 
         for worker in self.workers.drain(..) {
-            println!("Shutting down worker {}", worker.id);
+            println!("워커 {}를 종료합니다", worker.id);
 
             worker.thread.join().unwrap();
         }
@@ -482,7 +482,7 @@ impl Drop for ThreadPool {
 </span><span class="boring">        let thread = thread::spawn(move || loop {
 </span><span class="boring">            let job = receiver.lock().unwrap().recv().unwrap();
 </span><span class="boring">
-</span><span class="boring">            println!("Worker {id} got a job; executing.");
+</span><span class="boring">            println!("워커 {id}가 작업을 받았습니다. 실행합니다.");
 </span><span class="boring">
 </span><span class="boring">            job();
 </span><span class="boring">        });
@@ -491,7 +491,7 @@ impl Drop for ThreadPool {
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 </Listing>
-<p>Dropping <code>sender</code> closes the channel, which indicates no more messages will be sent. When that happens, all the calls to <code>recv</code> that the <code>Worker</code> instances do in the infinite loop will return an error. In Listing 21-24, we change the <code>Worker</code> loop to gracefully exit the loop in that case, which means the threads will finish when the <code>ThreadPool</code> <code>drop</code> implementation calls <code>join</code> on them.</p>
+<p><code>sender</code>를 드롭하면 채널이 닫히며, 이는 더 이상의 메시지가 전송되지 않을 것임을 나타냅니다. 그렇게 되면 무한 루프 내에서 <code>Worker</code> 인스턴스들이 수행하는 모든 <code>recv</code> 호출은 에러를 반환할 것입니다. 예제 21-24에서는 그러한 경우에 루프를 우아하게 빠져나오도록 <code>Worker</code> 루프를 수정합니다. 이는 <code>ThreadPool</code>의 <code>drop</code> 구현이 스레드들에 대해 <code>join</code>을 호출할 때 스레드들이 종료될 수 있음을 의미합니다.</p>
 <Listing number="21-24" file-name="src/lib.rs" caption="Explicitly breaking out of the loop when `recv` returns an error">
 <pre><code class="language-rust noplayground"><span class="boring">use std::{
 </span><span class="boring">    sync::{mpsc, Arc, Mutex},
@@ -506,13 +506,13 @@ impl Drop for ThreadPool {
 </span><span class="boring">type Job = Box&lt;dyn FnOnce() + Send + 'static&gt;;
 </span><span class="boring">
 </span><span class="boring">impl ThreadPool {
-</span><span class="boring">    /// Create a new ThreadPool.
+</span><span class="boring">    /// 새로운 ThreadPool을 생성합니다.
 </span><span class="boring">    ///
-</span><span class="boring">    /// The size is the number of threads in the pool.
+</span><span class="boring">    /// size는 풀의 스레드 개수입니다.
 </span><span class="boring">    ///
 </span><span class="boring">    /// # Panics
 </span><span class="boring">    ///
-</span><span class="boring">    /// The `new` function will panic if the size is zero.
+</span><span class="boring">    /// `new` 함수는 size가 0일 경우 패닉을 일으킵니다.
 </span><span class="boring">    pub fn new(size: usize) -&gt; ThreadPool {
 </span><span class="boring">        assert!(size &gt; 0);
 </span><span class="boring">
@@ -547,7 +547,7 @@ impl Drop for ThreadPool {
 </span><span class="boring">        drop(self.sender.take());
 </span><span class="boring">
 </span><span class="boring">        for worker in self.workers.drain(..) {
-</span><span class="boring">            println!("Shutting down worker {}", worker.id);
+</span><span class="boring">            println!("워커 {}를 종료합니다", worker.id);
 </span><span class="boring">
 </span><span class="boring">            worker.thread.join().unwrap();
 </span><span class="boring">        }
@@ -566,12 +566,12 @@ impl Drop for ThreadPool {
 
             match message {
                 Ok(job) =&gt; {
-                    println!("Worker {id} got a job; executing.");
+                    println!("워커 {id}가 작업을 받았습니다. 실행합니다.");
 
                     job();
                 }
                 Err(_) =&gt; {
-                    println!("Worker {id} disconnected; shutting down.");
+                    println!("워커 {id}의 연결이 끊겼습니다. 종료합니다.");
                     break;
                 }
             }
@@ -581,7 +581,7 @@ impl Drop for ThreadPool {
     }
 }</code></pre>
 </Listing>
-<p>To see this code in action, let’s modify <code>main</code> to accept only two requests before gracefully shutting down the server, as shown in Listing 21-25.</p>
+<p>이 코드가 작동하는 모습을 보기 위해, 예제 21-25와 같이 서버가 두 개의 요청만 수락한 후 우아하게 종료되도록 <code>main</code>을 수정하겠습니다.</p>
 <Listing number="21-25" file-name="src/main.rs" caption="Shutting down the server after serving two requests by exiting the loop">
 <pre><code class="language-rust ignore"><span class="boring">use hello::ThreadPool;
 </span><span class="boring">use std::{
@@ -604,7 +604,7 @@ impl Drop for ThreadPool {
         });
     }
 
-    println!("Shutting down.");
+    println!("종료합니다.");
 }
 <span class="boring">
 </span><span class="boring">fn handle_connection(mut stream: TcpStream) {
@@ -629,9 +629,9 @@ impl Drop for ThreadPool {
 </span><span class="boring">    stream.write_all(response.as_bytes()).unwrap();
 </span><span class="boring">}</span></code></pre>
 </Listing>
-<p>You wouldn’t want a real-world web server to shut down after serving only two requests. This code just demonstrates that the graceful shutdown and cleanup is in working order.</p>
-<p>The <code>take</code> method is defined in the <code>Iterator</code> trait and limits the iteration to the first two items at most. The <code>ThreadPool</code> will go out of scope at the end of <code>main</code>, and the <code>drop</code> implementation will run.</p>
-<p>Start the server with <code>cargo run</code>, and make three requests. The third request should error, and in your terminal you should see output similar to this:</p>
+<p>실제 웹 서버가 단 두 개의 요청만 처리하고 종료되는 것을 원하지는 않으실 겁니다. 이 코드는 단지 우아한 종료와 정리가 제대로 작동하는지 보여주기 위한 것입니다.</p>
+<p><code>take</code> 메서드는 <code>Iterator</code> 트레이트에 정의되어 있으며 반복을 최대 처음 두 개의 아이템으로 제한합니다. <code>main</code>의 끝에서 <code>ThreadPool</code>이 스코프를 벗어나게 되고, <code>drop</code> 구현이 실행될 것입니다.</p>
+<p><code>cargo run</code>으로 서버를 시작하고 세 번의 요청을 보내보세요. 세 번째 요청에서는 에러가 발생해야 하며, 터미널에서는 다음과 유사한 출력을 볼 수 있을 것입니다.</p>
 <!-- manual-regeneration
 cd listings/ch21-web-server/listing-21-25
 cargo run
@@ -646,22 +646,22 @@ Can't automate because the output depends on making requests
    Compiling hello v0.1.0 (file:///projects/hello)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.41s
      Running `target/debug/hello`
-Worker 0 got a job; executing.
-Shutting down.
-Shutting down worker 0
-Worker 3 got a job; executing.
-Worker 1 disconnected; shutting down.
-Worker 2 disconnected; shutting down.
-Worker 3 disconnected; shutting down.
-Worker 0 disconnected; shutting down.
-Shutting down worker 1
-Shutting down worker 2
-Shutting down worker 3
+워커 0이 작업을 받았습니다. 실행합니다.
+종료합니다.
+워커 0를 종료합니다
+워커 3이 작업을 받았습니다. 실행합니다.
+워커 1의 연결이 끊겼습니다. 종료합니다.
+워커 2의 연결이 끊겼습니다. 종료합니다.
+워커 3의 연결이 끊겼습니다. 종료합니다.
+워커 0의 연결이 끊겼습니다. 종료합니다.
+워커 1를 종료합니다
+워커 2를 종료합니다
+워커 3를 종료합니다
 </code></pre>
-<p>You might see a different ordering of <code>Worker</code> IDs and messages printed. We can see how this code works from the messages: <code>Worker</code> instances 0 and 3 got the first two requests. The server stopped accepting connections after the second connection, and the <code>Drop</code> implementation on <code>ThreadPool</code> starts executing before <code>Worker</code> 3 even starts its job. Dropping the <code>sender</code> disconnects all the <code>Worker</code> instances and tells them to shut down. The <code>Worker</code> instances each print a message when they disconnect, and then the thread pool calls <code>join</code> to wait for each <code>Worker</code> thread to finish.</p>
-<p>Notice one interesting aspect of this particular execution: the <code>ThreadPool</code> dropped the <code>sender</code>, and before any <code>Worker</code> received an error, we tried to join <code>Worker</code> 0. <code>Worker</code> 0 had not yet gotten an error from <code>recv</code>, so the main thread blocked waiting for <code>Worker</code> 0 to finish. In the meantime, <code>Worker</code> 3 received a job and then all threads received an error. When <code>Worker</code> 0 finished, the main thread waited for the rest of the <code>Worker</code> instances to finish. At that point, they had all exited their loops and stopped.</p>
-<p>Congrats! We’ve now completed our project; we have a basic web server that uses a thread pool to respond asynchronously. We’re able to perform a graceful shutdown of the server, which cleans up all the threads in the pool.</p>
-<p>Here’s the full code for reference:</p>
+<p>워커 ID와 출력되는 메시지의 순서는 다르게 보일 수 있습니다. 우리는 메시지를 통해 이 코드가 어떻게 작동하는지 알 수 있습니다. 워커 0과 3이 처음 두 개의 요청을 받았습니다. 서버는 두 번째 연결 이후 연결 수락을 중단했고, <code>ThreadPool</code>의 <code>Drop</code> 구현은 워커 3이 작업을 시작하기도 전에 실행되기 시작했습니다. <code>sender</code>를 드롭하면 모든 워커 인스턴스와의 연결이 끊어지고 종료를 지시합니다. 각 워커 인스턴스는 연결이 끊길 때 메시지를 출력하고, 스레드 풀은 각 워커 스레드가 완료될 때까지 기다리기 위해 <code>join</code>을 호출합니다.</p>
+<p>이 특정 실행에서 흥미로운 점 하나를 주목해 보세요. <code>ThreadPool</code>이 <code>sender</code>를 드롭했고, 어떤 워커도 에러를 받기 전에 우리가 워커 0에 대해 조인(join)을 시도했습니다. 워커 0은 아직 <code>recv</code>로부터 에러를 받지 못했으므로, 메인 스레드는 워커 0이 끝나기를 기다리며 블록되었습니다. 그동안 워커 3은 작업을 받았고 그 후에 모든 스레드가 에러를 받았습니다. 워커 0이 종료되자 메인 스레드는 나머지 워커 인스턴스들이 종료되기를 기다렸습니다. 그 시점에서 워커들은 모두 루프를 빠져나와 정지된 상태였습니다.</p>
+<p>축하합니다! 이제 프로젝트를 완료했습니다. 우리는 스레드 풀을 사용하여 비동기적으로 응답하는 기본적인 웹 서버를 갖게 되었습니다. 또한 서버를 우아하게 종료하고 풀의 모든 스레드를 정리할 수 있게 되었습니다.</p>
+<p>참고를 위한 전체 코드는 다음과 같습니다.</p>
 <Listing file-name="src/main.rs">
 <pre><code class="language-rust ignore">use hello::ThreadPool;
 use std::{
@@ -684,7 +684,7 @@ fn main() {
         });
     }
 
-    println!("Shutting down.");
+    println!("종료합니다.");
 }
 
 fn handle_connection(mut stream: TcpStream) {
@@ -723,13 +723,13 @@ pub struct ThreadPool {
 type Job = Box&lt;dyn FnOnce() + Send + 'static&gt;;
 
 impl ThreadPool {
-    /// Create a new ThreadPool.
+    /// 새로운 ThreadPool을 생성합니다.
     ///
-    /// The size is the number of threads in the pool.
+    /// size는 풀의 스레드 개수입니다.
     ///
     /// # Panics
     ///
-    /// The `new` function will panic if the size is zero.
+    /// `new` 함수는 size가 0일 경우 패닉을 일으킵니다.
     pub fn new(size: usize) -&gt; ThreadPool {
         assert!(size &gt; 0);
 
@@ -764,7 +764,7 @@ impl Drop for ThreadPool {
         drop(self.sender.take());
 
         for worker in &amp;mut self.workers {
-            println!("Shutting down worker {}", worker.id);
+            println!("워커 {}를 종료합니다", worker.id);
 
             if let Some(thread) = worker.thread.take() {
                 thread.join().unwrap();
@@ -785,12 +785,12 @@ impl Worker {
 
             match message {
                 Ok(job) =&gt; {
-                    println!("Worker {id} got a job; executing.");
+                    println!("워커 {id}가 작업을 받았습니다. 실행합니다.");
 
                     job();
                 }
                 Err(_) =&gt; {
-                    println!("Worker {id} disconnected; shutting down.");
+                    println!("워커 {id}의 연결이 끊겼습니다. 종료합니다.");
                     break;
                 }
             }
@@ -803,16 +803,16 @@ impl Worker {
     }
 }</code></pre>
 </Listing>
-<p>We could do more here! If you want to continue enhancing this project, here are some ideas:</p>
+<p>여기서 더 많은 것을 할 수 있습니다! 이 프로젝트를 계속 개선하고 싶다면 다음과 같은 아이디어들이 있습니다.</p>
 <ul>
-<li>Add more documentation to <code>ThreadPool</code> and its public methods.</li>
-<li>Add tests of the library’s functionality.</li>
-<li>Change calls to <code>unwrap</code> to more robust error handling.</li>
-<li>Use <code>ThreadPool</code> to perform some task other than serving web requests.</li>
-<li>Find a thread pool crate on <a href="https://crates.io/">crates.io</a> and implement a similar web server using the crate instead. Then compare its API and robustness to the thread pool we implemented.</li>
+<li><code>ThreadPool</code>과 그 공개 메서드들에 더 많은 문서를 추가해 보세요.</li>
+<li>라이브러리의 기능에 대한 테스트를 추가해 보세요.</li>
+<li><code>unwrap</code> 호출을 더 견고한 에러 처리 방식으로 변경해 보세요.</li>
+<li>웹 요청 처리 외에 다른 작업을 수행하는 데 <code>ThreadPool</code>을 사용해 보세요.</li>
+<li><a href="https://crates.io/">crates.io</a>에서 스레드 풀 크레이트를 찾아보고, 대신 그 크레이트를 사용하여 유사한 웹 서버를 구현해 보세요. 그런 다음 해당 크레이트의 API 및 견고함을 우리가 구현한 스레드 풀과 비교해 보세요.</li>
 </ul>
 <h2 id="요약"><a class="header" href="#요약">요약</a></h2>
-<p>Well done! You’ve made it to the end of the book! We want to thank you for joining us on this tour of Rust. You’re now ready to implement your own Rust projects and help with other people’s projects. Keep in mind that there is a welcoming community of other Rustaceans who would love to help you with any challenges you encounter on your Rust journey.</p>
+<p>수고하셨습니다! 책의 마지막까지 오셨네요! 러스트로의 이 여정에 함께 해주셔서 감사합니다. 이제 여러분은 자신만의 러스트 프로젝트를 구현하고 다른 사람들의 프로젝트를 도울 준비가 되었습니다. 여러분의 러스트 여정에서 마주하게 될 어떤 도전 과제라도 기꺼이 도와줄 친절한 러스타시안(Rustaceans) 커뮤니티가 있다는 것을 잊지 마세요.</p>
 
                     </main>
 

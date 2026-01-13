@@ -217,41 +217,41 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="객체-지향-디자인-패턴-구현하기"><a class="header" href="#객체-지향-디자인-패턴-구현하기">객체 지향 디자인 패턴 구현하기</a></h2>
-<p>The <em>state pattern</em> is an object-oriented design pattern. The crux of the pattern is that we define a set of states a value can have internally. The states are represented by a set of <em>state objects</em>, and the value’s behavior changes based on its state. We’re going to work through an example of a blog post struct that has a field to hold its state, which will be a state object from the set "draft", "review", or "published".</p>
-<p>The state objects share functionality: in Rust, of course, we use structs and traits rather than objects and inheritance. Each state object is responsible for its own behavior and for governing when it should change into another state. The value that holds a state object knows nothing about the different behavior of the states or when to transition between states.</p>
-<p>The advantage of using the state pattern is that, when the business requirements of the program change, we won’t need to change the code of the value holding the state or the code that uses the value. We’ll only need to update the code inside one of the state objects to change its rules or perhaps add more state objects.</p>
-<p>First, we’re going to implement the state pattern in a more traditional object-oriented way, then we’ll use an approach that’s a bit more natural in Rust. Let’s dig in to incrementally implementing a blog post workflow using the state pattern.</p>
-<p>The final functionality will look like this:</p>
+<p>_상태 패턴(state pattern)_은 객체 지향 디자인 패턴입니다. 이 패턴의 핵심은 값이 내부적으로 가질 수 있는 일련의 상태들을 정의하는 것입니다. 각 상태는 일련의 _상태 객체들_로 표현되며, 값의 동작은 자신의 상태에 따라 달라집니다. 우리는 자신의 상태를 보유할 필드를 가진 블로그 포스트 구조체의 예제를 통해 살펴볼 것입니다. 이때 상태는 "초안(draft)", "리뷰(review)", "게시됨(published)" 상태 세트 중 하나의 상태 객체가 될 것입니다.</p>
+<p>상태 객체들은 기능을 공유합니다. 물론 러스트에서는 객체와 상속 대신 구조체와 트레이트를 사용합니다. 각 상태 객체는 자신의 동작과 다른 상태로 언제 전환되어야 하는지를 관리할 책임이 있습니다. 상태 객체를 보유한 값은 상태들의 서로 다른 동작이나 상태 간의 전환 시점에 대해 전혀 알지 못합니다.</p>
+<p>상태 패턴을 사용하는 것의 장점은 프로그램의 비즈니스 요구사항이 변경될 때, 상태를 보유한 값의 코드나 그 값을 사용하는 코드를 변경할 필요가 없다는 것입니다. 단지 상태 객체 중 하나의 내부 코드를 업데이트하여 규칙을 변경하거나, 새로운 상태 객체를 추가하기만 하면 됩니다.</p>
+<p>먼저 보다 전통적인 객체 지향 방식으로 상태 패턴을 구현해 보고, 그런 다음 러스트에 좀 더 자연스러운 방식을 사용해 보겠습니다. 상태 패턴을 사용하여 블로그 포스트 워크플로우를 점진적으로 구현해 봅시다.</p>
+<p>최종 기능은 다음과 같은 모습이 될 것입니다.</p>
 <ol>
-<li>A blog post starts as an empty draft.</li>
-<li>When the draft is done, a review of the post is requested.</li>
-<li>When the post is approved, it gets published.</li>
-<li>Only published blog posts return content to print, so unapproved posts can’t accidentally be published.</li>
+<li>블로그 포스트는 빈 초안으로 시작합니다.</li>
+<li>초안 작성이 완료되면, 포스트에 대한 리뷰가 요청됩니다.</li>
+<li>포스트가 승인되면, 게시됩니다.</li>
+<li>게시된 블로그 포스트만 출력할 내용을 반환하므로, 승인되지 않은 포스트가 실수로 게시되는 일을 방지할 수 있습니다.</li>
 </ol>
-<p>Any other changes attempted on a post should have no effect. For example, if we try to approve a draft blog post before we’ve requested a review, the post should remain an unpublished draft.</p>
-<p>Listing 18-11 shows this workflow in code form: this is an example usage of the API we’ll implement in a library crate named <code>blog</code>. This won’t compile yet because we haven’t implemented the <code>blog</code> crate.</p>
+<p>포스트에 시도된 다른 모든 변경 사항은 아무런 효과가 없어야 합니다. 예를 들어, 리뷰를 요청하기 전에 초안 블로그 포스트를 승인하려고 시도하면, 포스트는 게시되지 않은 초안 상태로 남아 있어야 합니다.</p>
+<p>목록 18-11은 이 워크플로우를 코드 형태로 보여줍니다. 이는 우리가 <code>blog</code>라는 이름의 라이브러리 크레이트에서 구현할 API의 사용 예시입니다. <code>blog</code> 크레이트를 아직 구현하지 않았으므로 이 코드는 아직 컴파일되지 않습니다.</p>
 <Listing number="18-11" file-name="src/main.rs" caption="Code that demonstrates the desired behavior we want our `blog` crate to have">
 <pre><code class="language-rust ignore does_not_compile">use blog::Post;
 
 fn main() {
     let mut post = Post::new();
 
-    post.add_text("I ate a salad for lunch today");
+    post.add_text("나는 오늘 점심으로 샐러드를 먹었다");
     assert_eq!("", post.content());
 
     post.request_review();
     assert_eq!("", post.content());
 
     post.approve();
-    assert_eq!("I ate a salad for lunch today", post.content());
+    assert_eq!("나는 오늘 점심으로 샐러드를 먹었다", post.content());
 }</code></pre>
 </Listing>
-<p>We want to allow the user to create a new draft blog post with <code>Post::new</code>. We want to allow text to be added to the blog post. If we try to get the post’s content immediately, before approval, we shouldn’t get any text because the post is still a draft. We’ve added <code>assert_eq!</code> in the code for demonstration purposes. An excellent unit test for this would be to assert that a draft blog post returns an empty string from the <code>content</code> method, but we’re not going to write tests for this example.</p>
-<p>Next, we want to enable a request for a review of the post, and we want <code>content</code> to return an empty string while waiting for the review. When the post receives approval, it should get published, meaning the text of the post will be returned when <code>content</code> is called.</p>
-<p>Notice that the only type we’re interacting with from the crate is the <code>Post</code> type. This type will use the state pattern and will hold a value that will be one of three state objects representing the various states a post can be in—draft, waiting for review, or published. Changing from one state to another will be managed internally within the <code>Post</code> type. The states change in response to the methods called by our library’s users on the <code>Post</code> instance, but they don’t have to manage the state changes directly. Also, users can’t make a mistake with the states, like publishing a post before it’s reviewed.</p>
-<h3 id="defining-post-and-creating-a-new-instance-in-the-draft-state"><a class="header" href="#defining-post-and-creating-a-new-instance-in-the-draft-state">Defining <code>Post</code> and Creating a New Instance in the Draft State</a></h3>
-<p>Let’s get started on the implementation of the library! We know we need a public <code>Post</code> struct that holds some content, so we’ll start with the definition of the struct and an associated public <code>new</code> function to create an instance of <code>Post</code>, as shown in Listing 18-12. We’ll also make a private <code>State</code> trait that will define the behavior that all state objects for a <code>Post</code> must have.</p>
-<p>Then <code>Post</code> will hold a trait object of <code>Box&lt;dyn State&gt;</code> inside an <code>Option&lt;T&gt;</code> in a private field named <code>state</code> to hold the state object. You’ll see why the <code>Option&lt;T&gt;</code> is necessary in a bit.</p>
+<p>우리는 사용자가 <code>Post::new</code>로 새로운 초안 블로그 포스트를 생성할 수 있게 하고자 합니다. 또한 블로그 포스트에 텍스트를 추가할 수 있게 하고 싶습니다. 만약 승인되기 전인 초안 상태에서 즉시 포스트의 내용을 가져오려고 시도한다면, 어떤 텍스트도 얻지 못해야 합니다. 설명을 돕기 위해 코드에 <code>assert_eq!</code>를 추가했습니다. 이에 대한 훌륭한 유닛 테스트는 초안 블로그 포스트의 <code>content</code> 메서드가 빈 문자열을 반환하는지 확인하는 것이겠지만, 이 예제에서는 테스트를 작성하지 않겠습니다.</p>
+<p>다음으로, 포스트에 대한 리뷰 요청을 가능하게 하고 싶으며, 리뷰를 기다리는 동안에도 <code>content</code>가 빈 문자열을 반환하게 하고 싶습니다. 포스트가 승인을 받으면 게시되어야 하며, 이는 <code>content</code>가 호출될 때 포스트의 텍스트가 반환됨을 의미합니다.</p>
+<p>우리가 이 크레이트에서 상호작용하는 유일한 타입이 <code>Post</code> 타입이라는 점에 주목하세요. 이 타입은 상태 패턴을 사용하며, 포스트가 가질 수 있는 세 가지 상태(초안, 리뷰 대기 중, 게시됨) 중 하나를 나타내는 상태 객체를 값으로 보유합니다. 한 상태에서 다른 상태로의 전환은 <code>Post</code> 타입 내부에서 관리됩니다. 상태는 라이브러리 사용자가 <code>Post</code> 인스턴스에 대해 호출하는 메서드에 응답하여 변경되지만, 사용자가 직접 상태 변경을 관리할 필요는 없습니다. 또한 사용자는 리뷰 전에 포스트를 게시하는 것과 같이 상태와 관련된 실수를 할 수 없습니다.</p>
+<h3 id="post-정의-및-초안-상태의-새-인스턴스-생성하기"><a class="header" href="#post-정의-및-초안-상태의-새-인스턴스-생성하기"><code>Post</code> 정의 및 초안 상태의 새 인스턴스 생성하기</a></h3>
+<p>라이브러리 구현을 시작해 봅시다! 우리는 내용을 담을 공개된 <code>Post</code> 구조체가 필요하다는 것을 알고 있으므로, 목록 18-12에 나타난 것처럼 구조체의 정의와 <code>Post</code> 인스턴스를 생성하는 연관된 공개 <code>new</code> 함수로 시작합니다. 또한 <code>Post</code>를 위한 모든 상태 객체가 가져야 할 동작을 정의하는 비공개 <code>State</code> 트레이트를 만들 것입니다.</p>
+<p>그런 다음 <code>Post</code>는 상태 객체를 보유하기 위해 <code>state</code>라는 이름의 비공개 필드에 <code>Option&lt;T&gt;</code>로 감싸진 <code>Box&lt;dyn State&gt;</code> 트레이트 객체를 보유하게 됩니다. 왜 <code>Option&lt;T&gt;</code>가 필요한지는 잠시 후에 보게 될 것입니다.</p>
 <Listing number="18-12" file-name="src/lib.rs" caption="Definition of a `Post` struct and a `new` function that creates a new `Post` instance, a `State` trait, and a `Draft` struct">
 <pre><code class="language-rust noplayground">pub struct Post {
     state: Option&lt;Box&lt;dyn State&gt;&gt;,
@@ -273,10 +273,10 @@ struct Draft {}
 
 impl State for Draft {}</code></pre>
 </Listing>
-<p>The <code>State</code> trait defines the behavior shared by different post states. The state objects are <code>Draft</code>, <code>PendingReview</code>, and <code>Published</code>, and they will all implement the <code>State</code> trait. For now, the trait doesn’t have any methods, and we’ll start by defining just the <code>Draft</code> state because that is the state we want a post to start in.</p>
-<p>When we create a new <code>Post</code>, we set its <code>state</code> field to a <code>Some</code> value that holds a <code>Box</code>. This <code>Box</code> points to a new instance of the <code>Draft</code> struct. This ensures whenever we create a new instance of <code>Post</code>, it will start out as a draft. Because the <code>state</code> field of <code>Post</code> is private, there is no way to create a <code>Post</code> in any other state! In the <code>Post::new</code> function, we set the <code>content</code> field to a new, empty <code>String</code>.</p>
-<h3 id="storing-the-text-of-the-post-content"><a class="header" href="#storing-the-text-of-the-post-content">Storing the Text of the Post Content</a></h3>
-<p>We saw in Listing 18-11 that we want to be able to call a method named <code>add_text</code> and pass it a <code>&amp;str</code> that is then added as the text content of the blog post. We implement this as a method, rather than exposing the <code>content</code> field as <code>pub</code>, so that later we can implement a method that will control how the <code>content</code> field’s data is read. The <code>add_text</code> method is pretty straightforward, so let’s add the implementation in Listing 18-13 to the <code>impl Post</code> block:</p>
+<p><code>State</code> 트레이트는 서로 다른 포스트 상태들이 공유하는 동작을 정의합니다. 상태 객체들은 <code>Draft</code>, <code>PendingReview</code>, <code>Published</code>이며, 이들은 모두 <code>State</code> 트레이트를 구현할 것입니다. 현재로서는 이 트레이트에 메서드가 없으며, 포스트가 시작되어야 할 상태인 <code>Draft</code> 상태부터 정의하며 시작해 보겠습니다.</p>
+<p>새로운 <code>Post</code>를 생성할 때, 우리는 <code>state</code> 필드를 <code>Box</code>를 담고 있는 <code>Some</code> 값으로 설정합니다. 이 <code>Box</code>는 <code>Draft</code> 구조체의 새로운 인스턴스를 가리킵니다. 이를 통해 <code>Post</code> 인스턴스를 생성할 때마다 항상 초안으로 시작함을 보장합니다. <code>Post</code>의 <code>state</code> 필드는 비공개이므로, 다른 상태로 <code>Post</code>를 생성할 방법이 없습니다! <code>Post::new</code> 함수에서 우리는 <code>content</code> 필드를 새롭고 비어 있는 <code>String</code>으로 설정합니다.</p>
+<h3 id="포스트-내용의-텍스트-저장하기"><a class="header" href="#포스트-내용의-텍스트-저장하기">포스트 내용의 텍스트 저장하기</a></h3>
+<p>우리는 목록 18-11에서 <code>add_text</code>라는 메서드를 호출하고 <code>&amp;str</code>을 전달하여 블로그 포스트의 텍스트 내용으로 추가되기를 원한다는 것을 보았습니다. 우리는 <code>content</code> 필드를 <code>pub</code>으로 노출하는 대신 메서드로 구현했는데, 이는 나중에 <code>content</code> 필드의 데이터가 읽히는 방식을 제어하는 메서드를 구현할 수 있도록 하기 위해서입니다. <code>add_text</code> 메서드는 매우 단순하므로, 목록 18-13의 구현을 <code>impl Post</code> 블록에 추가해 봅시다.</p>
 <Listing number="18-13" file-name="src/lib.rs" caption="Implementing the `add_text` method to add text to a post’s `content`">
 <pre><code class="language-rust noplayground"><span class="boring">pub struct Post {
 </span><span class="boring">    state: Option&lt;Box&lt;dyn State&gt;&gt;,
@@ -303,9 +303,9 @@ impl State for Draft {}</code></pre>
 </span><span class="boring">
 </span><span class="boring">impl State for Draft {}</span></code></pre>
 </Listing>
-<p>The <code>add_text</code> method takes a mutable reference to <code>self</code>, because we’re changing the <code>Post</code> instance that we’re calling <code>add_text</code> on. We then call <code>push_str</code> on the <code>String</code> in <code>content</code> and pass the <code>text</code> argument to add to the saved <code>content</code>. This behavior doesn’t depend on the state the post is in, so it’s not part of the state pattern. The <code>add_text</code> method doesn’t interact with the <code>state</code> field at all, but it is part of the behavior we want to support.</p>
-<h3 id="ensuring-the-content-of-a-draft-post-is-empty"><a class="header" href="#ensuring-the-content-of-a-draft-post-is-empty">Ensuring the Content of a Draft Post Is Empty</a></h3>
-<p>Even after we’ve called <code>add_text</code> and added some content to our post, we still want the <code>content</code> method to return an empty string slice because the post is still in the draft state, as shown on line 7 of Listing 18-11. For now, let’s implement the <code>content</code> method with the simplest thing that will fulfill this requirement: always returning an empty string slice. We’ll change this later once we implement the ability to change a post’s state so it can be published. So far, posts can only be in the draft state, so the post content should always be empty. Listing 18-14 shows this placeholder implementation:</p>
+<p><code>add_text</code> 메서드는 호출 대상인 <code>Post</code> 인스턴스를 변경해야 하므로 <code>self</code>에 대한 가변 참조를 받습니다. 그런 다음 <code>content</code> 필드의 <code>String</code>에 대해 <code>push_str</code>을 호출하고 <code>text</code> 인수를 전달하여 저장된 내용에 추가합니다. 이 동작은 포스트의 현재 상태에 의존하지 않으므로 상태 패턴의 일부는 아닙니다. <code>add_text</code> 메서드는 <code>state</code> 필드와 전혀 상호작용하지 않지만, 우리가 지원하고자 하는 동작의 일부입니다.</p>
+<h3 id="초안-포스트의-내용이-비어-있음을-보장하기"><a class="header" href="#초안-포스트의-내용이-비어-있음을-보장하기">초안 포스트의 내용이 비어 있음을 보장하기</a></h3>
+<p><code>add_text</code>를 호출하여 포스트에 내용을 추가한 후에도, 목록 18-11의 7번 라인에 나타난 것처럼 포스트가 여전히 초안 상태라면 <code>content</code> 메서드가 빈 문자열 슬라이스를 반환하기를 원합니다. 지금은 이 요구사항을 충족하는 가장 간단한 방법으로 <code>content</code> 메서드를 구현해 봅시다. 즉, 항상 빈 문자열 슬라이스를 반환하는 것입니다. 나중에 포스트 상태를 변경하여 게시할 수 있는 기능을 구현하면 이를 수정할 것입니다. 현재까지 포스트는 초안 상태만 가질 수 있으므로, 포스트 내용은 항상 비어 있어야 합니다. 목록 18-14는 이 임시 구현을 보여줍니다.</p>
 <Listing number="18-14" file-name="src/lib.rs" caption="Adding a placeholder implementation for the `content` method on `Post` that always returns an empty string slice">
 <pre><code class="language-rust noplayground"><span class="boring">pub struct Post {
 </span><span class="boring">    state: Option&lt;Box&lt;dyn State&gt;&gt;,
@@ -336,9 +336,9 @@ impl State for Draft {}</code></pre>
 </span><span class="boring">
 </span><span class="boring">impl State for Draft {}</span></code></pre>
 </Listing>
-<p>With this added <code>content</code> method, everything in Listing 18-11 up to line 7 works as intended.</p>
-<h3 id="requesting-a-review-of-the-post-changes-its-state"><a class="header" href="#requesting-a-review-of-the-post-changes-its-state">Requesting a Review of the Post Changes Its State</a></h3>
-<p>Next, we need to add functionality to request a review of a post, which should change its state from <code>Draft</code> to <code>PendingReview</code>. Listing 18-15 shows this code:</p>
+<p>이 <code>content</code> 메서드를 추가함으로써, 목록 18-11의 7번 라인까지의 모든 코드가 의도한 대로 작동합니다.</p>
+<h3 id="포스트의-리뷰를-요청하면-상태가-변경된다"><a class="header" href="#포스트의-리뷰를-요청하면-상태가-변경된다">포스트의 리뷰를 요청하면 상태가 변경된다</a></h3>
+<p>다음으로, 포스트의 리뷰를 요청하는 기능을 추가해야 하며, 이는 포스트의 상태를 <code>Draft</code>에서 <code>PendingReview</code>로 변경해야 합니다. 목록 18-15는 이 코드를 보여줍니다.</p>
 <Listing number="18-15" file-name="src/lib.rs" caption="Implementing `request_review` methods on `Post` and the `State` trait">
 <pre><code class="language-rust noplayground"><span class="boring">pub struct Post {
 </span><span class="boring">    state: Option&lt;Box&lt;dyn State&gt;&gt;,
@@ -389,17 +389,17 @@ impl State for PendingReview {
     }
 }</code></pre>
 </Listing>
-<p>We give <code>Post</code> a public method named <code>request_review</code> that will take a mutable reference to <code>self</code>. Then we call an internal <code>request_review</code> method on the current state of <code>Post</code>, and this second <code>request_review</code> method consumes the current state and returns a new state.</p>
-<p>We add the <code>request_review</code> method to the <code>State</code> trait; all types that implement the trait will now need to implement the <code>request_review</code> method. Note that rather than having <code>self</code>, <code>&amp;self</code>, or <code>&amp;mut self</code> as the first parameter of the method, we have <code>self: Box&lt;Self&gt;</code>. This syntax means the method is only valid when called on a <code>Box</code> holding the type. This syntax takes ownership of <code>Box&lt;Self&gt;</code>, invalidating the old state so the state value of the <code>Post</code> can transform into a new state.</p>
-<p>To consume the old state, the <code>request_review</code> method needs to take ownership of the state value. This is where the <code>Option</code> in the <code>state</code> field of <code>Post</code> comes in: we call the <code>take</code> method to take the <code>Some</code> value out of the <code>state</code> field and leave a <code>None</code> in its place, because Rust doesn’t let us have unpopulated fields in structs. This lets us move the <code>state</code> value out of <code>Post</code> rather than borrowing it. Then we’ll set the post’s <code>state</code> value to the result of this operation.</p>
-<p>We need to set <code>state</code> to <code>None</code> temporarily rather than setting it directly with code like <code>self.state = self.state.request_review();</code> to get ownership of the <code>state</code> value. This ensures <code>Post</code> can’t use the old <code>state</code> value after we’ve transformed it into a new state.</p>
-<p>The <code>request_review</code> method on <code>Draft</code> returns a new, boxed instance of a new <code>PendingReview</code> struct, which represents the state when a post is waiting for a review. The <code>PendingReview</code> struct also implements the <code>request_review</code> method but doesn’t do any transformations. Rather, it returns itself, because when we request a review on a post already in the <code>PendingReview</code> state, it should stay in the <code>PendingReview</code> state.</p>
-<p>Now we can start seeing the advantages of the state pattern: the <code>request_review</code> method on <code>Post</code> is the same no matter its <code>state</code> value. Each state is responsible for its own rules.</p>
-<p>We’ll leave the <code>content</code> method on <code>Post</code> as is, returning an empty string slice. We can now have a <code>Post</code> in the <code>PendingReview</code> state as well as in the <code>Draft</code> state, but we want the same behavior in the <code>PendingReview</code> state. Listing 18-11 now works up to line 10!</p>
+<p>우리는 <code>Post</code>에 <code>self</code>에 대한 가변 참조를 받는 공개 메서드 <code>request_review</code>를 추가합니다. 그런 다음 <code>Post</code>의 현재 상태에 대해 내부적인 <code>request_review</code> 메서드를 호출하며, 이 두 번째 <code>request_review</code> 메서드는 현재 상태를 소비하고 새로운 상태를 반환합니다.</p>
+<p>우리는 <code>State</code> 트레이트에 <code>request_review</code> 메서드를 추가합니다. 이제 이 트레이트를 구현하는 모든 타입은 <code>request_review</code> 메서드를 구현해야 합니다. 메서드의 첫 번째 매개변수로 <code>self</code>, <code>&amp;self</code>, 또는 <code>&amp;mut self</code>를 사용하는 대신 <code>self: Box&lt;Self&gt;</code>를 사용했다는 점에 주목하세요. 이 문법은 해당 타입을 담고 있는 <code>Box</code>에 대해 호출될 때만 메서드가 유효함을 의미합니다. 이 문법은 <code>Box&lt;Self&gt;</code>의 소유권을 가져와서 이전 상태를 무효화함으로써, <code>Post</code>의 상태 값이 새로운 상태로 변환될 수 있게 합니다.</p>
+<p>이전 상태를 소비하기 위해, <code>request_review</code> 메서드는 상태 값의 소유권을 가져와야 합니다. 여기서 <code>Post</code> 구조체의 <code>state</code> 필드에 있는 <code>Option</code>이 역할을 합니다. 우리는 <code>take</code> 메서드를 호출하여 <code>state</code> 필드에서 <code>Some</code> 값을 꺼내고 그 자리에 <code>None</code>을 남깁니다. 러스트는 구조체에 비어 있는 필드를 허용하지 않기 때문입니다. 이를 통해 우리는 <code>state</code> 값을 대여하는 대신 <code>Post</code> 밖으로 이동시킬 수 있습니다. 그런 다음 포스트의 <code>state</code> 값을 이 작업의 결과로 설정할 것입니다.</p>
+<p>우리는 <code>state</code> 값의 소유권을 얻기 위해, <code>self.state = self.state.request_review();</code>와 같은 코드로 직접 설정하는 대신 일시적으로 <code>state</code>를 <code>None</code>으로 설정해야 합니다. 이는 우리가 새로운 상태로 변환한 후에 <code>Post</code>가 이전 <code>state</code> 값을 사용할 수 없도록 보장합니다.</p>
+<p><code>Draft</code>에서의 <code>request_review</code> 메서드는 새로운 <code>PendingReview</code> 구조체의 박스형 인스턴스를 반환합니다. 이는 포스트가 리뷰를 기다리고 있는 상태를 나타냅니다. <code>PendingReview</code> 구조체 역시 <code>request_review</code> 메서드를 구현하지만, 어떤 변환도 수행하지 않습니다. 대신 자기 자신을 반환하는데, 이미 <code>PendingReview</code> 상태인 포스트에 대해 리뷰를 요청할 경우 계속 <code>PendingReview</code> 상태로 유지되어야 하기 때문입니다.</p>
+<p>이제 상태 패턴의 장점들이 보이기 시작합니다. <code>Post</code>의 <code>request_review</code> 메서드는 <code>state</code> 값에 상관없이 동일합니다. 각 상태가 자신만의 규칙을 책임집니다.</p>
+<p><code>Post</code>의 <code>content</code> 메서드는 그대로 두어 빈 문자열 슬라이스를 반환하게 합니다. 이제 우리는 <code>Draft</code> 상태뿐만 아니라 <code>PendingReview</code> 상태의 <code>Post</code>도 가질 수 있게 되었지만, <code>PendingReview</code> 상태에서도 동일한 동작을 원합니다. 이제 목록 18-11의 10번 라인까지 코드가 작동합니다!</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="adding-the-approve-method-that-changes-the-behavior-of-content"></a></p>
-<h3 id="adding-approve-to-change-the-behavior-of-content"><a class="header" href="#adding-approve-to-change-the-behavior-of-content">Adding <code>approve</code> to Change the Behavior of <code>content</code></a></h3>
-<p>The <code>approve</code> method will be similar to the <code>request_review</code> method: it will set <code>state</code> to the value that the current state says it should have when that state is approved, as shown in Listing 18-16:</p>
+<h3 id="content의-동작을-변경하기-위해-approve-추가하기"><a class="header" href="#content의-동작을-변경하기-위해-approve-추가하기"><code>content</code>의 동작을 변경하기 위해 <code>approve</code> 추가하기</a></h3>
+<p><code>approve</code> 메서드는 <code>request_review</code> 메서드와 유사할 것입니다. 목록 18-16에 나타난 것처럼, 현재 상태가 승인되었을 때 가져야 할 값으로 <code>state</code>를 설정합니다.</p>
 <Listing number="18-16" file-name="src/lib.rs" caption="Implementing the `approve` method on `Post` and the `State` trait">
 <pre><code class="language-rust noplayground"><span class="boring">pub struct Post {
 </span><span class="boring">    state: Option&lt;Box&lt;dyn State&gt;&gt;,
@@ -479,9 +479,9 @@ impl State for Published {
     }
 }</code></pre>
 </Listing>
-<p>We add the <code>approve</code> method to the <code>State</code> trait and add a new struct that implements <code>State</code>, the <code>Published</code> state.</p>
-<p>Similar to the way <code>request_review</code> on <code>PendingReview</code> works, if we call the <code>approve</code> method on a <code>Draft</code>, it will have no effect because <code>approve</code> will return <code>self</code>. When we call <code>approve</code> on <code>PendingReview</code>, it returns a new, boxed instance of the <code>Published</code> struct. The <code>Published</code> struct implements the <code>State</code> trait, and for both the <code>request_review</code> method and the <code>approve</code> method, it returns itself, because the post should stay in the <code>Published</code> state in those cases.</p>
-<p>Now we need to update the <code>content</code> method on <code>Post</code>. We want the value returned from <code>content</code> to depend on the current state of the <code>Post</code>, so we’re going to have the <code>Post</code> delegate to a <code>content</code> method defined on its <code>state</code>, as shown in Listing 18-17:</p>
+<p>우리는 <code>State</code> 트레이트에 <code>approve</code> 메서드를 추가하고, <code>State</code>를 구현하는 새로운 구조체인 <code>Published</code> 상태를 추가합니다.</p>
+<p><code>PendingReview</code>에서의 <code>request_review</code> 작동 방식과 유사하게, 만약 <code>Draft</code>에서 <code>approve</code> 메서드를 호출하면 <code>approve</code>가 <code>self</code>를 반환하므로 아무런 효과가 없습니다. <code>PendingReview</code>에서 <code>approve</code>를 호출하면 <code>Published</code> 구조체의 새로운 박스형 인스턴스를 반환합니다. <code>Published</code> 구조체는 <code>State</code> 트레이트를 구현하며, <code>request_review</code> 메서드와 <code>approve</code> 메서드 모두에서 자기 자신을 반환합니다. 이 경우 포스트가 <code>Published</code> 상태로 유지되어야 하기 때문입니다.</p>
+<p>이제 <code>Post</code>의 <code>content</code> 메서드를 업데이트해야 합니다. 우리는 <code>content</code>로부터 반환되는 값이 <code>Post</code>의 현재 상태에 따라 달라지기를 원하므로, 목록 18-17에 나타난 것처럼 <code>Post</code>가 자신의 <code>state</code>에 정의된 <code>content</code> 메서드에 위임하도록 할 것입니다.</p>
 <Listing number="18-17" file-name="src/lib.rs" caption="Updating the `content` method on `Post` to delegate to a `content` method on `State`">
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">pub struct Post {
 </span><span class="boring">    state: Option&lt;Box&lt;dyn State&gt;&gt;,
@@ -560,10 +560,10 @@ impl State for Published {
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 </Listing>
-<p>Because the goal is to keep all these rules inside the structs that implement <code>State</code>, we call a <code>content</code> method on the value in <code>state</code> and pass the post instance (that is, <code>self</code>) as an argument. Then we return the value that’s returned from using the <code>content</code> method on the <code>state</code> value.</p>
-<p>We call the <code>as_ref</code> method on the <code>Option</code> because we want a reference to the value inside the <code>Option</code> rather than ownership of the value. Because <code>state</code> is an <code>Option&lt;Box&lt;dyn State&gt;&gt;</code>, when we call <code>as_ref</code>, an <code>Option&lt;&amp;Box&lt;dyn State&gt;&gt;</code> is returned. If we didn’t call <code>as_ref</code>, we would get an error because we can’t move <code>state</code> out of the borrowed <code>&amp;self</code> of the function parameter.</p>
-<p>We then call the <code>unwrap</code> method, which we know will never panic, because we know the methods on <code>Post</code> ensure that <code>state</code> will always contain a <code>Some</code> value when those methods are done. This is one of the cases we talked about in the <a href="ch09-03-to-panic-or-not-to-panic.html#cases-in-which-you-have-more-information-than-the-compiler">“Cases In Which You Have More Information Than the Compiler”</a><!-- ignore --> section of Chapter 9 when we know that a <code>None</code> value is never possible, even though the compiler isn’t able to understand that.</p>
-<p>At this point, when we call <code>content</code> on the <code>&amp;Box&lt;dyn State&gt;</code>, deref coercion will take effect on the <code>&amp;</code> and the <code>Box</code> so the <code>content</code> method will ultimately be called on the type that implements the <code>State</code> trait. That means we need to add <code>content</code> to the <code>State</code> trait definition, and that is where we’ll put the logic for what content to return depending on which state we have, as shown in Listing 18-18:</p>
+<p>모든 규칙을 <code>State</code>를 구현하는 구조체들 내부에 유지하는 것이 목표이므로, <code>state</code>에 있는 값에 대해 <code>content</code> 메서드를 호출하고 포스트 인스턴스(즉, <code>self</code>)를 인수로 전달합니다. 그런 다음 <code>state</code> 값의 <code>content</code> 메서드를 사용하여 반환된 값을 반환합니다.</p>
+<p>우리는 값의 소유권보다는 <code>Option</code> 내부의 값에 대한 참조를 원하므로 <code>Option</code>에 대해 <code>as_ref</code> 메서드를 호출합니다. <code>state</code>가 <code>Option&lt;Box&lt;dyn State&gt;&gt;</code>이므로, <code>as_ref</code>를 호출하면 <code>Option&lt;&amp;Box&lt;dyn State&gt;&gt;</code>가 반환됩니다. 만약 <code>as_ref</code>를 호출하지 않는다면, 함수 매개변수인 대여된 <code>&amp;self</code>로부터 <code>state</code>를 밖으로 이동시킬 수 없기 때문에 에러가 발생할 것입니다.</p>
+<p>그런 다음 <code>unwrap</code> 메서드를 호출합니다. 우리는 <code>Post</code>의 메서드들이 완료될 때 <code>state</code>가 항상 <code>Some</code> 값을 포함하도록 보장한다는 것을 알고 있으므로, 이 호출이 결코 패닉을 일으키지 않을 것임을 압니다. 이는 9장의 <a href="ch09-03-to-panic-or-not-to-panic.html#cases-in-which-you-have-more-information-than-the-compiler">“컴파일러보다 여러분이 더 많은 정보를 가지고 있는 경우”</a><!-- ignore --> 섹션에서 이야기했던 사례 중 하나로, 컴파일러는 이해하지 못하더라도 우리는 <code>None</code> 값이 결코 불가능함을 알고 있는 경우입니다.</p>
+<p>이 시점에서 <code>&amp;Box&lt;dyn State&gt;</code>에 대해 <code>content</code>를 호출하면, <code>&amp;</code>와 <code>Box</code>에 역참조 강제(deref coercion)가 적용되어 결국 <code>State</code> 트레이트를 구현하는 타입에 대해 <code>content</code> 메서드가 호출됩니다. 이는 <code>State</code> 트레이트 정의에 <code>content</code>를 추가해야 함을 의미하며, 목록 18-18에 나타난 것처럼 우리가 어떤 상태에 있는지에 따라 어떤 내용을 반환할지에 대한 로직을 그곳에 둘 것입니다.</p>
 <Listing number="18-18" file-name="src/lib.rs" caption="Adding the `content` method to the `State` trait">
 <pre><code class="language-rust noplayground"><span class="boring">pub struct Post {
 </span><span class="boring">    state: Option&lt;Box&lt;dyn State&gt;&gt;,
@@ -652,47 +652,47 @@ impl State for Published {
     }
 }</code></pre>
 </Listing>
-<p>We add a default implementation for the <code>content</code> method that returns an empty string slice. That means we don’t need to implement <code>content</code> on the <code>Draft</code> and <code>PendingReview</code> structs. The <code>Published</code> struct will override the <code>content</code> method and return the value in <code>post.content</code>.</p>
-<p>Note that we need lifetime annotations on this method, as we discussed in Chapter 10. We’re taking a reference to a <code>post</code> as an argument and returning a reference to part of that <code>post</code>, so the lifetime of the returned reference is related to the lifetime of the <code>post</code> argument.</p>
-<p>And we’re done—all of Listing 18-11 now works! We’ve implemented the state pattern with the rules of the blog post workflow. The logic related to the rules lives in the state objects rather than being scattered throughout <code>Post</code>.</p>
+<p>우리는 빈 문자열 슬라이스를 반환하는 <code>content</code> 메서드의 기본 구현을 추가합니다. 이는 <code>Draft</code>와 <code>PendingReview</code> 구조체에서 <code>content</code>를 구현할 필요가 없음을 의미합니다. <code>Published</code> 구조체는 <code>content</code> 메서드를 오버라이드하여 <code>post.content</code>에 있는 값을 반환할 것입니다.</p>
+<p>10장에서 논의했던 것처럼, 이 메서드에는 라이프타임 어노테이션이 필요하다는 점에 유의하세요. 우리는 <code>post</code>에 대한 참조를 인수로 받고 해당 <code>post</code>의 일부에 대한 참조를 반환하므로, 반환되는 참조의 라이프타임은 <code>post</code> 인수의 라이프타임과 관련이 있습니다.</p>
+<p>이제 다 되었습니다—목록 18-11의 모든 코드가 정상 작동합니다! 우리는 블로그 포스트 워크플로우의 규칙들을 사용하여 상태 패턴을 구현했습니다. 규칙과 관련된 로직은 <code>Post</code> 전체에 흩어져 있는 대신 상태 객체들 내부에 위치하게 됩니다.</p>
 <blockquote>
-<h4 id="why-not-an-enum"><a class="header" href="#why-not-an-enum">Why Not An Enum?</a></h4>
-<p>You may have been wondering why we didn’t use an <code>enum</code> with the different possible post states as variants. That’s certainly a possible solution, try it and compare the end results to see which you prefer! One disadvantage of using an enum is every place that checks the value of the enum will need a <code>match</code> expression or similar to handle every possible variant. This could get more repetitive than this trait object solution.</p>
+<h4 id="왜-열거형은-사용하지-않았나요"><a class="header" href="#왜-열거형은-사용하지-않았나요">왜 열거형은 사용하지 않았나요?</a></h4>
+<p>가능한 포스트 상태들을 변형(variant)으로 가지는 <code>enum</code>을 왜 사용하지 않았는지 궁금할 수 있습니다. 그것도 분명 가능한 해결책이니, 직접 시도해 보고 결과물을 비교하여 어떤 방식이 더 마음에 드는지 확인해 보세요! 열거형을 사용할 때의 한 가지 단점은, 열거형 값을 확인하는 모든 곳에서 모든 가능한 변형을 처리하기 위해 <code>match</code> 표현식이나 그와 유사한 구문이 필요하다는 점입니다. 이는 이번 트레이트 객체 해결책보다 더 반복적인 작업이 될 수 있습니다.</p>
 </blockquote>
-<h3 id="trade-offs-of-the-state-pattern"><a class="header" href="#trade-offs-of-the-state-pattern">Trade-offs of the State Pattern</a></h3>
-<p>We’ve shown that Rust is capable of implementing the object-oriented state pattern to encapsulate the different kinds of behavior a post should have in each state. The methods on <code>Post</code> know nothing about the various behaviors. The way we organized the code, we have to look in only one place to know the different ways a published post can behave: the implementation of the <code>State</code> trait on the <code>Published</code> struct.</p>
-<p>If we were to create an alternative implementation that didn’t use the state pattern, we might instead use <code>match</code> expressions in the methods on <code>Post</code> or even in the <code>main</code> code that checks the state of the post and changes behavior in those places. That would mean we would have to look in several places to understand all the implications of a post being in the published state! This would only increase the more states we added: each of those <code>match</code> expressions would need another arm.</p>
-<p>With the state pattern, the <code>Post</code> methods and the places we use <code>Post</code> don’t need <code>match</code> expressions, and to add a new state, we would only need to add a new struct and implement the trait methods on that one struct.</p>
-<p>The implementation using the state pattern is easy to extend to add more functionality. To see the simplicity of maintaining code that uses the state pattern, try a few of these suggestions:</p>
+<h3 id="상태-패턴의-트레이드오프"><a class="header" href="#상태-패턴의-트레이드오프">상태 패턴의 트레이드오프</a></h3>
+<p>우리는 러스트가 포스트가 각 상태에서 가져야 할 서로 다른 동작들을 캡슐화하기 위해 객체 지향 상태 패턴을 구현할 수 있음을 보여주었습니다. <code>Post</code>의 메서드들은 다양한 동작들에 대해 아무것도 알지 못합니다. 우리가 코드를 구성한 방식에 따르면, 게시된 포스트가 어떻게 동작하는지 알기 위해 오직 한 곳만 확인하면 됩니다. 바로 <code>Published</code> 구조체에 구현된 <code>State</code> 트레이트입니다.</p>
+<p>상태 패턴을 사용하지 않는 대안적인 구현을 만든다면, 대신 <code>Post</code>의 메서드들이나 심지어 <code>main</code> 코드에서 포스트의 상태를 확인하고 그에 따라 동작을 변경하는 <code>match</code> 표현식들을 사용했을 것입니다. 이는 포스트가 게시됨 상태일 때의 모든 영향을 이해하기 위해 여러 곳을 찾아봐야 함을 의미합니다! 상태를 더 추가할수록 이런 부담은 늘어날 뿐입니다. 각 <code>match</code> 표현식마다 새로운 가지(arm)를 추가해야 할 테니까요.</p>
+<p>상태 패턴을 사용하면, <code>Post</code> 메서드들과 <code>Post</code>를 사용하는 곳에서 <code>match</code> 표현식이 필요하지 않으며, 새로운 상태를 추가하려면 그저 새로운 구조체를 추가하고 그 구조체에 트레이트 메서드들을 구현하기만 하면 됩니다.</p>
+<p>상태 패턴을 사용한 구현은 기능을 더 추가하기 위해 확장하기 쉽습니다. 상태 패턴을 사용하는 코드의 유지보수 편의성을 확인해 보려면, 다음의 제안 사항들을 몇 가지 시도해 보세요.</p>
 <ul>
-<li>Add a <code>reject</code> method that changes the post’s state from <code>PendingReview</code> back to <code>Draft</code>.</li>
-<li>Require two calls to <code>approve</code> before the state can be changed to <code>Published</code>.</li>
-<li>Allow users to add text content only when a post is in the <code>Draft</code> state. Hint: have the state object responsible for what might change about the content but not responsible for modifying the <code>Post</code>.</li>
+<li>포스트의 상태를 <code>PendingReview</code>에서 다시 <code>Draft</code>로 되돌리는 <code>reject</code> 메서드를 추가해 보세요.</li>
+<li>상태가 <code>Published</code>로 변경되기 전에 <code>approve</code>를 두 번 호출하도록 요구해 보세요.</li>
+<li>포스트가 <code>Draft</code> 상태일 때만 사용자가 텍스트 내용을 추가할 수 있도록 허용해 보세요. 힌트: 상태 객체가 내용의 변경 가능 여부를 책임지게 하되, <code>Post</code>를 수정하는 책임은 가지지 않도록 하세요.</li>
 </ul>
-<p>One downside of the state pattern is that, because the states implement the transitions between states, some of the states are coupled to each other. If we add another state between <code>PendingReview</code> and <code>Published</code>, such as <code>Scheduled</code>, we would have to change the code in <code>PendingReview</code> to transition to <code>Scheduled</code> instead. It would be less work if <code>PendingReview</code> didn’t need to change with the addition of a new state, but that would mean switching to another design pattern.</p>
-<p>Another downside is that we’ve duplicated some logic. To eliminate some of the duplication, we might try to make default implementations for the <code>request_review</code> and <code>approve</code> methods on the <code>State</code> trait that return <code>self</code>; however, this would not be dyn compatible, because the trait doesn’t know what the concrete <code>self</code> will be exactly. We want to be able to use <code>State</code> as a trait object, so we need its methods to be dyn compatible.</p>
-<p>Other duplication includes the similar implementations of the <code>request_review</code> and <code>approve</code> methods on <code>Post</code>. Both methods delegate to the implementation of the same method on the value in the <code>state</code> field of <code>Option</code> and set the new value of the <code>state</code> field to the result. If we had a lot of methods on <code>Post</code> that followed this pattern, we might consider defining a macro to eliminate the repetition (see the <a href="ch20-05-macros.html#macros">“Macros”</a><!-- ignore --> section in Chapter 20).</p>
-<p>By implementing the state pattern exactly as it’s defined for object-oriented languages, we’re not taking as full advantage of Rust’s strengths as we could. Let’s look at some changes we can make to the <code>blog</code> crate that can make invalid states and transitions into compile time errors.</p>
-<h4 id="encoding-states-and-behavior-as-types"><a class="header" href="#encoding-states-and-behavior-as-types">Encoding States and Behavior as Types</a></h4>
-<p>We’ll show you how to rethink the state pattern to get a different set of trade-offs. Rather than encapsulating the states and transitions completely so outside code has no knowledge of them, we’ll encode the states into different types. Consequently, Rust’s type checking system will prevent attempts to use draft posts where only published posts are allowed by issuing a compiler error.</p>
-<p>Let’s consider the first part of <code>main</code> in Listing 18-11:</p>
+<p>상태 패턴의 한 가지 단점은, 상태들이 상태 간의 전환을 구현하기 때문에 일부 상태들이 서로 결합된다는 점입니다. 만약 <code>PendingReview</code>와 <code>Published</code> 사이에 <code>Scheduled</code>와 같은 다른 상태를 추가한다면, <code>Scheduled</code>로 전환되도록 <code>PendingReview</code>의 코드를 변경해야 합니다. 새로운 상태가 추가될 때 <code>PendingReview</code>를 변경할 필요가 없다면 작업이 더 줄어들겠지만, 이는 다른 디자인 패턴으로의 전환을 의미할 것입니다.</p>
+<p>또 다른 단점은 일부 로직이 중복된다는 것입니다. 중복을 제거하기 위해 <code>State</code> 트레이트의 <code>request_review</code>와 <code>approve</code> 메서드에 <code>self</code>를 반환하는 기본 구현을 만들려고 시도할 수도 있습니다. 하지만 이는 dyn 호환(dyn compatible)되지 않을 것입니다. 트레이트는 구체적인 <code>self</code>가 정확히 무엇일지 알 수 없기 때문입니다. 우리는 <code>State</code>를 트레이트 객체로 사용하기를 원하므로, 그 메서드들이 dyn 호환되어야 합니다.</p>
+<p>다른 중복으로는 <code>Post</code>에 구현된 <code>request_review</code>와 <code>approve</code> 메서드의 유사한 모습이 있습니다. 두 메서드 모두 <code>Option</code>의 <code>state</code> 필드에 있는 값의 동일한 메서드 구현에 위임하고, 그 결과로 <code>state</code> 필드의 새로운 값을 설정합니다. 만약 <code>Post</code>에 이런 패턴을 따르는 메서드가 아주 많다면, 반복을 줄이기 위해 매크로 정의를 고려해 볼 수 있습니다 (20장의 <a href="ch20-05-macros.html#macros">“매크로”</a><!-- ignore --> 섹션 참조).</p>
+<p>상태 패턴을 객체 지향 언어에서 정의된 그대로 구현함으로써, 우리는 러스트의 강점을 충분히 활용하지 못하고 있습니다. 이제 유효하지 않은 상태와 상태 전환을 컴파일 타임 에러로 만들 수 있도록 <code>blog</code> 크레이트에 가할 수 있는 몇 가지 변경 사항들을 살펴봅시다.</p>
+<h4 id="상태와-동작을-타입으로-인코딩하기"><a class="header" href="#상태와-동작을-타입으로-인코딩하기">상태와 동작을 타입으로 인코딩하기</a></h4>
+<p>다른 트레이드오프 세트를 얻기 위해 상태 패턴을 재구성하는 방법을 보여드리겠습니다. 상태와 상태 전환을 완전히 캡슐화하여 외부 코드에서 알 수 없게 만드는 대신, 상태를 서로 다른 타입으로 인코딩할 것입니다. 결과적으로 러스트의 타입 체크 시스템은 게시된 포스트만 허용되는 곳에 초안 포스트를 사용하려는 시도를 컴파일 타임 에러를 통해 방지해 줄 것입니다.</p>
+<p>목록 18-11에 있는 <code>main</code>의 첫 번째 부분을 살펴봅시다.</p>
 <Listing file-name="src/main.rs">
 <pre><code class="language-rust ignore"><span class="boring">use blog::Post;
 </span><span class="boring">
 </span>fn main() {
     let mut post = Post::new();
 
-    post.add_text("I ate a salad for lunch today");
+    post.add_text("나는 오늘 점심으로 샐러드를 먹었다");
     assert_eq!("", post.content());
 <span class="boring">
 </span><span class="boring">    post.request_review();
 </span><span class="boring">    assert_eq!("", post.content());
 </span><span class="boring">
 </span><span class="boring">    post.approve();
-</span><span class="boring">    assert_eq!("I ate a salad for lunch today", post.content());
+</span><span class="boring">    assert_eq!("나는 오늘 점심으로 샐러드를 먹었다", post.content());
 </span>}</code></pre>
 </Listing>
-<p>We still enable the creation of new posts in the draft state using <code>Post::new</code> and the ability to add text to the post’s content. But instead of having a <code>content</code> method on a draft post that returns an empty string, we’ll make it so draft posts don’t have the <code>content</code> method at all. That way, if we try to get a draft post’s content, we’ll get a compiler error telling us the method doesn’t exist. As a result, it will be impossible for us to accidentally display draft post content in production, because that code won’t even compile. Listing 18-19 shows the definition of a <code>Post</code> struct and a <code>DraftPost</code> struct, as well as methods on each:</p>
+<p>우리는 여전히 <code>Post::new</code>를 사용하여 초안 상태의 새로운 포스트를 생성하고 포스트의 내용에 텍스트를 추가할 수 있게 합니다. 하지만 초안 포스트에 빈 문자열을 반환하는 <code>content</code> 메서드를 두는 대신, 아예 <code>content</code> 메서드가 없도록 만들 것입니다. 그렇게 하면 초안 포스트의 내용을 가져오려고 시도할 때 해당 메서드가 존재하지 않는다는 컴파일 타임 에러를 받게 됩니다. 결과적으로, 해당 코드는 컴파일조차 되지 않을 것이기 때문에 우리가 실수로 프로덕션에서 초안 포스트의 내용을 표시하는 것이 불가능해집니다. 목록 18-19는 <code>Post</code> 구조체와 <code>DraftPost</code> 구조체의 정의, 그리고 각각의 메서드들을 보여줍니다.</p>
 <Listing number="18-19" file-name="src/lib.rs" caption="A `Post` with a `content` method and `DraftPost` without a `content` method">
 <pre><code class="language-rust noplayground">pub struct Post {
     content: String,
@@ -720,10 +720,10 @@ impl DraftPost {
     }
 }</code></pre>
 </Listing>
-<p>Both the <code>Post</code> and <code>DraftPost</code> structs have a private <code>content</code> field that stores the blog post text. The structs no longer have the <code>state</code> field because we’re moving the encoding of the state to the types of the structs. The <code>Post</code> struct will represent a published post, and it has a <code>content</code> method that returns the <code>content</code>.</p>
-<p>We still have a <code>Post::new</code> function, but instead of returning an instance of <code>Post</code>, it returns an instance of <code>DraftPost</code>. Because <code>content</code> is private and there aren’t any functions that return <code>Post</code>, it’s not possible to create an instance of <code>Post</code> right now.</p>
-<p>The <code>DraftPost</code> struct has an <code>add_text</code> method, so we can add text to <code>content</code> as before, but note that <code>DraftPost</code> does not have a <code>content</code> method defined! So now the program ensures all posts start as draft posts, and draft posts don’t have their content available for display. Any attempt to get around these constraints will result in a compiler error.</p>
-<h4 id="implementing-transitions-as-transformations-into-different-types"><a class="header" href="#implementing-transitions-as-transformations-into-different-types">Implementing Transitions as Transformations into Different Types</a></h4>
+<p><code>Post</code>와 <code>DraftPost</code> 구조체 모두 블로그 포스트 텍스트를 저장하는 비공개 <code>content</code> 필드를 가집니다. 상태 인코딩을 구조체 타입으로 옮겼기 때문에 구조체들은 더 이상 <code>state</code> 필드를 가지지 않습니다. <code>Post</code> 구조체는 게시된 포스트를 나타내며, <code>content</code>를 반환하는 <code>content</code> 메서드를 가집니다.</p>
+<p>우리는 여전히 <code>Post::new</code> 함수를 가지고 있지만, <code>Post</code> 인스턴스 대신 <code>DraftPost</code> 인스턴스를 반환합니다. <code>content</code>가 비공개이고 <code>Post</code>를 반환하는 함수가 없기 때문에, 현재로서는 <code>Post</code> 인스턴스를 생성하는 것이 불가능합니다.</p>
+<p><code>DraftPost</code> 구조체는 <code>add_text</code> 메서드를 가지고 있어서 이전처럼 <code>content</code>에 텍스트를 추가할 수 있지만, <code>DraftPost</code>에는 <code>content</code> 메서드가 정의되어 있지 않다는 점에 주목하세요! 이제 프로그램은 모든 포스트가 초안으로 시작함을 보장하며, 초안 포스트는 표시할 내용을 제공하지 않습니다. 이러한 제약 사항을 우회하려는 모든 시도는 컴파일 타임 에러로 이어질 것입니다.</p>
+<h4 id="상태-전환을-서로-다른-타입-간의-변환으로-구현하기"><a class="header" href="#상태-전환을-서로-다른-타입-간의-변환으로-구현하기">상태 전환을 서로 다른 타입 간의 변환으로 구현하기</a></h4>
 <p>So how do we get a published post? We want to enforce the rule that a draft post has to be reviewed and approved before it can be published. A post in the pending review state should still not display any content. Let’s implement these constraints by adding another struct, <code>PendingReviewPost</code>, defining the <code>request_review</code> method on <code>DraftPost</code> to return a <code>PendingReviewPost</code>, and defining an <code>approve</code> method on <code>PendingReviewPost</code> to return a <code>Post</code>, as shown in Listing 18-20:</p>
 <Listing number="18-20" file-name="src/lib.rs" caption="A `PendingReviewPost` that gets created by calling `request_review` on `DraftPost` and an `approve` method that turns a `PendingReviewPost` into a published `Post`">
 <pre><code class="language-rust noplayground"><span class="boring">pub struct Post {
@@ -771,29 +771,29 @@ impl PendingReviewPost {
     }
 }</code></pre>
 </Listing>
-<p>The <code>request_review</code> and <code>approve</code> methods take ownership of <code>self</code>, thus consuming the <code>DraftPost</code> and <code>PendingReviewPost</code> instances and transforming them into a <code>PendingReviewPost</code> and a published <code>Post</code>, respectively. This way, we won’t have any lingering <code>DraftPost</code> instances after we’ve called <code>request_review</code> on them, and so forth. The <code>PendingReviewPost</code> struct doesn’t have a <code>content</code> method defined on it, so attempting to read its content results in a compiler error, as with <code>DraftPost</code>. Because the only way to get a published <code>Post</code> instance that does have a <code>content</code> method defined is to call the <code>approve</code> method on a <code>PendingReviewPost</code>, and the only way to get a <code>PendingReviewPost</code> is to call the <code>request_review</code> method on a <code>DraftPost</code>, we’ve now encoded the blog post workflow into the type system.</p>
-<p>But we also have to make some small changes to <code>main</code>. The <code>request_review</code> and <code>approve</code> methods return new instances rather than modifying the struct they’re called on, so we need to add more <code>let post =</code> shadowing assignments to save the returned instances. We also can’t have the assertions about the draft and pending review posts’ contents be empty strings, nor do we need them: we can’t compile code that tries to use the content of posts in those states any longer. The updated code in <code>main</code> is shown in Listing 18-21:</p>
+<p><code>request_review</code>와 <code>approve</code> 메서드는 <code>self</code>의 소유권을 가져가므로, <code>DraftPost</code>와 <code>PendingReviewPost</code> 인스턴스를 소비하고 이를 각각 <code>PendingReviewPost</code>와 게시된 <code>Post</code>로 변환합니다. 이런 식으로, 우리는 <code>request_review</code>를 호출한 후에 남아있는 <code>DraftPost</code> 인스턴스를 가지지 않게 됩니다. <code>PendingReviewPost</code> 구조체에는 <code>content</code> 메서드가 정의되어 있지 않으므로, 해당 내용을 읽으려는 시도는 <code>DraftPost</code>와 마찬가지로 컴파일 타임 에러를 발생시킵니다. <code>content</code> 메서드가 정의된 게시된 <code>Post</code> 인스턴스를 얻는 유일한 방법은 <code>PendingReviewPost</code>에서 <code>approve</code> 메서드를 호출하는 것이고, <code>PendingReviewPost</code>를 얻는 유일한 방법은 <code>DraftPost</code>에서 <code>request_review</code> 메서드를 호출하는 것이기 때문에, 우리는 이제 블로그 포스트 워크플로우를 타입 시스템에 인코딩했습니다.</p>
+<p>하지만 <code>main</code>에도 몇 가지 작은 변경을 해야 합니다. <code>request_review</code>와 <code>approve</code> 메서드가 호출된 구조체를 직접 수정하는 대신 새로운 인스턴스를 반환하므로, 반환된 인스턴스를 저장하기 위해 더 많은 <code>let post =</code> 섀도잉(shadowing) 할당을 추가해야 합니다. 또한 초안 및 리뷰 대기 중인 포스트의 내용이 빈 문자열이라는 어설션(assertion)을 가질 수 없으며, 가질 필요도 없습니다. 해당 상태의 포스트 내용을 사용하려고 시도하는 코드는 이제 컴파일조차 되지 않기 때문입니다. 업데이트된 <code>main</code> 코드가 목록 18-21에 나와 있습니다.</p>
 <Listing number="18-21" file-name="src/main.rs" caption="Modifications to `main` to use the new implementation of the blog post workflow">
 <pre><code class="language-rust ignore">use blog::Post;
 
 fn main() {
     let mut post = Post::new();
 
-    post.add_text("I ate a salad for lunch today");
+    post.add_text("나는 오늘 점심으로 샐러드를 먹었다");
 
     let post = post.request_review();
 
     let post = post.approve();
 
-    assert_eq!("I ate a salad for lunch today", post.content());
+    assert_eq!("나는 오늘 점심으로 샐러드를 먹었다", post.content());
 }</code></pre>
 </Listing>
-<p>The changes we needed to make to <code>main</code> to reassign <code>post</code> mean that this implementation doesn’t quite follow the object-oriented state pattern anymore: the transformations between the states are no longer encapsulated entirely within the <code>Post</code> implementation. However, our gain is that invalid states are now impossible because of the type system and the type checking that happens at compile time! This ensures that certain bugs, such as display of the content of an unpublished post, will be discovered before they make it to production.</p>
-<p>Try the tasks suggested at the start of this section on the <code>blog</code> crate as it is after Listing 18-21 to see what you think about the design of this version of the code. Note that some of the tasks might be completed already in this design.</p>
-<p>We’ve seen that even though Rust is capable of implementing object-oriented design patterns, other patterns, such as encoding state into the type system, are also available in Rust. These patterns have different trade-offs. Although you might be very familiar with object-oriented patterns, rethinking the problem to take advantage of Rust’s features can provide benefits, such as preventing some bugs at compile time. Object-oriented patterns won’t always be the best solution in Rust due to certain features, like ownership, that object-oriented languages don’t have.</p>
+<p><code>post</code>를 재할당하기 위해 <code>main</code>에 가한 변경 사항들은, 이 구현이 더 이상 객체 지향 상태 패턴을 정확히 따르지는 않음을 의미합니다. 상태 간의 전환이 더 이상 <code>Post</code> 구현 내부에 완전히 캡슐화되어 있지 않기 때문입니다. 하지만 타입 시스템과 컴파일 타임에 수행되는 타입 체크 덕분에 이제 유효하지 않은 상태를 가지는 것이 아예 불가능해졌다는 이득을 얻었습니다! 이는 게시되지 않은 포스트의 내용이 표시되는 것과 같은 특정 버그들이 실제 프로덕션에 나가기 전에 발견될 것임을 보장합니다.</p>
+<p>목록 18-21 이후의 <code>blog</code> 크레이트에 대해 이 섹션의 시작 부분에서 제안했던 과제들을 시도해 보면서, 이 버전의 코드 설계에 대해 어떻게 생각하시는지 확인해 보세요. 일부 과제들은 이 설계에서 이미 완료되었을 수도 있습니다.</p>
+<p>우리는 러스트가 객체 지향 디자인 패턴을 구현할 수 있을 뿐만 아니라, 상태를 타입 시스템에 인코딩하는 것과 같은 다른 패턴들도 러스트에서 가능함을 보았습니다. 이러한 패턴들은 각기 다른 트레이드오프를 가집니다. 객체 지향 패턴에 매우 익숙할지라도, 러스트의 기능을 활용하기 위해 문제를 다시 생각해 보는 것은 컴파일 타임에 일부 버그를 방지하는 것과 같은 이점을 제공할 수 있습니다. 객체 지향 언어에는 없는 소유권과 같은 특정 기능들 때문에, 객체 지향 패턴이 러스트에서 항상 최선의 해결책인 것은 아닙니다.</p>
 <h2 id="요약"><a class="header" href="#요약">요약</a></h2>
-<p>No matter whether or not you think Rust is an object-oriented language after reading this chapter, you now know that you can use trait objects to get some object-oriented features in Rust. Dynamic dispatch can give your code some flexibility in exchange for a bit of runtime performance. You can use this flexibility to implement object-oriented patterns that can help your code’s maintainability. Rust also has other features, like ownership, that object-oriented languages don’t have. An object-oriented pattern won’t always be the best way to take advantage of Rust’s strengths, but is an available option.</p>
-<p>Next, we’ll look at patterns, which are another of Rust’s features that enable lots of flexibility. We’ve looked at them briefly throughout the book but haven’t seen their full capability yet. Let’s go!</p>
+<p>이 장을 읽은 후 러스트가 객체 지향 언어라고 생각하든 그렇지 않든, 이제 트레이트 객체를 사용하여 러스트에서 일부 객체 지향 기능을 사용할 수 있음을 알게 되었습니다. 동적 디스패치는 약간의 런타임 성능을 희생하는 대신 코드에 유연성을 제공할 수 있습니다. 여러분은 이 유연성을 사용하여 코드의 유지보수성에 도움이 되는 객체 지향 패턴을 구현할 수 있습니다. 또한 러스트에는 객체 지향 언어에는 없는 소유권과 같은 다른 기능들도 있습니다. 객체 지향 패턴이 항상 러스트의 강점을 활용하는 최선의 방법은 아니겠지만, 선택 가능한 옵션 중 하나입니다.</p>
+<p>다음으로, 많은 유연성을 가능하게 하는 러스트의 또 다른 기능인 패턴에 대해 알아보겠습니다. 책 전체에 걸쳐 짧게 살펴보긴 했지만, 아직 그 전체 기능을 보지는 못했습니다. 자, 시작해 봅시다!</p>
 
                     </main>
 

@@ -326,13 +326,11 @@ style="width: 50%;" /></p>
 <p><span class="caption">그림 4-1: <code>s1</code>에 바인딩된 값 <code>"hello"</code>를 가진 <code>String</code>의 메모리 표현</span></p>
 <p>길이는 <code>String</code>의 내용이 현재 사용하고 있는 메모리 양(바이트 단위)입니다. 용량은 <code>String</code>이 할당자로부터 받은 총 메모리 양(바이트 단위)입니다. 길이와 용량의 차이는 중요하지만, 이 컨텍스트에서는 그렇지 않으므로 지금은 용량을 무시해도 됩니다.</p>
 <p><code>s1</code>을 <code>s2</code>에 할당할 때 <code>String</code> 데이터가 복사됩니다. 즉, 스택에 있는 포인터, 길이, 용량이 복사됩니다. 포인터가 참조하는 힙의 데이터는 복사되지 않습니다. 다시 말해, 메모리의 데이터 표현은 그림 4-2와 같습니다.</p>
-<p><img alt="Three tables: tables s1 and s2 representing those strings on the
-stack, respectively, and both pointing to the same string data on the heap."
+<p><img alt="세 개의 테이블: 각각 스택에 있는 해당 문자열을 나타내는 s1 및 s2 테이블이며, 둘 다 힙의 동일한 문자열 데이터를 가리킵니다."
 src="img/trpl04-02.svg" class="center" style="width: 50%;" /></p>
-<p><span class="caption">Figure 4-2: Representation in memory of the variable <code>s2</code> that has a copy of the pointer, length, and capacity of <code>s1</code></span></p>
-<p>표현은 그림 4-3과 같지 <em>않습니다</em>. 만약 러스트가 힙 데이터도 복사했다면 메모리는 그림 4-3과 같았을 것입니다. 만약 러스트가 이렇게 했다면, 힙의 데이터가 클 경우 <code>s2 = s1</code> 연산은 런타임 성능 측면에서 매우 비쌀 수 있습니다.표현은 그림 4-3과 같지 <em>않습니다</em>. 만약 러스트가 힙 데이터도 복사했다면 메모리는 그림 4-3과 같았을 것입니다. 만약 러스트가 이렇게 했다면, 힙의 데이터가 클 경우 <code>s2 = s1</code> 연산은 런타임 성능 측면에서 매우 비쌀 수 있습니다.</p>
-<p><img alt="Four tables: two tables representing the stack data for s1 and s2,
-and each points to its own copy of string data on the heap."
+<p><span class="caption">그림 4-2: <code>s1</code>의 포인터, 길이, 용량의 복사본을 가진 변수 <code>s2</code>의 메모리 표현</span></p>
+<p>표현은 그림 4-3과 같지 <em>않습니다</em>. 만약 러스트가 힙 데이터도 복사했다면 메모리는 그림 4-3과 같았을 것입니다. 만약 러스트가 이렇게 했다면, 힙의 데이터가 클 경우 <code>s2 = s1</code> 연산은 런타임 성능 측면에서 매우 비쌀 수 있습니다.</p>
+<p><img alt="네 개의 테이블: s1 및 s2에 대한 스택 데이터를 나타내는 두 개의 테이블이며, 각각은 힙에 있는 자체 문자열 데이터 복사본을 가리킵니다."
 src="img/trpl04-03.svg" class="center" style="width: 50%;" /></p>
 <p><span class="caption">그림 4-3: 러스트가 힙 데이터도 복사했다면 <code>s2 = s1</code>이 수행할 수 있는 또 다른 가능성</span></p>
 <p>앞서 변수가 스코프를 벗어나면 러스트가 자동으로 <code>drop</code> 함수를 호출하여 해당 변수의 힙 메모리를 정리한다고 말했습니다. 하지만 그림 4-2는 두 데이터 포인터가 모두 동일한 위치를 가리키고 있음을 보여줍니다. 이것은 문제입니다. <code>s2</code>와 <code>s1</code>이 스코프를 벗어나면 둘 다 동일한 메모리를 해제하려고 시도할 것입니다. 이것은 <em>이중 해제</em> 오류로 알려져 있으며 이전에 언급한 메모리 안전 버그 중 하나입니다. 메모리를 두 번 해제하면 메모리 손상으로 이어질 수 있으며, 이는 잠재적으로 보안 취약점으로 이어질 수 있습니다.</p>
@@ -341,14 +339,13 @@ src="img/trpl04-03.svg" class="center" style="width: 50%;" /></p>
 </span>    let s1 = String::from("hello");
     let s2 = s1;
 
-    println!("{s1}, world!");
+    println!("{s1}, 월드!");
 <span class="boring">}</span></code></pre>
 <p>러스트가 유효하지 않은 참조를 사용하는 것을 막기 때문에 다음과 같은 오류가 발생합니다:</p>
 <pre><code class="language-console">$ cargo run
    Compiling ownership v0.1.0 (file:///projects/ownership)
 error[E0382]: borrow of moved value: `s1`
  --&gt; src/main.rs:5:15
-  |
 2 |     let s1 = String::from("hello");
   |         -- move occurs because `s1` has type `String`, which does not implement the `Copy` trait
 3 |     let s2 = s1;
@@ -367,12 +364,10 @@ For more information about this error, try `rustc --explain E0382`.
 error: could not compile `ownership` (bin "ownership") due to 1 previous error
 </code></pre>
 <p>다른 언어로 작업하면서 _얕은 복사_와 _깊은 복사_라는 용어를 들어본 적이 있다면, 데이터를 복사하지 않고 포인터, 길이, 용량을 복사하는 개념은 얕은 복사를 만드는 것처럼 들릴 것입니다. 하지만 러스트는 첫 번째 변수도 무효화하기 때문에 얕은 복사라고 불리는 대신 _이동_으로 알려져 있습니다. 이 예에서는 <code>s1</code>이 <code>s2</code>로 _이동_되었다고 말할 것입니다. 따라서 실제로 일어나는 일은 그림 4-4에 나와 있습니다.</p>
-<p><img alt="Three tables: tables s1 and s2 representing those strings on the
-stack, respectively, and both pointing to the same string data on the heap.
-Table s1 is grayed out be-cause s1 is no longer valid; only s2 can be used to
-access the heap data." src="img/trpl04-04.svg" class="center" style="width:
-50%;" /></p>
-<p><span class="caption">Figure 4-4: Representation in memory after <code>s1</code> has been invalidated</span></p>
+<p><img alt="세 개의 테이블: 각각 스택에 있는 해당 문자열을 나타내는 s1 및 s2 테이블이며, 둘 다 힙의 동일한 문자열 데이터를 가리킵니다.
+s1은 더 이상 유효하지 않기 때문에 회색으로 표시되며, s2만 힙 데이터에 접근하는 데 사용할 수 있습니다."
+src="img/trpl04-04.svg" class="center" style="width: 50%;" /></p>
+<p><span class="caption">그림 4-4: <code>s1</code>이 무효화된 후의 메모리 표현</span></p>
 <p>문제가 해결되었습니다! <code>s2</code>만 유효하므로, 스코프를 벗어나면 <code>s2</code>만 메모리를 해제하고 작업이 완료됩니다.</p>
 <p>또한, 이것이 암시하는 설계 선택이 있습니다: 러스트는 데이터의 "깊은" 복사본을 자동으로 생성하지 않습니다. 따라서 모든 <em>자동</em> 복사는 런타임 성능 측면에서 비용이 저렴하다고 가정할 수 있습니다.</p>
 <h4 id="스코프와-할당"><a class="header" href="#스코프와-할당">스코프와 할당</a></h4>
@@ -384,9 +379,7 @@ access the heap data." src="img/trpl04-04.svg" class="center" style="width:
     println!(" {s}, 세상아!");
 <span class="boring">}</span></code></pre></pre>
 <p>처음에 <code>s</code>라는 변수를 선언하고 <code>"hello"</code> 값을 가진 <code>String</code>에 바인딩합니다. 그런 다음 즉시 <code>"ahoy"</code> 값을 가진 새 <code>String</code>을 만들고 <code>s</code>에 할당합니다. 이 시점에서 힙의 원래 값을 참조하는 것은 아무것도 없습니다.</p>
-<p><img alt="One table s representing the string value on the stack, pointing to
-the second piece of string data (ahoy) on the heap, with the original string
-data (hello) grayed out because it cannot be accessed anymore."
+<p><img alt="스택의 문자열 값을 나타내는 하나의 테이블 s는 힙의 두 번째 문자열 데이터(ahoy)를 가리키고 있으며, 원래 문자열 데이터(hello)는 더 이상 접근할 수 없으므로 회색으로 표시됩니다."
 src="img/trpl04-05.svg"
 class="center"
 style="width: 50%;"
@@ -435,33 +428,33 @@ style="width: 50%;"
     takes_ownership(s);             // s's value moves into the function...
                                     // ... and so is no longer valid here
 
-    let x = 5;                      // x comes into scope
+    let x = 5;                      // x가 스코프 안으로 들어옵니다
 
-    makes_copy(x);                  // because i32 implements the Copy trait,
-                                    // x does NOT move into the function,
-    println!("{}", x);              // so it's okay to use x afterward
+    makes_copy(x);                  // i32는 Copy 트레이트를 구현하므로,
+                                    // x는 함수로 이동하지 않습니다,
+    println!("{}", x);              // 그래서 나중에 x를 사용해도 괜찮습니다
 
-} // Here, x goes out of scope, then s. But because s's value was moved, nothing
-  // special happens.
+} // 여기서 x가 스코프를 벗어난 다음 s가 벗어납니다. 하지만 s의 값은 이동되었으므로,
+  // 특별한 일은 일어나지 않습니다.
 
-fn takes_ownership(some_string: String) { // some_string comes into scope
+fn takes_ownership(some_string: String) { // some_string이 스코프 안으로 들어옵니다
     println!("{some_string}");
-} // Here, some_string goes out of scope and `drop` is called. The backing
-  // memory is freed.
+} // 여기서 some_string이 스코프를 벗어나고 `drop`이 호출됩니다. 배후의
+  // 메모리가 해제됩니다.
 
-fn makes_copy(some_integer: i32) { // some_integer comes into scope
+fn makes_copy(some_integer: i32) { // some_integer가 스코프 안으로 들어옵니다
     println!("{some_integer}");
-} // Here, some_integer goes out of scope. Nothing special happens.</code></pre></pre>
+} // 여기서 some_integer가 스코프를 벗어납니다. 특별한 일은 일어나지 않습니다.</code></pre></pre>
 </Listing>
-<p>If we tried to use <code>s</code> after the call to <code>takes_ownership</code>, Rust would throw a compile-time error. These static checks protect us from mistakes. Try adding code to <code>main</code> that uses <code>s</code> and <code>x</code> to see where you can use them and where the ownership rules prevent you from doing so.</p>
-<h3 id="return-values-and-scope"><a class="header" href="#return-values-and-scope">Return Values and Scope</a></h3>
-<p>Returning values can also transfer ownership. Listing 4-4 shows an example of a function that returns some value, with similar annotations as those in Listing 4-3.</p>
+<p><code>takes_ownership</code> 호출 후 <code>s</code>를 사용하려고 하면 러스트는 컴파일 타임 오류를 발생시킵니다. 이러한 정적 검사는 우리를 실수로부터 보호합니다. <code>main</code>에 <code>s</code>와 <code>x</code>를 사용하는 코드를 추가하여 어디서 사용할 수 있고 어디서 소유권 규칙이 사용을 방해하는지 확인해 보세요.</p>
+<h3 id="반환-값과-스코프"><a class="header" href="#반환-값과-스코프">반환 값과 스코프</a></h3>
+<p>값을 반환하는 것도 소유권을 이전할 수 있습니다. 목록 4-4는 목록 4-3과 유사한 주석이 있는, 어떤 값을 반환하는 함수의 예입니다.</p>
 <Listing number="4-4" file-name="src/main.rs" caption="Transferring ownership of return values">
 <pre><pre class="playground"><code class="language-rust edition2021">fn main() {
-    let s1 = gives_ownership();        // gives_ownership moves its return
-                                       // value into s1
+    let s1 = gives_ownership();        // gives_ownership은 반환 값을
+                                       // s1으로 이동시킵니다
 
-    let s2 = String::from("hello");    // s2 comes into scope
+    let s2 = String::from("hello");    // s2가 스코프 안으로 들어옵니다
 
     let s3 = takes_and_gives_back(s2); // s2 is moved into
                                        // takes_and_gives_back, which also
@@ -471,40 +464,40 @@ fn gives_ownership() -&gt; String {       // gives_ownership will move its
                                        // return value into the function
                                        // that calls it
 
-    let some_string = String::from("yours"); // some_string comes into scope
+    let some_string = String::from("yours"); // some_string이 스코프 안으로 들어옵니다
 
-    some_string                        // some_string is returned and
-                                       // moves out to the calling
-                                       // function
+    some_string                        // some_string이 반환되어 호출한
+                                       // 함수로
+                                       // 이동합니다
 }
 
-// This function takes a String and returns a String.
+// 이 함수는 String을 가져와서 String을 반환합니다.
 fn takes_and_gives_back(a_string: String) -&gt; String {
-    // a_string comes into
-    // scope
+    // a_string이 스코프 안으로
+    // 들어옵니다
 
-    a_string  // a_string is returned and moves out to the calling function
+    a_string  // a_string이 반환되어 호출한 함수로 이동합니다
 }</code></pre></pre>
 </Listing>
-<p>The ownership of a variable follows the same pattern every time: assigning a value to another variable moves it. When a variable that includes data on the heap goes out of scope, the value will be cleaned up by <code>drop</code> unless ownership of the data has been moved to another variable.</p>
-<p>While this works, taking ownership and then returning ownership with every function is a bit tedious. What if we want to let a function use a value but not take ownership? It’s quite annoying that anything we pass in also needs to be passed back if we want to use it again, in addition to any data resulting from the body of the function that we might want to return as well.</p>
-<p>Rust does let us return multiple values using a tuple, as shown in Listing 4-5.</p>
+<p>변수의 소유권은 매번 동일한 패턴을 따릅니다: 다른 변수에 값을 할당하면 값이 이동합니다. 힙에 데이터를 포함하는 변수가 스코프를 벗어나면, 데이터의 소유권이 다른 변수로 이동하지 않는 한 <code>drop</code>에 의해 값이 정리됩니다.</p>
+<p>이 방법이 작동하기는 하지만, 모든 함수에서 소유권을 가져갔다가 다시 반환하는 것은 조금 번거롭습니다. 함수가 소유권을 가져가지 않고 값을 사용하게 하려면 어떻게 해야 할까요? 다시 사용하고 싶을 때 전달한 모든 것을 다시 돌려받아야 한다는 점과, 함수 본문에서 발생한 반환하고 싶은 모든 데이터까지 돌려받아야 한다는 점은 꽤 짜증스러운 일입니다.</p>
+<p>러스트는 목록 4-5에 표시된 것처럼 튜플을 사용하여 여러 값을 반환할 수 있게 해줍니다.</p>
 <Listing number="4-5" file-name="src/main.rs" caption="Returning ownership of parameters">
 <pre><pre class="playground"><code class="language-rust edition2021">fn main() {
     let s1 = String::from("hello");
 
     let (s2, len) = calculate_length(s1);
 
-    println!("The length of '{s2}' is {len}.");
+    println!("'{s2}'의 길이는 {len}입니다.");
 }
 
 fn calculate_length(s: String) -&gt; (String, usize) {
-    let length = s.len(); // len() returns the length of a String
+    let length = s.len(); // len()은 String의 길이를 반환합니다
 
     (s, length)
 }</code></pre></pre>
 </Listing>
-<p>But this is too much ceremony and a lot of work for a concept that should be common. Luckily for us, Rust has a feature for using a value without transferring ownership, called <em>references</em>.</p>
+<p>하지만 이는 너무 형식적이고 일반적이어야 할 개념에 대해 너무 많은 작업이 필요합니다. 다행히도 러스트에는 소유권을 이전하지 않고 값을 사용할 수 있는 _참조(references)_라는 기능이 있습니다.</p>
 
                     </main>
 

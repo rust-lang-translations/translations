@@ -216,13 +216,13 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="putting-it-all-together-futures-tasks-and-threads"><a class="header" href="#putting-it-all-together-futures-tasks-and-threads">Putting It All Together: Futures, Tasks, and Threads</a></h2>
-<p>As we saw in <a href="http://localhost:3000/ch16-00-concurrency.html">Chapter 16</a><!-- ignore -->, threads provide one approach to concurrency. We’ve seen another approach in this chapter: using async with futures and streams. If you‘re wondering when to choose method over the other, the answer is: it depends! And in many cases, the choice isn’t threads <em>or</em> async but rather threads <em>and</em> async.</p>
-<p>Many operating systems have supplied threading-based concurrency models for decades now, and many programming languages support them as a result. However, these models are not without their tradeoffs. On many operating systems, they use a fair bit of memory for each thread, and they come with some overhead for starting up and shutting down. Threads are also only an option when your operating system and hardware support them. Unlike mainstream desktop and mobile computers, some embedded systems don’t have an OS at all, so they also don’t have threads.</p>
-<p>The async model provides a different—and ultimately complementary—set of tradeoffs. In the async model, concurrent operations don’t require their own threads. Instead, they can run on tasks, as when we used <code>trpl::spawn_task</code> to kick off work from a synchronous function in the streams section. A task is similar to a thread, but instead of being managed by the operating system, it’s managed by library-level code: the runtime.</p>
-<p>In the previous section, we saw that we could build a stream by using an async channel and spawning an async task we could call from synchronous code. We can do the exact same thing with a thread. In Listing 17-40, we used <code>trpl::spawn_task</code> and <code>trpl::sleep</code>. In Listing 17-41, we replace those with the <code>thread::spawn</code> and <code>thread::sleep</code> APIs from the standard library in the <code>get_intervals</code> function.</p>
+                        <h2 id="모든-것을-하나로-퓨처-태스크-스레드"><a class="header" href="#모든-것을-하나로-퓨처-태스크-스레드">모든 것을 하나로: 퓨처, 태스크, 스레드</a></h2>
+<p><a href="http://localhost:3000/ch16-00-concurrency.html">16장</a><!-- ignore -->에서 보았듯이, 스레드는 동시성에 대한 한 가지 접근 방식을 제공합니다. 이 장에서 우리는 퓨처와 스트림과 함께 비동기를 사용하는 또 다른 접근 방식을 보았습니다. 어느 한 방법을 다른 방법보다 언제 선택해야 할지 궁금하다면, 답은 '상황에 따라 다르다'입니다! 그리고 많은 경우 선택은 스레드 <em>또는</em> 비동기가 아니라, 스레드 <em>그리고</em> 비동기입니다.</p>
+<p>많은 운영 체제들이 수십 년 동안 스레드 기반 동시성 모델을 제공해 왔으며, 그 결과 많은 프로그래밍 언어들이 이를 지원합니다. 하지만 이러한 모델에도 트레이드오프는 존재합니다. 많은 운영 체제에서 각 스레드는 상당한 양의 메모리를 사용하며, 시작하고 종료하는 데 약간의 오버헤드가 따릅니다. 또한 스레드는 운영 체제와 하드웨어가 이를 지원할 때만 선택 가능한 옵션입니다. 주류 데스크톱 및 모바일 컴퓨터와 달리, 일부 임베디드 시스템은 OS가 아예 없기도 하며, 따라서 스레드도 없습니다.</p>
+<p>비동기 모델은 이와 다르고 궁극적으로 보완적인 트레이드오프 세트를 제공합니다. 비동기 모델에서 동시 작업은 자신만의 스레드를 필요로 하지 않습니다. 대신, 스트림 섹션에서 동기 함수로부터 작업을 시작하기 위해 <code>trpl::spawn_task</code>를 사용했던 것처럼 태스크(task) 상에서 실행될 수 있습니다. 태스크는 스레드와 유사하지만, 운영 체제에 의해 관리되는 대신 라이브러리 수준의 코드인 런타임에 의해 관리됩니다.</p>
+<p>이전 섹션에서 우리는 비동기 채널을 사용하고 동기 코드에서 호출할 수 있는 비동기 태스크를 생성함으로써 스트림을 구축할 수 있음을 보았습니다. 스레드로도 똑같은 작업을 할 수 있습니다. 목록 17-40에서는 <code>trpl::spawn_task</code>와 <code>trpl::sleep</code>을 사용했습니다. 목록 17-41에서는 <code>get_intervals</code> 함수 내에서 이들을 표준 라이브러리의 <code>thread::spawn</code> 및 <code>thread::sleep</code> API로 교체합니다.</p>
 <Listing number="17-41" caption="Using the `std::thread` APIs instead of the async `trpl` APIs for the `get_intervals` function" file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">extern crate trpl; // required for mdbook test
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
 </span><span class="boring">
 </span><span class="boring">use std::{pin::pin, thread, time::Duration};
 </span><span class="boring">
@@ -232,7 +232,7 @@
 </span><span class="boring">    trpl::run(async {
 </span><span class="boring">        let messages = get_messages().timeout(Duration::from_millis(200));
 </span><span class="boring">        let intervals = get_intervals()
-</span><span class="boring">            .map(|count| format!("Interval #{count}"))
+</span><span class="boring">            .map(|count| format!("간격 #{count}"))
 </span><span class="boring">            .throttle(Duration::from_millis(500))
 </span><span class="boring">            .timeout(Duration::from_secs(10));
 </span><span class="boring">        let merged = messages.merge(intervals).take(20);
@@ -241,7 +241,7 @@
 </span><span class="boring">        while let Some(result) = stream.next().await {
 </span><span class="boring">            match result {
 </span><span class="boring">                Ok(item) =&gt; println!("{item}"),
-</span><span class="boring">                Err(reason) =&gt; eprintln!("Problem: {reason:?}"),
+</span><span class="boring">                Err(reason) =&gt; eprintln!("문제: {reason:?}"),
 </span><span class="boring">            }
 </span><span class="boring">        }
 </span><span class="boring">    });
@@ -257,8 +257,8 @@
 </span><span class="boring">            let time_to_sleep = if index % 2 == 0 { 100 } else { 300 };
 </span><span class="boring">            trpl::sleep(Duration::from_millis(time_to_sleep)).await;
 </span><span class="boring">
-</span><span class="boring">            if let Err(send_error) = tx.send(format!("Message: '{message}'")) {
-</span><span class="boring">                eprintln!("Cannot send message '{message}': {send_error}");
+</span><span class="boring">            if let Err(send_error) = tx.send(format!("메시지: '{message}'")) {
+</span><span class="boring">                eprintln!("메시지 '{message}'를 보낼 수 없습니다: {send_error}");
 </span><span class="boring">                break;
 </span><span class="boring">            }
 </span><span class="boring">        }
@@ -270,16 +270,16 @@
 </span>fn get_intervals() -&gt; impl Stream&lt;Item = u32&gt; {
     let (tx, rx) = trpl::channel();
 
-    // This is *not* `trpl::spawn` but `std::thread::spawn`!
+    // 이것은 `trpl::spawn`이 아니라 `std::thread::spawn`입니다!
     thread::spawn(move || {
         let mut count = 0;
         loop {
-            // Likewise, this is *not* `trpl::sleep` but `std::thread::sleep`!
+            // 마찬가지로, 이것은 `trpl::sleep`이 아니라 `std::thread::sleep`입니다!
             thread::sleep(Duration::from_millis(1));
             count += 1;
 
             if let Err(send_error) = tx.send(count) {
-                eprintln!("Could not send interval {count}: {send_error}");
+                eprintln!("간격 {count}를 보낼 수 없습니다: {send_error}");
                 break;
             };
         }
@@ -288,20 +288,20 @@
     ReceiverStream::new(rx)
 }</code></pre></pre>
 </Listing>
-<p>If you run this code, the output is identical to that of Listing 17-40. And notice how little changes here from the perspective of the calling code. What’s more, even though one of our functions spawned an async task on the runtime and the other spawned an OS thread, the resulting streams were unaffected by the differences.</p>
-<p>Despite their similarities, these two approaches behave very differently, although we might have a hard time measuring it in this very simple example. We could spawn millions of async tasks on any modern personal computer. If we tried to do that with threads, we would literally run out of memory!</p>
-<p>However, there’s a reason these APIs are so similar. Threads act as a boundary for sets of synchronous operations; concurrency is possible <em>between</em> threads. Tasks act as a boundary for sets of <em>asynchronous</em> operations; concurrency is possible both <em>between</em> and <em>within</em> tasks, because a task can switch between futures in its body. Finally, futures are Rust’s most granular unit of concurrency, and each future may represent a tree of other futures. The runtime—specifically, its executor—manages tasks, and tasks manage futures. In that regard, tasks are similar to lightweight, runtime-managed threads with added capabilities that come from being managed by a runtime instead of by the operating system.</p>
-<p>This doesn’t mean that async tasks are always better than threads (or vice versa). Concurrency with threads is in some ways a simpler programming model than concurrency with <code>async</code>. That can be a strength or a weakness. Threads are somewhat “fire and forget”; they have no native equivalent to a future, so they simply run to completion without being interrupted except by the operating system itself. That is, they have no built-in support for <em>intratask concurrency</em> the way futures do. Threads in Rust also have no mechanisms for cancellation—a subject we haven’t covered explicitly in this chapter but was implied by the fact that whenever we ended a future, its state got cleaned up correctly.</p>
-<p>These limitations also make threads harder to compose than futures. It’s much more difficult, for example, to use threads to build helpers such as the <code>timeout</code> and <code>throttle</code> methods we built earlier in this chapter. The fact that futures are richer data structures means they can be composed together more naturally, as we have seen.</p>
-<p>Tasks, then, give us <em>additional</em> control over futures, allowing us to choose where and how to group them. And it turns out that threads and tasks often work very well together, because tasks can (at least in some runtimes) be moved around between threads. In fact, under the hood, the runtime we’ve been using—including the <code>spawn_blocking</code> and <code>spawn_task</code> functions—is multithreaded by default! Many runtimes use an approach called <em>work stealing</em> to transparently move tasks around between threads, based on how the threads are currently being utilized, to improve the system’s overall performance. That approach actually requires threads <em>and</em> tasks, and therefore futures.</p>
-<p>When thinking about which method to use when, consider these rules of thumb:</p>
+<p>이 코드를 실행하면 출력 결과는 목록 17-40과 동일합니다. 그리고 호출하는 코드의 관점에서 얼마나 변화가 적은지 주목해 보세요. 게다가, 우리 함수 중 하나는 런타임 상에서 비동기 태스크를 생성했고 다른 하나는 OS 스레드를 생성했음에도 불구하고, 그 결과로 생성된 스트림들은 그 차이에 영향을 받지 않았습니다.</p>
+<p>유사점에도 불구하고 이 두 접근 방식은 매우 다르게 작동합니다. 비록 이 아주 단순한 예제에서는 이를 측정하기 어려울 수 있지만요. 우리는 현대적인 어떤 개인용 컴퓨터에서도 수백만 개의 비동기 태스크를 생성할 수 있습니다. 만약 스레드로 그렇게 하려고 했다면, 말 그대로 메모리가 부족해졌을 것입니다!</p>
+<p>하지만 이 API들이 이토록 유사한 데에는 이유가 있습니다. 스레드는 동기 작업 세트의 경계 역할을 하며, 스레드 _사이_에서 동시성이 가능합니다. 태스크는 <em>비동기</em> 작업 세트의 경계 역할을 하며, 태스크 본문 내에서 퓨처들을 전환할 수 있기 때문에 태스크 _사이_뿐만 아니라 태스크 _내부_에서도 동시성이 가능합니다. 마지막으로, 퓨처는 러스트에서 가장 미세한 동시성 단위이며, 각 퓨처는 다른 퓨처들의 트리를 나타낼 수 있습니다. 런타임—구체적으로는 그 실행기(executor)—은 태스크를 관리하고, 태스크는 퓨처를 관리합니다. 그런 점에서 태스크는 운영 체제 대신 런타임에 의해 관리됨으로써 얻는 추가적인 기능들을 갖춘, 가볍고 런타임 관리형인 스레드와 유사합니다.</p>
+<p>그렇다고 해서 비동기 태스크가 항상 스레드보다 낫다(혹은 그 반대다)는 의미는 아닙니다. 스레드를 사용한 동시성은 어떤 면에서 <code>async</code>를 사용한 동시성보다 더 단순한 프로그래밍 모델입니다. 그것은 강점이 될 수도 있고 약점이 될 수도 있습니다. 스레드는 다소 "실행 후 망각(fire and forget)" 방식입니다. 퓨처에 대응하는 자체적인 요소가 없으므로, 운영 체제 자체에 의한 간섭을 제외하고는 단순히 완료될 때까지 실행됩니다. 즉, 퓨처처럼 _태스크 내 동시성(intratask concurrency)_을 위한 내장된 지원이 없습니다. 러스트의 스레드는 또한 취소 메커니즘이 없습니다. 이 주제는 이번 장에서 명시적으로 다루지는 않았지만, 우리가 퓨처를 종료할 때마다 그 상태가 올바르게 정리되었다는 사실에 암시되어 있었습니다.</p>
+<p>이러한 제한 사항들은 또한 스레드를 퓨처보다 조합하기 어렵게 만듭니다. 예를 들어, 스레드를 사용하여 이 장 앞부분에서 만들었던 <code>timeout</code>이나 <code>throttle</code> 메서드 같은 헬퍼를 구축하는 것은 훨씬 더 어렵습니다. 우리가 보았듯이, 퓨처가 더 풍부한 데이터 구조라는 사실은 그것들이 더 자연스럽게 서로 조합될 수 있음을 의미합니다.</p>
+<p>태스크는 퓨처에 대해 <em>추가적인</em> 제어권을 제공하여, 우리가 퓨처들을 어디서 어떻게 그룹화할지 선택할 수 있게 해줍니다. 그리고 스레드와 태스크는 종종 매우 잘 어우러지는데, 이는 태스크가 (적어도 일부 런타임에서는) 스레드 사이를 옮겨 다닐 수 있기 때문입니다. 사실 우리가 사용해 온 런타임은—<code>spawn_blocking</code> 및 <code>spawn_task</code> 함수를 포함하여—내부적으로 기본값이 멀티스레드입니다! 많은 런타임들이 시스템의 전체적인 성능을 향상시키기 위해, 스레드들이 현재 어떻게 활용되고 있는지에 따라 태스크를 스레드 간에 투명하게 이동시키는 _워크 스틸링(work stealing)_이라는 접근 방식을 사용합니다. 이 방식은 실제로 스레드 <em>그리고</em> 태스크를 필요로 하며, 결과적으로 퓨처도 필요합니다.</p>
+<p>언제 어떤 방법을 사용할지 고민될 때는 다음과 같은 경험 법칙을 고려해 보세요.</p>
 <ul>
-<li>If the work is <em>very parallelizable</em>, such as processing a bunch of data where each part can be processed separately, threads are a better choice.</li>
-<li>If the work is <em>very concurrent</em>, such as handling messages from a bunch of different sources that may come in at different intervals or different rates, async is a better choice.</li>
+<li>작업이 각 부분을 개별적으로 처리할 수 있는 대량의 데이터를 다루는 것과 같이 <em>매우 병렬화 가능하다면</em>, 스레드가 더 나은 선택입니다.</li>
+<li>작업이 서로 다른 간격이나 속도로 들어올 수 있는 수많은 소스로부터의 메시지를 처리하는 것과 같이 <em>매우 동시적이라면</em>, 비동기가 더 나은 선택입니다.</li>
 </ul>
-<p>And if you need both parallelism and concurrency, you don’t have to choose between threads and async. You can use them together freely, letting each one play the part it’s best at. For example, Listing 17-42 shows a fairly common example of this kind of mix in real-world Rust code.</p>
+<p>그리고 병렬성과 동시성이 모두 필요하다면, 스레드와 비동기 중 하나를 선택할 필요가 없습니다. 그것들을 자유롭게 함께 사용하여 각자가 가장 잘하는 역할을 수행하게 할 수 있습니다. 예를 들어, 목록 17-42는 실제 러스트 코드에서 이런 종류의 혼합이 사용되는 꽤 흔한 사례를 보여줍니다.</p>
 <Listing number="17-42" caption="Sending messages with blocking code in a thread and awaiting the messages in an async block" file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">extern crate trpl; // for mdbook test
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">extern crate trpl; // mdbook 테스트용
 </span><span class="boring">
 </span>use std::{thread, time::Duration};
 
@@ -322,12 +322,12 @@ fn main() {
     });
 }</code></pre></pre>
 </Listing>
-<p>We begin by creating an async channel, then spawn a thread that takes ownership of the sender side of the channel. Within the thread, we send the numbers 1 through 10, sleeping for a second between each. Finally, we run a future created with an async block passed to <code>trpl::run</code> just as we have throughout the chapter. In that future, we await those messages, just as in the other message-passing examples we have seen.</p>
-<p>To return to the scenario we opened the chapter with, imagine running a set of video encoding tasks using a dedicated thread (because video encoding is compute-bound) but notifying the UI that those operations are done with an async channel. There are countless examples of these kinds of combinations in real-world use cases.</p>
+<p>먼저 비동기 채널을 생성한 다음, 채널의 송신 측 소유권을 가지는 스레드를 생성합니다. 스레드 내에서는 1부터 10까지의 숫자를 보내며, 각 숫자 사이에 1초씩 잠을 잡니다. 마지막으로, 이 장 전체에서 해왔던 것처럼 <code>trpl::run</code>에 전달된 비동기 블록으로 생성된 퓨처를 실행합니다. 그 퓨처 내에서 우리는 이전에 보았던 다른 메시지 전달 예제들과 마찬가지로 그 메시지들을 기다립니다.</p>
+<p>이 장을 시작할 때의 시나리오로 돌아가서, 전용 스레드를 사용하여 일련의 비디오 인코딩 태스크를 실행하고(비디오 인코딩은 계산 위주의 작업이므로), 비동기 채널을 통해 UI에 해당 작업이 완료되었음을 알리는 것을 상상해 보세요. 실제 사용 사례에서 이러한 종류의 조합은 무수히 많습니다.</p>
 <h2 id="요약"><a class="header" href="#요약">요약</a></h2>
-<p>This isn’t the last you’ll see of concurrency in this book. The project in <a href="ch21-00-final-project-a-web-server.html">Chapter 21</a> will apply these concepts in a more realistic situation than the simpler examples discussed here and compare problem-solving with threading versus tasks more directly.</p>
-<p>No matter which of these approaches you choose, Rust gives you the tools you need to write safe, fast, concurrent code—whether for a high-throughput web server or an embedded operating system.</p>
-<p>Next, we’ll talk about idiomatic ways to model problems and structure solutions as your Rust programs get bigger. In addition, we’ll discuss how Rust’s idioms relate to those you might be familiar with from object-oriented programming.</p>
+<p>이 책에서 동시성을 다루는 것은 이것이 마지막이 아닙니다. <a href="ch21-00-final-project-a-web-server.html">21장</a>의 프로젝트에서는 여기서 논의된 간단한 예제들보다 더 현실적인 상황에 이러한 개념들을 적용하고, 스레딩 대 태스크를 통한 문제 해결을 더 직접적으로 비교해 볼 것입니다.</p>
+<p>여러분이 이 접근 방식 중 어떤 것을 선택하든, 러스트는 안전하고 빠르며 동시적인 코드를 작성하는 데 필요한 도구들을 제공합니다—고성능 웹 서버를 위해서든 임베디드 운영 체제를 위해서든 말이죠.</p>
+<p>다음으로, 러스트 프로그램이 커짐에 따라 문제를 모델링하고 솔루션을 구조화하는 관용적인 방법들에 대해 이야기할 것입니다. 또한 러스트의 관용구가 여러분이 익숙할 수도 있는 객체 지향 프로그래밍의 관용구와 어떤 관련이 있는지 논의할 것입니다.</p>
 
                     </main>
 

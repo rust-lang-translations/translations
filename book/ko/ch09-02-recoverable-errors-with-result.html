@@ -217,9 +217,8 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="result로-복구-가능한-에러-처리하기"><a class="header" href="#result로-복구-가능한-에러-처리하기"><code>Result</code>로 복구 가능한 에러 처리하기</a></h2>
-<p>대부분의 오류는 프로그램이 완전히 중단될 정도로 심각하지 않습니다. 때로는 함수가 실패하는 이유를 쉽게 해석하고 대응할 수 있습니다. 예를 들어, 파일을 열려고 시도했는데 파일이 존재하지 않아 작업이 실패하면, 프로세스를 종료하는 대신 파일을 생성하고 싶을 수 있습니다.</p>
-<p>Recall from <a href="ch02-00-guessing-game-tutorial.html#handling-potential-failure-with-result">“Handling Potential Failure with <code>Result</code>”</a><!--
-ignore --> in Chapter 2 that the <code>Result</code> enum is defined as having two variants, <code>Ok</code> and <code>Err</code>, as follows:</p>
+<p>대부분의 에러는 프로그램이 완전히 멈춰야 할 정도로 심각하지 않습니다. 때로는 함수가 실패하는 이유를 쉽게 해석하고 대응할 수 있습니다. 예를 들어, 파일을 열려고 시도했는데 파일이 존재하지 않아 작업이 실패하면, 프로세스를 종료하는 대신 파일을 생성하고 싶을 수 있습니다.</p>
+<p>2장의 <a href="ch02-00-guessing-game-tutorial.html#handling-potential-failure-with-result">“<code>Result</code>로 잠재적 실패 처리하기”</a><!-- ignore -->에서 <code>Result</code> 열거형이 다음과 같이 <code>Ok</code>와 <code>Err</code>라는 두 가지 변형을 갖는 것으로 정의되었던 것을 상기해보세요.</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>enum Result&lt;T, E&gt; {
@@ -227,7 +226,7 @@ ignore --> in Chapter 2 that the <code>Result</code> enum is defined as having t
     Err(E),
 }
 <span class="boring">}</span></code></pre></pre>
-<p><code>T</code>와 <code>E</code>는 제네릭 타입 매개변수입니다. 제네릭에 대해서는 10장에서 더 자세히 논의할 것입니다. 지금 알아야 할 것은 <code>T</code>는 <code>Ok</code> variant 내에서 성공 시 반환될 값의 타입을 나타내고, <code>E</code>는 <code>Err</code> variant 내에서 실패 시 반환될 오류의 타입을 나타낸다는 것입니다. <code>Result</code>는 이러한 제네릭 타입 매개변수를 가지므로, 성공 값과 오류 값이 다를 수 있는 다양한 상황에서 <code>Result</code> 타입과 그 위에 정의된 함수를 사용할 수 있습니다.</p>
+<p><code>T</code>와 <code>E</code>는 제네릭 타입 매개변수입니다. 제네릭에 대해서는 10장에서 더 자세히 논의할 것입니다. 지금 알아야 할 것은 <code>T</code>는 성공 시 <code>Ok</code> 변형 내에서 반환될 값의 타입을 나타내고, <code>E</code>는 실패 시 <code>Err</code> 변형 내에서 반환될 에러의 타입을 나타낸다는 것입니다. <code>Result</code>는 이러한 제네릭 타입 매개변수를 가지므로, 우리가 반환하고자 하는 성공 값과 에러 값이 다를 수 있는 다양한 상황에서 <code>Result</code> 타입과 그 위에 정의된 함수들을 사용할 수 있습니다.</p>
 <p>함수가 실패할 수 있으므로 <code>Result</code> 값을 반환하는 함수를 호출해 봅시다. 목록 9-3에서 파일을 열려고 시도합니다.</p>
 <Listing number="9-3" file-name="src/main.rs" caption="Opening a file">
 <pre><pre class="playground"><code class="language-rust edition2021">use std::fs::File;
@@ -247,13 +246,13 @@ fn main() {
 
     let greeting_file = match greeting_file_result {
         Ok(file) =&gt; file,
-        Err(error) =&gt; panic!("Problem opening the file: {error:?}"),
+        Err(error) =&gt; panic!("파일을 여는 중 문제 발생: {error:?}"),
     };
 }</code></pre></pre>
 </Listing>
-<p>Note that, like the <code>Option</code> enum, the <code>Result</code> enum and its variants have been brought into scope by the prelude, so we don’t need to specify <code>Result::</code> before the <code>Ok</code> and <code>Err</code> variants in the <code>match</code> arms.</p>
-<p>When the result is <code>Ok</code>, this code will return the inner <code>file</code> value out of the <code>Ok</code> variant, and we then assign that file handle value to the variable <code>greeting_file</code>. After the <code>match</code>, we can use the file handle for reading or writing.</p>
-<p>The other arm of the <code>match</code> handles the case where we get an <code>Err</code> value from <code>File::open</code>. In this example, we’ve chosen to call the <code>panic!</code> macro. If there’s no file named <em>hello.txt</em> in our current directory and we run this code, we’ll see the following output from the <code>panic!</code> macro:</p>
+<p><code>Option</code> 열거형과 마찬가지로 <code>Result</code> 열거형과 그 변형들은 프렐류드에 의해 스코프로 가져와지므로, <code>match</code> 갈래에서 <code>Ok</code>와 <code>Err</code> 변형 앞에 <code>Result::</code>를 지정할 필요가 없습니다.</p>
+<p>결과가 <code>Ok</code>이면, 이 코드는 <code>Ok</code> 변형에서 내부 <code>file</code> 값을 반환하고, 그 파일 핸들 값을 <code>greeting_file</code> 변수에 할당합니다. <code>match</code> 이후에는 읽거나 쓰기 위해 파일 핸들을 사용할 수 있습니다.</p>
+<p><code>match</code>의 다른 갈래는 <code>File::open</code>에서 <code>Err</code> 값을 받는 경우를 처리합니다. 이 예제에서는 <code>panic!</code> 매크로를 호출하기로 했습니다. 현재 디렉토리에 _hello.txt_라는 파일이 없고 이 코드를 실행하면, <code>panic!</code> 매크로에서 다음과 같은 출력을 보게 될 것입니다:</p>
 <pre><code class="language-console">$ cargo run
    Compiling error-handling v0.1.0 (file:///projects/error-handling)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.73s
@@ -262,8 +261,8 @@ thread 'main' panicked at src/main.rs:8:23:
 Problem opening the file: Os { code: 2, kind: NotFound, message: "No such file or directory" }
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 </code></pre>
-<p>As usual, this output tells us exactly what has gone wrong.</p>
-<h3 id="matching-on-different-errors"><a class="header" href="#matching-on-different-errors">Matching on Different Errors</a></h3>
+<p>여느 때와 같이, 이 출력은 무엇이 잘못되었는지 정확히 알려줍니다.</p>
+<h3 id="다른-에러에-매칭하기"><a class="header" href="#다른-에러에-매칭하기">다른 에러에 매칭하기</a></h3>
 <p>The code in Listing 9-4 will <code>panic!</code> no matter why <code>File::open</code> failed. However, we want to take different actions for different failure reasons. If <code>File::open</code> failed because the file doesn’t exist, we want to create the file and return the handle to the new file. If <code>File::open</code> failed for any other reason—for example, because we didn’t have permission to open the file—we still want the code to <code>panic!</code> in the same way it did in Listing 9-4. For this, we add an inner <code>match</code> expression, shown in Listing 9-5.</p>
 <Listing number="9-5" file-name="src/main.rs" caption="Handling different kinds of errors in different ways">
 <!-- ignore this test because otherwise it creates hello.txt which causes other
@@ -279,21 +278,21 @@ fn main() {
         Err(error) =&gt; match error.kind() {
             ErrorKind::NotFound =&gt; match File::create("hello.txt") {
                 Ok(fc) =&gt; fc,
-                Err(e) =&gt; panic!("Problem creating the file: {e:?}"),
+                Err(e) =&gt; panic!("파일 생성 중 문제 발생: {e:?}"),
             },
             other_error =&gt; {
-                panic!("Problem opening the file: {other_error:?}");
+                panic!("파일 여는 중 문제 발생: {other_error:?}");
             }
         },
     };
 }</code></pre>
 </Listing>
-<p>The type of the value that <code>File::open</code> returns inside the <code>Err</code> variant is <code>io::Error</code>, which is a struct provided by the standard library. This struct has a method <code>kind</code> that we can call to get an <code>io::ErrorKind</code> value. The enum <code>io::ErrorKind</code> is provided by the standard library and has variants representing the different kinds of errors that might result from an <code>io</code> operation. The variant we want to use is <code>ErrorKind::NotFound</code>, which indicates the file we’re trying to open doesn’t exist yet. So we match on <code>greeting_file_result</code>, but we also have an inner match on <code>error.kind()</code>.</p>
-<p>The condition we want to check in the inner match is whether the value returned by <code>error.kind()</code> is the <code>NotFound</code> variant of the <code>ErrorKind</code> enum. If it is, we try to create the file with <code>File::create</code>. However, because <code>File::create</code> could also fail, we need a second arm in the inner <code>match</code> expression. When the file can’t be created, a different error message is printed. The second arm of the outer <code>match</code> stays the same, so the program panics on any error besides the missing file error.</p>
+<p><code>File::open</code>이 <code>Err</code> 변형 내부에서 반환하는 값의 타입은 <code>io::Error</code>이며, 이는 표준 라이브러리에서 제공하는 구조체입니다. 이 구조체에는 <code>io::ErrorKind</code> 값을 얻기 위해 호출할 수 있는 <code>kind</code> 메서드가 있습니다. <code>io::ErrorKind</code> 열거형은 표준 라이브러리에서 제공하며 <code>io</code> 작업에서 발생할 수 있는 다양한 종류의 에러를 나타내는 변형들을 가지고 있습니다. 우리가 사용하고자 하는 변형은 <code>ErrorKind::NotFound</code>인데, 이는 우리가 열려고 하는 파일이 아직 존재하지 않음을 나타냅니다. 따라서 우리는 <code>greeting_file_result</code>에 대해 매칭하지만, <code>error.kind()</code>에 대한 내부 매칭도 가지고 있습니다.</p>
+<p>내부 매칭에서 확인하려는 조건은 <code>error.kind()</code>가 반환한 값이 <code>ErrorKind</code> 열거형의 <code>NotFound</code> 변형인지 여부입니다. 만약 그렇다면, <code>File::create</code>로 파일 생성을 시도합니다. 하지만 <code>File::create</code>도 실패할 수 있으므로, 내부 <code>match</code> 표현식에 두 번째 갈래가 필요합니다. 파일이 생성될 수 없을 때, 다른 에러 메시지가 출력됩니다. 외부 <code>match</code>의 두 번째 갈래는 동일하게 유지되므로, 프로그램은 파일 없음 에러 이외의 모든 에러에 대해 패닉을 일으킵니다.</p>
 <blockquote>
-<h4 id="alternatives-to-using-match-with-resultt-e"><a class="header" href="#alternatives-to-using-match-with-resultt-e">Alternatives to Using <code>match</code> with <code>Result&lt;T, E&gt;</code></a></h4>
-<p>That’s a lot of <code>match</code>! The <code>match</code> expression is very useful but also very much a primitive. In Chapter 13, you’ll learn about closures, which are used with many of the methods defined on <code>Result&lt;T, E&gt;</code>. These methods can be more concise than using <code>match</code> when handling <code>Result&lt;T, E&gt;</code> values in your code.</p>
-<p>For example, here’s another way to write the same logic as shown in Listing 9-5, this time using closures and the <code>unwrap_or_else</code> method:</p>
+<h4 id="resultt-e와-함께-match를-사용하는-것에-대한-대안"><a class="header" href="#resultt-e와-함께-match를-사용하는-것에-대한-대안"><code>Result&lt;T, E&gt;</code>와 함께 <code>match</code>를 사용하는 것에 대한 대안</a></h4>
+<p><code>match</code>가 정말 많네요! <code>match</code> 표현식은 매우 유용하지만 매우 원시적이기도 합니다. 13장에서는 <code>Result&lt;T, E&gt;</code>에 정의된 많은 메서드와 함께 사용되는 클로저에 대해 배울 것입니다. 이러한 메서드들은 코드에서 <code>Result&lt;T, E&gt;</code> 값을 처리할 때 <code>match</code>를 사용하는 것보다 더 간결할 수 있습니다.</p>
+<p>예를 들어, 목록 9-5에 표시된 것과 동일한 로직을 작성하는 또 다른 방법이 있습니다. 이번에는 클로저와 <code>unwrap_or_else</code> 메서드를 사용합니다:</p>
 <!-- CAN'T EXTRACT SEE https://github.com/rust-lang/mdBook/issues/1127 -->
 <pre><code class="language-rust ignore">use std::fs::File;
 use std::io::ErrorKind;
@@ -302,17 +301,17 @@ fn main() {
     let greeting_file = File::open("hello.txt").unwrap_or_else(|error| {
         if error.kind() == ErrorKind::NotFound {
             File::create("hello.txt").unwrap_or_else(|error| {
-                panic!("Problem creating the file: {error:?}");
+                panic!("파일 생성 중 문제 발생: {error:?}");
             })
         } else {
-            panic!("Problem opening the file: {error:?}");
+            panic!("파일을 여는 중 문제 발생: {error:?}");
         }
     });
 }</code></pre>
-<p>Although this code has the same behavior as Listing 9-5, it doesn’t contain any <code>match</code> expressions and is cleaner to read. Come back to this example after you’ve read Chapter 13, and look up the <code>unwrap_or_else</code> method in the standard library documentation. Many more of these methods can clean up huge nested <code>match</code> expressions when you’re dealing with errors.</p>
+<p>이 코드는 목록 9-5와 동일하게 동작하지만, <code>match</code> 표현식이 포함되어 있지 않아 읽기가 더 깔끔합니다. 13장을 읽은 후 이 예제로 돌아와서 표준 라이브러리 문서에서 <code>unwrap_or_else</code> 메서드를 찾아보세요. 에러를 다룰 때 거대한 중첩된 <code>match</code> 표현식을 정리할 수 있는 이러한 메서드가 훨씬 더 많이 있습니다.</p>
 </blockquote>
-<h4 id="shortcuts-for-panic-on-error-unwrap-and-expect"><a class="header" href="#shortcuts-for-panic-on-error-unwrap-and-expect">Shortcuts for Panic on Error: <code>unwrap</code> and <code>expect</code></a></h4>
-<p>Using <code>match</code> works well enough, but it can be a bit verbose and doesn’t always communicate intent well. The <code>Result&lt;T, E&gt;</code> type has many helper methods defined on it to do various, more specific tasks. The <code>unwrap</code> method is a shortcut method implemented just like the <code>match</code> expression we wrote in Listing 9-4. If the <code>Result</code> value is the <code>Ok</code> variant, <code>unwrap</code> will return the value inside the <code>Ok</code>. If the <code>Result</code> is the <code>Err</code> variant, <code>unwrap</code> will call the <code>panic!</code> macro for us. Here is an example of <code>unwrap</code> in action:</p>
+<h4 id="에러-시-패닉을-위한-단축-unwrap과-expect"><a class="header" href="#에러-시-패닉을-위한-단축-unwrap과-expect">에러 시 패닉을 위한 단축: <code>unwrap</code>과 <code>expect</code></a></h4>
+<p><code>match</code>를 사용하는 것은 충분히 잘 작동하지만, 다소 장황할 수 있고 항상 의도를 잘 전달하는 것은 아닙니다. <code>Result&lt;T, E&gt;</code> 타입에는 다양하고 더 구체적인 작업을 수행하기 위해 정의된 많은 도우미 메서드가 있습니다. <code>unwrap</code> 메서드는 우리가 목록 9-4에서 작성한 <code>match</code> 표현식과 똑같이 구현된 단축 메서드입니다. <code>Result</code> 값이 <code>Ok</code> 변형이면 <code>unwrap</code>은 <code>Ok</code> 내부의 값을 반환합니다. <code>Result</code>가 <code>Err</code> 변형이면 <code>unwrap</code>은 우리를 위해 <code>panic!</code> 매크로를 호출합니다. 다음은 작동 중인 <code>unwrap</code>의 예입니다:</p>
 <Listing file-name="src/main.rs">
 <pre><pre class="playground"><code class="language-rust should_panic edition2021">use std::fs::File;
 
@@ -320,7 +319,7 @@ fn main() {
     let greeting_file = File::open("hello.txt").unwrap();
 }</code></pre></pre>
 </Listing>
-<p>If we run this code without a <em>hello.txt</em> file, we’ll see an error message from the <code>panic!</code> call that the <code>unwrap</code> method makes:</p>
+<p><em>hello.txt</em> 파일 없이 이 코드를 실행하면, <code>unwrap</code> 메서드가 호출한 <code>panic!</code> 호출의 에러 메시지를 보게 될 것입니다:</p>
 <!-- manual-regeneration
 cd listings/ch09-error-handling/no-listing-04-unwrap
 cargo run
@@ -329,16 +328,16 @@ copy and paste relevant text
 <pre><code class="language-text">thread 'main' panicked at src/main.rs:4:49:
 called `Result::unwrap()` on an `Err` value: Os { code: 2, kind: NotFound, message: "No such file or directory" }
 </code></pre>
-<p>Similarly, the <code>expect</code> method lets us also choose the <code>panic!</code> error message. Using <code>expect</code> instead of <code>unwrap</code> and providing good error messages can convey your intent and make tracking down the source of a panic easier. The syntax of <code>expect</code> looks like this:</p>
+<p>비슷하게, <code>expect</code> 메서드는 <code>panic!</code> 에러 메시지를 선택할 수 있게 해줍니다. <code>unwrap</code> 대신 <code>expect</code>를 사용하고 좋은 에러 메시지를 제공하면 의도를 전달하고 패닉의 원인을 추적하기가 더 쉬워집니다. <code>expect</code>의 문법은 다음과 같습니다:</p>
 <Listing file-name="src/main.rs">
 <pre><pre class="playground"><code class="language-rust should_panic edition2021">use std::fs::File;
 
 fn main() {
     let greeting_file = File::open("hello.txt")
-        .expect("hello.txt should be included in this project");
+        .expect("hello.txt는 이 프로젝트에 포함되어야 합니다");
 }</code></pre></pre>
 </Listing>
-<p>We use <code>expect</code> in the same way as <code>unwrap</code>: to return the file handle or call the <code>panic!</code> macro. The error message used by <code>expect</code> in its call to <code>panic!</code> will be the parameter that we pass to <code>expect</code>, rather than the default <code>panic!</code> message that <code>unwrap</code> uses. Here’s what it looks like:</p>
+<p><code>expect</code>는 <code>unwrap</code>과 같은 방식으로 사용합니다. 즉, 파일 핸들을 반환하거나 <code>panic!</code> 매크로를 호출합니다. <code>expect</code>가 <code>panic!</code> 호출 시 사용하는 에러 메시지는 <code>unwrap</code>이 사용하는 기본 <code>panic!</code> 메시지 대신 <code>expect</code>에 전달하는 매개변수가 될 것입니다. 다음과 같이 보입니다:</p>
 <!-- manual-regeneration
 cd listings/ch09-error-handling/no-listing-05-expect
 cargo run
@@ -347,10 +346,10 @@ copy and paste relevant text
 <pre><code class="language-text">thread 'main' panicked at src/main.rs:5:10:
 hello.txt should be included in this project: Os { code: 2, kind: NotFound, message: "No such file or directory" }
 </code></pre>
-<p>In production-quality code, most Rustaceans choose <code>expect</code> rather than <code>unwrap</code> and give more context about why the operation is expected to always succeed. That way, if your assumptions are ever proven wrong, you have more information to use in debugging.</p>
-<h3 id="propagating-errors"><a class="header" href="#propagating-errors">Propagating Errors</a></h3>
-<p>When a function’s implementation calls something that might fail, instead of handling the error within the function itself you can return the error to the calling code so that it can decide what to do. This is known as <em>propagating</em> the error and gives more control to the calling code, where there might be more information or logic that dictates how the error should be handled than what you have available in the context of your code.</p>
-<p>For example, Listing 9-6 shows a function that reads a username from a file. If the file doesn’t exist or can’t be read, this function will return those errors to the code that called the function.</p>
+<p>프로덕션 품질의 코드에서 대부분의 러스트 사용자들은 <code>unwrap</code>보다는 <code>expect</code>를 선택하고, 왜 작업이 항상 성공할 것으로 예상되는지에 대한 더 많은 문맥을 제공합니다. 그렇게 하면 만약 가정이 틀렸음이 밝혀졌을 때, 디버깅에 사용할 수 있는 더 많은 정보를 갖게 됩니다.</p>
+<h3 id="에러-전파하기"><a class="header" href="#에러-전파하기">에러 전파하기</a></h3>
+<p>함수의 구현이 실패할 수 있는 무언가를 호출할 때, 함수 자체 내에서 에러를 처리하는 대신 호출하는 코드에 에러를 반환하여 호출하는 코드가 어떻게 할지 결정하게 할 수 있습니다. 이것은 에러를 <em>전파(propagating)</em> 하는 것으로 알려져 있으며, 호출하는 코드에 더 많은 제어권을 줍니다. 호출하는 코드에는 에러를 어떻게 처리해야 하는지 지시하는 정보나 로직이 여러분의 코드 컨텍스트에서 사용 가능한 것보다 더 많이 있을 수 있기 때문입니다.</p>
+<p>예를 들어, 목록 9-6은 파일에서 사용자 이름을 읽는 함수를 보여줍니다. 파일이 존재하지 않거나 읽을 수 없는 경우, 이 함수는 해당 에러를 함수를 호출한 코드에 반환합니다.</p>
 <Listing number="9-6" file-name="src/main.rs" caption="A function that returns errors to the calling code using `match`">
 <!-- Deliberately not using rustdoc_include here; the `main` function in the
 file panics. We do want to include it for reader experimentation purposes, but
@@ -377,14 +376,14 @@ fn read_username_from_file() -&gt; Result&lt;String, io::Error&gt; {
 }
 <span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>This function can be written in a much shorter way, but we’re going to start by doing a lot of it manually in order to explore error handling; at the end, we’ll show the shorter way. Let’s look at the return type of the function first: <code>Result&lt;String, io::Error&gt;</code>. This means the function is returning a value of the type <code>Result&lt;T, E&gt;</code>, where the generic parameter <code>T</code> has been filled in with the concrete type <code>String</code> and the generic type <code>E</code> has been filled in with the concrete type <code>io::Error</code>.</p>
-<p>If this function succeeds without any problems, the code that calls this function will receive an <code>Ok</code> value that holds a <code>String</code>—the <code>username</code> that this function read from the file. If this function encounters any problems, the calling code will receive an <code>Err</code> value that holds an instance of <code>io::Error</code> that contains more information about what the problems were. We chose <code>io::Error</code> as the return type of this function because that happens to be the type of the error value returned from both of the operations we’re calling in this function’s body that might fail: the <code>File::open</code> function and the <code>read_to_string</code> method.</p>
-<p>The body of the function starts by calling the <code>File::open</code> function. Then we handle the <code>Result</code> value with a <code>match</code> similar to the <code>match</code> in Listing 9-4. If <code>File::open</code> succeeds, the file handle in the pattern variable <code>file</code> becomes the value in the mutable variable <code>username_file</code> and the function continues. In the <code>Err</code> case, instead of calling <code>panic!</code>, we use the <code>return</code> keyword to return early out of the function entirely and pass the error value from <code>File::open</code>, now in the pattern variable <code>e</code>, back to the calling code as this function’s error value.</p>
-<p>So, if we have a file handle in <code>username_file</code>, the function then creates a new <code>String</code> in variable <code>username</code> and calls the <code>read_to_string</code> method on the file handle in <code>username_file</code> to read the contents of the file into <code>username</code>. The <code>read_to_string</code> method also returns a <code>Result</code> because it might fail, even though <code>File::open</code> succeeded. So we need another <code>match</code> to handle that <code>Result</code>: if <code>read_to_string</code> succeeds, then our function has succeeded, and we return the username from the file that’s now in <code>username</code> wrapped in an <code>Ok</code>. If <code>read_to_string</code> fails, we return the error value in the same way that we returned the error value in the <code>match</code> that handled the return value of <code>File::open</code>. However, we don’t need to explicitly say <code>return</code>, because this is the last expression in the function.</p>
-<p>The code that calls this code will then handle getting either an <code>Ok</code> value that contains a username or an <code>Err</code> value that contains an <code>io::Error</code>. It’s up to the calling code to decide what to do with those values. If the calling code gets an <code>Err</code> value, it could call <code>panic!</code> and crash the program, use a default username, or look up the username from somewhere other than a file, for example. We don’t have enough information on what the calling code is actually trying to do, so we propagate all the success or error information upward for it to handle appropriately.</p>
-<p>This pattern of propagating errors is so common in Rust that Rust provides the question mark operator <code>?</code> to make this easier.</p>
-<h4 id="a-shortcut-for-propagating-errors-the--operator"><a class="header" href="#a-shortcut-for-propagating-errors-the--operator">A Shortcut for Propagating Errors: the <code>?</code> Operator</a></h4>
-<p>Listing 9-7 shows an implementation of <code>read_username_from_file</code> that has the same functionality as in Listing 9-6, but this implementation uses the <code>?</code> operator.</p>
+<p>이 함수는 훨씬 더 짧은 방식으로 작성될 수 있지만, 에러 처리를 탐구하기 위해 많은 부분을 수동으로 수행하는 것으로 시작할 것입니다; 마지막에는 더 짧은 방법을 보여줄 것입니다. 먼저 함수의 반환 타입을 살펴봅시다: <code>Result&lt;String, io::Error&gt;</code>. 이는 함수가 <code>Result&lt;T, E&gt;</code> 타입의 값을 반환하고 있음을 의미하며, 여기서 제네릭 매개변수 <code>T</code>는 구체적인 타입 <code>String</code>으로 채워졌고 제네릭 타입 <code>E</code>는 구체적인 타입 <code>io::Error</code>로 채워졌습니다.</p>
+<p>이 함수가 아무 문제 없이 성공하면, 이 함수를 호출하는 코드는 <code>Ok</code> 값을 받게 되는데, 여기에는 이 함수가 파일에서 읽은 <code>username</code>인 <code>String</code>이 들어 있습니다. 이 함수가 문제를 겪게 되면, 호출하는 코드는 <code>Err</code> 값을 받게 되는데, 여기에는 문제가 무엇이었는지에 대한 더 많은 정보를 담고 있는 <code>io::Error</code>의 인스턴스가 들어 있습니다. 우리는 이 함수의 반환 타입으로 <code>io::Error</code>를 선택했는데, 왜냐하면 이 함수 본문에서 호출하는 실패할 수 있는 두 작업, 즉 <code>File::open</code> 함수와 <code>read_to_string</code> 메서드 모두에서 반환되는 에러 값의 타입이 바로 그것이기 때문입니다.</p>
+<p>함수의 본문은 <code>File::open</code> 함수를 호출하는 것으로 시작합니다. 그런 다음 목록 9-4의 <code>match</code>와 유사하게 <code>match</code>를 사용하여 <code>Result</code> 값을 처리합니다. <code>File::open</code>이 성공하면 패턴 변수 <code>file</code>의 파일 핸들이 가변 변수 <code>username_file</code>의 값이 되고 함수는 계속됩니다. <code>Err</code>의 경우, <code>panic!</code>을 호출하는 대신 <code>return</code> 키워드를 사용하여 함수 전체에서 조기에 반환하고, 이제 패턴 변수 <code>e</code>에 있는 <code>File::open</code>의 에러 값을 이 함수의 에러 값으로 호출 코드에 다시 전달합니다.</p>
+<p>따라서 <code>username_file</code>에 파일 핸들이 있다면, 함수는 <code>username</code> 변수에 새 <code>String</code>을 생성하고 <code>username_file</code>의 파일 핸들에 <code>read_to_string</code> 메서드를 호출하여 파일 내용을 <code>username</code>으로 읽어들입니다. <code>read_to_string</code> 메서드 또한 <code>Result</code>를 반환하는데, <code>File::open</code>이 성공했더라도 실패할 수 있기 때문입니다. 따라서 그 <code>Result</code>를 처리하기 위해 또 다른 <code>match</code>가 필요합니다: <code>read_to_string</code>이 성공하면 우리 함수도 성공한 것이므로, 이제 <code>username</code>에 있는 파일의 사용자 이름을 <code>Ok</code>로 감싸서 반환합니다. <code>read_to_string</code>이 실패하면, <code>File::open</code>의 반환 값을 처리한 <code>match</code>에서 에러 값을 반환했던 것과 같은 방식으로 에러 값을 반환합니다. 하지만 이것이 함수의 마지막 표현식이므로 명시적으로 <code>return</code>이라고 말할 필요는 없습니다.</p>
+<p>이 코드를 호출하는 코드는 사용자 이름을 포함하는 <code>Ok</code> 값이나 <code>io::Error</code>를 포함하는 <code>Err</code> 값 중 하나를 받아서 처리하게 됩니다. 이 값들로 무엇을 할지는 호출하는 코드가 결정합니다. 호출하는 코드가 <code>Err</code> 값을 받으면 <code>panic!</code>을 호출하여 프로그램을 중단시키거나, 기본 사용자 이름을 사용하거나, 파일이 아닌 다른 곳에서 사용자 이름을 조회하는 등의 작업을 할 수 있습니다. 호출하는 코드가 실제로 무엇을 하려는지에 대한 정보가 충분하지 않으므로, 우리는 모든 성공 또는 에러 정보를 위로 전파하여 적절하게 처리하도록 합니다.</p>
+<p>에러를 전파하는 이 패턴은 러스트에서 매우 흔하므로, 러스트는 이를 더 쉽게 만들기 위해 물음표 연산자 <code>?</code>를 제공합니다.</p>
+<h4 id="에러-전파를-위한-단축--연산자"><a class="header" href="#에러-전파를-위한-단축--연산자">에러 전파를 위한 단축: <code>?</code> 연산자</a></h4>
+<p>목록 9-7은 목록 9-6과 동일한 기능을 가지지만 <code>?</code> 연산자를 사용하는 <code>read_username_from_file</code>의 구현을 보여줍니다.</p>
 <Listing number="9-7" file-name="src/main.rs" caption="A function that returns errors to the calling code using the `?` operator">
 <!-- Deliberately not using rustdoc_include here; the `main` function in the
 file panics. We do want to include it for reader experimentation purposes, but
@@ -402,11 +401,11 @@ fn read_username_from_file() -&gt; Result&lt;String, io::Error&gt; {
 }
 <span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>The <code>?</code> placed after a <code>Result</code> value is defined to work in almost the same way as the <code>match</code> expressions we defined to handle the <code>Result</code> values in Listing 9-6. If the value of the <code>Result</code> is an <code>Ok</code>, the value inside the <code>Ok</code> will get returned from this expression, and the program will continue. If the value is an <code>Err</code>, the <code>Err</code> will be returned from the whole function as if we had used the <code>return</code> keyword so the error value gets propagated to the calling code.</p>
-<p>There is a difference between what the <code>match</code> expression from Listing 9-6 does and what the <code>?</code> operator does: error values that have the <code>?</code> operator called on them go through the <code>from</code> function, defined in the <code>From</code> trait in the standard library, which is used to convert values from one type into another. When the <code>?</code> operator calls the <code>from</code> function, the error type received is converted into the error type defined in the return type of the current function. This is useful when a function returns one error type to represent all the ways a function might fail, even if parts might fail for many different reasons.</p>
-<p>For example, we could change the <code>read_username_from_file</code> function in Listing 9-7 to return a custom error type named <code>OurError</code> that we define. If we also define <code>impl From&lt;io::Error&gt; for OurError</code> to construct an instance of <code>OurError</code> from an <code>io::Error</code>, then the <code>?</code> operator calls in the body of <code>read_username_from_file</code> will call <code>from</code> and convert the error types without needing to add any more code to the function.</p>
-<p>In the context of Listing 9-7, the <code>?</code> at the end of the <code>File::open</code> call will return the value inside an <code>Ok</code> to the variable <code>username_file</code>. If an error occurs, the <code>?</code> operator will return early out of the whole function and give any <code>Err</code> value to the calling code. The same thing applies to the <code>?</code> at the end of the <code>read_to_string</code> call.</p>
-<p>The <code>?</code> operator eliminates a lot of boilerplate and makes this function’s implementation simpler. We could even shorten this code further by chaining method calls immediately after the <code>?</code>, as shown in Listing 9-8.</p>
+<p><code>Result</code> 값 뒤에 배치된 <code>?</code>는 목록 9-6에서 <code>Result</code> 값을 처리하기 위해 정의한 <code>match</code> 표현식과 거의 같은 방식으로 작동하도록 정의되어 있습니다. <code>Result</code>의 값이 <code>Ok</code>이면 <code>Ok</code> 내부의 값이 이 표현식에서 반환되고 프로그램이 계속됩니다. 값이 <code>Err</code>이면 <code>return</code> 키워드를 사용한 것처럼 <code>Err</code>가 전체 함수에서 반환되어 에러 값이 호출하는 코드로 전파됩니다.</p>
+<p>목록 9-6의 <code>match</code> 표현식과 <code>?</code> 연산자가 하는 일에는 차이가 있습니다: <code>?</code> 연산자가 호출된 에러 값들은 표준 라이브러리의 <code>From</code> 트레이트에 정의된 <code>from</code> 함수를 거치게 되는데, 이 함수는 한 타입의 값을 다른 타입으로 변환하는 데 사용됩니다. <code>?</code> 연산자가 <code>from</code> 함수를 호출할 때, 받은 에러 타입은 현재 함수의 반환 타입에 정의된 에러 타입으로 변환됩니다. 이는 함수의 일부분이 여러 다른 이유로 실패할 수 있더라도, 함수가 실패할 수 있는 모든 방법을 나타내는 하나의 에러 타입을 반환할 때 유용합니다.</p>
+<p>예를 들어, 목록 9-7의 <code>read_username_from_file</code> 함수를 변경하여 우리가 정의한 <code>OurError</code>라는 사용자 정의 에러 타입을 반환하게 할 수 있습니다. 만약 <code>io::Error</code>로부터 <code>OurError</code>의 인스턴스를 생성하는 <code>impl From&lt;io::Error&gt; for OurError</code>도 정의한다면, <code>read_username_from_file</code> 본문의 <code>?</code> 연산자 호출은 <code>from</code>을 호출하여 함수에 더 이상 코드를 추가할 필요 없이 에러 타입을 변환할 것입니다.</p>
+<p>목록 9-7의 문맥에서 <code>File::open</code> 호출 끝에 있는 <code>?</code>는 <code>Ok</code> 내부의 값을 <code>username_file</code> 변수에 반환할 것입니다. 에러가 발생하면 <code>?</code> 연산자는 전체 함수에서 일찍 반환하고 호출하는 코드에 <code>Err</code> 값을 줄 것입니다. <code>read_to_string</code> 호출 끝에 있는 <code>?</code>에도 동일한 내용이 적용됩니다.</p>
+<p><code>?</code> 연산자는 많은 상용구(boilerplate)를 제거하고 이 함수의 구현을 더 간단하게 만듭니다. 목록 9-8에 나와 있듯이 <code>?</code> 바로 뒤에 메서드 호출을 연결하여 이 코드를 더 줄일 수도 있습니다.</p>
 <Listing number="9-8" file-name="src/main.rs" caption="Chaining method calls after the `?` operator">
 <!-- Deliberately not using rustdoc_include here; the `main` function in the
 file panics. We do want to include it for reader experimentation purposes, but
@@ -425,8 +424,8 @@ fn read_username_from_file() -&gt; Result&lt;String, io::Error&gt; {
 }
 <span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>We’ve moved the creation of the new <code>String</code> in <code>username</code> to the beginning of the function; that part hasn’t changed. Instead of creating a variable <code>username_file</code>, we’ve chained the call to <code>read_to_string</code> directly onto the result of <code>File::open("hello.txt")?</code>. We still have a <code>?</code> at the end of the <code>read_to_string</code> call, and we still return an <code>Ok</code> value containing <code>username</code> when both <code>File::open</code> and <code>read_to_string</code> succeed rather than returning errors. The functionality is again the same as in Listing 9-6 and Listing 9-7; this is just a different, more ergonomic way to write it.</p>
-<p>Listing 9-9 shows a way to make this even shorter using <code>fs::read_to_string</code>.</p>
+<p><code>File::open("hello.txt")?</code>의 결과에 <code>read_to_string</code> 호출을 직접 연결했습니다. <code>read_to_string</code> 호출 끝에 여전히 <code>?</code>가 있고, <code>File::open</code>과 <code>read_to_string</code>이 모두 성공했을 때 에러를 반환하는 대신 <code>username</code>을 포함하는 <code>Ok</code> 값을 여전히 반환합니다. 기능은 목록 9-6 및 목록 9-7과 동일합니다. 단지 작성하는 방식이 다르고 더 인체공학적일 뿐입니다.</p>
+<p>목록 9-9는 <code>fs::read_to_string</code>을 사용하여 이를 더 짧게 만드는 방법을 보여줍니다.</p>
 <Listing number="9-9" file-name="src/main.rs" caption="Using `fs::read_to_string` instead of opening and then reading the file">
 <!-- Deliberately not using rustdoc_include here; the `main` function in the
 file panics. We do want to include it for reader experimentation purposes, but
@@ -441,10 +440,10 @@ fn read_username_from_file() -&gt; Result&lt;String, io::Error&gt; {
 }
 <span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>Reading a file into a string is a fairly common operation, so the standard library provides the convenient <code>fs::read_to_string</code> function that opens the file, creates a new <code>String</code>, reads the contents of the file, puts the contents into that <code>String</code>, and returns it. Of course, using <code>fs::read_to_string</code> doesn’t give us the opportunity to explain all the error handling, so we did it the longer way first.</p>
-<h4 id="where-the--operator-can-be-used"><a class="header" href="#where-the--operator-can-be-used">Where The <code>?</code> Operator Can Be Used</a></h4>
-<p>The <code>?</code> operator can only be used in functions whose return type is compatible with the value the <code>?</code> is used on. This is because the <code>?</code> operator is defined to perform an early return of a value out of the function, in the same manner as the <code>match</code> expression we defined in Listing 9-6. In Listing 9-6, the <code>match</code> was using a <code>Result</code> value, and the early return arm returned an <code>Err(e)</code> value. The return type of the function has to be a <code>Result</code> so that it’s compatible with this <code>return</code>.</p>
-<p>In Listing 9-10, let’s look at the error we’ll get if we use the <code>?</code> operator in a <code>main</code> function with a return type that is incompatible with the type of the value we use <code>?</code> on.</p>
+<p>파일을 문자열로 읽는 것은 꽤 일반적인 작업이므로, 표준 라이브러리는 파일을 열고, 새 <code>String</code>을 생성하고, 파일 내용을 읽고, 내용을 그 <code>String</code>에 넣고, 반환하는 편리한 <code>fs::read_to_string</code> 함수를 제공합니다. 물론 <code>fs::read_to_string</code>을 사용하면 모든 에러 처리를 설명할 기회가 없었기 때문에 먼저 더 긴 방법으로 했습니다.</p>
+<h4 id="-연산자를-사용할-수-있는-곳"><a class="header" href="#-연산자를-사용할-수-있는-곳"><code>?</code> 연산자를 사용할 수 있는 곳</a></h4>
+<p><code>?</code> 연산자는 <code>?</code>가 사용된 값과 호환되는 반환 타입을 가진 함수에서만 사용할 수 있습니다. 이는 <code>?</code> 연산자가 목록 9-6에서 정의한 <code>match</code> 표현식과 같은 방식으로 함수에서 값을 일찍 반환하도록 정의되어 있기 때문입니다. 목록 9-6에서 <code>match</code>는 <code>Result</code> 값을 사용하고 있었고, 조기 반환 갈래는 <code>Err(e)</code> 값을 반환했습니다. 함수의 반환 타입은 이 <code>return</code>과 호환되도록 <code>Result</code>여야 합니다.</p>
+<p>목록 9-10에서, <code>?</code>를 사용하는 값의 타입과 호환되지 않는 반환 타입을 가진 <code>main</code> 함수에서 <code>?</code> 연산자를 사용하면 어떤 에러가 발생하는지 살펴봅시다.</p>
 <Listing number="9-10" file-name="src/main.rs" caption="Attempting to use the `?` in the `main` function that returns `()` won’t compile.">
 <pre><code class="language-rust ignore does_not_compile">use std::fs::File;
 
@@ -452,7 +451,7 @@ fn main() {
     let greeting_file = File::open("hello.txt")?;
 }</code></pre>
 </Listing>
-<p>This code opens a file, which might fail. The <code>?</code> operator follows the <code>Result</code> value returned by <code>File::open</code>, but this <code>main</code> function has the return type of <code>()</code>, not <code>Result</code>. When we compile this code, we get the following error message:</p>
+<p>이 코드는 파일을 여는데, 실패할 수 있습니다. <code>?</code> 연산자는 <code>File::open</code>이 반환한 <code>Result</code> 값을 따르지만, 이 <code>main</code> 함수는 <code>Result</code>가 아닌 <code>()</code> 반환 타입을 가집니다. 이 코드를 컴파일하면 다음과 같은 에러 메시지를 얻습니다:</p>
 <pre><code class="language-console">$ cargo run
    Compiling error-handling v0.1.0 (file:///projects/error-handling)
 error[E0277]: the `?` operator can only be used in a function that returns `Result` or `Option` (or another type that implements `FromResidual`)
@@ -474,9 +473,9 @@ help: consider adding return type
 For more information about this error, try `rustc --explain E0277`.
 error: could not compile `error-handling` (bin "error-handling") due to 1 previous error
 </code></pre>
-<p>This error points out that we’re only allowed to use the <code>?</code> operator in a function that returns <code>Result</code>, <code>Option</code>, or another type that implements <code>FromResidual</code>.</p>
-<p>To fix the error, you have two choices. One choice is to change the return type of your function to be compatible with the value you’re using the <code>?</code> operator on as long as you have no restrictions preventing that. The other choice is to use a <code>match</code> or one of the <code>Result&lt;T, E&gt;</code> methods to handle the <code>Result&lt;T, E&gt;</code> in whatever way is appropriate.</p>
-<p>The error message also mentioned that <code>?</code> can be used with <code>Option&lt;T&gt;</code> values as well. As with using <code>?</code> on <code>Result</code>, you can only use <code>?</code> on <code>Option</code> in a function that returns an <code>Option</code>. The behavior of the <code>?</code> operator when called on an <code>Option&lt;T&gt;</code> is similar to its behavior when called on a <code>Result&lt;T, E&gt;</code>: if the value is <code>None</code>, the <code>None</code> will be returned early from the function at that point. If the value is <code>Some</code>, the value inside the <code>Some</code> is the resultant value of the expression, and the function continues. Listing 9-11 has an example of a function that finds the last character of the first line in the given text.</p>
+<p>이 에러는 우리가 <code>Result</code>, <code>Option</code>, 또는 <code>FromResidual</code>을 구현하는 다른 타입을 반환하는 함수에서만 <code>?</code> 연산자를 사용할 수 있다고 지적합니다.</p>
+<p>에러를 수정하려면 두 가지 선택지가 있습니다. 하나는 함수가 이를 막는 제한이 없는 한, <code>?</code> 연산자를 사용하는 값과 호환되도록 함수의 반환 타입을 변경하는 것입니다. 다른 하나는 <code>match</code>나 <code>Result&lt;T, E&gt;</code> 메서드 중 하나를 사용하여 적절한 방식으로 <code>Result&lt;T, E&gt;</code>를 처리하는 것입니다.</p>
+<p>에러 메시지에는 <code>?</code>를 <code>Option&lt;T&gt;</code> 값에도 사용할 수 있다고 언급되었습니다. <code>Result</code>에 <code>?</code>를 사용하는 것과 마찬가지로, <code>Option</code>을 반환하는 함수에서만 <code>Option</code>에 <code>?</code>를 사용할 수 있습니다. <code>Option&lt;T&gt;</code>에서 호출될 때 <code>?</code> 연산자의 동작은 <code>Result&lt;T, E&gt;</code>에서 호출될 때의 동작과 유사합니다. 값이 <code>None</code>이면 <code>None</code>이 그 시점에서 함수로부터 조기에 반환됩니다. 값이 <code>Some</code>이면 <code>Some</code> 내부의 값이 표현식의 결과 값이 되고 함수는 계속됩니다. 목록 9-11에는 주어진 텍스트의 첫 번째 줄의 마지막 문자를 찾는 함수 예제가 있습니다.</p>
 <Listing number="9-11" caption="Using the `?` operator on an `Option<T>` value">
 <pre><pre class="playground"><code class="language-rust edition2021">fn last_char_of_first_line(text: &amp;str) -&gt; Option&lt;char&gt; {
     text.lines().next()?.chars().last()
@@ -484,19 +483,19 @@ error: could not compile `error-handling` (bin "error-handling") due to 1 previo
 <span class="boring">
 </span><span class="boring">fn main() {
 </span><span class="boring">    assert_eq!(
-</span><span class="boring">        last_char_of_first_line("Hello, world\nHow are you today?"),
-</span><span class="boring">        Some('d')
+</span><span class="boring">        last_char_of_first_line("Hello, world\n오늘 기분 어떠세요?"),
+</span><span class="boring">        Some(에러가 발생하면, `?` 연산자는 `from` 함수를 사용하여 받은 에러 타입을 현재 함수의 반환 타입에 정의된 에러 타입으로 변환합니다. 이는 함수가 여러 부분에서 다른 이유로 실패할 수 있더라도 모든 실패 이유를 나타내는 하나의 에러 타입을 반환할 때 유용합니다.)
 </span><span class="boring">    );
 </span><span class="boring">
 </span><span class="boring">    assert_eq!(last_char_of_first_line(""), None);
 </span><span class="boring">    assert_eq!(last_char_of_first_line("\nhi"), None);
 </span><span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>This function returns <code>Option&lt;char&gt;</code> because it’s possible that there is a character there, but it’s also possible that there isn’t. This code takes the <code>text</code> string slice argument and calls the <code>lines</code> method on it, which returns an iterator over the lines in the string. Because this function wants to examine the first line, it calls <code>next</code> on the iterator to get the first value from the iterator. If <code>text</code> is the empty string, this call to <code>next</code> will return <code>None</code>, in which case we use <code>?</code> to stop and return <code>None</code> from <code>last_char_of_first_line</code>. If <code>text</code> is not the empty string, <code>next</code> will return a <code>Some</code> value containing a string slice of the first line in <code>text</code>.</p>
-<p>The <code>?</code> extracts the string slice, and we can call <code>chars</code> on that string slice to get an iterator of its characters. We’re interested in the last character in this first line, so we call <code>last</code> to return the last item in the iterator. This is an <code>Option</code> because it’s possible that the first line is the empty string; for example, if <code>text</code> starts with a blank line but has characters on other lines, as in <code>"\nhi"</code>. However, if there is a last character on the first line, it will be returned in the <code>Some</code> variant. The <code>?</code> operator in the middle gives us a concise way to express this logic, allowing us to implement the function in one line. If we couldn’t use the <code>?</code> operator on <code>Option</code>, we’d have to implement this logic using more method calls or a <code>match</code> expression.</p>
-<p>Note that you can use the <code>?</code> operator on a <code>Result</code> in a function that returns <code>Result</code>, and you can use the <code>?</code> operator on an <code>Option</code> in a function that returns <code>Option</code>, but you can’t mix and match. The <code>?</code> operator won’t automatically convert a <code>Result</code> to an <code>Option</code> or vice versa; in those cases, you can use methods like the <code>ok</code> method on <code>Result</code> or the <code>ok_or</code> method on <code>Option</code> to do the conversion explicitly.</p>
-<p>So far, all the <code>main</code> functions we’ve used return <code>()</code>. The <code>main</code> function is special because it’s the entry point and exit point of an executable program, and there are restrictions on what its return type can be for the program to behave as expected.</p>
-<p>Luckily, <code>main</code> can also return a <code>Result&lt;(), E&gt;</code>. Listing 9-12 has the code from Listing 9-10, but we’ve changed the return type of <code>main</code> to be <code>Result&lt;(), Box&lt;dyn Error&gt;&gt;</code> and added a return value <code>Ok(())</code> to the end. This code will now compile.</p>
+<p>이 함수는 <code>Option&lt;char&gt;</code>를 반환합니다. 문자가 있을 수도 있지만 없을 수도 있기 때문입니다. 이 코드는 <code>text</code> 문자열 슬라이스 인수를 받아 <code>lines</code> 메서드를 호출하는데, 이 메서드는 문자열의 줄에 대한 반복자를 반환합니다. 이 함수는 첫 번째 줄을 검사하고 싶어하므로 반복자에서 <code>next</code>를 호출하여 첫 번째 값을 가져옵니다. <code>text</code>가 빈 문자열이면 <code>next</code> 호출은 <code>None</code>을 반환할 것이고, 이 경우 우리는 <code>?</code>를 사용하여 멈추고 <code>last_char_of_first_line</code>에서 <code>None</code>을 반환합니다. <code>text</code>가 빈 문자열이 아니라면 <code>next</code>는 <code>text</code>의 첫 번째 줄의 문자열 슬라이스를 포함하는 <code>Some</code> 값을 반환할 것입니다.</p>
+<p><code>?</code>는 문자열 슬라이스를 추출하고, 우리는 그 문자열 슬라이스에 <code>chars</code>를 호출하여 문자들의 반복자를 얻을 수 있습니다. 우리는 이 첫 번째 줄의 마지막 문자에 관심이 있으므로 <code>last</code>를 호출하여 반복자의 마지막 항목을 반환합니다. 이것은 <code>Option</code>인데, <code>"\nhi"</code>처럼 <code>text</code>가 빈 줄로 시작하지만 다른 줄에 문자가 있는 경우와 같이 첫 번째 줄이 빈 문자열일 가능성이 있기 때문입니다. 그러나 첫 번째 줄에 마지막 문자가 있다면 <code>Some</code> 변형으로 반환될 것입니다. 중간에 있는 <code>?</code> 연산자는 이 로직을 표현하는 간결한 방법을 제공하여 함수를 한 줄로 구현할 수 있게 해줍니다. <code>Option</code>에 <code>?</code> 연산자를 사용할 수 없었다면, 더 많은 메서드 호출이나 <code>match</code> 표현식을 사용하여 이 로직을 구현해야 했을 것입니다.</p>
+<p><code>Result</code>를 반환하는 함수에서는 <code>Result</code>에 <code>?</code> 연산자를 사용할 수 있고, <code>Option</code>을 반환하는 함수에서는 <code>Option</code>에 <code>?</code> 연산자를 사용할 수 있지만, 섞어서 사용할 수는 없다는 점에 유의하세요. <code>?</code> 연산자는 자동으로 <code>Result</code>를 <code>Option</code>으로 또는 그 반대로 변환하지 않습니다. 그런 경우에는 <code>Result</code>의 <code>ok</code> 메서드나 <code>Option</code>의 <code>ok_or</code> 메서드와 같은 메서드를 사용하여 명시적으로 변환할 수 있습니다.</p>
+<p>지금까지 사용한 모든 <code>main</code> 함수는 <code>()</code>를 반환했습니다. <code>main</code> 함수는 실행 가능한 프로그램의 진입점이자 종료점이기 때문에 특별하며, 프로그램이 예상대로 동작하기 위해 반환 타입이 될 수 있는 것에 제한이 있습니다.</p>
+<p>다행히 <code>main</code>은 <code>Result&lt;(), E&gt;</code>도 반환할 수 있습니다. 목록 9-12는 목록 9-10의 코드를 가지고 있지만, <code>main</code>의 반환 타입을 <code>Result&lt;(), Box&lt;dyn Error&gt;&gt;</code>로 변경하고 끝에 반환 값 <code>Ok(())</code>를 추가했습니다. 이 코드는 이제 컴파일될 것입니다.</p>
 <Listing number="9-12" file-name="src/main.rs" caption="Changing `main` to return `Result<(), E>` allows the use of the `?` operator on `Result` values.">
 <pre><code class="language-rust ignore">use std::error::Error;
 use std::fs::File;
@@ -507,11 +506,10 @@ fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
     Ok(())
 }</code></pre>
 </Listing>
-<p>The <code>Box&lt;dyn Error&gt;</code> type is a <em>trait object</em>, which we’ll talk about in <a href="ch18-02-trait-objects.html#using-trait-objects-that-allow-for-values-of-different-types">“Using Trait Objects That Allow for Values of Different Types”</a><!--
-ignore --> in Chapter 18. For now, you can read <code>Box&lt;dyn Error&gt;</code> to mean “any kind of error.” Using <code>?</code> on a <code>Result</code> value in a <code>main</code> function with the error type <code>Box&lt;dyn Error&gt;</code> is allowed because it allows any <code>Err</code> value to be returned early. Even though the body of this <code>main</code> function will only ever return errors of type <code>std::io::Error</code>, by specifying <code>Box&lt;dyn Error&gt;</code>, this signature will continue to be correct even if more code that returns other errors is added to the body of <code>main</code>.</p>
-<p>When a <code>main</code> function returns a <code>Result&lt;(), E&gt;</code>, the executable will exit with a value of <code>0</code> if <code>main</code> returns <code>Ok(())</code> and will exit with a nonzero value if <code>main</code> returns an <code>Err</code> value. Executables written in C return integers when they exit: programs that exit successfully return the integer <code>0</code>, and programs that error return some integer other than <code>0</code>. Rust also returns integers from executables to be compatible with this convention.</p>
-<p>The <code>main</code> function may return any types that implement <a href="../std/process/trait.Termination.html">the <code>std::process::Termination</code> trait</a><!-- ignore -->, which contains a function <code>report</code> that returns an <code>ExitCode</code>. Consult the standard library documentation for more information on implementing the <code>Termination</code> trait for your own types.</p>
-<p>Now that we’ve discussed the details of calling <code>panic!</code> or returning <code>Result</code>, let’s return to the topic of how to decide which is appropriate to use in which cases.</p>
+<p><code>Box&lt;dyn Error&gt;</code> 타입은 _트레이트 객체_이며, 이에 대해서는 18장의 <a href="ch18-02-trait-objects.html#using-trait-objects-that-allow-for-values-of-different-types">“다른 타입의 값을 허용하는 트레이트 객체 사용하기”</a><!-- ignore -->에서 이야기할 것입니다. 지금은 <code>Box&lt;dyn Error&gt;</code>를 “어떤 종류의 에러”라고 읽으시면 됩니다. 에러 타입이 <code>Box&lt;dyn Error&gt;</code>인 <code>main</code> 함수에서 <code>Result</code> 값에 <code>?</code>를 사용하는 것은 허용되는데, 이는 어떤 <code>Err</code> 값이라도 조기 반환할 수 있게 해주기 때문입니다. 이 <code>main</code> 함수의 본문은 <code>std::io::Error</code> 타입의 에러만 반환하겠지만, <code>Box&lt;dyn Error&gt;</code>를 지정함으로써 <code>main</code> 본문에 다른 에러를 반환하는 코드가 추가되더라도 이 시그니처는 계속 올바를 것입니다.</p>
+<p><code>main</code> 함수가 <code>Result&lt;(), E&gt;</code>를 반환할 때, 실행 파일은 <code>main</code>이 <code>Ok(())</code>를 반환하면 값 <code>0</code>으로 종료하고 <code>main</code>이 <code>Err</code> 값을 반환하면 0이 아닌 값으로 종료할 것입니다. C로 작성된 실행 파일은 종료할 때 정수를 반환합니다: 성공적으로 종료하는 프로그램은 정수 <code>0</code>을 반환하고, 에러가 발생한 프로그램은 <code>0</code>이 아닌 어떤 정수를 반환합니다. 러스트 또한 이 관례와 호환되기 위해 실행 파일에서 정수를 반환합니다.</p>
+<p>자신의 타입에 <code>Termination</code> 트레이트를 구현하는 것에 대한 자세한 내용은 표준 라이브러리 문서를 참조하세요.</p>
+<p>이제 <code>panic!</code>을 호출하거나 <code>Result</code>를 반환하는 것의 세부 사항에 대해 논의했으므로, 어떤 경우에 어떤 것을 사용하는 것이 적절한지 결정하는 주제로 돌아가 보겠습니다.</p>
 
                     </main>
 

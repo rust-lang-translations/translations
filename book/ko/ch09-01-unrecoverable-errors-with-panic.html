@@ -217,11 +217,11 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="panic으로-복구-불가능한-에러-처리하기"><a class="header" href="#panic으로-복구-불가능한-에러-처리하기"><code>panic!</code>으로 복구 불가능한 에러 처리하기</a></h2>
-<p>Sometimes bad things happen in your code, and there’s nothing you can do about it. In these cases, Rust has the <code>panic!</code> macro. There are two ways to cause a panic in practice: by taking an action that causes our code to panic (such as accessing an array past the end) or by explicitly calling the <code>panic!</code> macro. In both cases, we cause a panic in our program. By default, these panics will print a failure message, unwind, clean up the stack, and quit. Via an environment variable, you can also have Rust display the call stack when a panic occurs to make it easier to track down the source of the panic.</p>
+<p>때로는 코드에서 나쁜 일이 발생하고, 그것에 대해 할 수 있는 일이 아무것도 없을 때가 있습니다. 이런 경우를 위해 러스트에는 <code>panic!</code> 매크로가 있습니다. 실제로 패닉을 일으키는 방법은 두 가지가 있습니다: 코드가 패닉을 일으키는 동작을 취하거나(배열 끝을 넘어 접근하는 등) 명시적으로 <code>panic!</code> 매크로를 호출하는 것입니다. 두 경우 모두 프로그램에서 패닉을 일으킵니다. 기본적으로 이러한 패닉은 실패 메시지를 출력하고, 되감고(unwind), 스택을 정리하고, 종료합니다. 환경 변수를 통해 패닉이 발생했을 때 호출 스택을 표시하게 하여 패닉의 원인을 더 쉽게 추적할 수도 있습니다.</p>
 <blockquote>
-<h3 id="패닉에-대한-응답으로-스택-풀기-또는-중단하기"><a class="header" href="#패닉에-대한-응답으로-스택-풀기-또는-중단하기">패닉에 대한 응답으로 스택 풀기 또는 중단하기</a></h3>
-<p>기본적으로 패닉이 발생하면 프로그램은 _언와인딩_을 시작합니다. 이는 러스트가 스택을 거슬러 올라가면서 만나는 각 함수에서 데이터를 정리한다는 의미입니다. 그러나 거슬러 올라가서 정리하는 것은 많은 작업입니다. 따라서 러스트는 즉시 _중단_하는 대안을 선택할 수 있도록 허용하며, 이는 정리 작업 없이 프로그램을 종료합니다.</p>
-<p>프로그램이 사용하던 메모리는 운영 체제에 의해 정리되어야 합니다. 프로젝트에서 결과 바이너리를 가능한 한 작게 만들 필요가 있다면, <em>Cargo.toml</em> 파일의 적절한 <code>[profile]</code> 섹션에 <code>panic = 'abort'</code>를 추가하여 패닉 발생 시 언와인딩에서 중단으로 전환할 수 있습니다. 예를 들어, 릴리스 모드에서 패닉 시 중단하려면 다음을 추가하세요:</p>
+<h3 id="패닉에-대한-응답으로-스택-되감기-또는-중단하기"><a class="header" href="#패닉에-대한-응답으로-스택-되감기-또는-중단하기">패닉에 대한 응답으로 스택 되감기 또는 중단하기</a></h3>
+<p>기본적으로 패닉이 발생하면 프로그램은 <em>되감기(unwinding)</em> 를 시작합니다. 이는 러스트가 스택을 거슬러 올라가면서 만나는 각 함수에서 데이터를 정리한다는 의미입니다. 그러나 거슬러 올라가서 정리하는 것은 많은 작업입니다. 따라서 러스트는 즉시 <em>중단(aborting)</em> 하는 대안을 선택할 수 있도록 허용하며, 이는 정리 작업 없이 프로그램을 종료합니다.</p>
+<p>결과 바이너리를 가능한 한 작게 만들어야 한다면, <em>Cargo.toml</em> 파일의 적절한 <code>[profile]</code> 섹션에 <code>panic = 'abort'</code>를 추가하여 패닉 시 되감기(unwinding) 대신 중단(aborting)으로 전환할 수 있습니다. 예를 들어 릴리스 모드에서 패닉 시 중단하려면 다음을 추가하세요:</p>
 <pre><code class="language-toml">[profile.release]
 panic = 'abort'
 </code></pre>
@@ -241,11 +241,11 @@ thread 'main' panicked at src/main.rs:2:5:
 crash and burn
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 </code></pre>
-<p><code>panic!</code> 호출은 마지막 두 줄에 포함된 오류 메시지를 발생시킵니다. 첫 번째 줄은 패닉 메시지와 소스 코드에서 패닉이 발생한 위치를 보여줍니다. _src/main.rs:2:5_는 <em>src/main.rs</em> 파일의 두 번째 줄, 다섯 번째 문자를 나타냅니다.</p>
-<p>이 경우, 표시된 줄은 우리 코드의 일부이며, 해당 줄로 이동하면 <code>panic!</code> 매크로 호출을 볼 수 있습니다. 다른 경우에는 <code>panic!</code> 호출이 우리 코드가 호출하는 코드에 있을 수 있으며, 오류 메시지에 보고된 파일 이름과 줄 번호는 <code>panic!</code> 매크로가 호출된 다른 사람의 코드이지, 결국 <code>panic!</code> 호출로 이어진 우리 코드의 줄이 아닙니다.</p>
+<p><code>panic!</code> 호출은 마지막 두 줄에 포함된 에러 메시지를 발생시킵니다. 첫 번째 줄은 패닉 메시지와 소스 코드에서 패닉이 발생한 위치를 보여줍니다. _src/main.rs:2:5_는 <em>src/main.rs</em> 파일의 두 번째 줄, 다섯 번째 문자를 나타냅니다.</p>
+<p>이 경우, 표시된 줄은 우리 코드의 일부이며, 해당 줄로 가면 <code>panic!</code> 매크로 호출을 볼 수 있습니다. 다른 경우에는 <code>panic!</code> 호출이 우리 코드가 호출하는 코드에 있을 수 있으며, 에러 메시지에 보고된 파일 이름과 줄 번호는 결국 <code>panic!</code> 호출로 이어진 우리 코드의 줄이 아니라 <code>panic!</code> 매크로가 호출된 다른 사람의 코드일 수 있습니다.</p>
 <!-- Old heading. Do not remove or links may break. -->
 <p><a id="using-a-panic-backtrace"></a></p>
-<p><code>panic!</code> 호출이 발생한 함수의 백트레이스를 사용하여 문제의 원인이 되는 코드 부분을 파악할 수 있습니다. <code>panic!</code> 백트레이스를 사용하는 방법을 이해하기 위해, <code>panic!</code> 호출이 매크로를 직접 호출하는 우리 코드에서 발생한 것이 아니라 우리 코드의 버그로 인해 라이브러리에서 발생했을 때 어떤 모습인지 다른 예제를 통해 살펴보겠습니다. 목록 9-1에는 유효한 인덱스 범위를 벗어난 벡터의 인덱스에 접근하려는 코드가 있습니다.</p>
+<p><code>panic!</code> 호출이 발생한 함수의 백트레이스(backtrace)를 사용하여 문제의 원인이 되는 코드 부분을 파악할 수 있습니다. <code>panic!</code> 백트레이스를 사용하는 방법을 이해하기 위해, 다른 예제를 통해 우리 코드가 매크로를 직접 호출하는 대신 우리 코드의 버그로 인해 라이브러리에서 <code>panic!</code> 호출이 발생할 때 어떤 모습인지 살펴보겠습니다. 목록 9-1에는 유효한 인덱스 범위를 벗어난 벡터의 인덱스에 접근하려는 코드가 있습니다.</p>
 <Listing number="9-1" file-name="src/main.rs" caption="Attempting to access an element beyond the end of a vector, which will cause a call to `panic!`">
 <pre><pre class="playground"><code class="language-rust should_panic panics edition2021">fn main() {
     let v = vec![1, 2, 3];
@@ -253,9 +253,9 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
     v[99];
 }</code></pre></pre>
 </Listing>
-<p>여기서 우리는 벡터의 100번째 요소(인덱싱이 0부터 시작하므로 인덱스 99)에 접근하려고 시도하지만, 벡터에는 세 개의 요소만 있습니다. 이 상황에서 러스트는 패닉을 일으킬 것입니다. <code>[]</code>를 사용하는 것은 요소를 반환해야 하지만, 유효하지 않은 인덱스를 전달하면 러스트가 여기서 올바르게 반환할 수 있는 요소가 없습니다.</p>
-<p>C에서는 데이터 구조의 끝을 넘어 읽으려고 시도하는 것은 정의되지 않은 동작입니다. 메모리가 해당 구조에 속하지 않더라도 데이터 구조의 해당 요소에 해당하는 메모리 위치에 있는 것을 얻을 수 있습니다. 이를 _버퍼 오버리드_라고 하며, 공격자가 데이터 구조 뒤에 저장된 허용되지 않는 데이터를 읽을 수 있도록 인덱스를 조작할 수 있다면 보안 취약점으로 이어질 수 있습니다.</p>
-<p>이러한 종류의 취약점으로부터 프로그램을 보호하기 위해, 존재하지 않는 인덱스의 요소를 읽으려고 시도하면 러스트는 실행을 중지하고 계속 진행하는 것을 거부합니다. 한번 시도해 봅시다:</p>
+<p>여기서 우리는 벡터의 100번째 요소(인덱싱이 0부터 시작하므로 인덱스 99)에 접근하려고 시도하지만, 벡터에는 세 개의 요소만 있습니다. 이 상황에서 러스트는 패닉을 일으킬 것입니다. <code>[]</code>를 사용하면 요소를 반환해야 하지만, 유효하지 않은 인덱스를 전달하면 러스트가 여기서 올바르게 반환할 수 있는 요소가 없습니다.</p>
+<p>C에서는 데이터 구조의 끝을 넘어 읽으려고 시도하는 것은 정의되지 않은 동작입니다. 메모리가 해당 구조에 속하지 않더라도 데이터 구조의 해당 요소에 해당하는 메모리 위치에 있는 것을 얻을 수 있습니다. 이를 <em>버퍼 오버리드(buffer overread)</em> 라고 하며, 공격자가 인덱스를 조작하여 데이터 구조 뒤에 저장된 허용되지 않는 데이터를 읽을 수 있게 되면 보안 취약점으로 이어질 수 있습니다.</p>
+<p>존재하지 않는 인덱스의 요소를 읽으려고 시도하면 러스트는 실행을 중지하고 계속하기를 거부합니다. 한번 시도해 봅시다:</p>
 <pre><code class="language-console">$ cargo run
    Compiling panic v0.1.0 (file:///projects/panic)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.27s
@@ -264,8 +264,8 @@ thread 'main' panicked at src/main.rs:4:6:
 index out of bounds: the len is 3 but the index is 99
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 </code></pre>
-<p>이 오류는 <em>main.rs</em> 파일의 4번째 줄, 즉 <code>v</code> 벡터의 인덱스 <code>99</code>에 접근하려는 부분을 가리킵니다.</p>
-<p><code>note:</code> 줄은 <code>RUST_BACKTRACE</code> 환경 변수를 설정하여 오류의 원인이 정확히 무엇인지에 대한 백트레이스를 얻을 수 있다고 알려줍니다. _백트레이스_는 이 지점까지 호출된 모든 함수의 목록입니다. 러스트의 백트레이스는 다른 언어에서와 마찬가지로 작동합니다. 백트레이스를 읽는 핵심은 맨 위에서부터 시작하여 직접 작성한 파일을 볼 때까지 읽는 것입니다. 그 지점이 문제가 시작된 곳입니다. 그 지점 위의 줄은 우리 코드가 호출한 코드이고, 아래 줄은 우리 코드를 호출한 코드입니다. 이러한 이전 및 이후 줄에는 핵심 러스트 코드, 표준 라이브러리 코드 또는 사용 중인 크레이트가 포함될 수 있습니다. <code>RUST_BACKTRACE</code> 환경 변수를 <code>0</code>을 제외한 아무 값으로 설정하여 백트레이스를 얻어 봅시다. 목록 9-2는 여러분이 보게 될 것과 유사한 출력을 보여줍니다.</p>
+<p>이 에러는 우리가 <code>v</code> 벡터의 인덱스 <code>99</code>에 접근하려고 시도하는 _main.rs_의 4번째 줄을 가리킵니다.</p>
+<p><code>note:</code> 줄은 <code>RUST_BACKTRACE</code> 환경 변수를 설정하여 에러를 일으킨 원인이 정확히 무엇인지에 대한 백트레이스를 얻을 수 있다고 알려줍니다. _백트레이스_는 이 지점에 도달하기 위해 호출된 모든 함수의 목록입니다. 러스트의 백트레이스는 다른 언어에서와 마찬가지로 작동합니다. 백트레이스를 읽는 핵심은 맨 위에서부터 시작하여 여러분이 작성한 파일을 볼 때까지 읽는 것입니다. 그 지점이 문제가 시작된 곳입니다. 그 지점 위의 줄은 여러분의 코드가 호출한 코드이고, 아래 줄은 여러분의 코드를 호출한 코드입니다. 이러한 전후 라인에는 핵심 러스트 코드, 표준 라이브러리 코드 또는 사용 중인 크레이트가 포함될 수 있습니다. <code>RUST_BACKTRACE</code> 환경 변수를 <code>0</code>이 아닌 값으로 설정하여 백트레이스를 얻어 봅시다. 목록 9-2는 여러분이 보게 될 것과 유사한 출력을 보여줍니다.</p>
 <!-- manual-regeneration
 cd listings/ch09-error-handling/listing-09-01
 RUST_BACKTRACE=1 cargo run
@@ -296,9 +296,9 @@ stack backtrace:
 note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
 </code></pre>
 </Listing>
-<p>출력이 많죠! 여러분이 보는 정확한 출력은 운영 체제와 러스트 버전에 따라 다를 수 있습니다. 이 정보가 포함된 백트레이스를 얻으려면 디버그 심볼이 활성화되어야 합니다. 디버그 심볼은 <code>--release</code> 플래그 없이 <code>cargo build</code> 또는 <code>cargo run</code>을 사용할 때 기본적으로 활성화됩니다.</p>
-<p>목록 9-2의 출력에서 백트레이스의 6번째 줄은 문제의 원인이 되는 프로젝트의 줄, 즉 _src/main.rs_의 4번째 줄을 가리킵니다. 프로그램이 패닉을 일으키지 않기를 원한다면, 우리가 작성한 파일을 언급하는 첫 번째 줄이 가리키는 위치에서 조사를 시작해야 합니다. 목록 9-1에서 의도적으로 패닉을 일으킬 코드를 작성한 경우, 패닉을 해결하는 방법은 벡터 인덱스 범위를 벗어난 요소를 요청하지 않는 것입니다. 앞으로 코드가 패닉을 일으키면, 어떤 값으로 어떤 동작을 수행하여 패닉을 일으키는지, 그리고 코드가 대신 무엇을 해야 하는지 파악해야 할 것입니다.</p>
-<p>이 장의 뒷부분에 있는 <a href="ch09-03-to-panic-or-not-to-panic.html#to-panic-or-not-to-panic">“<code>panic!</code>을 사용할 것인가 말 것인가”</a><!-- ignore --> 섹션에서 <code>panic!</code>과 오류 상황을 처리하기 위해 <code>panic!</code>을 사용해야 하는 경우와 사용하지 말아야 하는 경우에 대해 다시 다룰 것입니다. 다음으로, <code>Result</code>를 사용하여 오류에서 복구하는 방법을 살펴보겠습니다.</p>
+<p>출력이 꽤 많군요! 여러분이 보는 정확한 출력은 운영 체제와 러스트 버전에 따라 다를 수 있습니다. 이 정보가 포함된 백트레이스를 얻으려면 디버그 심볼이 활성화되어 있어야 합니다. 여기서처럼 <code>--release</code> 플래그 없이 <code>cargo build</code> 또는 <code>cargo run</code>을 사용할 때는 디버그 심볼이 기본적으로 활성화됩니다.</p>
+<p>목록 9-2의 출력에서 백트레이스의 6번째 줄은 문제를 일으키는 우리 프로젝트의 줄인 _src/main.rs_의 4번째 줄을 가리킵니다. 프로그램이 패닉을 일으키지 않게 하려면, 우리가 작성한 파일을 언급하는 첫 번째 줄이 가리키는 위치에서 조사를 시작해야 합니다. 목록 9-1에서 의도적으로 패닉을 일으킬 코드를 작성한 경우, 패닉을 해결하는 방법은 벡터 인덱스 범위를 벗어난 요소를 요청하지 않는 것입니다. 앞으로 코드가 패닉을 일으키면, 코드가 어떤 값으로 어떤 동작을 수행하여 패닉을 일으키는지, 그리고 대신 코드가 무엇을 해야 하는지 파악해야 할 것입니다.</p>
+<p>이 장의 뒷부분에 있는 <a href="ch09-03-to-panic-or-not-to-panic.html#to-panic-or-not-to-panic">“<code>panic!</code>을 사용할 것인가 말 것인가”</a><!-- ignore --> 섹션에서 <code>panic!</code>과 에러 상황을 처리하기 위해 <code>panic!</code>을 사용해야 하는 경우와 사용하지 말아야 하는 경우에 대해 다시 다룰 것입니다. 다음으로 <code>Result</code>를 사용하여 에러로부터 복구하는 방법을 살펴보겠습니다.</p>
 
                     </main>
 

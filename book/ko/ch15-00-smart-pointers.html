@@ -217,19 +217,19 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="스마트-포인터"><a class="header" href="#스마트-포인터">스마트 포인터</a></h1>
-<p>A <em>pointer</em> is a general concept for a variable that contains an address in memory. This address refers to, or “points at,” some other data. The most common kind of pointer in Rust is a reference, which you learned about in Chapter 4. References are indicated by the <code>&amp;</code> symbol and borrow the value they point to. They don’t have any special capabilities other than referring to data, and have no overhead.</p>
+<p>_포인터(pointer)_는 메모리 주소를 담고 있는 변수를 일컫는 일반적인 개념입니다. 이 주소는 다른 어떤 데이터를 참조하거나 “가리킵니다”. 러스트에서 가장 일반적인 종류의 포인터는 4장에서 배운 참조(reference)입니다. 참조는 <code>&amp;</code> 기호로 표시되며 가리키는 값을 대여합니다. 데이터를 참조하는 것 외에는 특별한 능력이 없으며, 오버헤드도 없습니다.</p>
 <p><em>Smart pointers</em>, on the other hand, are data structures that act like a pointer but also have additional metadata and capabilities. The concept of smart pointers isn’t unique to Rust: smart pointers originated in C++ and exist in other languages as well. Rust has a variety of smart pointers defined in the standard library that provide functionality beyond that provided by references. To explore the general concept, we’ll look at a couple of different examples of smart pointers, including a <em>reference counting</em> smart pointer type. This pointer enables you to allow data to have multiple owners by keeping track of the number of owners and, when no owners remain, cleaning up the data.</p>
-<p>Rust, with its concept of ownership and borrowing, has an additional difference between references and smart pointers: while references only borrow data, in many cases, smart pointers <em>own</em> the data they point to.</p>
-<p>Though we didn’t call them as such at the time, we’ve already encountered a few smart pointers in this book, including <code>String</code> and <code>Vec&lt;T&gt;</code> in Chapter 8. Both these types count as smart pointers because they own some memory and allow you to manipulate it. They also have metadata and extra capabilities or guarantees. <code>String</code>, for example, stores its capacity as metadata and has the extra ability to ensure its data will always be valid UTF-8.</p>
-<p>Smart pointers are usually implemented using structs. Unlike an ordinary struct, smart pointers implement the <code>Deref</code> and <code>Drop</code> traits. The <code>Deref</code> trait allows an instance of the smart pointer struct to behave like a reference so you can write your code to work with either references or smart pointers. The <code>Drop</code> trait allows you to customize the code that’s run when an instance of the smart pointer goes out of scope. In this chapter, we’ll discuss both of these traits and demonstrate why they’re important to smart pointers.</p>
-<p>Given that the smart pointer pattern is a general design pattern used frequently in Rust, this chapter won’t cover every existing smart pointer. Many libraries have their own smart pointers, and you can even write your own. We’ll cover the most common smart pointers in the standard library:</p>
+<p>소유권과 대여 개념이 있는 러스트에서, 참조와 스마트 포인터 사이에는 추가적인 차이점이 있습니다: 참조는 데이터를 대여하기만 하지만, 많은 경우 스마트 포인터는 가리키는 데이터를 _소유_합니다.</p>
+<p>당시에는 그렇게 부르지 않았지만, 우리는 이미 이 책의 8장에서 <code>String</code>과 <code>Vec&lt;T&gt;</code>를 포함한 몇 가지 스마트 포인터를 만났습니다. 이 두 타입은 모두 일부 메모리를 소유하고 이를 조작할 수 있게 해주기 때문에 스마트 포인터로 간주됩니다. 또한 이들은 메타데이터와 추가적인 능력 또는 보장을 가지고 있습니다. 예를 들어 <code>String</code>은 용량(capacity)을 메타데이터로 저장하며, 데이터가 항상 유효한 UTF-8임을 보장하는 추가 능력을 가지고 있습니다.</p>
+<p>스마트 포인터는 주로 구조체를 사용하여 구현됩니다. 일반적인 구조체와 달리, 스마트 포인터는 <code>Deref</code>와 <code>Drop</code> 트레이트를 구현합니다. <code>Deref</code> 트레이트는 스마트 포인터 구조체의 인스턴스가 참조처럼 동작하도록 하여, 참조 또는 스마트 포인터 중 어느 것과도 작동하는 코드를 작성할 수 있게 해줍니다. <code>Drop</code> 트레이트는 스마트 포인터 인스턴스가 스코프를 벗어날 때 실행되는 코드를 커스터마이징할 수 있게 해줍니다. 이번 장에서는 이 두 트레이트에 대해 논의하고, 왜 이들이 스마트 포인터에 중요한지 보여드리겠습니다.</p>
+<p>스마트 포인터 패턴은 러스트에서 자주 사용되는 일반적인 디자인 패턴이므로, 이번 장에서 모든 스마트 포인터를 다루지는 않을 것입니다. 많은 라이브러리들이 자신만의 스마트 포인터를 가지고 있으며, 여러분도 직접 작성할 수 있습니다. 우리는 표준 라이브러리에서 가장 일반적인 스마트 포인터들을 다룰 것입니다:</p>
 <ul>
-<li><code>Box&lt;T&gt;</code> for allocating values on the heap</li>
-<li><code>Rc&lt;T&gt;</code>, a reference counting type that enables multiple ownership</li>
-<li><code>Ref&lt;T&gt;</code> and <code>RefMut&lt;T&gt;</code>, accessed through <code>RefCell&lt;T&gt;</code>, a type that enforces the borrowing rules at runtime instead of compile time</li>
+<li>힙에 값을 할당하기 위한 <code>Box&lt;T&gt;</code></li>
+<li>다중 소유권을 가능하게 하는 참조 카운팅 타입인 <code>Rc&lt;T&gt;</code></li>
+<li>컴파일 타임이 아닌 런타임에 대여 규칙을 강제하는 타입인 <code>RefCell&lt;T&gt;</code>를 통해 접근하는 <code>Ref&lt;T&gt;</code>와 <code>RefMut&lt;T&gt;</code></li>
 </ul>
-<p>In addition, we’ll cover the <em>interior mutability</em> pattern where an immutable type exposes an API for mutating an interior value. We’ll also discuss <em>reference cycles</em>: how they can leak memory and how to prevent them.</p>
-<p>Let’s dive in!</p>
+<p>또한, 불변 타입이 내부 값을 수정할 수 있는 API를 노출하는 <em>내부 가변성(interior mutability)</em> 패턴을 다룰 것입니다. 또한 _참조 순환(reference cycles)_이 어떻게 메모리 누수를 일으킬 수 있는지와 이를 방지하는 방법에 대해서도 논의할 것입니다.</p>
+<p>시작해 봅시다!</p>
 
                     </main>
 

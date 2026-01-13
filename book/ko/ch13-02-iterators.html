@@ -217,8 +217,8 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="반복자로-일련의-항목-처리하기"><a class="header" href="#반복자로-일련의-항목-처리하기">반복자로 일련의 항목 처리하기</a></h2>
-<p>The iterator pattern allows you to perform some task on a sequence of items in turn. An iterator is responsible for the logic of iterating over each item and determining when the sequence has finished. When you use iterators, you don’t have to reimplement that logic yourself.</p>
-<p>In Rust, iterators are <em>lazy</em>, meaning they have no effect until you call methods that consume the iterator to use it up. For example, the code in Listing 13-10 creates an iterator over the items in the vector <code>v1</code> by calling the <code>iter</code> method defined on <code>Vec&lt;T&gt;</code>. This code by itself doesn’t do anything useful.</p>
+<p>반복자(iterator) 패턴을 사용하면 일련의 아이템들에 대해 차례대로 어떤 작업을 수행할 수 있습니다. 반복자는 각 아이템을 순회하는 로직과 언제 시퀀스가 끝날지 결정하는 책임을 집니다. 반복자를 사용하면 이러한 로직을 직접 다시 구현할 필요가 없습니다.</p>
+<p>러스트에서 반복자는 <em>게으릅니다(lazy)</em>. 즉, 반복자를 소비하여 사용하는 메서드를 호출하기 전까지는 아무런 효과가 없습니다. 예를 들어, 목록 13-10의 코드는 <code>Vec&lt;T&gt;</code>에 정의된 <code>iter</code> 메서드를 호출하여 벡터 <code>v1</code>의 아이템들에 대한 반복자를 생성합니다. 이 코드 자체만으로는 아무런 유용한 일을 하지 않습니다.</p>
 <Listing number="13-10" file-name="src/main.rs" caption="Creating an iterator">
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
 </span>    let v1 = vec![1, 2, 3];
@@ -226,8 +226,8 @@
     let v1_iter = v1.iter();
 <span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>The iterator is stored in the <code>v1_iter</code> variable. Once we’ve created an iterator, we can use it in a variety of ways. In Listing 3-5 in Chapter 3, we iterated over an array using a <code>for</code> loop to execute some code on each of its items. Under the hood this implicitly created and then consumed an iterator, but we glossed over how exactly that works until now.</p>
-<p>In the example in Listing 13-11, we separate the creation of the iterator from the use of the iterator in the <code>for</code> loop. When the <code>for</code> loop is called using the iterator in <code>v1_iter</code>, each element in the iterator is used in one iteration of the loop, which prints out each value.</p>
+<p>반복자는 <code>v1_iter</code> 변수에 저장됩니다. 반복자를 생성하고 나면 다양한 방식으로 사용할 수 있습니다. 3장의 목록 3-5에서 우리는 각 아이템에 대해 어떤 코드를 실행하기 위해 <code>for</code> 루프를 사용하여 배열을 순회했습니다. 내부적으로 이는 암묵적으로 반복자를 생성하고 소비한 것이지만, 지금까지는 그것이 정확히 어떻게 작동하는지 언급하지 않고 넘어갔습니다.</p>
+<p>목록 13-11의 예제에서는 반복자의 생성과 <code>for</code> 루프에서의 반복자 사용을 분리합니다. <code>v1_iter</code>에 있는 반복자를 사용하여 <code>for</code> 루프가 호출되면, 반복자의 각 요소가 루프의 한 반복(iteration)에서 사용되어 각 값을 출력합니다.</p>
 <Listing number="13-11" file-name="src/main.rs" caption="Using an iterator in a `for` loop">
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
 </span>    let v1 = vec![1, 2, 3];
@@ -235,14 +235,14 @@
     let v1_iter = v1.iter();
 
     for val in v1_iter {
-        println!("Got: {val}");
+        println!("받음: {val}");
     }
 <span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>In languages that don’t have iterators provided by their standard libraries, you would likely write this same functionality by starting a variable at index 0, using that variable to index into the vector to get a value, and incrementing the variable value in a loop until it reached the total number of items in the vector.</p>
-<p>Iterators handle all that logic for you, cutting down on repetitive code you could potentially mess up. Iterators give you more flexibility to use the same logic with many different kinds of sequences, not just data structures you can index into, like vectors. Let’s examine how iterators do that.</p>
-<h3 id="the-iterator-trait-and-the-next-method"><a class="header" href="#the-iterator-trait-and-the-next-method">The <code>Iterator</code> Trait and the <code>next</code> Method</a></h3>
-<p>All iterators implement a trait named <code>Iterator</code> that is defined in the standard library. The definition of the trait looks like this:</p>
+<p>표준 라이브러리에서 반복자를 제공하지 않는 언어에서는 인덱스 0에서 변수를 시작하고, 그 변수를 사용하여 벡터의 값을 가져오기 위해 인덱싱하며, 벡터의 전체 항목 수에 도달할 때까지 루프에서 변수 값을 증가시키는 방식으로 동일한 기능을 작성했을 것입니다.</p>
+<p>반복자는 이 모든 로직을 처리해주므로, 실수할 수 있는 반복적인 코드를 줄여줍니다. 반복자는 벡터와 같이 인덱싱할 수 있는 데이터 구조뿐만 아니라 다양한 종류의 시퀀스에 동일한 로직을 사용할 수 있도록 더 많은 유연성을 제공합니다. 반복자가 어떻게 그렇게 하는지 살펴보겠습니다.</p>
+<h3 id="iterator-트레이트와-next-메서드"><a class="header" href="#iterator-트레이트와-next-메서드"><code>Iterator</code> 트레이트와 <code>next</code> 메서드</a></h3>
+<p>모든 반복자는 표준 라이브러리에 정의된 <code>Iterator</code>라는 트레이트를 구현합니다. 이 트레이트의 정의는 다음과 같습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub trait Iterator {
@@ -250,12 +250,12 @@
 
     fn next(&amp;mut self) -&gt; Option&lt;Self::Item&gt;;
 
-    // methods with default implementations elided
+    // 기본 구현이 있는 메서드는 생략됨
 }
 <span class="boring">}</span></code></pre></pre>
-<p>Notice this definition uses some new syntax: <code>type Item</code> and <code>Self::Item</code>, which are defining an <em>associated type</em> with this trait. We’ll talk about associated types in depth in Chapter 20. For now, all you need to know is that this code says implementing the <code>Iterator</code> trait requires that you also define an <code>Item</code> type, and this <code>Item</code> type is used in the return type of the <code>next</code> method. In other words, the <code>Item</code> type will be the type returned from the iterator.</p>
-<p>The <code>Iterator</code> trait only requires implementors to define one method: the <code>next</code> method, which returns one item of the iterator at a time wrapped in <code>Some</code> and, when iteration is over, returns <code>None</code>.</p>
-<p>We can call the <code>next</code> method on iterators directly; Listing 13-12 demonstrates what values are returned from repeated calls to <code>next</code> on the iterator created from the vector.</p>
+<p>이 정의가 <code>type Item</code>과 <code>Self::Item</code>이라는 새로운 문법을 사용하고 있다는 점에 주목하세요. 이는 이 트레이트와 _연관된 타입(associated type)_을 정의하고 있습니다. 연관된 타입에 대해서는 20장에서 자세히 다룰 것입니다. 지금은 이 코드가 <code>Iterator</code> 트레이트를 구현하려면 <code>Item</code> 타입도 정의해야 하며, 이 <code>Item</code> 타입이 <code>next</code> 메서드의 반환 타입으로 사용된다는 것을 의미한다는 것만 알면 됩니다. 다시 말해, <code>Item</code> 타입은 반복자에서 반환되는 타입이 될 것입니다.</p>
+<p><code>Iterator</code> 트레이트는 구현자가 단 하나의 메서드, 즉 <code>next</code> 메서드만 정의할 것을 요구합니다. 이 메서드는 반복자의 아이템을 한 번에 하나씩 <code>Some</code>으로 감싸서 반환하고, 반복이 끝나면 <code>None</code>을 반환합니다.</p>
+<p>반복자에서 <code>next</code> 메서드를 직접 호출할 수 있습니다. 목록 13-12는 벡터에서 생성된 반복자에서 <code>next</code>를 반복적으로 호출할 때 반환되는 값을 보여줍니다.</p>
 <Listing number="13-12" file-name="src/lib.rs" caption="Calling the `next` method on an iterator">
 <pre><code class="language-rust noplayground"><span class="boring">#[cfg(test)]
 </span><span class="boring">mod tests {
@@ -272,11 +272,11 @@
     }
 <span class="boring">}</span></code></pre>
 </Listing>
-<p>Note that we needed to make <code>v1_iter</code> mutable: calling the <code>next</code> method on an iterator changes internal state that the iterator uses to keep track of where it is in the sequence. In other words, this code <em>consumes</em>, or uses up, the iterator. Each call to <code>next</code> eats up an item from the iterator. We didn’t need to make <code>v1_iter</code> mutable when we used a <code>for</code> loop because the loop took ownership of <code>v1_iter</code> and made it mutable behind the scenes.</p>
-<p>Also note that the values we get from the calls to <code>next</code> are immutable references to the values in the vector. The <code>iter</code> method produces an iterator over immutable references. If we want to create an iterator that takes ownership of <code>v1</code> and returns owned values, we can call <code>into_iter</code> instead of <code>iter</code>. Similarly, if we want to iterate over mutable references, we can call <code>iter_mut</code> instead of <code>iter</code>.</p>
-<h3 id="methods-that-consume-the-iterator"><a class="header" href="#methods-that-consume-the-iterator">Methods that Consume the Iterator</a></h3>
-<p>The <code>Iterator</code> trait has a number of different methods with default implementations provided by the standard library; you can find out about these methods by looking in the standard library API documentation for the <code>Iterator</code> trait. Some of these methods call the <code>next</code> method in their definition, which is why you’re required to implement the <code>next</code> method when implementing the <code>Iterator</code> trait.</p>
-<p>Methods that call <code>next</code> are called <em>consuming adapters</em>, because calling them uses up the iterator. One example is the <code>sum</code> method, which takes ownership of the iterator and iterates through the items by repeatedly calling <code>next</code>, thus consuming the iterator. As it iterates through, it adds each item to a running total and returns the total when iteration is complete. Listing 13-13 has a test illustrating a use of the <code>sum</code> method:</p>
+<p><code>v1_iter</code>를 가변으로 만들어야 했다는 점에 유의하세요: 반복자에서 <code>next</code> 메서드를 호출하면 반복자가 시퀀스의 어디에 있는지 추적하는 데 사용하는 내부 상태가 변경됩니다. 다시 말해, 이 코드는 반복자를 _소비(consume)_하거나 다 써버립니다. <code>next</code>를 호출할 때마다 반복자에서 항목을 하나씩 먹어치웁니다. <code>for</code> 루프를 사용할 때는 <code>v1_iter</code>를 가변으로 만들 필요가 없었는데, 이는 루프가 <code>v1_iter</code>의 소유권을 가져와서 내부적으로 가변으로 만들었기 때문입니다.</p>
+<p>또한 <code>next</code> 호출에서 얻는 값은 벡터에 있는 값에 대한 불변 참조라는 점에도 유의하세요. <code>iter</code> 메서드는 불변 참조에 대한 반복자를 생성합니다. 만약 <code>v1</code>의 소유권을 가져와서 소유된 값을 반환하는 반복자를 만들고 싶다면, <code>iter</code> 대신 <code>into_iter</code>를 호출할 수 있습니다. 마찬가지로, 가변 참조에 대해 반복하고 싶다면 <code>iter</code> 대신 <code>iter_mut</code>을 호출할 수 있습니다.</p>
+<h3 id="반복자를-소비하는-메서드"><a class="header" href="#반복자를-소비하는-메서드">반복자를 소비하는 메서드</a></h3>
+<p><code>Iterator</code> 트레이트에는 표준 라이브러리에서 제공하는 기본 구현이 포함된 다양한 메서드들이 있습니다. <code>Iterator</code> 트레이트에 대한 표준 라이브러리 API 문서를 보면 이 메서드들에 대해 알아볼 수 있습니다. 이 메서드들 중 일부는 정의 내에서 <code>next</code> 메서드를 호출하는데, 이것이 <code>Iterator</code> 트레이트를 구현할 때 <code>next</code> 메서드를 구현해야 하는 이유입니다.</p>
+<p><code>next</code>를 호출하는 메서드들은 반복자를 다 써버리기 때문에 _소비 어댑터(consuming adapters)_라고 부릅니다. 한 가지 예로 <code>sum</code> 메서드가 있는데, 이 메서드는 반복자의 소유권을 가져와서 반복적으로 <code>next</code>를 호출하여 항목들을 순회하며, 따라서 반복자를 소비합니다. 순회하는 동안 각 항목을 현재 총합에 더하고 반복이 완료되면 총합을 반환합니다. 목록 13-13은 <code>sum</code> 메서드의 사용을 보여주는 테스트입니다:</p>
 <Listing number="13-13" file-name="src/lib.rs" caption="Calling the `sum` method to get the total of all items in the iterator">
 <pre><code class="language-rust noplayground"><span class="boring">#[cfg(test)]
 </span><span class="boring">mod tests {
@@ -292,10 +292,10 @@
     }
 <span class="boring">}</span></code></pre>
 </Listing>
-<p>We aren’t allowed to use <code>v1_iter</code> after the call to <code>sum</code> because <code>sum</code> takes ownership of the iterator we call it on.</p>
-<h3 id="methods-that-produce-other-iterators"><a class="header" href="#methods-that-produce-other-iterators">Methods that Produce Other Iterators</a></h3>
-<p><em>Iterator adapters</em> are methods defined on the <code>Iterator</code> trait that don’t consume the iterator. Instead, they produce different iterators by changing some aspect of the original iterator.</p>
-<p>Listing 13-14 shows an example of calling the iterator adapter method <code>map</code>, which takes a closure to call on each item as the items are iterated through. The <code>map</code> method returns a new iterator that produces the modified items. The closure here creates a new iterator in which each item from the vector will be incremented by 1:</p>
+<p><code>sum</code> 호출 이후에는 <code>v1_iter</code>를 사용할 수 없는데, 이는 <code>sum</code>이 호출된 반복자의 소유권을 가져가기 때문입니다.</p>
+<h3 id="다른-반복자를-생성하는-메서드"><a class="header" href="#다른-반복자를-생성하는-메서드">다른 반복자를 생성하는 메서드</a></h3>
+<p>_반복자 어댑터(Iterator adapters)_는 <code>Iterator</code> 트레이트에 정의된 메서드로, 반복자를 소비하지 않습니다. 대신, 원래 반복자의 어떤 측면을 변경하여 다른 반복자를 생성합니다.</p>
+<p>목록 13-14는 반복자 어댑터 메서드인 <code>map</code>을 호출하는 예를 보여주는데, 이 메서드는 항목들을 순회할 때 각 항목에 대해 호출할 클로저를 인자로 받습니다. <code>map</code> 메서드는 수정된 항목들을 생성하는 새로운 반복자를 반환합니다. 여기의 클로저는 벡터의 각 항목이 1씩 증가된 새로운 반복자를 생성합니다:</p>
 <Listing number="13-14" file-name="src/main.rs" caption="Calling the iterator adapter `map` to create a new iterator">
 <pre><pre class="playground"><code class="language-rust not_desired_behavior edition2021"><span class="boring">fn main() {
 </span>    let v1: Vec&lt;i32&gt; = vec![1, 2, 3];
@@ -324,8 +324,8 @@ warning: `iterators` (bin "iterators") generated 1 warning
      Running `target/debug/iterators`
 </code></pre>
 <p>목록 13-14의 코드는 아무것도 하지 않습니다. 우리가 지정한 클로저는 절대 호출되지 않습니다. 경고는 그 이유를 상기시켜 줍니다. 반복자 어댑터는 지연(lazy)이며, 여기서 반복자를 소비해야 합니다.</p>
-<p>To fix this warning and consume the iterator, we’ll use the <code>collect</code> method, which we used in Chapter 12 with <code>env::args</code> in Listing 12-1. This method consumes the iterator and collects the resulting values into a collection data type.</p>
-<p>In Listing 13-15, we collect the results of iterating over the iterator that’s returned from the call to <code>map</code> into a vector. This vector will end up containing each item from the original vector incremented by 1.</p>
+<p>이 경고를 해결하고 반복자를 소비하기 위해, 목록 12-1의 12장에서 <code>env::args</code>와 함께 사용했던 <code>collect</code> 메서드를 사용할 것입니다. 이 메서드는 반복자를 소비하고 결과 값들을 컬렉션 데이터 타입으로 수집합니다.</p>
+<p>목록 13-15에서는 <code>map</code> 호출에서 반환된 반복자를 순회한 결과를 벡터로 수집합니다. 이 벡터는 결국 원래 벡터의 각 항목에 1을 더한 값들을 포함하게 됩니다.</p>
 <Listing number="13-15" file-name="src/main.rs" caption="Calling the `map` method to create a new iterator and then calling the `collect` method to consume the new iterator and create a vector">
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
 </span>    let v1: Vec&lt;i32&gt; = vec![1, 2, 3];
@@ -335,12 +335,12 @@ warning: `iterators` (bin "iterators") generated 1 warning
     assert_eq!(v2, vec![2, 3, 4]);
 <span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>Because <code>map</code> takes a closure, we can specify any operation we want to perform on each item. This is a great example of how closures let you customize some behavior while reusing the iteration behavior that the <code>Iterator</code> trait provides.</p>
-<p>You can chain multiple calls to iterator adapters to perform complex actions in a readable way. But because all iterators are lazy, you have to call one of the consuming adapter methods to get results from calls to iterator adapters.</p>
-<h3 id="using-closures-that-capture-their-environment"><a class="header" href="#using-closures-that-capture-their-environment">Using Closures that Capture Their Environment</a></h3>
-<p>Many iterator adapters take closures as arguments, and commonly the closures we’ll specify as arguments to iterator adapters will be closures that capture their environment.</p>
-<p>For this example, we’ll use the <code>filter</code> method that takes a closure. The closure gets an item from the iterator and returns a <code>bool</code>. If the closure returns <code>true</code>, the value will be included in the iteration produced by <code>filter</code>. If the closure returns <code>false</code>, the value won’t be included.</p>
-<p>In Listing 13-16, we use <code>filter</code> with a closure that captures the <code>shoe_size</code> variable from its environment to iterate over a collection of <code>Shoe</code> struct instances. It will return only shoes that are the specified size.</p>
+<p><code>map</code>은 클로저를 인자로 받기 때문에, 각 항목에 대해 수행하고 싶은 어떤 연산이라도 지정할 수 있습니다. 이는 <code>Iterator</code> 트레이트가 제공하는 반복 동작을 재사용하면서 클로저를 통해 특정 동작을 커스터마이징할 수 있게 해주는 좋은 예입니다.</p>
+<p>반복자 어댑터 호출을 여러 번 연결하여 복잡한 작업을 읽기 쉬운 방식으로 수행할 수 있습니다. 하지만 모든 반복자는 지연(lazy)이기 때문에, 반복자 어댑터 호출로부터 결과를 얻으려면 소비 어댑터 메서드 중 하나를 호출해야 합니다.</p>
+<h3 id="환경을-캡처하는-클로저-사용하기"><a class="header" href="#환경을-캡처하는-클로저-사용하기">환경을 캡처하는 클로저 사용하기</a></h3>
+<p>많은 반복자 어댑터는 클로저를 인자로 받으며, 일반적으로 우리가 반복자 어댑터의 인자로 지정하는 클로저는 자신의 환경을 캡처하는 클로저입니다.</p>
+<p>이 예제에서는 클로저를 받는 <code>filter</code> 메서드를 사용할 것입니다. 이 클로저는 반복자로부터 항목을 하나 받아서 <code>bool</code>을 반환합니다. 클로저가 <code>true</code>를 반환하면, 그 값은 <code>filter</code>에 의해 생성된 반복에 포함될 것입니다. 클로저가 <code>false</code>를 반환하면, 그 값은 포함되지 않습니다.</p>
+<p>목록 13-16에서는 환경으로부터 <code>shoe_size</code> 변수를 캡처하는 클로저와 함께 <code>filter</code>를 사용하여 <code>Shoe</code> 구조체 인스턴스 컬렉션을 순회합니다. 이 코드는 지정된 사이즈의 신발만 반환할 것입니다.</p>
 <Listing number="13-16" file-name="src/lib.rs" caption="Using the `filter` method with a closure that captures `shoe_size`">
 <pre><code class="language-rust noplayground">#[derive(PartialEq, Debug)]
 struct Shoe {
@@ -361,15 +361,15 @@ mod tests {
         let shoes = vec![
             Shoe {
                 size: 10,
-                style: String::from("sneaker"),
+                style: String::from("스니커즈"),
             },
             Shoe {
                 size: 13,
-                style: String::from("sandal"),
+                style: String::from("샌들"),
             },
             Shoe {
                 size: 10,
-                style: String::from("boot"),
+                style: String::from("부츠"),
             },
         ];
 
@@ -380,21 +380,21 @@ mod tests {
             vec![
                 Shoe {
                     size: 10,
-                    style: String::from("sneaker")
+                    style: String::from("스니커즈")
                 },
                 Shoe {
                     size: 10,
-                    style: String::from("boot")
+                    style: String::from("부츠")
                 },
             ]
         );
     }
 }</code></pre>
 </Listing>
-<p>The <code>shoes_in_size</code> function takes ownership of a vector of shoes and a shoe size as parameters. It returns a vector containing only shoes of the specified size.</p>
-<p>In the body of <code>shoes_in_size</code>, we call <code>into_iter</code> to create an iterator that takes ownership of the vector. Then we call <code>filter</code> to adapt that iterator into a new iterator that only contains elements for which the closure returns <code>true</code>.</p>
-<p>The closure captures the <code>shoe_size</code> parameter from the environment and compares the value with each shoe’s size, keeping only shoes of the size specified. Finally, calling <code>collect</code> gathers the values returned by the adapted iterator into a vector that’s returned by the function.</p>
-<p>The test shows that when we call <code>shoes_in_size</code>, we get back only shoes that have the same size as the value we specified.</p>
+<p><code>shoes_in_size</code> 함수는 신발 벡터와 신발 사이즈를 매개변수로 소유권을 가져옵니다. 이 함수는 지정된 사이즈의 신발만 포함하는 벡터를 반환합니다.</p>
+<p><code>shoes_in_size</code> 본문에서는 <code>into_iter</code>를 호출하여 벡터의 소유권을 가져오는 반복자를 생성합니다. 그런 다음 <code>filter</code>를 호출하여 클로저가 <code>true</code>를 반환하는 요소들만 포함하는 새로운 반복자로 해당 반복자를 변형합니다.</p>
+<p>클로저는 환경으로부터 <code>shoe_size</code> 매개변수를 캡처하고 그 값을 각 신발의 사이즈와 비교하여, 지정된 사이즈의 신발만 남깁니다. 마지막으로, <code>collect</code>를 호출하여 변형된 반복자가 반환하는 값들을 모아 함수가 반환할 벡터로 만듭니다.</p>
+<p>테스트 결과는 <code>shoes_in_size</code>를 호출했을 때 우리가 지정한 값과 같은 사이즈의 신발들만 돌아온다는 것을 보여줍니다.</p>
 
                     </main>
 

@@ -217,28 +217,28 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="모듈성과-에러-처리-개선을-위한-리팩터링"><a class="header" href="#모듈성과-에러-처리-개선을-위한-리팩터링">모듈성과 에러 처리 개선을 위한 리팩터링</a></h2>
-<p>To improve our program, we’ll fix four problems that have to do with the program’s structure and how it’s handling potential errors. First, our <code>main</code> function now performs two tasks: it parses arguments and reads files. As our program grows, the number of separate tasks the <code>main</code> function handles will increase. As a function gains responsibilities, it becomes more difficult to reason about, harder to test, and harder to change without breaking one of its parts. It’s best to separate functionality so each function is responsible for one task.</p>
-<p>This issue also ties into the second problem: although <code>query</code> and <code>file_path</code> are configuration variables to our program, variables like <code>contents</code> are used to perform the program’s logic. The longer <code>main</code> becomes, the more variables we’ll need to bring into scope; the more variables we have in scope, the harder it will be to keep track of the purpose of each. It’s best to group the configuration variables into one structure to make their purpose clear.</p>
-<p>The third problem is that we’ve used <code>expect</code> to print an error message when reading the file fails, but the error message just prints <code>Should have been able to read the file</code>. Reading a file can fail in a number of ways: for example, the file could be missing, or we might not have permission to open it. Right now, regardless of the situation, we’d print the same error message for everything, which wouldn’t give the user any information!</p>
-<p>Fourth, we use <code>expect</code> to handle an error, and if the user runs our program without specifying enough arguments, they’ll get an <code>index out of bounds</code> error from Rust that doesn’t clearly explain the problem. It would be best if all the error-handling code were in one place so future maintainers had only one place to consult the code if the error-handling logic needed to change. Having all the error-handling code in one place will also ensure that we’re printing messages that will be meaningful to our end users.</p>
-<p>Let’s address these four problems by refactoring our project.</p>
-<h3 id="separation-of-concerns-for-binary-projects"><a class="header" href="#separation-of-concerns-for-binary-projects">Separation of Concerns for Binary Projects</a></h3>
-<p>The organizational problem of allocating responsibility for multiple tasks to the <code>main</code> function is common to many binary projects. As a result, the Rust community has developed guidelines for splitting the separate concerns of a binary program when <code>main</code> starts getting large. This process has the following steps:</p>
+<p>프로그램을 개선하기 위해, 프로그램의 구조와 잠재적 에러 처리 방식과 관련된 네 가지 문제를 해결하겠습니다. 첫째, 현재 우리 <code>main</code> 함수는 인수를 파싱하고 파일을 읽는 두 가지 작업을 수행하고 있습니다. 프로그램이 커짐에 따라 <code>main</code> 함수가 처리해야 할 개별 작업의 수는 늘어날 것입니다. 함수가 더 많은 책임을 가질수록 그 함수를 이해하기 어려워지고, 테스트하기 힘들어지며, 다른 부분에 영향을 주지 않고 변경하기도 어려워집니다. 각 함수가 하나의 작업만 담당하도록 기능을 분리하는 것이 가장 좋습니다.</p>
+<p>이 이슈는 두 번째 문제와도 연결됩니다. <code>query</code>와 <code>file_path</code>는 우리 프로그램의 설정 변수들이지만, <code>contents</code>와 같은 변수들은 프로그램의 로직을 수행하는 데 사용됩니다. <code>main</code>이 길어질수록 더 많은 변수들을 스코프로 가져와야 하며, 스코프 내의 변수가 많아질수록 각 변수의 목적을 파악하기가 더 힘들어집니다. 설정 변수들을 하나의 구조체로 묶어 그 목적을 명확히 하는 것이 좋습니다.</p>
+<p>세 번째 문제는 파일을 읽는 데 실패했을 때 에러 메시지를 출력하기 위해 <code>expect</code>를 사용했다는 점인데, 에러 메시지는 그저 <code>Should have been able to read the file</code>이라고만 출력합니다. 파일을 읽는 것은 다양한 이유로 실패할 수 있습니다. 예를 들어 파일이 없거나, 파일을 열 권한이 없을 수도 있습니다. 현재로서는 상황에 상관없이 모든 경우에 동일한 에러 메시지를 출력하므로 사용자에게 아무런 정보도 주지 못합니다!</p>
+<p>넷째, 에러 처리를 위해 <code>expect</code>를 사용하고 있는데, 사용자가 충분한 인수를 지정하지 않고 프로그램을 실행하면 러스트로부터 문제를 명확히 설명하지 못하는 <code>index out of bounds</code> 에러를 받게 됩니다. 에러 처리 로직을 변경해야 할 때 미래의 유지보수자가 한 곳만 확인하면 되도록 모든 에러 처리 코드가 한 곳에 모여 있는 것이 가장 좋습니다. 모든 에러 처리 코드를 한 곳에 모으면 우리 사용자들에게 의미 있는 메시지를 출력하도록 보장할 수도 있습니다.</p>
+<p>프로젝트를 리팩터링하여 이 네 가지 문제를 해결해 봅시다.</p>
+<h3 id="바이너리-프로젝트를-위한-관심사-분리"><a class="header" href="#바이너리-프로젝트를-위한-관심사-분리">바이너리 프로젝트를 위한 관심사 분리</a></h3>
+<p><code>main</code> 함수에 여러 작업의 책임을 할당하는 조직적인 문제는 많은 바이너리 프로젝트에서 흔히 발생합니다. 그 결과, 러스트 커뮤니티는 <code>main</code>이 커지기 시작할 때 바이너리 프로그램의 개별 관심사를 분리하기 위한 가이드라인을 개발했습니다. 이 과정은 다음과 같은 단계로 이루어집니다:</p>
 <ul>
-<li>Split your program into a <em>main.rs</em> file and a <em>lib.rs</em> file and move your program’s logic to <em>lib.rs</em>.</li>
-<li>As long as your command line parsing logic is small, it can remain in <em>main.rs</em>.</li>
-<li>When the command line parsing logic starts getting complicated, extract it from <em>main.rs</em> and move it to <em>lib.rs</em>.</li>
+<li>프로그램을 <em>main.rs</em> 파일과 <em>lib.rs</em> 파일로 나누고, 프로그램 로직을 _lib.rs_로 옮기세요.</li>
+<li>명령줄 파싱 로직이 작다면 _main.rs_에 남아있어도 됩니다.</li>
+<li>명령줄 파싱 로직이 복잡해지기 시작하면, _main.rs_에서 추출하여 _lib.rs_로 옮기세요.</li>
 </ul>
-<p>The responsibilities that remain in the <code>main</code> function after this process should be limited to the following:</p>
+<p>이 과정을 거친 후 <code>main</code> 함수에 남는 책임은 다음과 같이 제한되어야 합니다:</p>
 <ul>
-<li>Calling the command line parsing logic with the argument values</li>
-<li>Setting up any other configuration</li>
-<li>Calling a <code>run</code> function in <em>lib.rs</em></li>
-<li>Handling the error if <code>run</code> returns an error</li>
+<li>인수 값들을 사용하여 명령줄 파싱 로직 호출하기</li>
+<li>기타 다른 설정(configuration) 구성하기</li>
+<li>_lib.rs_의 <code>run</code> 함수 호출하기</li>
+<li><code>run</code> 함수가 에러를 반환할 때 에러 처리하기</li>
 </ul>
-<p>This pattern is about separating concerns: <em>main.rs</em> handles running the program and <em>lib.rs</em> handles all the logic of the task at hand. Because you can’t test the <code>main</code> function directly, this structure lets you test all of your program’s logic by moving it into functions in <em>lib.rs</em>. The code that remains in <em>main.rs</em> will be small enough to verify its correctness by reading it. Let’s rework our program by following this process.</p>
-<h4 id="extracting-the-argument-parser"><a class="header" href="#extracting-the-argument-parser">Extracting the Argument Parser</a></h4>
-<p>We’ll extract the functionality for parsing arguments into a function that <code>main</code> will call to prepare for moving the command line parsing logic to <em>src/lib.rs</em>. Listing 12-5 shows the new start of <code>main</code> that calls a new function <code>parse_config</code>, which we’ll define in <em>src/main.rs</em> for the moment.</p>
+<p>이 패턴은 관심사 분리에 관한 것입니다. _main.rs_는 프로그램 실행을 담당하고, _lib.rs_는 실제 작업의 모든 로직을 담당합니다. <code>main</code> 함수를 직접 테스트할 수 없기 때문에, 이러한 구조는 모든 프로그램 로직을 _lib.rs_의 함수로 옮김으로써 테스트가 가능하게 해줍니다. _main.rs_에 남는 코드는 읽는 것만으로도 올바름을 확인할 수 있을 정도로 작아질 것입니다. 이 과정을 따라 우리 프로그램을 다시 만들어 봅시다.</p>
+<h4 id="인수-파서-추출하기"><a class="header" href="#인수-파서-추출하기">인수 파서 추출하기</a></h4>
+<p>명령줄 파싱 로직을 _src/lib.rs_로 옮기기 위한 준비 단계로, 인수를 파싱하는 기능을 <code>main</code>이 호출할 함수로 추출하겠습니다. 목록 12-5는 새로운 함수 <code>parse_config</code>를 호출하는 <code>main</code>의 새로운 시작 부분을 보여줍니다. 현재로서는 <code>parse_config</code>를 _src/main.rs_에 정의할 것입니다.</p>
 <Listing number="12-5" file-name="src/main.rs" caption="Extracting a `parse_config` function from `main`">
 <pre><code class="language-rust ignore"><span class="boring">use std::env;
 </span><span class="boring">use std::fs;
@@ -254,9 +254,9 @@
 </span><span class="boring">    println!("In file {file_path}");
 </span><span class="boring">
 </span><span class="boring">    let contents = fs::read_to_string(file_path)
-</span><span class="boring">        .expect("Should have been able to read the file");
+</span><span class="boring">        .expect("파일을 읽을 수 있어야 합니다");
 </span><span class="boring">
-</span><span class="boring">    println!("With text:\n{contents}");
+</span><span class="boring">    println!("텍스트 내용:\n{contents}");
 </span>}
 
 fn parse_config(args: &amp;[String]) -&gt; (&amp;str, &amp;str) {
@@ -266,12 +266,12 @@ fn parse_config(args: &amp;[String]) -&gt; (&amp;str, &amp;str) {
     (query, file_path)
 }</code></pre>
 </Listing>
-<p>We’re still collecting the command line arguments into a vector, but instead of assigning the argument value at index 1 to the variable <code>query</code> and the argument value at index 2 to the variable <code>file_path</code> within the <code>main</code> function, we pass the whole vector to the <code>parse_config</code> function. The <code>parse_config</code> function then holds the logic that determines which argument goes in which variable and passes the values back to <code>main</code>. We still create the <code>query</code> and <code>file_path</code> variables in <code>main</code>, but <code>main</code> no longer has the responsibility of determining how the command line arguments and variables correspond.</p>
-<p>This rework may seem like overkill for our small program, but we’re refactoring in small, incremental steps. After making this change, run the program again to verify that the argument parsing still works. It’s good to check your progress often, to help identify the cause of problems when they occur.</p>
-<h4 id="grouping-configuration-values"><a class="header" href="#grouping-configuration-values">Grouping Configuration Values</a></h4>
-<p>We can take another small step to improve the <code>parse_config</code> function further. At the moment, we’re returning a tuple, but then we immediately break that tuple into individual parts again. This is a sign that perhaps we don’t have the right abstraction yet.</p>
-<p>Another indicator that shows there’s room for improvement is the <code>config</code> part of <code>parse_config</code>, which implies that the two values we return are related and are both part of one configuration value. We’re not currently conveying this meaning in the structure of the data other than by grouping the two values into a tuple; we’ll instead put the two values into one struct and give each of the struct fields a meaningful name. Doing so will make it easier for future maintainers of this code to understand how the different values relate to each other and what their purpose is.</p>
-<p>Listing 12-6 shows the improvements to the <code>parse_config</code> function.</p>
+<p>우리는 여전히 명령줄 인수를 벡터로 수집하지만, <code>main</code> 함수 내에서 인덱스 1의 값을 <code>query</code> 변수에, 인덱스 2의 값을 <code>file_path</code> 변수에 직접 할당하는 대신, 전체 벡터를 <code>parse_config</code> 함수에 전달합니다. 그러면 <code>parse_config</code> 함수가 어떤 인수가 어떤 변수에 들어갈지 결정하는 로직을 갖고, 그 값들을 다시 <code>main</code>으로 돌려줍니다. <code>main</code>에서 <code>query</code>와 <code>file_path</code> 변수를 여전히 생성하지만, 명령줄 인수와 변수가 어떻게 대응되는지 결정하는 책임은 더 이상 <code>main</code>에 있지 않습니다.</p>
+<p>이러한 재작업이 우리 작은 프로그램에는 과해 보일 수 있지만, 우리는 작고 점진적인 단계로 리팩터링을 진행하고 있습니다. 이 변경을 마친 후 프로그램을 다시 실행하여 인수 파싱이 여전히 잘 작동하는지 확인하세요. 문제가 발생했을 때 그 원인을 찾기 쉽도록 진행 상황을 자주 확인하는 것이 좋습니다.</p>
+<h4 id="설정-값-그룹화하기"><a class="header" href="#설정-값-그룹화하기">설정 값 그룹화하기</a></h4>
+<p><code>parse_config</code> 함수를 더 개선하기 위해 또 다른 작은 단계를 밟을 수 있습니다. 현재 우리는 튜플을 반환하고 있지만, 그 즉시 튜플을 다시 개별 부분으로 쪼개고 있습니다. 이는 아마도 우리가 아직 적절한 추상화를 갖지 못했다는 신호일 수 있습니다.</p>
+<p>개선의 여지가 있다는 또 다른 지표는 <code>parse_config</code> 이름의 <code>config</code> 부분입니다. 이는 우리가 반환하는 두 값이 서로 관련이 있으며, 둘 다 하나의 설정 값의 일부임을 암시합니다. 현재로서는 두 값을 튜플로 묶는 것 외에는 데이터 구조에서 이러한 의미를 전달하지 못하고 있습니다. 대신 두 값을 하나의 구조체에 넣고 각 필드에 의미 있는 이름을 부여하겠습니다. 이렇게 하면 미래의 유지보수자들이 각 값들이 서로 어떻게 연관되어 있는지, 그리고 그 목적이 무엇인지 더 쉽게 이해할 수 있을 것입니다.</p>
+<p>목록 12-6은 <code>parse_config</code> 함수의 개선된 모습을 보여줍니다.</p>
 <Listing number="12-6" file-name="src/main.rs" caption="Refactoring `parse_config` to return an instance of a `Config` struct">
 <pre><code class="language-rust should_panic noplayground"><span class="boring">use std::env;
 </span><span class="boring">use std::fs;
@@ -285,11 +285,11 @@ fn parse_config(args: &amp;[String]) -&gt; (&amp;str, &amp;str) {
     println!("In file {}", config.file_path);
 
     let contents = fs::read_to_string(config.file_path)
-        .expect("Should have been able to read the file");
+        .expect("파일을 읽을 수 있어야 합니다");
 
     // --생략--
 <span class="boring">
-</span><span class="boring">    println!("With text:\n{contents}");
+</span><span class="boring">    println!("텍스트 내용:\n{contents}");
 </span>}
 
 struct Config {
@@ -304,17 +304,17 @@ fn parse_config(args: &amp;[String]) -&gt; Config {
     Config { query, file_path }
 }</code></pre>
 </Listing>
-<p>We’ve added a struct named <code>Config</code> defined to have fields named <code>query</code> and <code>file_path</code>. The signature of <code>parse_config</code> now indicates that it returns a <code>Config</code> value. In the body of <code>parse_config</code>, where we used to return string slices that reference <code>String</code> values in <code>args</code>, we now define <code>Config</code> to contain owned <code>String</code> values. The <code>args</code> variable in <code>main</code> is the owner of the argument values and is only letting the <code>parse_config</code> function borrow them, which means we’d violate Rust’s borrowing rules if <code>Config</code> tried to take ownership of the values in <code>args</code>.</p>
-<p>There are a number of ways we could manage the <code>String</code> data; the easiest, though somewhat inefficient, route is to call the <code>clone</code> method on the values. This will make a full copy of the data for the <code>Config</code> instance to own, which takes more time and memory than storing a reference to the string data. However, cloning the data also makes our code very straightforward because we don’t have to manage the lifetimes of the references; in this circumstance, giving up a little performance to gain simplicity is a worthwhile trade-off.</p>
+<p><code>query</code>와 <code>file_path</code>라는 필드를 가진 <code>Config</code>라는 구조체를 추가했습니다. 이제 <code>parse_config</code>의 시그니처는 <code>Config</code> 값을 반환한다고 명시합니다. <code>args</code> 내의 <code>String</code> 값을 참조하는 문자열 슬라이스를 반환하던 <code>parse_config</code> 본문에서, 이제는 소유권이 있는 <code>String</code> 값을 담도록 <code>Config</code>를 정의합니다. <code>main</code>에 있는 <code>args</code> 변수가 인수 값들의 소유자이며 <code>parse_config</code> 함수에게는 단지 빌려주기만 할 뿐이므로, 만약 <code>Config</code>가 <code>args</code>에 있는 값들의 소유권을 가져오려 한다면 러스트의 대여 규칙을 위반하게 됩니다.</p>
+<p><code>String</code> 데이터를 관리하는 방법은 여러 가지가 있습니다. 가장 쉽지만 다소 비효율적인 방법은 값들에 <code>clone</code> 메서드를 호출하는 것입니다. 이는 <code>Config</code> 인스턴스가 소유할 데이터의 전체 복사본을 만들며, 문자열 데이터에 대한 참조를 저장하는 것보다 더 많은 시간과 메모리를 소요합니다. 하지만 데이터를 복제하면 참조의 라이프타임을 관리할 필요가 없으므로 코드가 매우 단순해집니다. 이러한 상황에서는 단순함을 얻기 위해 약간의 성능을 포기하는 것이 가치 있는 트레이드오프가 될 수 있습니다.</p>
 <blockquote>
-<h3 id="the-trade-offs-of-using-clone"><a class="header" href="#the-trade-offs-of-using-clone">The Trade-Offs of Using <code>clone</code></a></h3>
-<p>There’s a tendency among many Rustaceans to avoid using <code>clone</code> to fix ownership problems because of its runtime cost. In <a href="ch13-00-functional-features.html">Chapter 13</a><!-- ignore -->, you’ll learn how to use more efficient methods in this type of situation. But for now, it’s okay to copy a few strings to continue making progress because you’ll make these copies only once and your file path and query string are very small. It’s better to have a working program that’s a bit inefficient than to try to hyperoptimize code on your first pass. As you become more experienced with Rust, it’ll be easier to start with the most efficient solution, but for now, it’s perfectly acceptable to call <code>clone</code>.</p>
+<h3 id="clone-사용의-트레이드오프"><a class="header" href="#clone-사용의-트레이드오프"><code>clone</code> 사용의 트레이드오프</a></h3>
+<p>많은 러스트 사용자들 사이에는 런타임 비용 때문에 소유권 문제를 해결하기 위해 <code>clone</code>을 사용하는 것을 피하려는 경향이 있습니다. <a href="ch13-00-functional-features.html">13장</a><!-- ignore -->에서는 이런 상황에서 더 효율적인 방법을 사용하는 법을 배우게 될 것입니다. 하지만 지금은 계속 진행하기 위해 몇 개의 문자열을 복사해도 괜찮습니다. 이러한 복사는 단 한 번만 일어나며, 파일 경로와 검색어 문자열은 매우 작기 때문입니다. 첫 번째 시도에서 코드를 과도하게 최적화하려 하기보다는, 약간 비효율적이더라도 작동하는 프로그램을 만드는 것이 낫습니다. 러스트에 더 익숙해지면 처음부터 가장 효율적인 해결책으로 시작하는 것이 더 쉬워지겠지만, 지금은 <code>clone</code>을 호출하는 것이 완벽하게 수용 가능합니다.</p>
 </blockquote>
-<p>We’ve updated <code>main</code> so it places the instance of <code>Config</code> returned by <code>parse_config</code> into a variable named <code>config</code>, and we updated the code that previously used the separate <code>query</code> and <code>file_path</code> variables so it now uses the fields on the <code>Config</code> struct instead.</p>
-<p>Now our code more clearly conveys that <code>query</code> and <code>file_path</code> are related and that their purpose is to configure how the program will work. Any code that uses these values knows to find them in the <code>config</code> instance in the fields named for their purpose.</p>
-<h4 id="creating-a-constructor-for-config"><a class="header" href="#creating-a-constructor-for-config">Creating a Constructor for <code>Config</code></a></h4>
-<p>So far, we’ve extracted the logic responsible for parsing the command line arguments from <code>main</code> and placed it in the <code>parse_config</code> function. Doing so helped us see that the <code>query</code> and <code>file_path</code> values were related, and that relationship should be conveyed in our code. We then added a <code>Config</code> struct to name the related purpose of <code>query</code> and <code>file_path</code> and to be able to return the values’ names as struct field names from the <code>parse_config</code> function.</p>
-<p>So now that the purpose of the <code>parse_config</code> function is to create a <code>Config</code> instance, we can change <code>parse_config</code> from a plain function to a function named <code>new</code> that is associated with the <code>Config</code> struct. Making this change will make the code more idiomatic. We can create instances of types in the standard library, such as <code>String</code>, by calling <code>String::new</code>. Similarly, by changing <code>parse_config</code> into a <code>new</code> function associated with <code>Config</code>, we’ll be able to create instances of <code>Config</code> by calling <code>Config::new</code>. Listing 12-7 shows the changes we need to make.</p>
+<p><code>parse_config</code>에서 반환된 <code>Config</code> 인스턴스를 <code>config</code>라는 변수에 담도록 <code>main</code>을 수정했고, 기존에 별도의 <code>query</code>와 <code>file_path</code> 변수를 사용하던 코드를 <code>Config</code> 구조체의 필드를 사용하도록 변경했습니다.</p>
+<p>이제 우리 코드는 <code>query</code>와 <code>file_path</code>가 서로 연관되어 있으며, 그 목적이 프로그램의 동작 방식을 설정하는 것임을 더 명확하게 전달합니다. 이 값들을 사용하는 모든 코드는 <code>config</code> 인스턴스 내에서 그 목적에 맞게 이름 지어진 필드들을 통해 이 값들을 찾을 수 있습니다.</p>
+<h4 id="config를-위한-생성자-만들기"><a class="header" href="#config를-위한-생성자-만들기"><code>Config</code>를 위한 생성자 만들기</a></h4>
+<p>지금까지 우리는 명령줄 인수를 파싱하는 로직을 <code>main</code>에서 추출하여 <code>parse_config</code> 함수에 넣었습니다. 이 작업을 통해 <code>query</code>와 <code>file_path</code> 값이 서로 연관되어 있음을 확인했고, 코드에서도 그 관계를 표현해야 함을 알게 되었습니다. 그래서 <code>query</code>와 <code>file_path</code>의 연관된 목적을 나타내기 위해 <code>Config</code> 구조체를 추가했고, <code>parse_config</code> 함수에서 구조체 필드 이름을 통해 각 값의 이름을 반환할 수 있게 되었습니다.</p>
+<p>이제 <code>parse_config</code> 함수의 목적이 <code>Config</code> 인스턴스를 생성하는 것이 되었으므로, 이를 일반 함수에서 <code>Config</code> 구조체와 연관된 <code>new</code>라는 이름의 함수로 변경할 수 있습니다. 이렇게 변경하면 코드가 더욱 관용적(idiomatic)이 됩니다. 우리가 <code>String::new</code>를 호출하여 <code>String</code>과 같은 표준 라이브러리 타입의 인스턴스를 생성하는 것처럼, <code>parse_config</code>를 <code>Config</code>와 연관된 <code>new</code> 함수로 바꿈으로써 <code>Config::new</code>를 호출하여 <code>Config</code> 인스턴스를 생성할 수 있게 됩니다. 목록 12-7은 우리가 해야 할 변경 사항을 보여줍니다.</p>
 <Listing number="12-7" file-name="src/main.rs" caption="Changing `parse_config` into `Config::new`">
 <pre><code class="language-rust should_panic noplayground"><span class="boring">use std::env;
 </span><span class="boring">use std::fs;
@@ -328,9 +328,9 @@ fn parse_config(args: &amp;[String]) -&gt; Config {
 </span><span class="boring">    println!("In file {}", config.file_path);
 </span><span class="boring">
 </span><span class="boring">    let contents = fs::read_to_string(config.file_path)
-</span><span class="boring">        .expect("Should have been able to read the file");
+</span><span class="boring">        .expect("파일을 읽을 수 있어야 합니다");
 </span><span class="boring">
-</span><span class="boring">    println!("With text:\n{contents}");
+</span><span class="boring">    println!("텍스트 내용:\n{contents}");
 </span>
     // --생략--
 }
@@ -351,9 +351,9 @@ fn parse_config(args: &amp;[String]) -&gt; Config {
     }
 }</code></pre>
 </Listing>
-<p>We’ve updated <code>main</code> where we were calling <code>parse_config</code> to instead call <code>Config::new</code>. We’ve changed the name of <code>parse_config</code> to <code>new</code> and moved it within an <code>impl</code> block, which associates the <code>new</code> function with <code>Config</code>. Try compiling this code again to make sure it works.</p>
-<h3 id="fixing-the-error-handling"><a class="header" href="#fixing-the-error-handling">Fixing the Error Handling</a></h3>
-<p>Now we’ll work on fixing our error handling. Recall that attempting to access the values in the <code>args</code> vector at index 1 or index 2 will cause the program to panic if the vector contains fewer than three items. Try running the program without any arguments; it will look like this:</p>
+<p><code>parse_config</code>를 호출하던 <code>main</code>의 코드를 <code>Config::new</code>를 호출하도록 수정했습니다. <code>parse_config</code>의 이름을 <code>new</code>로 바꾸고 <code>impl</code> 블록 안으로 옮겨서, <code>new</code> 함수를 <code>Config</code>와 연관시켰습니다. 코드가 잘 작동하는지 확인하기 위해 다시 컴파일해 보세요.</p>
+<h3 id="에러-핸들링-수정하기"><a class="header" href="#에러-핸들링-수정하기">에러 핸들링 수정하기</a></h3>
+<p>이제 에러 핸들링을 수정해 보겠습니다. <code>args</code> 벡터에 아이템이 세 개보다 적을 때 인덱스 1이나 2의 값에 접근하려 하면 프로그램이 패닉을 일으킨다는 점을 기억하세요. 인수 없이 프로그램을 실행해 보면 다음과 같을 것입니다:</p>
 <pre><code class="language-console">$ cargo run
    Compiling minigrep v0.1.0 (file:///projects/minigrep)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.0s
@@ -362,9 +362,9 @@ thread 'main' panicked at src/main.rs:27:21:
 index out of bounds: the len is 1 but the index is 1
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 </code></pre>
-<p>The line <code>index out of bounds: the len is 1 but the index is 1</code> is an error message intended for programmers. It won’t help our end users understand what they should do instead. Let’s fix that now.</p>
-<h4 id="improving-the-error-message"><a class="header" href="#improving-the-error-message">Improving the Error Message</a></h4>
-<p>In Listing 12-8, we add a check in the <code>new</code> function that will verify that the slice is long enough before accessing index 1 and index 2. If the slice isn’t long enough, the program panics and displays a better error message.</p>
+<p><code>index out of bounds: the len is 1 but the index is 1</code>이라는 줄은 프로그래머를 위한 에러 메시지입니다. 우리 사용자들은 이 메시지를 보고 무엇을 해야 할지 알 수 없습니다. 이제 이를 수정해 봅시다.</p>
+<h4 id="에러-메시지-개선하기"><a class="header" href="#에러-메시지-개선하기">에러 메시지 개선하기</a></h4>
+<p>목록 12-8에서는 인덱스 1과 2에 접근하기 전에 슬라이스의 길이가 충분한지 확인하는 검사를 <code>new</code> 함수에 추가합니다. 슬라이스의 길이가 충분하지 않으면 프로그램이 패닉을 일으키고 더 나은 에러 메시지를 표시합니다.</p>
 <Listing number="12-8" file-name="src/main.rs" caption="Adding a check for the number of arguments">
 <pre><code class="language-rust ignore"><span class="boring">use std::env;
 </span><span class="boring">use std::fs;
@@ -378,9 +378,9 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 </span><span class="boring">    println!("In file {}", config.file_path);
 </span><span class="boring">
 </span><span class="boring">    let contents = fs::read_to_string(config.file_path)
-</span><span class="boring">        .expect("Should have been able to read the file");
+</span><span class="boring">        .expect("파일을 읽을 수 있어야 합니다");
 </span><span class="boring">
-</span><span class="boring">    println!("With text:\n{contents}");
+</span><span class="boring">    println!("텍스트 내용:\n{contents}");
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">struct Config {
@@ -392,7 +392,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 </span>    // --생략--
     fn new(args: &amp;[String]) -&gt; Config {
         if args.len() &lt; 3 {
-            panic!("not enough arguments");
+            panic!("인수가 부족합니다");
         }
         // --생략--
 <span class="boring">
@@ -403,8 +403,8 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 </Listing>
-<p>This code is similar to <a href="ch09-03-to-panic-or-not-to-panic.html#creating-custom-types-for-validation">the <code>Guess::new</code> function we wrote in Listing 9-13</a><!-- ignore -->, where we called <code>panic!</code> when the <code>value</code> argument was out of the range of valid values. Instead of checking for a range of values here, we’re checking that the length of <code>args</code> is at least <code>3</code> and the rest of the function can operate under the assumption that this condition has been met. If <code>args</code> has fewer than three items, this condition will be <code>true</code>, and we call the <code>panic!</code> macro to end the program immediately.</p>
-<p>With these extra few lines of code in <code>new</code>, let’s run the program without any arguments again to see what the error looks like now:</p>
+<p>이 코드는 9장의 목록 9-13에서 작성했던 <a href="ch09-03-to-panic-or-not-to-panic.html#creating-custom-types-for-validation"><code>Guess::new</code> 함수</a><!-- ignore -->와 유사합니다. 거기서는 <code>value</code> 인수가 유효 범위를 벗어났을 때 <code>panic!</code>을 호출했었죠. 여기서는 값의 범위를 확인하는 대신 <code>args</code>의 길이가 최소한 <code>3</code>인지 확인하며, 이 조건이 충족되었다는 가정하에 함수의 나머지 부분이 작동하게 합니다. 만약 <code>args</code>의 아이템이 세 개보다 적다면 이 조건은 <code>true</code>가 되고, <code>panic!</code> 매크로를 호출하여 프로그램을 즉시 종료합니다.</p>
+<p><code>new</code>에 이 몇 줄의 코드를 추가한 상태에서, 다시 인수 없이 프로그램을 실행하여 에러가 어떻게 보이는지 확인해 봅시다:</p>
 <pre><code class="language-console">$ cargo run
    Compiling minigrep v0.1.0 (file:///projects/minigrep)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.0s
@@ -413,12 +413,12 @@ thread 'main' panicked at src/main.rs:26:13:
 not enough arguments
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 </code></pre>
-<p>This output is better: we now have a reasonable error message. However, we also have extraneous information we don’t want to give to our users. Perhaps the technique we used in Listing 9-13 isn’t the best one to use here: a call to <code>panic!</code> is more appropriate for a programming problem than a usage problem, <a href="ch09-03-to-panic-or-not-to-panic.html#guidelines-for-error-handling">as discussed in Chapter 9</a><!-- ignore -->. Instead, we’ll use the other technique you learned about in Chapter 9—<a href="ch09-02-recoverable-errors-with-result.html">returning a <code>Result</code></a><!-- ignore --> that indicates either success or an error.</p>
+<p>출력이 훨씬 나아졌습니다. 이제 합리적인 에러 메시지를 갖게 되었네요. 하지만 사용자에게 보여주고 싶지 않은 불필요한 정보도 여전히 포함되어 있습니다. 아마도 목록 9-13에서 사용한 기술이 여기에는 최선이 아닐 수도 있습니다. <a href="ch09-03-to-panic-or-not-to-panic.html#guidelines-for-error-handling">9장에서 논의했듯이</a><!-- ignore -->, <code>panic!</code> 호출은 사용상의 문제보다는 프로그래밍상의 문제에 더 적합하기 때문입니다. 대신 9장에서 배웠던 또 다른 기술인 성공 또는 에러를 나타내는 <a href="ch09-02-recoverable-errors-with-result.html"><code>Result</code> 반환하기</a><!-- ignore -->를 사용해 보겠습니다.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="returning-a-result-from-new-instead-of-calling-panic"></a></p>
-<h4 id="returning-a-result-instead-of-calling-panic"><a class="header" href="#returning-a-result-instead-of-calling-panic">Returning a <code>Result</code> Instead of Calling <code>panic!</code></a></h4>
-<p>We can instead return a <code>Result</code> value that will contain a <code>Config</code> instance in the successful case and will describe the problem in the error case. We’re also going to change the function name from <code>new</code> to <code>build</code> because many programmers expect <code>new</code> functions to never fail. When <code>Config::build</code> is communicating to <code>main</code>, we can use the <code>Result</code> type to signal there was a problem. Then we can change <code>main</code> to convert an <code>Err</code> variant into a more practical error for our users without the surrounding text about <code>thread 'main'</code> and <code>RUST_BACKTRACE</code> that a call to <code>panic!</code> causes.</p>
-<p>Listing 12-9 shows the changes we need to make to the return value of the function we’re now calling <code>Config::build</code> and the body of the function needed to return a <code>Result</code>. Note that this won’t compile until we update <code>main</code> as well, which we’ll do in the next listing.</p>
+<h4 id="panic-호출-대신-result-반환하기"><a class="header" href="#panic-호출-대신-result-반환하기"><code>panic!</code> 호출 대신 <code>Result</code> 반환하기</a></h4>
+<p>대신 성공했을 때는 <code>Config</code> 인스턴스를 담고, 에러가 발생했을 때는 문제를 설명하는 <code>Result</code> 값을 반환할 수 있습니다. 또한 함수 이름을 <code>new</code>에서 <code>build</code>로 바꿀 것인데, 많은 프로그래머들이 <code>new</code> 함수는 절대 실패하지 않을 것이라고 기대하기 때문입니다. <code>Config::build</code>가 <code>main</code>과 통신할 때, <code>Result</code> 타입을 사용하여 문제가 발생했음을 알릴 수 있습니다. 그러면 <code>main</code>에서 <code>Err</code> 변형을 <code>panic!</code> 호출로 인한 <code>thread 'main'</code>이나 <code>RUST_BACKTRACE</code> 같은 텍스트 없이 사용자에게 더 실용적인 에러 메시지로 변환할 수 있습니다.</p>
+<p>목록 12-9는 현재 <code>Config::build</code>라고 부르는 함수의 반환 값과 <code>Result</code>를 반환하는 데 필요한 함수 본문의 변경 사항을 보여줍니다. <code>main</code>도 함께 업데이트해야 컴파일이 되며, 이는 다음 목록에서 다룰 것입니다.</p>
 <Listing number="12-9" file-name="src/main.rs" caption="Returning a `Result` from `Config::build`">
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">use std::env;
 </span><span class="boring">use std::fs;
@@ -432,9 +432,9 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 </span><span class="boring">    println!("In file {}", config.file_path);
 </span><span class="boring">
 </span><span class="boring">    let contents = fs::read_to_string(config.file_path)
-</span><span class="boring">        .expect("Should have been able to read the file");
+</span><span class="boring">        .expect("파일을 읽을 수 있어야 합니다");
 </span><span class="boring">
-</span><span class="boring">    println!("With text:\n{contents}");
+</span><span class="boring">    println!("텍스트 내용:\n{contents}");
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">struct Config {
@@ -445,7 +445,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 </span>impl Config {
     fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
         if args.len() &lt; 3 {
-            return Err("not enough arguments");
+            return Err("인수가 부족합니다");
         }
 
         let query = args[1].clone();
@@ -455,13 +455,13 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
     }
 }</code></pre>
 </Listing>
-<p>Our <code>build</code> function returns a <code>Result</code> with a <code>Config</code> instance in the success case and a string literal in the error case. Our error values will always be string literals that have the <code>'static</code> lifetime.</p>
-<p>We’ve made two changes in the body of the function: instead of calling <code>panic!</code> when the user doesn’t pass enough arguments, we now return an <code>Err</code> value, and we’ve wrapped the <code>Config</code> return value in an <code>Ok</code>. These changes make the function conform to its new type signature.</p>
-<p>Returning an <code>Err</code> value from <code>Config::build</code> allows the <code>main</code> function to handle the <code>Result</code> value returned from the <code>build</code> function and exit the process more cleanly in the error case.</p>
+<p>우리 <code>build</code> 함수는 성공 시 <code>Config</code> 인스턴스를 담고 에러 시 문자열 리터럴을 담는 <code>Result</code>를 반환합니다. 에러 값은 항상 <code>'static</code> 라이프타임을 가진 문자열 리터럴이 될 것입니다.</p>
+<p>함수 본문에서 두 가지를 변경했습니다. 사용자가 인수를 충분히 전달하지 않았을 때 <code>panic!</code>을 호출하는 대신 이제 <code>Err</code> 값을 반환하며, <code>Config</code> 반환 값을 <code>Ok</code>로 감쌌습니다. 이러한 변경을 통해 함수가 새로운 타입 시그니처에 부합하게 되었습니다.</p>
+<p><code>Config::build</code>에서 <code>Err</code> 값을 반환하면, <code>main</code> 함수가 <code>build</code> 함수로부터 반환된 <code>Result</code> 값을 처리하고 에러 발생 시 프로세스를 더 깔끔하게 종료할 수 있게 됩니다.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="calling-confignew-and-handling-errors"></a></p>
-<h4 id="calling-configbuild-and-handling-errors"><a class="header" href="#calling-configbuild-and-handling-errors">Calling <code>Config::build</code> and Handling Errors</a></h4>
-<p>To handle the error case and print a user-friendly message, we need to update <code>main</code> to handle the <code>Result</code> being returned by <code>Config::build</code>, as shown in Listing 12-10. We’ll also take the responsibility of exiting the command line tool with a nonzero error code away from <code>panic!</code> and instead implement it by hand. A nonzero exit status is a convention to signal to the process that called our program that the program exited with an error state.</p>
+<h4 id="configbuild-호출-및-에러-처리하기"><a class="header" href="#configbuild-호출-및-에러-처리하기"><code>Config::build</code> 호출 및 에러 처리하기</a></h4>
+<p>에러 상황을 처리하고 사용자 친화적인 메시지를 출력하기 위해, 목록 12-10과 같이 <code>Config::build</code>가 반환하는 <code>Result</code>를 처리하도록 <code>main</code>을 업데이트해야 합니다. 또한 0이 아닌 에러 코드로 명령줄 도구를 종료하는 책임을 <code>panic!</code>으로부터 가져와 직접 구현할 것입니다. 0이 아닌 종료 상태 값은 우리 프로그램을 호출한 프로세스에게 프로그램이 에러 상태로 종료되었음을 알리는 관례입니다.</p>
 <Listing number="12-10" file-name="src/main.rs" caption="Exiting with an error code if building a `Config` fails">
 <pre><code class="language-rust ignore"><span class="boring">use std::env;
 </span><span class="boring">use std::fs;
@@ -471,7 +471,7 @@ fn main() {
     let args: Vec&lt;String&gt; = env::args().collect();
 
     let config = Config::build(&amp;args).unwrap_or_else(|err| {
-        println!("Problem parsing arguments: {err}");
+        println!("인수 파싱 중 문제 발생: {err}");
         process::exit(1);
     });
 
@@ -481,9 +481,9 @@ fn main() {
 </span><span class="boring">    println!("In file {}", config.file_path);
 </span><span class="boring">
 </span><span class="boring">    let contents = fs::read_to_string(config.file_path)
-</span><span class="boring">        .expect("Should have been able to read the file");
+</span><span class="boring">        .expect("파일을 읽을 수 있어야 합니다");
 </span><span class="boring">
-</span><span class="boring">    println!("With text:\n{contents}");
+</span><span class="boring">    println!("텍스트 내용:\n{contents}");
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">struct Config {
@@ -494,7 +494,7 @@ fn main() {
 </span><span class="boring">impl Config {
 </span><span class="boring">    fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
 </span><span class="boring">        if args.len() &lt; 3 {
-</span><span class="boring">            return Err("not enough arguments");
+</span><span class="boring">            return Err("인수가 부족합니다");
 </span><span class="boring">        }
 </span><span class="boring">
 </span><span class="boring">        let query = args[1].clone();
@@ -504,18 +504,18 @@ fn main() {
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 </Listing>
-<p>In this listing, we’ve used a method we haven’t covered in detail yet: <code>unwrap_or_else</code>, which is defined on <code>Result&lt;T, E&gt;</code> by the standard library. Using <code>unwrap_or_else</code> allows us to define some custom, non-<code>panic!</code> error handling. If the <code>Result</code> is an <code>Ok</code> value, this method’s behavior is similar to <code>unwrap</code>: it returns the inner value that <code>Ok</code> is wrapping. However, if the value is an <code>Err</code> value, this method calls the code in the <em>closure</em>, which is an anonymous function we define and pass as an argument to <code>unwrap_or_else</code>. We’ll cover closures in more detail in <a href="ch13-00-functional-features.html">Chapter 13</a><!-- ignore -->. For now, you just need to know that <code>unwrap_or_else</code> will pass the inner value of the <code>Err</code>, which in this case is the static string <code>"not enough arguments"</code> that we added in Listing 12-9, to our closure in the argument <code>err</code> that appears between the vertical pipes. The code in the closure can then use the <code>err</code> value when it runs.</p>
-<p>We’ve added a new <code>use</code> line to bring <code>process</code> from the standard library into scope. The code in the closure that will be run in the error case is only two lines: we print the <code>err</code> value and then call <code>process::exit</code>. The <code>process::exit</code> function will stop the program immediately and return the number that was passed as the exit status code. This is similar to the <code>panic!</code>-based handling we used in Listing 12-8, but we no longer get all the extra output. Let’s try it:</p>
+<p>이 목록에서 우리는 아직 자세히 다루지 않은 메서드인 <code>unwrap_or_else</code>를 사용했습니다. 이 메서드는 표준 라이브러리의 <code>Result&lt;T, E&gt;</code>에 정의되어 있습니다. <code>unwrap_or_else</code>를 사용하면 <code>panic!</code>이 아닌 커스텀 에러 처리를 정의할 수 있습니다. <code>Result</code>가 <code>Ok</code> 값이면 이 메서드의 동작은 <code>unwrap</code>과 유사합니다. 즉, <code>Ok</code>가 감싸고 있는 내부 값을 반환합니다. 하지만 값이 <code>Err</code>이면, 이 메서드는 우리가 정의하여 <code>unwrap_or_else</code>의 인수로 전달한 _클로저(closure)_의 코드를 호출합니다. 클로저에 대해서는 <a href="ch13-00-functional-features.html">13장</a><!-- ignore -->에서 더 자세히 다룰 것입니다. 지금은 <code>unwrap_or_else</code>가 <code>Err</code> 내부의 값(여기서는 목록 12-9에서 추가한 정적 문자열 <code>"인수가 부족합니다"</code>)을 수직 파이프 사이에 있는 인수 <code>err</code>을 통해 클로저로 전달한다는 것만 알면 됩니다. 그러면 클로저 내부의 코드가 실행될 때 이 <code>err</code> 값을 사용할 수 있습니다.</p>
+<p>표준 라이브러리에서 <code>process</code>를 가져오기 위해 새로운 <code>use</code> 라인을 추가했습니다. 에러 발생 시 실행될 클로저 내부의 코드는 단 두 줄입니다. <code>err</code> 값을 출력하고 <code>process::exit</code>를 호출합니다. <code>process::exit</code> 함수는 프로그램을 즉시 중단하고 인수로 전달된 숫자를 종료 상태 코드로 반환합니다. 이는 목록 12-8에서 사용한 <code>panic!</code> 기반 처리와 유사하지만, 더 이상 불필요한 추가 출력들을 보지 않아도 됩니다. 실행해 봅시다:</p>
 <pre><code class="language-console">$ cargo run
    Compiling minigrep v0.1.0 (file:///projects/minigrep)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.48s
      Running `target/debug/minigrep`
 Problem parsing arguments: not enough arguments
 </code></pre>
-<p>Great! This output is much friendlier for our users.</p>
-<h3 id="extracting-logic-from-main"><a class="header" href="#extracting-logic-from-main">Extracting Logic from <code>main</code></a></h3>
-<p>Now that we’ve finished refactoring the configuration parsing, let’s turn to the program’s logic. As we stated in <a href="#separation-of-concerns-for-binary-projects">“Separation of Concerns for Binary Projects”</a><!-- ignore -->, we’ll extract a function named <code>run</code> that will hold all the logic currently in the <code>main</code> function that isn’t involved with setting up configuration or handling errors. When we’re done, <code>main</code> will be concise and easy to verify by inspection, and we’ll be able to write tests for all the other logic.</p>
-<p>Listing 12-11 shows the extracted <code>run</code> function. For now, we’re just making the small, incremental improvement of extracting the function. We’re still defining the function in <em>src/main.rs</em>.</p>
+<p>좋습니다! 이 출력은 우리 사용자들에게 훨씬 더 친절합니다.</p>
+<h3 id="main에서-로직-추출하기"><a class="header" href="#main에서-로직-추출하기"><code>main</code>에서 로직 추출하기</a></h3>
+<p>설정 파싱의 리팩터링을 마쳤으니, 이제 프로그램의 로직으로 눈을 돌려봅시다. <a href="#separation-of-concerns-for-binary-projects">“바이너리 프로젝트를 위한 관심사 분리”</a><!-- ignore -->에서 언급했듯이, 설정이나 에러 처리를 제외하고 현재 <code>main</code> 함수에 있는 모든 로직을 담을 <code>run</code>이라는 함수를 추출하겠습니다. 작업이 끝나면 <code>main</code>은 간결해지고 훑어보는 것만으로도 올바름을 검증할 수 있게 될 것이며, 다른 모든 로직에 대해서는 테스트를 작성할 수 있게 될 것입니다.</p>
+<p>목록 12-11은 추출된 <code>run</code> 함수를 보여줍니다. 현재로서는 함수를 추출하는 작고 점진적인 개선만 진행하고 있습니다. 함수는 여전히 _src/main.rs_에 정의합니다.</p>
 <Listing number="12-11" file-name="src/main.rs" caption="Extracting a `run` function containing the rest of the program logic">
 <pre><code class="language-rust ignore"><span class="boring">use std::env;
 </span><span class="boring">use std::fs;
@@ -527,7 +527,7 @@ Problem parsing arguments: not enough arguments
 <span class="boring">    let args: Vec&lt;String&gt; = env::args().collect();
 </span><span class="boring">
 </span><span class="boring">    let config = Config::build(&amp;args).unwrap_or_else(|err| {
-</span><span class="boring">        println!("Problem parsing arguments: {err}");
+</span><span class="boring">        println!("인수 파싱 중 문제 발생: {err}");
 </span><span class="boring">        process::exit(1);
 </span><span class="boring">    });
 </span><span class="boring">
@@ -539,9 +539,9 @@ Problem parsing arguments: not enough arguments
 
 fn run(config: Config) {
     let contents = fs::read_to_string(config.file_path)
-        .expect("Should have been able to read the file");
+        .expect("파일을 읽을 수 있어야 합니다");
 
-    println!("With text:\n{contents}");
+    println!("텍스트 내용:\n{contents}");
 }
 
 // --생략--
@@ -554,7 +554,7 @@ fn run(config: Config) {
 </span><span class="boring">impl Config {
 </span><span class="boring">    fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
 </span><span class="boring">        if args.len() &lt; 3 {
-</span><span class="boring">            return Err("not enough arguments");
+</span><span class="boring">            return Err("인수가 부족합니다");
 </span><span class="boring">        }
 </span><span class="boring">
 </span><span class="boring">        let query = args[1].clone();
@@ -564,9 +564,9 @@ fn run(config: Config) {
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 </Listing>
-<p>The <code>run</code> function now contains all the remaining logic from <code>main</code>, starting from reading the file. The <code>run</code> function takes the <code>Config</code> instance as an argument.</p>
-<h4 id="returning-errors-from-the-run-function"><a class="header" href="#returning-errors-from-the-run-function">Returning Errors from the <code>run</code> Function</a></h4>
-<p>With the remaining program logic separated into the <code>run</code> function, we can improve the error handling, as we did with <code>Config::build</code> in Listing 12-9. Instead of allowing the program to panic by calling <code>expect</code>, the <code>run</code> function will return a <code>Result&lt;T, E&gt;</code> when something goes wrong. This will let us further consolidate the logic around handling errors into <code>main</code> in a user-friendly way. Listing 12-12 shows the changes we need to make to the signature and body of <code>run</code>.</p>
+<p><code>run</code> 함수는 이제 파일을 읽는 것부터 시작하여 <code>main</code>에 남은 모든 로직을 포함합니다. <code>run</code> 함수는 <code>Config</code> 인스턴스를 인수로 받습니다.</p>
+<h4 id="run-함수에서-에러-반환하기"><a class="header" href="#run-함수에서-에러-반환하기"><code>run</code> 함수에서 에러 반환하기</a></h4>
+<p>나머지 프로그램 로직이 <code>run</code> 함수로 분리되었으므로, 목록 12-9의 <code>Config::build</code>에서 했던 것처럼 에러 처리를 개선할 수 있습니다. <code>expect</code>를 호출하여 프로그램이 패닉을 일으키게 두는 대신, 문제가 발생했을 때 <code>run</code> 함수가 <code>Result&lt;T, E&gt;</code>를 반환하도록 하겠습니다. 이렇게 하면 에러 처리에 관한 로직을 사용자 친화적인 방식으로 <code>main</code>에 더 통합할 수 있습니다. 목록 12-12는 <code>run</code>의 시그니처와 본문에 필요한 변경 사항을 보여줍니다.</p>
 <Listing number="12-12" file-name="src/main.rs" caption="Changing the `run` function to return `Result`">
 <pre><code class="language-rust ignore"><span class="boring">use std::env;
 </span><span class="boring">use std::fs;
@@ -580,7 +580,7 @@ fn run(config: Config) {
 </span><span class="boring">    let args: Vec&lt;String&gt; = env::args().collect();
 </span><span class="boring">
 </span><span class="boring">    let config = Config::build(&amp;args).unwrap_or_else(|err| {
-</span><span class="boring">        println!("Problem parsing arguments: {err}");
+</span><span class="boring">        println!("인수 파싱 중 문제 발생: {err}");
 </span><span class="boring">        process::exit(1);
 </span><span class="boring">    });
 </span><span class="boring">
@@ -593,7 +593,7 @@ fn run(config: Config) {
 </span>fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
     let contents = fs::read_to_string(config.file_path)?;
 
-    println!("With text:\n{contents}");
+    println!("텍스트 내용:\n{contents}");
 
     Ok(())
 }
@@ -606,7 +606,7 @@ fn run(config: Config) {
 </span><span class="boring">impl Config {
 </span><span class="boring">    fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
 </span><span class="boring">        if args.len() &lt; 3 {
-</span><span class="boring">            return Err("not enough arguments");
+</span><span class="boring">            return Err("인수가 부족합니다");
 </span><span class="boring">        }
 </span><span class="boring">
 </span><span class="boring">        let query = args[1].clone();
@@ -616,11 +616,11 @@ fn run(config: Config) {
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 </Listing>
-<p>We’ve made three significant changes here. First, we changed the return type of the <code>run</code> function to <code>Result&lt;(), Box&lt;dyn Error&gt;&gt;</code>. This function previously returned the unit type, <code>()</code>, and we keep that as the value returned in the <code>Ok</code> case.</p>
-<p>For the error type, we used the <em>trait object</em> <code>Box&lt;dyn Error&gt;</code> (and we’ve brought <code>std::error::Error</code> into scope with a <code>use</code> statement at the top). We’ll cover trait objects in <a href="ch18-00-oop.html">Chapter 18</a><!-- ignore -->. For now, just know that <code>Box&lt;dyn Error&gt;</code> means the function will return a type that implements the <code>Error</code> trait, but we don’t have to specify what particular type the return value will be. This gives us flexibility to return error values that may be of different types in different error cases. The <code>dyn</code> keyword is short for <em>dynamic</em>.</p>
+<p>여기서 세 가지 중요한 변경을 했습니다. 첫째, <code>run</code> 함수의 반환 타입을 <code>Result&lt;(), Box&lt;dyn Error&gt;&gt;</code>로 변경했습니다. 이 함수는 이전에 유닛 타입 <code>()</code>를 반환했으므로, <code>Ok</code> 케이스에서 반환되는 값으로 이를 유지합니다.</p>
+<p>에러 타입으로 _트레이트 객체_인 <code>Box&lt;dyn Error&gt;</code>를 사용했습니다(그리고 상단에 <code>use</code> 문을 사용하여 <code>std::error::Error</code>를 가져왔습니다). 트레이트 객체에 대해서는 <a href="ch18-00-oop.html">18장</a><!-- ignore -->에서 다룰 예정입니다. 지금은 <code>Box&lt;dyn Error&gt;</code>가 이 함수가 <code>Error</code> 트레이트를 구현하는 타입을 반환할 것이라는 의미이며, 반환 값이 구체적으로 어떤 타입일지 지정할 필요가 없다는 것만 알아두면 됩니다. 이를 통해 서로 다른 에러 상황에서 서로 다른 타입의 에러 값을 반환할 수 있는 유연성을 얻게 됩니다. <code>dyn</code> 키워드는 _동적(dynamic)_의 줄임말입니다.</p>
 <p>두 번째로, <a href="ch09-02-recoverable-errors-with-result.html#a-shortcut-for-propagating-errors-the--operator">9장</a><!-- ignore -->에서 이야기했듯이 <code>expect</code> 호출을 <code>?</code> 연산자로 대체했습니다. 오류 발생 시 <code>panic!</code>을 호출하는 대신, <code>?</code>는 현재 함수에서 오류 값을 반환하여 호출자가 처리하도록 합니다.</p>
-<p>Third, the <code>run</code> function now returns an <code>Ok</code> value in the success case. We’ve declared the <code>run</code> function’s success type as <code>()</code> in the signature, which means we need to wrap the unit type value in the <code>Ok</code> value. This <code>Ok(())</code> syntax might look a bit strange at first, but using <code>()</code> like this is the idiomatic way to indicate that we’re calling <code>run</code> for its side effects only; it doesn’t return a value we need.</p>
-<p>When you run this code, it will compile but will display a warning:</p>
+<p>셋째, <code>run</code> 함수는 이제 성공 시 <code>Ok</code> 값을 반환합니다. 시그니처에서 <code>run</code> 함수의 성공 타입을 <code>()</code>로 선언했으므로, 유닛 타입 값을 <code>Ok</code> 값으로 감싸야 합니다. 이 <code>Ok(())</code> 문법이 처음에는 다소 생소해 보일 수 있지만, 이렇게 <code>()</code>를 사용하는 것은 <code>run</code> 함수를 호출하는 목적이 오직 부수 효과(side effect)에 있으며, 우리가 필요로 하는 값을 반환하지 않는다는 것을 나타내는 관용적인 방법입니다.</p>
+<p>이 코드를 실행하면 컴파일은 되지만 경고가 표시될 것입니다:</p>
 <pre><code class="language-console">$ cargo run -- the poem.txt
    Compiling minigrep v0.1.0 (file:///projects/minigrep)
 warning: unused `Result` that must be used
@@ -653,9 +653,9 @@ To tell your name the livelong day
 To an admiring bog!
 
 </code></pre>
-<p>Rust tells us that our code ignored the <code>Result</code> value and the <code>Result</code> value might indicate that an error occurred. But we’re not checking to see whether or not there was an error, and the compiler reminds us that we probably meant to have some error-handling code here! Let’s rectify that problem now.</p>
-<h4 id="handling-errors-returned-from-run-in-main"><a class="header" href="#handling-errors-returned-from-run-in-main">Handling Errors Returned from <code>run</code> in <code>main</code></a></h4>
-<p>We’ll check for errors and handle them using a technique similar to one we used with <code>Config::build</code> in Listing 12-10, but with a slight difference:</p>
+<p>러스트는 우리 코드가 <code>Result</code> 값을 무시했으며, 이 <code>Result</code> 값이 에러가 발생했음을 나타낼 수도 있다고 알려줍니다. 하지만 우리는 에러가 있었는지 확인하지 않고 있으며, 컴파일러는 여기에 에러 처리 코드가 필요할 것이라고 상기시켜 줍니다! 이제 이 문제를 해결해 봅시다.</p>
+<h4 id="main에서-run이-반환한-에러-처리하기"><a class="header" href="#main에서-run이-반환한-에러-처리하기"><code>main</code>에서 <code>run</code>이 반환한 에러 처리하기</a></h4>
+<p>목록 12-10에서 <code>Config::build</code>와 함께 사용했던 것과 유사하지만 약간의 차이가 있는 기술을 사용하여 에러를 확인하고 처리해 보겠습니다.</p>
 <p><span class="filename">파일명: src/main.rs</span></p>
 <pre><code class="language-rust ignore"><span class="boring">use std::env;
 </span><span class="boring">use std::error::Error;
@@ -668,7 +668,7 @@ To an admiring bog!
 <span class="boring">    let args: Vec&lt;String&gt; = env::args().collect();
 </span><span class="boring">
 </span><span class="boring">    let config = Config::build(&amp;args).unwrap_or_else(|err| {
-</span><span class="boring">        println!("Problem parsing arguments: {err}");
+</span><span class="boring">        println!("인수 파싱 중 문제 발생: {err}");
 </span><span class="boring">        process::exit(1);
 </span><span class="boring">    });
 </span><span class="boring">
@@ -676,7 +676,7 @@ To an admiring bog!
     println!("In file {}", config.file_path);
 
     if let Err(e) = run(config) {
-        println!("Application error: {e}");
+        println!("애플리케이션 에러: {e}");
         process::exit(1);
     }
 }
@@ -684,7 +684,7 @@ To an admiring bog!
 </span><span class="boring">fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
 </span><span class="boring">    let contents = fs::read_to_string(config.file_path)?;
 </span><span class="boring">
-</span><span class="boring">    println!("With text:\n{contents}");
+</span><span class="boring">    println!("텍스트 내용:\n{contents}");
 </span><span class="boring">
 </span><span class="boring">    Ok(())
 </span><span class="boring">}
@@ -697,7 +697,7 @@ To an admiring bog!
 </span><span class="boring">impl Config {
 </span><span class="boring">    fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
 </span><span class="boring">        if args.len() &lt; 3 {
-</span><span class="boring">            return Err("not enough arguments");
+</span><span class="boring">            return Err("인수가 부족합니다");
 </span><span class="boring">        }
 </span><span class="boring">
 </span><span class="boring">        let query = args[1].clone();
@@ -706,18 +706,18 @@ To an admiring bog!
 </span><span class="boring">        Ok(Config { query, file_path })
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
-<p>We use <code>if let</code> rather than <code>unwrap_or_else</code> to check whether <code>run</code> returns an <code>Err</code> value and to call <code>process::exit(1)</code> if it does. The <code>run</code> function doesn’t return a value that we want to <code>unwrap</code> in the same way that <code>Config::build</code> returns the <code>Config</code> instance. Because <code>run</code> returns <code>()</code> in the success case, we only care about detecting an error, so we don’t need <code>unwrap_or_else</code> to return the unwrapped value, which would only be <code>()</code>.</p>
-<p>The bodies of the <code>if let</code> and the <code>unwrap_or_else</code> functions are the same in both cases: we print the error and exit.</p>
-<h3 id="splitting-code-into-a-library-crate"><a class="header" href="#splitting-code-into-a-library-crate">Splitting Code into a Library Crate</a></h3>
-<p>Our <code>minigrep</code> project is looking good so far! Now we’ll split the <em>src/main.rs</em> file and put some code into the <em>src/lib.rs</em> file. That way, we can test the code and have a <em>src/main.rs</em> file with fewer responsibilities.</p>
-<p>Let’s move all the code that isn’t in the <code>main</code> function from <em>src/main.rs</em> to <em>src/lib.rs</em>:</p>
+<p><code>run</code>이 <code>Err</code> 값을 반환하는지 확인하고, 그럴 경우 <code>process::exit(1)</code>을 호출하기 위해 <code>unwrap_or_else</code> 대신 <code>if let</code>을 사용합니다. <code>run</code> 함수는 <code>Config::build</code>가 <code>Config</code> 인스턴스를 반환하는 것처럼 우리가 <code>unwrap</code>하고 싶은 값을 반환하지 않습니다. <code>run</code>은 성공 시 <code>()</code>를 반환하므로, 우리는 에러를 감지하는 것에만 관심이 있습니다. 따라서 단지 <code>()</code>일 뿐인 언랩된 값을 반환받기 위해 <code>unwrap_or_else</code>를 사용할 필요가 없습니다.</p>
+<p>두 경우 모두 <code>if let</code>과 <code>unwrap_or_else</code> 함수의 본문은 동일합니다. 에러를 출력하고 종료하는 것이죠.</p>
+<h3 id="코드를-라이브러리-크레이트로-분리하기"><a class="header" href="#코드를-라이브러리-크레이트로-분리하기">코드를 라이브러리 크레이트로 분리하기</a></h3>
+<p>우리 <code>minigrep</code> 프로젝트가 지금까지는 아주 좋아 보이네요! 이제 <em>src/main.rs</em> 파일을 분리하여 일부 코드를 <em>src/lib.rs</em> 파일에 넣겠습니다. 그렇게 하면 코드를 테스트할 수 있고, <em>src/main.rs</em> 파일의 책임을 줄일 수 있습니다.</p>
+<p><code>main</code> 함수에 있지 않은 모든 코드를 _src/main.rs_에서 _src/lib.rs_로 옮겨 봅시다:</p>
 <ul>
-<li>The <code>run</code> function definition</li>
-<li>The relevant <code>use</code> statements</li>
-<li>The definition of <code>Config</code></li>
-<li>The <code>Config::build</code> function definition</li>
+<li><code>run</code> 함수 정의</li>
+<li>관련 <code>use</code> 문들</li>
+<li><code>Config</code> 정의</li>
+<li><code>Config::build</code> 함수 정의</li>
 </ul>
-<p>The contents of <em>src/lib.rs</em> should have the signatures shown in Listing 12-13 (we’ve omitted the bodies of the functions for brevity). Note that this won’t compile until we modify <em>src/main.rs</em> in Listing 12-14.</p>
+<p>_src/lib.rs_의 내용은 목록 12-13에 표시된 시그니처들을 가져야 합니다(간결함을 위해 함수 본문은 생략했습니다). 목록 12-14에서 _src/main.rs_를 수정하기 전까지는 컴파일되지 않는다는 점에 주의하세요.</p>
 <Listing number="12-13" file-name="src/lib.rs" caption="Moving `Config` and `run` into *src/lib.rs*">
 <pre><code class="language-rust ignore does_not_compile">use std::error::Error;
 use std::fs;
@@ -731,7 +731,7 @@ impl Config {
     pub fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
         // --생략--
 <span class="boring">        if args.len() &lt; 3 {
-</span><span class="boring">            return Err("not enough arguments");
+</span><span class="boring">            return Err("인수가 부족합니다");
 </span><span class="boring">        }
 </span><span class="boring">
 </span><span class="boring">        let query = args[1].clone();
@@ -745,13 +745,13 @@ pub fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
     // --생략--
 <span class="boring">    let contents = fs::read_to_string(config.file_path)?;
 </span><span class="boring">
-</span><span class="boring">    println!("With text:\n{contents}");
+</span><span class="boring">    println!("텍스트 내용:\n{contents}");
 </span><span class="boring">
 </span><span class="boring">    Ok(())
 </span>}</code></pre>
 </Listing>
-<p>We’ve made liberal use of the <code>pub</code> keyword: on <code>Config</code>, on its fields and its <code>build</code> method, and on the <code>run</code> function. We now have a library crate that has a public API we can test!</p>
-<p>Now we need to bring the code we moved to <em>src/lib.rs</em> into the scope of the binary crate in <em>src/main.rs</em>, as shown in Listing 12-14.</p>
+<p><code>Config</code>와 그 필드들, <code>build</code> 메서드, 그리고 <code>run</code> 함수에 <code>pub</code> 키워드를 아낌없이 사용했습니다. 이제 테스트 가능한 공개 API를 갖춘 라이브러리 크레이트가 생겼습니다!</p>
+<p>이제 목록 12-14와 같이 _src/lib.rs_로 옮긴 코드를 _src/main.rs_의 바이너리 크레이트 스코프로 가져와야 합니다.</p>
 <Listing number="12-14" file-name="src/main.rs" caption="Using the `minigrep` library crate in *src/main.rs*">
 <pre><code class="language-rust ignore">use std::env;
 use std::process;
@@ -763,7 +763,7 @@ fn main() {
 <span class="boring">    let args: Vec&lt;String&gt; = env::args().collect();
 </span><span class="boring">
 </span><span class="boring">    let config = Config::build(&amp;args).unwrap_or_else(|err| {
-</span><span class="boring">        println!("Problem parsing arguments: {err}");
+</span><span class="boring">        println!("인수 파싱 중 문제 발생: {err}");
 </span><span class="boring">        process::exit(1);
 </span><span class="boring">    });
 </span><span class="boring">
@@ -772,14 +772,14 @@ fn main() {
 </span><span class="boring">
 </span>    if let Err(e) = minigrep::run(config) {
         // --생략--
-<span class="boring">        println!("Application error: {e}");
+<span class="boring">        println!("애플리케이션 에러: {e}");
 </span><span class="boring">        process::exit(1);
 </span>    }
 }</code></pre>
 </Listing>
-<p>We add a <code>use minigrep::Config</code> line to bring the <code>Config</code> type from the library crate into the binary crate’s scope, and we prefix the <code>run</code> function with our crate name. Now all the functionality should be connected and should work. Run the program with <code>cargo run</code> and make sure everything works correctly.</p>
-<p>Whew! That was a lot of work, but we’ve set ourselves up for success in the future. Now it’s much easier to handle errors, and we’ve made the code more modular. Almost all of our work will be done in <em>src/lib.rs</em> from here on out.</p>
-<p>Let’s take advantage of this newfound modularity by doing something that would have been difficult with the old code but is easy with the new code: we’ll write some tests!</p>
+<p>라이브러리 크레이트의 <code>Config</code> 타입을 바이너리 크레이트의 스코프로 가져오기 위해 <code>use minigrep::Config</code> 라인을 추가하고, <code>run</code> 함수 앞에 우리 크레이트 이름을 붙입니다. 이제 모든 기능이 연결되어 작동할 것입니다. <code>cargo run</code>으로 프로그램을 실행하여 모든 것이 올바르게 작동하는지 확인하세요.</p>
+<p>휴! 일이 꽤 많았지만, 앞으로의 성공을 위한 기반을 닦았습니다. 이제 에러 처리가 훨씬 쉬워졌고, 코드도 더 모듈화되었습니다. 앞으로는 거의 모든 작업을 _src/lib.rs_에서 하게 될 것입니다.</p>
+<p>이러한 모듈화의 장점을 활용하여 이전 코드에서는 어려웠지만 새 코드에서는 쉬운 작업을 해봅시다. 바로 테스트를 작성하는 것입니다!</p>
 
                     </main>
 

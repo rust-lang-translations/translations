@@ -249,7 +249,7 @@
 
 impl Summary for NewsArticle {
     fn summarize(&amp;self) -&gt; String {
-        format!("{}, by {} ({})", self.headline, self.author, self.location)
+        format!("{}, {} 작성 ({})", self.headline, self.author, self.location)
     }
 }
 
@@ -266,32 +266,32 @@ impl Summary for Tweet {
     }
 }</code></pre>
 </Listing>
-<p>Implementing a trait on a type is similar to implementing regular methods. The difference is that after <code>impl</code>, we put the trait name we want to implement, then use the <code>for</code> keyword, and then specify the name of the type we want to implement the trait for. Within the <code>impl</code> block, we put the method signatures that the trait definition has defined. Instead of adding a semicolon after each signature, we use curly brackets and fill in the method body with the specific behavior that we want the methods of the trait to have for the particular type.</p>
-<p>Now that the library has implemented the <code>Summary</code> trait on <code>NewsArticle</code> and <code>Tweet</code>, users of the crate can call the trait methods on instances of <code>NewsArticle</code> and <code>Tweet</code> in the same way we call regular methods. The only difference is that the user must bring the trait into scope as well as the types. Here’s an example of how a binary crate could use our <code>aggregator</code> library crate:</p>
+<p>타입에 트레이트를 구현하는 것은 일반 메서드를 구현하는 것과 유사합니다. 차이점은 <code>impl</code> 다음에 구현하려는 트레이트 이름을 넣고, 그 다음 <code>for</code> 키워드를 사용한 다음, 트레이트를 구현하려는 타입의 이름을 지정한다는 것입니다. <code>impl</code> 블록 내에는 트레이트 정의가 정의한 메서드 시그니처를 넣습니다. 각 시그니처 뒤에 세미콜론을 추가하는 대신 중괄호를 사용하고 해당 타입에 대해 트레이트의 메서드가 가져야 할 특정 동작으로 메서드 본문을 채웁니다.</p>
+<p>이제 라이브러리가 <code>NewsArticle</code>과 <code>Tweet</code>에 <code>Summary</code> 트레이트를 구현했으므로, 크레이트 사용자는 일반 메서드를 호출하는 것과 동일한 방식으로 <code>NewsArticle</code> 및 <code>Tweet</code> 인스턴스에서 트레이트 메서드를 호출할 수 있습니다. 유일한 차이점은 사용자가 타입뿐만 아니라 트레이트도 스코프로 가져와야 한다는 것입니다. 다음은 바이너리 크레이트가 <code>aggregator</code> 라이브러리 크레이트를 사용하는 방법의 예입니다:</p>
 <pre><code class="language-rust ignore">use aggregator::{Summary, Tweet};
 
 fn main() {
     let tweet = Tweet {
         username: String::from("horse_ebooks"),
         content: String::from(
-            "of course, as you probably already know, people",
+            "물론, 이미 알고 계시겠지만, 사람들",
         ),
         reply: false,
         retweet: false,
     };
 
-    println!("1 new tweet: {}", tweet.summarize());
+    println!("새 트윗 1개: {}", tweet.summarize());
 }</code></pre>
-<p>This code prints <code>1 new tweet: horse_ebooks: of course, as you probably already know, people</code>.</p>
-<p>Other crates that depend on the <code>aggregator</code> crate can also bring the <code>Summary</code> trait into scope to implement <code>Summary</code> on their own types. One restriction to note is that we can implement a trait on a type only if either the trait or the type, or both, are local to our crate. For example, we can implement standard library traits like <code>Display</code> on a custom type like <code>Tweet</code> as part of our <code>aggregator</code> crate functionality because the type <code>Tweet</code> is local to our <code>aggregator</code> crate. We can also implement <code>Summary</code> on <code>Vec&lt;T&gt;</code> in our <code>aggregator</code> crate because the trait <code>Summary</code> is local to our <code>aggregator</code> crate.</p>
-<p>But we can’t implement external traits on external types. For example, we can’t implement the <code>Display</code> trait on <code>Vec&lt;T&gt;</code> within our <code>aggregator</code> crate because <code>Display</code> and <code>Vec&lt;T&gt;</code> are both defined in the standard library and aren’t local to our <code>aggregator</code> crate. This restriction is part of a property called <em>coherence</em>, and more specifically the <em>orphan rule</em>, so named because the parent type is not present. This rule ensures that other people’s code can’t break your code and vice versa. Without the rule, two crates could implement the same trait for the same type, and Rust wouldn’t know which implementation to use.</p>
-<h3 id="default-implementations"><a class="header" href="#default-implementations">Default Implementations</a></h3>
-<p>Sometimes it’s useful to have default behavior for some or all of the methods in a trait instead of requiring implementations for all methods on every type. Then, as we implement the trait on a particular type, we can keep or override each method’s default behavior.</p>
-<p>In Listing 10-14, we specify a default string for the <code>summarize</code> method of the <code>Summary</code> trait instead of only defining the method signature, as we did in Listing 10-12.</p>
+<p>이 코드는 <code>새 트윗 1개: horse_ebooks: 물론, 이미 알고 계시겠지만, 사람들</code>을 출력합니다.</p>
+<p><code>aggregator</code> 크레이트에 의존하는 다른 크레이트들도 <code>Summary</code> 트레이트를 스코프로 가져와 자신의 타입에 <code>Summary</code>를 구현할 수 있습니다. 주의해야 할 제한 사항은 트레이트나 타입 중 하나, 또는 둘 다 우리 크레이트에 로컬인 경우에만 타입에 트레이트를 구현할 수 있다는 것입니다. 예를 들어, <code>Tweet</code> 타입이 <code>aggregator</code> 크레이트에 로컬이기 때문에 <code>aggregator</code> 크레이트 기능의 일부로 <code>Tweet</code>과 같은 사용자 정의 타입에 <code>Display</code>와 같은 표준 라이브러리 트레이트를 구현할 수 있습니다. 또한 <code>Summary</code> 트레이트가 <code>aggregator</code> 크레이트에 로컬이기 때문에 <code>aggregator</code> 크레이트에서 <code>Vec&lt;T&gt;</code>에 <code>Summary</code>를 구현할 수도 있습니다.</p>
+<p>하지만 외부 타입에 외부 트레이트를 구현할 수는 없습니다. 예를 들어, <code>Display</code>와 <code>Vec&lt;T&gt;</code>는 모두 표준 라이브러리에 정의되어 있고 <code>aggregator</code> 크레이트에 로컬이 아니기 때문에 <code>aggregator</code> 크레이트 내에서 <code>Vec&lt;T&gt;</code>에 <code>Display</code> 트레이트를 구현할 수 없습니다. 이 제한은 <em>일관성(coherence)</em> 이라고 불리는 속성의 일부이며, 더 구체적으로는 부모 타입이 존재하지 않는다고 해서 <em>고아 규칙(orphan rule)</em> 이라고 불립니다. 이 규칙은 다른 사람의 코드가 여러분의 코드를 망가뜨리거나 그 반대의 경우가 발생하지 않도록 보장합니다. 이 규칙이 없다면 두 크레이트가 동일한 타입에 대해 동일한 트레이트를 구현할 수 있고, 러스트는 어떤 구현을 사용해야 할지 알 수 없게 됩니다.</p>
+<h3 id="기본-구현"><a class="header" href="#기본-구현">기본 구현</a></h3>
+<p>때로는 모든 타입에서 모든 메서드를 구현하도록 요구하는 대신 트레이트의 일부 또는 모든 메서드에 대해 기본 동작을 갖는 것이 유용할 때가 있습니다. 그러면 특정 타입에 트레이트를 구현할 때 각 메서드의 기본 동작을 유지하거나 재정의할 수 있습니다.</p>
+<p>목록 10-14에서는 목록 10-12에서 했던 것처럼 메서드 시그니처만 정의하는 대신, <code>Summary</code> 트레이트의 <code>summarize</code> 메서드에 대한 기본 문자열을 지정합니다.</p>
 <Listing number="10-14" file-name="src/lib.rs" caption="Defining a `Summary` trait with a default implementation of the `summarize` method">
 <pre><code class="language-rust noplayground">pub trait Summary {
     fn summarize(&amp;self) -&gt; String {
-        String::from("(Read more...)")
+        String::from("(더 읽어보기...)")
     }
 }
 <span class="boring">
@@ -317,31 +317,31 @@ fn main() {
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 </Listing>
-<p>To use a default implementation to summarize instances of <code>NewsArticle</code>, we specify an empty <code>impl</code> block with <code>impl Summary for NewsArticle {}</code>.</p>
-<p>Even though we’re no longer defining the <code>summarize</code> method on <code>NewsArticle</code> directly, we’ve provided a default implementation and specified that <code>NewsArticle</code> implements the <code>Summary</code> trait. As a result, we can still call the <code>summarize</code> method on an instance of <code>NewsArticle</code>, like this:</p>
+<p><code>NewsArticle</code> 인스턴스를 요약하기 위해 기본 구현을 사용하려면, <code>impl Summary for NewsArticle {}</code>과 같이 빈 <code>impl</code> 블록을 지정합니다.</p>
+<p><code>NewsArticle</code>에 <code>summarize</code> 메서드를 직접 정의하지는 않았지만, 기본 구현을 제공하고 <code>NewsArticle</code>이 <code>Summary</code> 트레이트를 구현한다고 지정했습니다. 결과적으로 다음과 같이 <code>NewsArticle</code>의 인스턴스에서 <code>summarize</code> 메서드를 호출할 수 있습니다:</p>
 <pre><code class="language-rust ignore"><span class="boring">use aggregator::{self, NewsArticle, Summary};
 </span><span class="boring">
 </span><span class="boring">fn main() {
 </span>    let article = NewsArticle {
-        headline: String::from("Penguins win the Stanley Cup Championship!"),
-        location: String::from("Pittsburgh, PA, USA"),
-        author: String::from("Iceburgh"),
+        headline: String::from("펭귄스, 스탠리 컵 챔피언십 우승!"),
+        location: String::from("미국 펜실베이니아주 피츠버그"),
+        author: String::from("아이스버그"),
         content: String::from(
-            "The Pittsburgh Penguins once again are the best \
-             hockey team in the NHL.",
+            "피츠버그 펭귄스는 다시 한번 NHL 최고의 \
+             하키 팀이 되었습니다.",
         ),
     };
 
-    println!("New article available! {}", article.summarize());
+    println!("새로운 기사를 볼 수 있습니다! {}", article.summarize());
 <span class="boring">}</span></code></pre>
-<p>This code prints <code>New article available! (Read more...)</code>.</p>
-<p>Creating a default implementation doesn’t require us to change anything about the implementation of <code>Summary</code> on <code>Tweet</code> in Listing 10-13. The reason is that the syntax for overriding a default implementation is the same as the syntax for implementing a trait method that doesn’t have a default implementation.</p>
-<p>Default implementations can call other methods in the same trait, even if those other methods don’t have a default implementation. In this way, a trait can provide a lot of useful functionality and only require implementors to specify a small part of it. For example, we could define the <code>Summary</code> trait to have a <code>summarize_author</code> method whose implementation is required, and then define a <code>summarize</code> method that has a default implementation that calls the <code>summarize_author</code> method:</p>
+<p>이 코드는 <code>새로운 기사를 볼 수 있습니다! (더 읽어보기...)</code>를 출력합니다.</p>
+<p>기본 구현을 생성한다고 해서 목록 10-13의 <code>Tweet</code>에 대한 <code>Summary</code> 구현을 변경할 필요는 없습니다. 기본 구현을 재정의하는 문법은 기본 구현이 없는 트레이트 메서드를 구현하는 문법과 동일하기 때문입니다.</p>
+<p>기본 구현은 동일한 트레이트 내의 다른 메서드를 호출할 수 있습니다. 그 다른 메서드에 기본 구현이 없더라도 상관없습니다. 이런 방식으로 트레이트는 많은 유용한 기능을 제공하면서 구현자가 그 중 일부만 지정하도록 요구할 수 있습니다. 예를 들어, <code>Summary</code> 트레이트에 구현이 필요한 <code>summarize_author</code> 메서드를 정의하고, <code>summarize</code> 메서드는 <code>summarize_author</code> 메서드를 호출하는 기본 구현을 갖도록 정의할 수 있습니다:</p>
 <pre><code class="language-rust noplayground">pub trait Summary {
     fn summarize_author(&amp;self) -&gt; String;
 
     fn summarize(&amp;self) -&gt; String {
-        format!("(Read more from {}...)", self.summarize_author())
+        format!("(...{}에서 더 읽어보기)", self.summarize_author())
     }
 }
 <span class="boring">
@@ -357,12 +357,12 @@ fn main() {
 </span><span class="boring">        format!("@{}", self.username)
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
-<p>To use this version of <code>Summary</code>, we only need to define <code>summarize_author</code> when we implement the trait on a type:</p>
+<p>이 <code>Summary</code> 버전을 사용하려면, 타입에 트레이트를 구현할 때 <code>summarize_author</code>만 정의하면 됩니다:</p>
 <pre><code class="language-rust ignore"><span class="boring">pub trait Summary {
 </span><span class="boring">    fn summarize_author(&amp;self) -&gt; String;
 </span><span class="boring">
 </span><span class="boring">    fn summarize(&amp;self) -&gt; String {
-</span><span class="boring">        format!("(Read more from {}...)", self.summarize_author())
+</span><span class="boring">        format!("(...{}에서 더 읽어보기)", self.summarize_author())
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
@@ -378,25 +378,25 @@ fn main() {
         format!("@{}", self.username)
     }
 }</code></pre>
-<p>After we define <code>summarize_author</code>, we can call <code>summarize</code> on instances of the <code>Tweet</code> struct, and the default implementation of <code>summarize</code> will call the definition of <code>summarize_author</code> that we’ve provided. Because we’ve implemented <code>summarize_author</code>, the <code>Summary</code> trait has given us the behavior of the <code>summarize</code> method without requiring us to write any more code. Here’s what that looks like:</p>
+<p><code>summarize_author</code>를 정의한 후에는 <code>Tweet</code> 구조체의 인스턴스에서 <code>summarize</code>를 호출할 수 있으며, <code>summarize</code>의 기본 구현은 우리가 제공한 <code>summarize_author</code>의 정의를 호출할 것입니다. <code>summarize_author</code>를 구현했으므로, <code>Summary</code> 트레이트는 우리가 더 이상 코드를 작성하지 않아도 <code>summarize</code> 메서드의 동작을 제공합니다. 다음과 같이 보입니다:</p>
 <pre><code class="language-rust ignore"><span class="boring">use aggregator::{self, Summary, Tweet};
 </span><span class="boring">
 </span><span class="boring">fn main() {
 </span>    let tweet = Tweet {
         username: String::from("horse_ebooks"),
         content: String::from(
-            "of course, as you probably already know, people",
+            "물론, 이미 알고 계시겠지만, 사람들",
         ),
         reply: false,
         retweet: false,
     };
 
-    println!("1 new tweet: {}", tweet.summarize());
+    println!("새 트윗 1개: {}", tweet.summarize());
 <span class="boring">}</span></code></pre>
-<p>This code prints <code>1 new tweet: (Read more from @horse_ebooks...)</code>.</p>
-<p>Note that it isn’t possible to call the default implementation from an overriding implementation of that same method.</p>
-<h3 id="traits-as-parameters"><a class="header" href="#traits-as-parameters">Traits as Parameters</a></h3>
-<p>Now that you know how to define and implement traits, we can explore how to use traits to define functions that accept many different types. We’ll use the <code>Summary</code> trait we implemented on the <code>NewsArticle</code> and <code>Tweet</code> types in Listing 10-13 to define a <code>notify</code> function that calls the <code>summarize</code> method on its <code>item</code> parameter, which is of some type that implements the <code>Summary</code> trait. To do this, we use the <code>impl Trait</code> syntax, like this:</p>
+<p>이 코드는 <code>새 트윗 1개: (@horse_ebooks에서 더 읽어보기...)</code>를 출력합니다.</p>
+<p>동일한 메서드를 재정의하는 구현에서는 기본 구현을 호출할 수 없다는 점에 유의하세요.</p>
+<h3 id="매개변수로서의-트레이트"><a class="header" href="#매개변수로서의-트레이트">매개변수로서의 트레이트</a></h3>
+<p>이제 트레이트를 정의하고 구현하는 방법을 알았으므로, 여러 다른 타입을 허용하는 함수를 정의하기 위해 트레이트를 사용하는 방법을 탐구해 볼 수 있습니다. 목록 10-13에서 <code>NewsArticle</code>과 <code>Tweet</code> 타입에 구현한 <code>Summary</code> 트레이트를 사용하여, <code>Summary</code> 트레이트를 구현하는 어떤 타입의 <code>item</code> 매개변수에 대해 <code>summarize</code> 메서드를 호출하는 <code>notify</code> 함수를 정의할 것입니다. 이를 위해 다음과 같이 <code>impl Trait</code> 문법을 사용합니다:</p>
 <pre><code class="language-rust ignore"><span class="boring">pub trait Summary {
 </span><span class="boring">    fn summarize(&amp;self) -&gt; String;
 </span><span class="boring">}
@@ -410,7 +410,7 @@ fn main() {
 </span><span class="boring">
 </span><span class="boring">impl Summary for NewsArticle {
 </span><span class="boring">    fn summarize(&amp;self) -&gt; String {
-</span><span class="boring">        format!("{}, by {} ({})", self.headline, self.author, self.location)
+</span><span class="boring">        format!("{}, {} 작성 ({})", self.headline, self.author, self.location)
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
@@ -428,32 +428,32 @@ fn main() {
 </span><span class="boring">}
 </span><span class="boring">
 </span>pub fn notify(item: &amp;impl Summary) {
-    println!("Breaking news! {}", item.summarize());
+    println!("속보! {}", item.summarize());
 }</code></pre>
-<p>Instead of a concrete type for the <code>item</code> parameter, we specify the <code>impl</code> keyword and the trait name. This parameter accepts any type that implements the specified trait. In the body of <code>notify</code>, we can call any methods on <code>item</code> that come from the <code>Summary</code> trait, such as <code>summarize</code>. We can call <code>notify</code> and pass in any instance of <code>NewsArticle</code> or <code>Tweet</code>. Code that calls the function with any other type, such as a <code>String</code> or an <code>i32</code>, won’t compile because those types don’t implement <code>Summary</code>.</p>
+<p><code>item</code> 매개변수에 구체적인 타입 대신 <code>impl</code> 키워드와 트레이트 이름을 지정합니다. 이 매개변수는 지정된 트레이트를 구현하는 어떤 타입이든 허용합니다. <code>notify</code> 본문에서는 <code>summarize</code>와 같이 <code>Summary</code> 트레이트에서 온 어떤 메서드든 <code>item</code>에서 호출할 수 있습니다. <code>notify</code>를 호출할 때 <code>NewsArticle</code>이나 <code>Tweet</code>의 인스턴스를 전달할 수 있습니다. <code>String</code>이나 <code>i32</code>와 같이 다른 타입으로 함수를 호출하는 코드는 <code>Summary</code>를 구현하지 않기 때문에 컴파일되지 않을 것입니다.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="fixing-the-largest-function-with-trait-bounds"></a></p>
 <h4 id="트레이트-바운드-문법"><a class="header" href="#트레이트-바운드-문법">트레이트 바운드 문법</a></h4>
-<p>The <code>impl Trait</code> syntax works for straightforward cases but is actually syntax sugar for a longer form known as a <em>trait bound</em>; it looks like this:</p>
+<p><code>impl Trait</code> 문법은 간단한 경우에는 잘 작동하지만, 실제로는 _트레이트 바운드_라고 알려진 더 긴 형태에 대한 문법적 설탕(syntax sugar)입니다. 다음과 같이 생겼습니다:</p>
 <pre><code class="language-rust ignore">pub fn notify&lt;T: Summary&gt;(item: &amp;T) {
-    println!("Breaking news! {}", item.summarize());
+    println!("속보! {}", item.summarize());
 }</code></pre>
-<p>This longer form is equivalent to the example in the previous section but is more verbose. We place trait bounds with the declaration of the generic type parameter after a colon and inside angle brackets.</p>
-<p>The <code>impl Trait</code> syntax is convenient and makes for more concise code in simple cases, while the fuller trait bound syntax can express more complexity in other cases. For example, we can have two parameters that implement <code>Summary</code>. Doing so with the <code>impl Trait</code> syntax looks like this:</p>
+<p>이 더 긴 형태는 이전 섹션의 예제와 동일하지만 더 장황합니다. 제네릭 타입 매개변수 선언과 함께 콜론 뒤에, 그리고 꺾쇠 괄호 안에 트레이트 바운드를 배치합니다.</p>
+<p><code>impl Trait</code> 문법은 편리하고 간단한 경우에 코드를 더 간결하게 만들지만, 더 완전한 트레이트 바운드 문법은 다른 경우에 더 많은 복잡성을 표현할 수 있습니다. 예를 들어, <code>Summary</code>를 구현하는 두 개의 매개변수를 가질 수 있습니다. <code>impl Trait</code> 문법으로 그렇게 하면 다음과 같습니다:</p>
 <pre><code class="language-rust ignore">pub fn notify(item1: &amp;impl Summary, item2: &amp;impl Summary) {</code></pre>
-<p>Using <code>impl Trait</code> is appropriate if we want this function to allow <code>item1</code> and <code>item2</code> to have different types (as long as both types implement <code>Summary</code>). If we want to force both parameters to have the same type, however, we must use a trait bound, like this:</p>
+<p><code>impl Trait</code>을 사용하는 것은 <code>item1</code>과 <code>item2</code>가 다른 타입을 갖도록 허용하려는 경우(두 타입 모두 <code>Summary</code>를 구현하는 한)에 적절합니다. 하지만 두 매개변수가 동일한 타입을 갖도록 강제하려면 다음과 같이 트레이트 바운드를 사용해야 합니다:</p>
 <pre><code class="language-rust ignore">pub fn notify&lt;T: Summary&gt;(item1: &amp;T, item2: &amp;T) {</code></pre>
-<p>The generic type <code>T</code> specified as the type of the <code>item1</code> and <code>item2</code> parameters constrains the function such that the concrete type of the value passed as an argument for <code>item1</code> and <code>item2</code> must be the same.</p>
-<h4 id="specifying-multiple-trait-bounds-with-the--syntax"><a class="header" href="#specifying-multiple-trait-bounds-with-the--syntax">Specifying Multiple Trait Bounds with the <code>+</code> Syntax</a></h4>
-<p>We can also specify more than one trait bound. Say we wanted <code>notify</code> to use display formatting as well as <code>summarize</code> on <code>item</code>: we specify in the <code>notify</code> definition that <code>item</code> must implement both <code>Display</code> and <code>Summary</code>. We can do so using the <code>+</code> syntax:</p>
+<p><code>item1</code>과 <code>item2</code> 매개변수의 타입으로 지정된 제네릭 타입 <code>T</code>는 <code>item1</code>과 <code>item2</code>에 대한 인수로 전달되는 값의 구체적인 타입이 동일해야 하도록 함수를 제약합니다.</p>
+<h4 id="-문법으로-여러-트레이트-바운드-지정하기"><a class="header" href="#-문법으로-여러-트레이트-바운드-지정하기"><code>+</code> 문법으로 여러 트레이트 바운드 지정하기</a></h4>
+<p>둘 이상의 트레이트 바운드를 지정할 수도 있습니다. <code>notify</code>가 <code>item</code>에 대해 <code>summarize</code>뿐만 아니라 디스플레이 포맷팅도 사용하기를 원한다고 가정해 봅시다: <code>notify</code> 정의에서 <code>item</code>이 <code>Display</code>와 <code>Summary</code>를 모두 구현해야 한다고 지정합니다. <code>+</code> 문법을 사용하여 그렇게 할 수 있습니다:</p>
 <pre><code class="language-rust ignore">pub fn notify(item: &amp;(impl Summary + Display)) {</code></pre>
-<p>The <code>+</code> syntax is also valid with trait bounds on generic types:</p>
+<p><code>+</code> 문법은 제네릭 타입의 트레이트 바운드에서도 유효합니다:</p>
 <pre><code class="language-rust ignore">pub fn notify&lt;T: Summary + Display&gt;(item: &amp;T) {</code></pre>
-<p>With the two trait bounds specified, the body of <code>notify</code> can call <code>summarize</code> and use <code>{}</code> to format <code>item</code>.</p>
-<h4 id="clearer-trait-bounds-with-where-clauses"><a class="header" href="#clearer-trait-bounds-with-where-clauses">Clearer Trait Bounds with <code>where</code> Clauses</a></h4>
-<p>Using too many trait bounds has its downsides. Each generic has its own trait bounds, so functions with multiple generic type parameters can contain lots of trait bound information between the function’s name and its parameter list, making the function signature hard to read. For this reason, Rust has alternate syntax for specifying trait bounds inside a <code>where</code> clause after the function signature. So, instead of writing this:</p>
+<p>두 개의 트레이트 바운드가 지정되었으므로 <code>notify</code>의 본문은 <code>summarize</code>를 호출하고 <code>{}</code>를 사용하여 <code>item</code>을 포맷팅할 수 있습니다.</p>
+<h4 id="where-절로-트레이트-바운드를-더-명확하게-하기"><a class="header" href="#where-절로-트레이트-바운드를-더-명확하게-하기"><code>where</code> 절로 트레이트 바운드를 더 명확하게 하기</a></h4>
+<p>너무 많은 트레이트 바운드를 사용하는 것에는 단점이 있습니다. 각 제네릭에는 고유한 트레이트 바운드가 있으므로, 여러 제네릭 타입 매개변수를 가진 함수는 함수 이름과 매개변수 목록 사이에 많은 트레이트 바운드 정보를 포함할 수 있어 함수 시그니처를 읽기 어렵게 만듭니다. 이러한 이유로 러스트는 함수 시그니처 뒤의 <code>where</code> 절 내부에 트레이트 바운드를 지정하는 대체 문법을 제공합니다. 따라서 이렇게 쓰는 대신:</p>
 <pre><code class="language-rust ignore">fn some_function&lt;T: Display + Clone, U: Clone + Debug&gt;(t: &amp;T, u: &amp;U) -&gt; i32 {</code></pre>
-<p>we can use a <code>where</code> clause, like this:</p>
+<p>다음과 같이 <code>where</code> 절을 사용할 수 있습니다:</p>
 <pre><code class="language-rust ignore">fn some_function&lt;T, U&gt;(t: &amp;T, u: &amp;U) -&gt; i32
 where
     T: Display + Clone,
@@ -461,9 +461,9 @@ where
 {
 <span class="boring">    unimplemented!()
 </span><span class="boring">}</span></code></pre>
-<p>This function’s signature is less cluttered: the function name, parameter list, and return type are close together, similar to a function without lots of trait bounds.</p>
-<h3 id="returning-types-that-implement-traits"><a class="header" href="#returning-types-that-implement-traits">Returning Types That Implement Traits</a></h3>
-<p>We can also use the <code>impl Trait</code> syntax in the return position to return a value of some type that implements a trait, as shown here:</p>
+<p>이 함수의 시그니처는 덜 복잡합니다: 함수 이름, 매개변수 목록, 반환 타입이 가까이 있어 트레이트 바운드가 많지 않은 함수와 비슷합니다.</p>
+<h3 id="트레이트를-구현하는-타입-반환하기"><a class="header" href="#트레이트를-구현하는-타입-반환하기">트레이트를 구현하는 타입 반환하기</a></h3>
+<p>여기서 보여지는 것처럼, 트레이트를 구현하는 어떤 타입의 값을 반환하기 위해 반환 위치에 <code>impl Trait</code> 문법을 사용할 수도 있습니다:</p>
 <pre><code class="language-rust ignore"><span class="boring">pub trait Summary {
 </span><span class="boring">    fn summarize(&amp;self) -&gt; String;
 </span><span class="boring">}
@@ -477,7 +477,7 @@ where
 </span><span class="boring">
 </span><span class="boring">impl Summary for NewsArticle {
 </span><span class="boring">    fn summarize(&amp;self) -&gt; String {
-</span><span class="boring">        format!("{}, by {} ({})", self.headline, self.author, self.location)
+</span><span class="boring">        format!("{}, {} 작성 ({})", self.headline, self.author, self.location)
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
@@ -498,15 +498,15 @@ where
     Tweet {
         username: String::from("horse_ebooks"),
         content: String::from(
-            "of course, as you probably already know, people",
+            "물론, 이미 알고 계시겠지만, 사람들",
         ),
         reply: false,
         retweet: false,
     }
 }</code></pre>
-<p>By using <code>impl Summary</code> for the return type, we specify that the <code>returns_summarizable</code> function returns some type that implements the <code>Summary</code> trait without naming the concrete type. In this case, <code>returns_summarizable</code> returns a <code>Tweet</code>, but the code calling this function doesn’t need to know that.</p>
-<p>The ability to specify a return type only by the trait it implements is especially useful in the context of closures and iterators, which we cover in Chapter 13. Closures and iterators create types that only the compiler knows or types that are very long to specify. The <code>impl Trait</code> syntax lets you concisely specify that a function returns some type that implements the <code>Iterator</code> trait without needing to write out a very long type.</p>
-<p>However, you can only use <code>impl Trait</code> if you’re returning a single type. For example, this code that returns either a <code>NewsArticle</code> or a <code>Tweet</code> with the return type specified as <code>impl Summary</code> wouldn’t work:</p>
+<p>반환 타입에 <code>impl Summary</code>를 사용함으로써, 우리는 구체적인 타입을 명시하지 않고 <code>returns_summarizable</code> 함수가 <code>Summary</code> 트레이트를 구현하는 어떤 타입을 반환한다고 지정합니다. 이 경우 <code>returns_summarizable</code>은 <code>Tweet</code>를 반환하지만, 이 함수를 호출하는 코드는 그것을 알 필요가 없습니다.</p>
+<p>구현하는 트레이트로만 반환 타입을 지정하는 기능은 13장에서 다루는 클로저와 반복자의 문맥에서 특히 유용합니다. 클로저와 반복자는 컴파일러만 아는 타입이나 지정하기 매우 긴 타입을 생성합니다. <code>impl Trait</code> 문법은 매우 긴 타입을 작성할 필요 없이 함수가 <code>Iterator</code> 트레이트를 구현하는 어떤 타입을 반환한다고 간결하게 지정할 수 있게 해줍니다.</p>
+<p>하지만 단일 타입을 반환하는 경우에만 <code>impl Trait</code>을 사용할 수 있습니다. 예를 들어, 반환 타입이 <code>impl Summary</code>로 지정된 상태에서 <code>NewsArticle</code>이나 <code>Tweet</code> 중 하나를 반환하는 이 코드는 작동하지 않을 것입니다:</p>
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">pub trait Summary {
 </span><span class="boring">    fn summarize(&amp;self) -&gt; String;
 </span><span class="boring">}
@@ -520,7 +520,7 @@ where
 </span><span class="boring">
 </span><span class="boring">impl Summary for NewsArticle {
 </span><span class="boring">    fn summarize(&amp;self) -&gt; String {
-</span><span class="boring">        format!("{}, by {} ({})", self.headline, self.author, self.location)
+</span><span class="boring">        format!("{}, {} 작성 ({})", self.headline, self.author, self.location)
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
@@ -541,30 +541,30 @@ where
     if switch {
         NewsArticle {
             headline: String::from(
-                "Penguins win the Stanley Cup Championship!",
+                "펭귄스, 스탠리 컵 챔피언십 우승!",
             ),
-            location: String::from("Pittsburgh, PA, USA"),
-            author: String::from("Iceburgh"),
+            location: String::from("미국 펜실베이니아주 피츠버그"),
+            author: String::from("아이스버그"),
             content: String::from(
-                "The Pittsburgh Penguins once again are the best \
-                 hockey team in the NHL.",
+                "피츠버그 펭귄스가 다시 한 번 NHL 최고의 \
+                 하키 팀이 되었습니다.",
             ),
         }
     } else {
         Tweet {
             username: String::from("horse_ebooks"),
             content: String::from(
-                "of course, as you probably already know, people",
+                "물론, 이미 알고 계시겠지만, 사람들",
             ),
             reply: false,
             retweet: false,
         }
     }
 }</code></pre>
-<p>Returning either a <code>NewsArticle</code> or a <code>Tweet</code> isn’t allowed due to restrictions around how the <code>impl Trait</code> syntax is implemented in the compiler. We’ll cover how to write a function with this behavior in the <a href="ch18-02-trait-objects.html#using-trait-objects-that-allow-for-values-of-different-types">“Using Trait Objects That Allow for Values of Different Types”</a><!--
-ignore --> section of Chapter 18.</p>
-<h3 id="using-trait-bounds-to-conditionally-implement-methods"><a class="header" href="#using-trait-bounds-to-conditionally-implement-methods">Using Trait Bounds to Conditionally Implement Methods</a></h3>
-<p>By using a trait bound with an <code>impl</code> block that uses generic type parameters, we can implement methods conditionally for types that implement the specified traits. For example, the type <code>Pair&lt;T&gt;</code> in Listing 10-15 always implements the <code>new</code> function to return a new instance of <code>Pair&lt;T&gt;</code> (recall from the <a href="ch05-03-method-syntax.html#defining-methods">“Defining Methods”</a><!-- ignore --> section of Chapter 5 that <code>Self</code> is a type alias for the type of the <code>impl</code> block, which in this case is <code>Pair&lt;T&gt;</code>). But in the next <code>impl</code> block, <code>Pair&lt;T&gt;</code> only implements the <code>cmp_display</code> method if its inner type <code>T</code> implements the <code>PartialOrd</code> trait that enables comparison <em>and</em> the <code>Display</code> trait that enables printing.</p>
+<p><code>impl Trait</code> 문법이 컴파일러에 구현된 방식에 대한 제한 때문에 <code>NewsArticle</code>이나 <code>Tweet</code> 중 하나를 반환하는 것은 허용되지 않습니다. 18장의 <a href="ch18-02-trait-objects.html#using-trait-objects-that-allow-for-values-of-different-types">“다른 타입의 값을 허용하는 트레이트 객체 사용하기”</a><!--
+ignore --> 섹션에서 이러한 동작을 하는 함수를 작성하는 방법을 다룰 것입니다.</p>
+<h3 id="트레이트-바운드를-사용하여-메서드를-조건부로-구현하기"><a class="header" href="#트레이트-바운드를-사용하여-메서드를-조건부로-구현하기">트레이트 바운드를 사용하여 메서드를 조건부로 구현하기</a></h3>
+<p>제네릭 타입 매개변수를 사용하는 <code>impl</code> 블록에 트레이트 바운드를 사용하면, 지정된 트레이트를 구현하는 타입에 대해서만 메서드를 조건부로 구현할 수 있습니다. 예를 들어, 목록 10-15의 <code>Pair&lt;T&gt;</code> 타입은 항상 <code>Pair&lt;T&gt;</code>의 새 인스턴스를 반환하는 <code>new</code> 함수를 구현합니다(5장의 <a href="ch05-03-method-syntax.html#defining-methods">“메서드 정의하기”</a><!-- ignore --> 섹션에서 <code>Self</code>가 <code>impl</code> 블록의 타입에 대한 타입 별칭임을 기억하세요. 이 경우 <code>Pair&lt;T&gt;</code>입니다). 하지만 다음 <code>impl</code> 블록에서 <code>Pair&lt;T&gt;</code>는 내부 타입 <code>T</code>가 비교를 가능하게 하는 <code>PartialOrd</code> 트레이트 <em>와</em> 출력을 가능하게 하는 <code>Display</code> 트레이트를 구현하는 경우에만 <code>cmp_display</code> 메서드를 구현합니다.</p>
 <Listing number="10-15" file-name="src/lib.rs" caption="Conditionally implementing methods on a generic type depending on trait bounds">
 <pre><code class="language-rust noplayground">use std::fmt::Display;
 
@@ -582,24 +582,24 @@ impl&lt;T&gt; Pair&lt;T&gt; {
 impl&lt;T: Display + PartialOrd&gt; Pair&lt;T&gt; {
     fn cmp_display(&amp;self) {
         if self.x &gt;= self.y {
-            println!("The largest member is x = {}", self.x);
+            println!("가장 큰 멤버는 x = {}", self.x);
         } else {
-            println!("The largest member is y = {}", self.y);
+            println!("가장 큰 멤버는 y = {}", self.y);
         }
     }
 }</code></pre>
 </Listing>
-<p>We can also conditionally implement a trait for any type that implements another trait. Implementations of a trait on any type that satisfies the trait bounds are called <em>blanket implementations</em> and are used extensively in the Rust standard library. For example, the standard library implements the <code>ToString</code> trait on any type that implements the <code>Display</code> trait. The <code>impl</code> block in the standard library looks similar to this code:</p>
+<p>우리는 또한 다른 트레이트를 구현하는 모든 타입에 대해 트레이트를 조건부로 구현할 수 있습니다. 트레이트 바운드를 만족하는 모든 타입에 대한 트레이트 구현을 _포괄적 구현(blanket implementations)_이라고 하며, 러스트 표준 라이브러리에서 광범위하게 사용됩니다. 예를 들어, 표준 라이브러리는 <code>Display</code> 트레이트를 구현하는 모든 타입에 대해 <code>ToString</code> 트레이트를 구현합니다. 표준 라이브러리의 <code>impl</code> 블록은 이 코드와 유사해 보입니다:</p>
 <pre><code class="language-rust ignore">impl&lt;T: Display&gt; ToString for T {
     // --생략--
 }</code></pre>
-<p>Because the standard library has this blanket implementation, we can call the <code>to_string</code> method defined by the <code>ToString</code> trait on any type that implements the <code>Display</code> trait. For example, we can turn integers into their corresponding <code>String</code> values like this because integers implement <code>Display</code>:</p>
+<p>표준 라이브러리에 이러한 포괄적 구현이 있기 때문에, <code>Display</code> 트레이트를 구현하는 모든 타입에서 <code>ToString</code> 트레이트에 정의된 <code>to_string</code> 메서드를 호출할 수 있습니다. 예를 들어, 정수는 <code>Display</code>를 구현하므로 다음과 같이 정수를 해당 <code>String</code> 값으로 바꿀 수 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let s = 3.to_string();
 <span class="boring">}</span></code></pre></pre>
-<p>Blanket implementations appear in the documentation for the trait in the “Implementors” section.</p>
-<p>Traits and trait bounds let us write code that uses generic type parameters to reduce duplication but also specify to the compiler that we want the generic type to have particular behavior. The compiler can then use the trait bound information to check that all the concrete types used with our code provide the correct behavior. In dynamically typed languages, we would get an error at runtime if we called a method on a type which didn’t define the method. But Rust moves these errors to compile time so we’re forced to fix the problems before our code is even able to run. Additionally, we don’t have to write code that checks for behavior at runtime because we’ve already checked at compile time. Doing so improves performance without having to give up the flexibility of generics.</p>
+<p>포괄적 구현은 트레이트 문서의 “Implementors” 섹션에 나타납니다.</p>
+<p>트레이트와 트레이트 바운드를 사용하면 제네릭 타입 매개변수를 사용하여 중복을 줄이는 동시에, 컴파일러에게 제네릭 타입이 특정 동작을 갖도록 하겠다고 지정할 수 있습니다. 그러면 컴파일러는 트레이트 바운드 정보를 사용하여 코드에 사용된 모든 구체적인 타입이 올바른 동작을 제공하는지 확인할 수 있습니다. 동적 타입 언어에서는 메서드를 정의하지 않은 타입에서 메서드를 호출하면 런타임에 에러가 발생합니다. 하지만 러스트는 이러한 에러를 컴파일 타임으로 옮겨 코드를 실행하기도 전에 문제를 해결하도록 강제합니다. 또한 컴파일 타임에 이미 확인했기 때문에 런타임에 동작을 확인하는 코드를 작성할 필요가 없습니다. 이렇게 하면 제네릭의 유연성을 포기하지 않고도 성능을 향상시킬 수 있습니다.</p>
 
                     </main>
 

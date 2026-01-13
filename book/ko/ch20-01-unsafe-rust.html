@@ -217,34 +217,34 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="안전하지-않은-러스트"><a class="header" href="#안전하지-않은-러스트">안전하지 않은 러스트</a></h2>
-<p>All the code we’ve discussed so far has had Rust’s memory safety guarantees enforced at compile time. However, Rust has a second language hidden inside it that doesn’t enforce these memory safety guarantees: it’s called <em>unsafe Rust</em> and works just like regular Rust, but gives us extra superpowers.</p>
-<p>Unsafe Rust exists because, by nature, static analysis is conservative. When the compiler tries to determine whether or not code upholds the guarantees, it’s better for it to reject some valid programs than to accept some invalid programs. Although the code <em>might</em> be okay, if the Rust compiler doesn’t have enough information to be confident, it will reject the code. In these cases, you can use unsafe code to tell the compiler, “Trust me, I know what I’m doing.” Be warned, however, that you use unsafe Rust at your own risk: if you use unsafe code incorrectly, problems can occur due to memory unsafety, such as null pointer dereferencing.</p>
-<p>Another reason Rust has an unsafe alter ego is that the underlying computer hardware is inherently unsafe. If Rust didn’t let you do unsafe operations, you couldn’t do certain tasks. Rust needs to allow you to do low-level systems programming, such as directly interacting with the operating system or even writing your own operating system. Working with low-level systems programming is one of the goals of the language. Let’s explore what we can do with unsafe Rust and how to do it.</p>
-<h3 id="unsafe-superpowers"><a class="header" href="#unsafe-superpowers">Unsafe Superpowers</a></h3>
-<p>To switch to unsafe Rust, use the <code>unsafe</code> keyword and then start a new block that holds the unsafe code. You can take five actions in unsafe Rust that you can’t in safe Rust, which we call <em>unsafe superpowers</em>. Those superpowers include the ability to:</p>
+<p>지금까지 논의한 모든 코드는 컴파일 타임에 러스트의 메모리 안전성 보증이 강제되었습니다. 하지만 러스트의 내부에는 이러한 메모리 안전성 보증을 강제하지 않는 두 번째 언어가 숨어 있습니다. 이것을 _안전하지 않은 러스트(unsafe Rust)_라고 부르며, 일반적인 러스트와 똑같이 작동하지만 우리에게 추가적인 초능력을 부여합니다.</p>
+<p>안전하지 않은 러스트가 존재하는 이유는 본질적으로 정적 분석이 보수적이기 때문입니다. 컴파일러가 코드가 보증을 유지하는지 여부를 판단할 때, 일부 유효하지 않은 프로그램을 허용하는 것보다 일부 유효한 프로그램을 거부하는 것이 낫습니다. 코드가 <em>괜찮을 수도</em> 있지만, 러스트 컴파일러가 확신할 수 있는 충분한 정보를 가지고 있지 않다면 코드를 거부할 것입니다. 이런 경우, 여러분은 unsafe 코드를 사용하여 컴파일러에게 "나를 믿어라, 내가 무엇을 하고 있는지 알고 있다"라고 말할 수 있습니다. 하지만 안전하지 않은 러스트를 사용하는 것은 본인의 책임이라는 점을 유의하세요. unsafe 코드를 잘못 사용하면 널 포인터 역참조와 같은 메모리 불안전성으로 인해 문제가 발생할 수 있습니다.</p>
+<p>러스트가 안전하지 않은 또 다른 자아를 가진 이유는 기저의 컴퓨터 하드웨어가 본질적으로 안전하지 않기 때문입니다. 러스트가 unsafe 연산을 허용하지 않는다면, 여러분은 특정한 작업들을 수행할 수 없을 것입니다. 러스트는 운영체제와 직접 상호작용하거나 심지어 자신만의 운영체제를 작성하는 것과 같은 저수준 시스템 프로그래밍을 허용해야 합니다. 저수준 시스템 프로그래밍 작업을 가능하게 하는 것은 이 언어의 목표 중 하나입니다. 안전하지 않은 러스트로 무엇을 할 수 있고, 어떻게 하는지 알아봅시다.</p>
+<h3 id="안전하지-않은-초능력"><a class="header" href="#안전하지-않은-초능력">안전하지 않은 초능력</a></h3>
+<p>안전하지 않은 러스트로 전환하려면 <code>unsafe</code> 키워드를 사용하고, unsafe 코드를 담을 새로운 블록을 시작하세요. 안전한 러스트에서는 할 수 없지만 안전하지 않은 러스트에서는 할 수 있는 다섯 가지 동작이 있으며, 우리는 이를 _안전하지 않은 초능력(unsafe superpowers)_이라고 부릅니다. 이 초능력들은 다음과 같은 능력을 포함합니다.</p>
 <ul>
-<li>Dereference a raw pointer</li>
-<li>Call an unsafe function or method</li>
-<li>Access or modify a mutable static variable</li>
-<li>Implement an unsafe trait</li>
-<li>Access fields of a <code>union</code></li>
+<li>원시 포인터(raw pointer)를 역참조하기</li>
+<li>안전하지 않은 함수 또는 메서드 호출하기</li>
+<li>가변 정적 변수(mutable static variable)에 접근하거나 수정하기</li>
+<li>안전하지 않은 트레이트 구현하기</li>
+<li><code>union</code>의 필드에 접근하기</li>
 </ul>
-<p>It’s important to understand that <code>unsafe</code> doesn’t turn off the borrow checker or disable any other of Rust’s safety checks: if you use a reference in unsafe code, it will still be checked. The <code>unsafe</code> keyword only gives you access to these five features that are then not checked by the compiler for memory safety. You’ll still get some degree of safety inside of an unsafe block.</p>
-<p>In addition, <code>unsafe</code> does not mean the code inside the block is necessarily dangerous or that it will definitely have memory safety problems: the intent is that as the programmer, you’ll ensure the code inside an <code>unsafe</code> block will access memory in a valid way.</p>
-<p>People are fallible, and mistakes will happen, but by requiring these five unsafe operations to be inside blocks annotated with <code>unsafe</code> you’ll know that any errors related to memory safety must be within an <code>unsafe</code> block. Keep <code>unsafe</code> blocks small; you’ll be thankful later when you investigate memory bugs.</p>
+<p><code>unsafe</code>가 빌림 검사기(borrow checker)를 끄거나 러스트의 다른 안전성 검사를 비활성화하지 않는다는 점을 이해하는 것이 중요합니다. unsafe 코드에서 참조를 사용하더라도 그것은 여전히 검사됩니다. <code>unsafe</code> 키워드는 컴파일러가 메모리 안전성을 검사하지 않는 이 다섯 가지 기능에 대한 접근 권한만을 부여할 뿐입니다. 여러분은 여전히 unsafe 블록 내부에서도 어느 정도의 안전성을 보장받을 수 있습니다.</p>
+<p>또한 <code>unsafe</code>가 해당 블록 내부의 코드가 반드시 위험하거나 무조건 메모리 안전성 문제를 일으킬 것이라는 의미는 아닙니다. 프로그래머로서 여러분이 <code>unsafe</code> 블록 내부의 코드가 유효한 방식으로 메모리에 접근함을 보장하겠다는 의도입니다.</p>
+<p>사람은 실수할 수 있고 잘못은 일어나기 마련입니다. 하지만 이 다섯 가지 unsafe 작업을 <code>unsafe</code>로 표시된 블록 내부에 있도록 강제함으로써, 여러분은 메모리 안전성과 관련된 모든 에러가 반드시 <code>unsafe</code> 블록 내에 있음을 알 수 있게 됩니다. <code>unsafe</code> 블록을 작게 유지하세요. 나중에 메모리 버그를 조사할 때 그렇게 하길 잘했다고 생각하게 될 것입니다.</p>
 <p>To isolate unsafe code as much as possible, it’s best to enclose unsafe code within a safe abstraction and provide a safe API, which we’ll discuss later in the chapter when we examine unsafe functions and methods. Parts of the standard library are implemented as safe abstractions over unsafe code that has been audited. Wrapping unsafe code in a safe abstraction prevents uses of <code>unsafe</code> from leaking out into all the places that you or your users might want to use the functionality implemented with <code>unsafe</code> code, because using a safe abstraction is safe.</p>
-<p>Let’s look at each of the five unsafe superpowers in turn. We’ll also look at some abstractions that provide a safe interface to unsafe code.</p>
-<h3 id="dereferencing-a-raw-pointer"><a class="header" href="#dereferencing-a-raw-pointer">Dereferencing a Raw Pointer</a></h3>
-<p>In Chapter 4, in <a href="ch04-02-references-and-borrowing.html#dangling-references">“Dangling References”</a><!-- ignore -->, we mentioned that the compiler ensures references are always valid. Unsafe Rust has two new types called <em>raw pointers</em> that are similar to references. As with references, raw pointers can be immutable or mutable and are written as <code>*const T</code> and <code>*mut T</code>, respectively. The asterisk isn’t the dereference operator; it’s part of the type name. In the context of raw pointers, <em>immutable</em> means that the pointer can’t be directly assigned to after being dereferenced.</p>
-<p>Different from references and smart pointers, raw pointers:</p>
+<p>이제 다섯 가지 안전하지 않은 초능력을 하나씩 살펴보겠습니다. 또한 unsafe 코드에 대한 안전한 인터페이스를 제공하는 몇 가지 추상화에 대해서도 알아보겠습니다.</p>
+<h3 id="원시-포인터-역참조하기"><a class="header" href="#원시-포인터-역참조하기">원시 포인터 역참조하기</a></h3>
+<p>4장의 <a href="ch04-02-references-and-borrowing.html#dangling-references">“대롱거리는 참조”</a><!-- ignore --> 섹션에서 우리는 컴파일러가 참조가 항상 유효함을 보장한다고 언급했습니다. 안전하지 않은 러스트에는 참조와 유사한 _원시 포인터(raw pointers)_라고 불리는 두 가지 새로운 타입이 있습니다. 참조와 마찬가지로 원시 포인터도 불변이거나 가변일 수 있으며, 각각 <code>*const T</code>와 <code>*mut T</code>로 작성됩니다. 여기서 별표는 역참조 연산자가 아니라 타입 이름의 일부입니다. 원시 포인터의 맥락에서 _불변_이란 포인터가 역참조된 후에 직접 값을 할당할 수 없음을 의미합니다.</p>
+<p>참조나 스마트 포인터와 달리 원시 포인터는 다음과 같은 특징을 갖습니다.</p>
 <ul>
-<li>Are allowed to ignore the borrowing rules by having both immutable and mutable pointers or multiple mutable pointers to the same location</li>
-<li>Aren’t guaranteed to point to valid memory</li>
-<li>Are allowed to be null</li>
-<li>Don’t implement any automatic cleanup</li>
+<li>동일한 위치에 대해 불변 포인터와 가변 포인터를 동시에 갖거나, 여러 개의 가변 포인터를 가짐으로써 빌림 규칙을 무시할 수 있습니다.</li>
+<li>유효한 메모리를 가리킨다는 보장이 없습니다</li>
+<li>널(null)이 될 수 있습니다</li>
+<li>어떠한 자동 정리 기능도 구현하지 않습니다</li>
 </ul>
-<p>By opting out of having Rust enforce these guarantees, you can give up guaranteed safety in exchange for greater performance or the ability to interface with another language or hardware where Rust’s guarantees don’t apply.</p>
-<p>Listing 20-1 shows how to create an immutable and a mutable raw pointer.</p>
+<p>러스트가 이러한 보증을 강제하는 것을 거부함으로써, 여러분은 보장된 안전성을 포기하는 대신 더 높은 성능을 얻거나 러스트의 보증이 적용되지 않는 다른 언어 또는 하드웨어와 인터페이스할 수 있는 능력을 얻을 수 있습니다.</p>
+<p>목록 20-1은 불변 원시 포인터와 가변 원시 포인터를 만드는 방법을 보여줍니다.</p>
 <Listing number="20-1" caption="Creating raw pointers with the raw borrow operators">
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
 </span>    let mut num = 5;
@@ -253,16 +253,16 @@
     let r2 = &amp;raw mut num;
 <span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>Notice that we don’t include the <code>unsafe</code> keyword in this code. We can create raw pointers in safe code; we just can’t dereference raw pointers outside an unsafe block, as you’ll see in a bit.</p>
-<p>We’ve created raw pointers by using the raw borrow operators: <code>&amp;raw const num</code> creates a <code>*const i32</code> immutable raw pointer, and <code>&amp;raw mut num</code> creates a <code>*mut i32</code> mutable raw pointer. Because we created them directly from a local variable, we know these particular raw pointers are valid, but we can’t make that assumption about just any raw pointer.</p>
-<p>To demonstrate this, next we’ll create a raw pointer whose validity we can’t be so certain of, using <code>as</code> to cast a value instead of using the raw reference operators. Listing 20-2 shows how to create a raw pointer to an arbitrary location in memory. Trying to use arbitrary memory is undefined: there might be data at that address or there might not, the compiler might optimize the code so there is no memory access, or the program might error with a segmentation fault. Usually, there is no good reason to write code like this, especially in cases where you can use a raw borrow operator instead, but it is possible.</p>
+<p>이 코드에는 <code>unsafe</code> 키워드가 포함되어 있지 않음에 주목하세요. 우리는 안전한 코드에서도 원시 포인터를 생성할 수 있습니다. 잠시 후에 보게 되겠지만, 단지 unsafe 블록 외부에서 원시 포인터를 역참조할 수 없을 뿐입니다.</p>
+<p>우리는 원시 빌림 연산자(raw borrow operators)를 사용하여 원시 포인터를 생성했습니다. <code>&amp;raw const num</code>은 <code>*const i32</code> 불변 원시 포인터를 생성하고, <code>&amp;raw mut num</code>은 <code>*mut i32</code> 가변 원시 포인터를 생성합니다. 우리는 지역 변수로부터 직접 생성했기 때문에 이 특정한 원시 포인터들이 유효하다는 것을 알고 있지만, 모든 원시 포인터에 대해 그러한 가정을 할 수는 없습니다.</p>
+<p>이를 시연하기 위해, 다음으로는 원시 참조 연산자를 사용하는 대신 <code>as</code>를 사용하여 값을 캐스팅함으로써 유효성을 확신할 수 없는 원시 포인터를 생성해 보겠습니다. 목록 20-2는 메모리의 임의 지점에 대한 원시 포인터를 생성하는 방법을 보여줍니다. 임의의 메모리를 사용하려는 시도는 정의되지 않은 동작(undefined)입니다. 해당 주소에 데이터가 있을 수도 있고 없을 수도 있으며, 컴파일러가 메모리 접근이 없도록 코드를 최적화할 수도 있고, 프로그램이 세그멘테이션 결함(segmentation fault) 에러를 내며 종료될 수도 있습니다. 보통 이런 식의 코드를 작성할 좋은 이유는 없으며, 특히 원시 빌림 연산자를 대신 사용할 수 있는 경우에는 더욱 그렇습니다. 하지만 어쨌든 가능은 합니다.</p>
 <Listing number="20-2" caption="Creating a raw pointer to an arbitrary memory address">
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
 </span>    let address = 0x012345usize;
     let r = address as *const i32;
 <span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>Recall that we can create raw pointers in safe code, but we can’t <em>dereference</em> raw pointers and read the data being pointed to. In Listing 20-3, we use the dereference operator <code>*</code> on a raw pointer that requires an <code>unsafe</code> block.</p>
+<p>앞서 말했듯 안전한 코드에서도 원시 포인터를 생성할 수는 있지만, 원시 포인터를 _역참조_하여 가리키는 데이터를 읽을 수는 없습니다. 목록 20-3에서는 <code>unsafe</code> 블록이 필요한 원시 포인터에 역참조 연산자 <code>*</code>를 사용합니다.</p>
 <Listing number="20-3" caption="Dereferencing raw pointers within an `unsafe` block">
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
 </span>    let mut num = 5;
@@ -271,17 +271,17 @@
     let r2 = &amp;raw mut num;
 
     unsafe {
-        println!("r1 is: {}", *r1);
-        println!("r2 is: {}", *r2);
+        println!("r1은: {}"입니다, *r1);
+        println!("r2는: {}"입니다, *r2);
     }
 <span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>Creating a pointer does no harm; it’s only when we try to access the value that it points at that we might end up dealing with an invalid value.</p>
-<p>Note also that in Listing 20-1 and 20-3, we created <code>*const i32</code> and <code>*mut i32</code> raw pointers that both pointed to the same memory location, where <code>num</code> is stored. If we instead tried to create an immutable and a mutable reference to <code>num</code>, the code would not have compiled because Rust’s ownership rules don’t allow a mutable reference at the same time as any immutable references. With raw pointers, we can create a mutable pointer and an immutable pointer to the same location and change data through the mutable pointer, potentially creating a data race. Be careful!</p>
-<p>With all of these dangers, why would you ever use raw pointers? One major use case is when interfacing with C code, as you’ll see in the next section, <a href="#calling-an-unsafe-function-or-method">“Calling an Unsafe Function or Method.”</a><!-- ignore --> Another case is when building up safe abstractions that the borrow checker doesn’t understand. We’ll introduce unsafe functions and then look at an example of a safe abstraction that uses unsafe code.</p>
-<h3 id="calling-an-unsafe-function-or-method"><a class="header" href="#calling-an-unsafe-function-or-method">Calling an Unsafe Function or Method</a></h3>
-<p>The second type of operation you can perform in an unsafe block is calling unsafe functions. Unsafe functions and methods look exactly like regular functions and methods, but they have an extra <code>unsafe</code> before the rest of the definition. The <code>unsafe</code> keyword in this context indicates the function has requirements we need to uphold when we call this function, because Rust can’t guarantee we’ve met these requirements. By calling an unsafe function within an <code>unsafe</code> block, we’re saying that we’ve read this function’s documentation and take responsibility for upholding the function’s contracts.</p>
-<p>Here is an unsafe function named <code>dangerous</code> that doesn’t do anything in its body:</p>
+<p>포인터를 생성하는 것 자체는 해롭지 않습니다. 포인터가 가리키는 값에 접근하려고 시도할 때 비로소 유효하지 않은 값을 다루게 될 위험이 생기는 것입니다.</p>
+<p>또한 목록 20-1과 20-3에서 우리는 <code>num</code>이 저장된 동일한 메모리 위치를 가리키는 <code>*const i32</code>와 <code>*mut i32</code> 원시 포인터를 생성했음에 주목하세요. 만약 대신 <code>num</code>에 대한 불변 참조와 가변 참조를 생성하려 했다면, 러스트의 소유권 규칙이 불변 참조가 존재하는 동안 가변 참조를 허용하지 않기 때문에 코드가 컴파일되지 않았을 것입니다. 원시 포인터를 사용하면 동일한 위치에 대해 가변 포인터와 불변 포인터를 동시에 생성할 수 있고 가변 포인터를 통해 데이터를 변경할 수 있으므로, 잠재적으로 데이터 경합(data race)이 발생할 수 있습니다. 주의하세요!</p>
+<p>이러한 모든 위험에도 불구하고 왜 원시 포인터를 사용할까요? 한 가지 주요 사용 사례는 다음 섹션인 <a href="#calling-an-unsafe-function-or-method">“안전하지 않은 함수 또는 메서드 호출하기”</a><!-- ignore -->에서 보게 될 C 코드와의 인터페이스입니다. 또 다른 사례는 빌림 검사기가 이해하지 못하는 안전한 추상화를 구축할 때입니다. 먼저 unsafe 함수를 소개한 다음, unsafe 코드를 사용하는 안전한 추상화의 예제를 살펴보겠습니다.</p>
+<h3 id="안전하지-않은-함수-또는-메서드-호출하기"><a class="header" href="#안전하지-않은-함수-또는-메서드-호출하기">안전하지 않은 함수 또는 메서드 호출하기</a></h3>
+<p>unsafe 블록에서 수행할 수 있는 두 번째 유형의 작업은 unsafe 함수를 호출하는 것입니다. unsafe 함수와 메서드는 일반적인 함수 및 메서드와 똑같이 생겼지만, 정의부 앞에 <code>unsafe</code>가 추가로 붙습니다. 이 맥락에서 <code>unsafe</code> 키워드는 러스트가 우리가 해당 요구사항을 충족했는지 보장할 수 없기 때문에, 이 함수를 호출할 때 우리가 지켜야 할 요구사항이 있음을 나타냅니다. <code>unsafe</code> 블록 내에서 unsafe 함수를 호출함으로써, 우리는 이 함수의 문서를 읽었으며 함수의 계약(contracts)을 준수할 책임을 지겠다고 선언하는 것입니다.</p>
+<p>다음은 본문에서 아무것도 하지 않는 <code>dangerous</code>라는 이름의 unsafe 함수입니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
 </span>    unsafe fn dangerous() {}
 
@@ -289,24 +289,26 @@
         dangerous();
     }
 <span class="boring">}</span></code></pre></pre>
-<p>We must call the <code>dangerous</code> function within a separate <code>unsafe</code> block. If we try to call <code>dangerous</code> without the <code>unsafe</code> block, we’ll get an error:</p>
+<p>우리는 <code>dangerous</code> 함수를 별도의 <code>unsafe</code> 블록 내에서 호출해야 합니다. 만약 <code>unsafe</code> 블록 없이 <code>dangerous</code>를 호출하려 하면, 다음과 같은 에러가 발생합니다.</p>
 <pre><code class="language-console">$ cargo run
    Compiling unsafe-example v0.1.0 (file:///projects/unsafe-example)
-error[E0133]: call to unsafe function `dangerous` is unsafe and requires unsafe function or block
+error[E0133]: unsafe 함수 `dangerous`를 호출하는 것은 안전하지 않으며
+              unsafe 함수나 블록이 필요합니다
  --&gt; src/main.rs:4:5
   |
 4 |     dangerous();
-  |     ^^^^^^^^^^^ call to unsafe function
+  |     ^^^^^^^^^^^ unsafe 함수 호출
   |
-  = note: consult the function's documentation for information on how to avoid undefined behavior
+  = note: 정의되지 않은 동작(undefined behavior)을 피하는 방법은 함수의
+          문서를 참고하세요
 
-For more information about this error, try `rustc --explain E0133`.
-error: could not compile `unsafe-example` (bin "unsafe-example") due to 1 previous error
+이 에러에 대한 더 자세한 정보를 원하시면 `rustc --explain E0133`을 시도해 보세요.
+에러: 1개의 이전 에러로 인해 `unsafe-example` (바이너리 "unsafe-example")를 컴파일할 수 없습니다
 </code></pre>
-<p>With the <code>unsafe</code> block, we’re asserting to Rust that we’ve read the function’s documentation, we understand how to use it properly, and we’ve verified that we’re fulfilling the contract of the function.</p>
-<p>To perform unsafe operations in the body of an unsafe function, you still need to use an <code>unsafe</code> block just as within a regular function, and the compiler will warn you if you forget. This helps to keep <code>unsafe</code> blocks as small as possible, as unsafe operations may not be needed across the whole function body.</p>
-<h4 id="creating-a-safe-abstraction-over-unsafe-code"><a class="header" href="#creating-a-safe-abstraction-over-unsafe-code">Creating a Safe Abstraction over Unsafe Code</a></h4>
-<p>Just because a function contains unsafe code doesn’t mean we need to mark the entire function as unsafe. In fact, wrapping unsafe code in a safe function is a common abstraction. As an example, let’s study the <code>split_at_mut</code> function from the standard library, which requires some unsafe code. We’ll explore how we might implement it. This safe method is defined on mutable slices: it takes one slice and makes it two by splitting the slice at the index given as an argument. Listing 20-4 shows how to use <code>split_at_mut</code>.</p>
+<p><code>unsafe</code> 블록을 사용함으로써, 우리는 러스트에게 우리가 함수의 문서를 읽었으며, 함수를 올바르게 사용하는 법을 이해했고, 함수의 계약(contract)을 준수하고 있음을 확인했다고 단언하는 것입니다.</p>
+<p>unsafe 함수의 본문에서 unsafe 작업을 수행할 때도 일반적인 함수 내에서와 마찬가지로 여전히 <code>unsafe</code> 블록을 사용해야 하며, 이를 잊는다면 컴파일러가 경고를 보낼 것입니다. 이는 unsafe 작업이 전체 함수 본문에 걸쳐 필요하지는 않을 수 있으므로, <code>unsafe</code> 블록을 가능한 한 작게 유지하는 데 도움이 됩니다.</p>
+<h4 id="unsafe-코드에-대한-안전한-추상화-만들기"><a class="header" href="#unsafe-코드에-대한-안전한-추상화-만들기">unsafe 코드에 대한 안전한 추상화 만들기</a></h4>
+<p>함수에 unsafe 코드가 포함되어 있다고 해서 함수 전체를 unsafe로 표시할 필요는 없습니다. 사실, unsafe 코드를 안전한 함수로 감싸는 것은 흔한 추상화 기법입니다. 예로서, 약간의 unsafe 코드가 필요한 표준 라이브러리의 <code>split_at_mut</code> 함수를 연구해 봅시다. 우리는 이 함수를 어떻게 구현할 수 있을지 탐구해 보겠습니다. 이 안전한 메서드는 가변 슬라이스에 정의되어 있습니다. 이는 하나의 슬라이스를 받아 인수로 주어진 인덱스에서 슬라이스를 쪼개어 두 개로 만듭니다. 목록 20-4는 <code>split_at_mut</code>을 사용하는 방법을 보여줍니다.</p>
 <Listing number="20-4" caption="Using the safe `split_at_mut` function">
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
 </span>    let mut v = vec![1, 2, 3, 4, 5, 6];
@@ -319,7 +321,7 @@ error: could not compile `unsafe-example` (bin "unsafe-example") due to 1 previo
     assert_eq!(b, &amp;mut [4, 5, 6]);
 <span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>We can’t implement this function using only safe Rust. An attempt might look something like Listing 20-5, which won’t compile. For simplicity, we’ll implement <code>split_at_mut</code> as a function rather than a method and only for slices of <code>i32</code> values rather than for a generic type <code>T</code>.</p>
+<p>우리는 오직 안전한 러스트만으로는 이 함수를 구현할 수 없습니다. 시도해 본다면 컴파일되지 않는 목록 20-5와 같은 모습이 될 것입니다. 단순함을 위해, 우리는 <code>split_at_mut</code>을 메서드가 아닌 함수로 구현할 것이며, 제네릭 타입 <code>T</code>가 아닌 <code>i32</code> 값의 슬라이스에 대해서만 구현하겠습니다.</p>
 <Listing number="20-5" caption="An attempted implementation of `split_at_mut` using only safe Rust">
 <pre><code class="language-rust ignore does_not_compile">fn split_at_mut(values: &amp;mut [i32], mid: usize) -&gt; (&amp;mut [i32], &amp;mut [i32]) {
     let len = values.len();
@@ -334,31 +336,11 @@ error: could not compile `unsafe-example` (bin "unsafe-example") due to 1 previo
 </span><span class="boring">    let (left, right) = split_at_mut(&amp;mut vector, 3);
 </span><span class="boring">}</span></code></pre>
 </Listing>
-<p>This function first gets the total length of the slice. Then it asserts that the index given as a parameter is within the slice by checking whether it’s less than or equal to the length. The assertion means that if we pass an index that is greater than the length to split the slice at, the function will panic before it attempts to use that index.</p>
-<p>Then we return two mutable slices in a tuple: one from the start of the original slice to the <code>mid</code> index and another from <code>mid</code> to the end of the slice.</p>
-<p>When we try to compile the code in Listing 20-5, we’ll get an error.</p>
-<pre><code class="language-console">$ cargo run
-   Compiling unsafe-example v0.1.0 (file:///projects/unsafe-example)
-error[E0499]: cannot borrow `*values` as mutable more than once at a time
- --&gt; src/main.rs:6:31
-  |
-1 | fn split_at_mut(values: &amp;mut [i32], mid: usize) -&gt; (&amp;mut [i32], &amp;mut [i32]) {
-  |                         - let's call the lifetime of this reference `'1`
-...
-6 |     (&amp;mut values[..mid], &amp;mut values[mid..])
-  |     --------------------------^^^^^^--------
-  |     |     |                   |
-  |     |     |                   second mutable borrow occurs here
-  |     |     first mutable borrow occurs here
-  |     returning this value requires that `*values` is borrowed for `'1`
-  |
-  = help: use `.split_at_mut(position)` to obtain two mutable non-overlapping sub-slices
-
-For more information about this error, try `rustc --explain E0499`.
-error: could not compile `unsafe-example` (bin "unsafe-example") due to 1 previous error
-</code></pre>
-<p>Rust’s borrow checker can’t understand that we’re borrowing different parts of the slice; it only knows that we’re borrowing from the same slice twice. Borrowing different parts of a slice is fundamentally okay because the two slices aren’t overlapping, but Rust isn’t smart enough to know this. When we know code is okay, but Rust doesn’t, it’s time to reach for unsafe code.</p>
-<p>Listing 20-6 shows how to use an <code>unsafe</code> block, a raw pointer, and some calls to unsafe functions to make the implementation of <code>split_at_mut</code> work.</p>
+<p>이 함수는 먼저 슬라이스의 전체 길이를 가져옵니다. 그런 다음 매개변수로 주어진 인덱스가 슬라이스의 길이보다 작거나 같은지 확인함으로써 인덱스가 슬라이스 내에 있는지 단언(assert)합니다. 이 단언은 만약 슬라이스를 쪼개려는 위치인 인덱스가 길이보다 큰 값을 전달하면, 해당 인덱스를 사용하기 전에 함수가 패닉을 일으킬 것임을 의미합니다.</p>
+<p>그다음 튜플로 두 개의 가변 슬라이스를 반환합니다. 하나는 원래 슬라이스의 시작부터 <code>mid</code> 인덱스까지이고, 다른 하나는 <code>mid</code>부터 슬라이스의 끝까지입니다.</p>
+<p>목록 20-5의 코드를 컴파일하려 하면 에러가 발생합니다.</p>
+<p>러스트의 대여 검사기는 우리가 슬라이스의 서로 다른 부분을 대여하고 있다는 것을 이해하지 못합니다. 단지 우리가 같은 슬라이스에서 두 번 대여하고 있다는 것만 알고 있습니다. 슬라이스의 서로 다른 부분을 대여하는 것은 두 슬라이스가 겹치지 않기 때문에 근본적으로 괜찮지만, 러스트는 이를 알 만큼 영리하지 않습니다. 코드가 괜찮다는 것을 우리가 알지만 러스트는 모를 때가 바로 안전하지 않은 코드를 사용해야 할 때입니다.Rust’s borrow checker can’t understand that we’re borrowing different parts of the slice; it only knows that we’re borrowing from the same slice twice. Borrowing different parts of a slice is fundamentally okay because the two slices aren’t overlapping, but Rust isn’t smart enough to know this. When we know code is okay, but Rust doesn’t, it’s time to reach for unsafe code.</p>
+<p>예제 20-6은 <code>split_at_mut</code> 구현이 작동하도록 <code>unsafe</code> 블록, 원시 포인터, 그리고 몇 가지 안전하지 않은 함수 호출을 사용하는 방법을 보여줍니다.</p>
 <Listing number="20-6" caption="Using unsafe code in the implementation of the `split_at_mut` function">
 <pre><pre class="playground"><code class="language-rust edition2021">use std::slice;
 
@@ -381,11 +363,11 @@ fn split_at_mut(values: &amp;mut [i32], mid: usize) -&gt; (&amp;mut [i32], &amp;
 </span><span class="boring">    let (left, right) = split_at_mut(&amp;mut vector, 3);
 </span><span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>Recall from <a href="ch04-03-slices.html#the-slice-type">“The Slice Type”</a><!-- ignore --> in Chapter 4 that slices are a pointer to some data and the length of the slice. We use the <code>len</code> method to get the length of a slice and the <code>as_mut_ptr</code> method to access the raw pointer of a slice. In this case, because we have a mutable slice to <code>i32</code> values, <code>as_mut_ptr</code> returns a raw pointer with the type <code>*mut i32</code>, which we’ve stored in the variable <code>ptr</code>.</p>
-<p>We keep the assertion that the <code>mid</code> index is within the slice. Then we get to the unsafe code: the <code>slice::from_raw_parts_mut</code> function takes a raw pointer and a length, and it creates a slice. We use this function to create a slice that starts from <code>ptr</code> and is <code>mid</code> items long. Then we call the <code>add</code> method on <code>ptr</code> with <code>mid</code> as an argument to get a raw pointer that starts at <code>mid</code>, and we create a slice using that pointer and the remaining number of items after <code>mid</code> as the length.</p>
-<p>The function <code>slice::from_raw_parts_mut</code> is unsafe because it takes a raw pointer and must trust that this pointer is valid. The <code>add</code> method on raw pointers is also unsafe, because it must trust that the offset location is also a valid pointer. Therefore, we had to put an <code>unsafe</code> block around our calls to <code>slice::from_raw_parts_mut</code> and <code>add</code> so we could call them. By looking at the code and by adding the assertion that <code>mid</code> must be less than or equal to <code>len</code>, we can tell that all the raw pointers used within the <code>unsafe</code> block will be valid pointers to data within the slice. This is an acceptable and appropriate use of <code>unsafe</code>.</p>
-<p>Note that we don’t need to mark the resulting <code>split_at_mut</code> function as <code>unsafe</code>, and we can call this function from safe Rust. We’ve created a safe abstraction to the unsafe code with an implementation of the function that uses <code>unsafe</code> code in a safe way, because it creates only valid pointers from the data this function has access to.</p>
-<p>In contrast, the use of <code>slice::from_raw_parts_mut</code> in Listing 20-7 would likely crash when the slice is used. This code takes an arbitrary memory location and creates a slice 10,000 items long.</p>
+<p>4장의 <a href="ch04-03-slices.html#the-slice-type">“슬라이스 타입”</a><!-- ignore -->에서 슬라이스는 데이터에 대한 포인터와 슬라이스의 길이라는 점을 상기해 보세요. <code>len</code> 메서드를 사용하여 슬라이스의 길이를 얻고, <code>as_mut_ptr</code> 메서드를 사용하여 슬라이스의 원시 포인터에 접근합니다. 이 경우 <code>i32</code> 값에 대한 가변 슬라이스가 있으므로, <code>as_mut_ptr</code>은 <code>*mut i32</code> 타입의 원시 포인터를 반환하며 이를 <code>ptr</code> 변수에 저장했습니다.</p>
+<p><code>mid</code> 인덱스가 슬라이스 내에 있다는 단언(assertion)을 유지합니다. 그런 다음 안전하지 않은 코드에 도달합니다. <code>slice::from_raw_parts_mut</code> 함수는 원시 포인터와 길이를 인수로 받아 슬라이스를 생성합니다. 이 함수를 사용하여 <code>ptr</code>에서 시작하고 길이가 <code>mid</code>인 슬라이스를 생성합니다. 그다음 <code>ptr</code>에서 <code>add</code> 메서드를 <code>mid</code>를 인수로 호출하여 <code>mid</code>에서 시작하는 원시 포인터를 얻고, 그 포인터와 <code>mid</code> 이후의 남은 항목 수를 길이로 사용하여 슬라이스를 생성합니다.</p>
+<p><code>slice::from_raw_parts_mut</code> 함수는 원시 포인터를 인수로 받고 이 포인터가 유효하다고 믿어야 하기 때문에 안전하지 않습니다. 원시 포인터의 <code>add</code> 메서드 또한 오프셋 위치가 유효한 포인터라고 믿어야 하기 때문에 안전하지 않습니다. 따라서 <code>slice::from_raw_parts_mut</code>와 <code>add</code> 호출을 가능하게 하려면 <code>unsafe</code> 블록으로 감싸야 했습니다. 코드를 살펴보고 <code>mid</code>가 <code>len</code>보다 작거나 같아야 한다는 단언을 추가함으로써, <code>unsafe</code> 블록 내에서 사용된 모든 원시 포인터가 슬라이스 내 데이터에 대한 유효한 포인터가 될 것임을 알 수 있습니다. 이는 <code>unsafe</code>를 허용 가능하고 적절하게 사용한 예입니다.</p>
+<p>결과물인 <code>split_at_mut</code> 함수를 <code>unsafe</code>로 표시할 필요는 없으며, 안전한 러스트에서 이 함수를 호출할 수 있습니다. 이 함수가 접근할 수 있는 데이터로부터 유효한 포인터만을 생성하기 때문에, <code>unsafe</code> 코드를 안전하게 사용하는 함수의 구현으로 안전하지 않은 코드에 대한 안전한 추상화를 만든 것입니다.</p>
+<p>반면, 예제 20-7에서 <code>slice::from_raw_parts_mut</code>을 사용하는 것은 슬라이스가 사용될 때 크래시가 발생할 가능성이 큽니다. 이 코드는 임의의 메모리 위치를 가져와 10,000개 항목 길이의 슬라이스를 생성합니다.</p>
 <Listing number="20-7" caption="Creating a slice from an arbitrary memory location">
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
 </span>    use std::slice;
@@ -396,10 +378,10 @@ fn split_at_mut(values: &amp;mut [i32], mid: usize) -&gt; (&amp;mut [i32], &amp;
     let values: &amp;[i32] = unsafe { slice::from_raw_parts_mut(r, 10000) };
 <span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>We don’t own the memory at this arbitrary location, and there is no guarantee that the slice this code creates contains valid <code>i32</code> values. Attempting to use <code>values</code> as though it’s a valid slice results in undefined behavior.</p>
-<h4 id="using-extern-functions-to-call-external-code"><a class="header" href="#using-extern-functions-to-call-external-code">Using <code>extern</code> Functions to Call External Code</a></h4>
-<p>Sometimes, your Rust code might need to interact with code written in another language. For this, Rust has the keyword <code>extern</code> that facilitates the creation and use of a <em>Foreign Function Interface (FFI)</em>. An FFI is a way for a programming language to define functions and enable a different (foreign) programming language to call those functions.</p>
-<p>Listing 20-8 demonstrates how to set up an integration with the <code>abs</code> function from the C standard library. Functions declared within <code>extern</code> blocks are usually unsafe to call from Rust code, so they must also be marked <code>unsafe</code>. The reason is that other languages don’t enforce Rust’s rules and guarantees, and Rust can’t check them, so responsibility falls on the programmer to ensure safety.</p>
+<p>우리는 이 임의의 위치의 메모리를 소유하지 않으며, 이 코드가 생성하는 슬라이스가 유효한 <code>i32</code> 값을 포함한다는 보장도 없습니다. <code>values</code>를 마치 유효한 슬라이스인 것처럼 사용하려고 시도하면 정의되지 않은 동작(undefined behavior)이 발생합니다.</p>
+<h4 id="외부-코드를-호출하기-위해-extern-함수-사용하기"><a class="header" href="#외부-코드를-호출하기-위해-extern-함수-사용하기">외부 코드를 호출하기 위해 <code>extern</code> 함수 사용하기</a></h4>
+<p>때때로 러스트 코드가 다른 언어로 작성된 코드와 상호작용해야 할 수도 있습니다. 이를 위해 러스트에는 _외부 함수 인터페이스(Foreign Function Interface, FFI)_의 생성 및 사용을 용이하게 하는 <code>extern</code> 키워드가 있습니다. FFI는 프로그래밍 언어가 함수를 정의하고 다른 (외부) 프로그래밍 언어가 해당 함수를 호출할 수 있도록 하는 방법입니다.</p>
+<p>예제 20-8은 C 표준 라이브러리의 <code>abs</code> 함수와의 통합을 설정하는 방법을 보여줍니다. <code>extern</code> 블록 내에 선언된 함수는 대개 러스트 코드에서 호출하기에 안전하지 않으므로, 이들 또한 <code>unsafe</code>로 표시되어야 합니다. 그 이유는 다른 언어들이 러스트의 규칙과 보장을 강제하지 않고 러스트가 이를 확인할 수 없기 때문이며, 따라서 안전을 보장할 책임은 프로그래머에게 있습니다.</p>
 <Listing number="20-8" file-name="src/main.rs" caption="Declaring and calling an `extern` function defined in another language">
 <pre><pre class="playground"><code class="language-rust edition2021">unsafe extern "C" {
     fn abs(input: i32) -&gt; i32;
@@ -407,53 +389,52 @@ fn split_at_mut(values: &amp;mut [i32], mid: usize) -&gt; (&amp;mut [i32], &amp;
 
 fn main() {
     unsafe {
-        println!("Absolute value of -3 according to C: {}", abs(-3));
+        println!("C에 따른 -3의 절대값: {}", abs(-3));
     }
 }</code></pre></pre>
 </Listing>
-<p>Within the <code>unsafe extern "C"</code> block, we list the names and signatures of external functions from another language we want to call. The <code>"C"</code> part defines which <em>application binary interface (ABI)</em> the external function uses: the ABI defines how to call the function at the assembly level. The <code>"C"</code> ABI is the most common and follows the C programming language’s ABI.</p>
-<p>This particular function does not have any memory safety considerations, though. In fact, we know that any call to <code>abs</code> will always be safe for any <code>i32</code>, so we can use the <code>safe</code> keyword to say that this specific function is safe to call even though it is in an <code>unsafe extern</code> block. Once we make that change, calling it no longer requires an <code>unsafe</code> block, as shown in Listing 20-9.</p>
+<p><code>unsafe extern "C"</code> 블록 내에서는 호출하려는 다른 언어의 외부 함수 이름과 시그니처를 나열합니다. <code>"C"</code> 부분은 해당 외부 함수가 어떤 _애플리케이션 이진 인터페이스(application binary interface, ABI)_를 사용하는지 정의합니다. ABI는 어셈블리 수준에서 함수를 호출하는 방법을 정의합니다. <code>"C"</code> ABI가 가장 일반적이며 C 프로그래밍 언어의 ABI를 따릅니다.</p>
+<p>하지만 이 특정 함수는 메모리 안전성 고려 사항이 없습니다. 사실, 어떤 <code>i32</code>에 대해서도 <code>abs</code> 호출은 항상 안전하다는 것을 알고 있으므로, <code>safe</code> 키워드를 사용하여 이 특정 함수가 <code>unsafe extern</code> 블록 내에 있더라도 호출하기에 안전하다고 말할 수 있습니다. 그렇게 변경하고 나면 예제 20-9와 같이 더 이상 이를 호출할 때 <code>unsafe</code> 블록이 필요하지 않습니다.</p>
 <Listing number="20-9" file-name="src/main.rs" caption="Explicitly marking a function as `safe` within an `unsafe extern` block and calling it safely">
 <pre><pre class="playground"><code class="language-rust edition2021">unsafe extern "C" {
     safe fn abs(input: i32) -&gt; i32;
 }
 
 fn main() {
-    println!("Absolute value of -3 according to C: {}", abs(-3));
+    println!("C에 따른 -3의 절대값: {}", abs(-3));
 }</code></pre></pre>
 </Listing>
-<p>Marking a function as <code>safe</code> does not inherently make it safe! Instead, it is like a promise you are making to Rust that it <em>is</em> safe. It is still your responsibility to make sure that promise is kept!</p>
+<p>함수를 <code>safe</code>로 표시한다고 해서 본질적으로 안전해지는 것은 아닙니다! 대신, 그것이 안전하다는 약속을 러스트에게 하는 것과 같습니다. 그 약속이 지켜지도록 하는 것은 여전히 여러분의 책임입니다!</p>
 <blockquote>
-<h4 id="calling-rust-functions-from-other-languages"><a class="header" href="#calling-rust-functions-from-other-languages">Calling Rust Functions from Other Languages</a></h4>
-<p>We can also use <code>extern</code> to create an interface that allows other languages to call Rust functions. Instead of creating a whole <code>extern</code> block, we add the <code>extern</code> keyword and specify the ABI to use just before the <code>fn</code> keyword for the relevant function. We also need to add a <code>#[unsafe(no_mangle)]</code> annotation to tell the Rust compiler not to mangle the name of this function. <em>Mangling</em> is when a compiler changes the name we’ve given a function to a different name that contains more information for other parts of the compilation process to consume but is less human readable. Every programming language compiler mangles names slightly differently, so for a Rust function to be nameable by other languages, we must disable the Rust compiler’s name mangling. This is unsafe because there might be name collisions across libraries without the built-in mangling, so it is our responsibility to make sure the name we have exported is safe to export without mangling.</p>
-<p>In the following example, we make the <code>call_from_c</code> function accessible from C code, after it’s compiled to a shared library and linked from C:</p>
+<h4 id="다른-언어에서-러스트-함수-호출하기"><a class="header" href="#다른-언어에서-러스트-함수-호출하기">다른 언어에서 러스트 함수 호출하기</a></h4>
+<p>또한 <code>extern</code>을 사용하여 다른 언어에서 러스트 함수를 호출할 수 있도록 하는 인터페이스를 만들 수 있습니다. 전체 <code>extern</code> 블록을 만드는 대신, 관련 함수의 <code>fn</code> 키워드 바로 앞에 <code>extern</code> 키워드를 추가하고 사용할 ABI를 지정합니다. 또한 러스트 컴파일러가 이 함수의 이름을 맹글링(mangle)하지 않도록 <code>#[unsafe(no_mangle)]</code> 어노테이션을 추가해야 합니다. _맹글링_은 컴파일러가 우리가 함수에 부여한 이름을 컴파일 과정의 다른 부분에서 사용하기 위해 더 많은 정보를 포함하지만 사람이 읽기에는 어려운 다른 이름으로 바꾸는 것을 말합니다. 모든 프로그래밍 언어 컴파일러는 이름을 조금씩 다르게 맹글링하므로, 다른 언어에서 러스트 함수를 이름으로 호출할 수 있게 하려면 러스트 컴파일러의 이름 맹글링을 비활성화해야 합니다. 이는 내장된 맹글링 없이는 라이브러리 간에 이름 충돌이 발생할 수 있기 때문에 안전하지 않으므로, 우리가 내보낸 이름이 맹글링 없이도 내보내기에 안전한지 확인하는 것은 우리의 책임입니다.</p>
+<p>다음 예제에서는 <code>call_from_c</code> 함수를 공유 라이브러리로 컴파일하고 C에서 링크한 후, C 코드에서 접근할 수 있게 만듭니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[unsafe(no_mangle)]
 pub extern "C" fn call_from_c() {
-    println!("Just called a Rust function from C!");
+    println!("C에서 러스트 함수를 방금 호출했습니다!");
 }
 <span class="boring">}</span></code></pre></pre>
-<p>This usage of <code>extern</code> does not require <code>unsafe</code>.</p>
+<p>이러한 <code>extern</code> 사용에는 <code>unsafe</code>가 필요하지 않습니다.</p>
 </blockquote>
-<h3 id="accessing-or-modifying-a-mutable-static-variable"><a class="header" href="#accessing-or-modifying-a-mutable-static-variable">Accessing or Modifying a Mutable Static Variable</a></h3>
-<p>In this book, we’ve not yet talked about <em>global variables</em>, which Rust does support but can be problematic with Rust’s ownership rules. If two threads are accessing the same mutable global variable, it can cause a data race.</p>
-<p>In Rust, global variables are called <em>static</em> variables. Listing 20-10 shows an example declaration and use of a static variable with a string slice as a value.</p>
+<h3 id="가변-정적-변수에-접근하거나-수정하기"><a class="header" href="#가변-정적-변수에-접근하거나-수정하기">가변 정적 변수에 접근하거나 수정하기</a></h3>
+<p>이 책에서는 아직 _전역 변수(global variables)_에 대해 이야기하지 않았는데, 러스트는 이를 지원하지만 러스트의 소유권 규칙상 문제가 될 수 있습니다. 만약 두 스레드가 동일한 가변 전역 변수에 접근한다면, 데이터 경합(data race)이 발생할 수 있습니다.</p>
+<p>러스트에서 전역 변수는 <em>정적(static)</em> 변수라고 불립니다. 예제 20-10은 문자열 슬라이스를 값으로 가지는 정적 변수의 선언과 사용 예를 보여줍니다.</p>
 <Listing number="20-10" file-name="src/main.rs" caption="Defining and using an immutable static variable">
 <pre><pre class="playground"><code class="language-rust edition2021">static HELLO_WORLD: &amp;str = "헬로, 월드!";
 
 fn main() {
-    println!("name is: {HELLO_WORLD}");
+    println!("이름은: {HELLO_WORLD}");
 }</code></pre></pre>
 </Listing>
-<p>Static variables are similar to constants, which we discussed in <a href="ch03-01-variables-and-mutability.html#constants">“Constants”</a><!-- ignore --> in Chapter 3. The names of static variables are in <code>SCREAMING_SNAKE_CASE</code> by convention. Static variables can only store references with the <code>'static</code> lifetime, which means the Rust compiler can figure out the lifetime and we aren’t required to annotate it explicitly. Accessing an immutable static variable is safe.</p>
-<p>A subtle difference between constants and immutable static variables is that values in a static variable have a fixed address in memory. Using the value will always access the same data. Constants, on the other hand, are allowed to duplicate their data whenever they’re used. Another difference is that static variables can be mutable. Accessing and modifying mutable static variables is <em>unsafe</em>. Listing 20-11 shows how to declare, access, and modify a mutable static variable named <code>COUNTER</code>.</p>
+<p>정적 변수는 3장의 <a href="ch03-01-variables-and-mutability.html#constants">“상수”</a><!-- ignore -->에서 다룬 상수와 유사합니다. 정적 변수의 이름은 관례에 따라 <code>SCREAMING_SNAKE_CASE</code>로 작성합니다. 정적 변수는 <code>'static</code> 라이프타임을 가진 참조만을 저장할 수 있는데, 이는 러스트 컴파일러가 라이프타임을 파악할 수 있으므로 우리가 명시적으로 어노테이션을 달 필요가 없음을 의미합니다. 불변 정적 변수에 접근하는 것은 안전합니다.</p>
+<p>상수와 불변 정적 변수의 미묘한 차이점은 정적 변수의 값은 메모리상의 고정된 주소를 가진다는 점입니다. 값을 사용하면 항상 동일한 데이터에 접근하게 됩니다. 반면 상수는 사용될 때마다 데이터가 복제될 수 있습니다. 또 다른 차이점은 정적 변수는 가변적일 수 있다는 것입니다. 가변 정적 변수에 접근하고 이를 수정하는 것은 안전하지 않습니다. 예제 20-11은 <code>COUNTER</code>라는 가변 정적 변수를 선언, 접근 및 수정하는 방법을 보여줍니다.</p>
 <Listing number="20-11" file-name="src/main.rs" caption="Reading from or writing to a mutable static variable is unsafe">
 <pre><pre class="playground"><code class="language-rust edition2021">static mut COUNTER: u32 = 0;
 
-/// SAFETY: Calling this from more than a single thread at a time is undefined
-/// behavior, so you *must* guarantee you only call it from a single thread at
-/// a time.
+/// SAFETY: 한 번에 둘 이상의 스레드에서 이를 호출하는 것은 정의되지 않은 동작이므로,
+/// 한 번에 오직 하나의 스레드에서만 이를 호출하도록 보장해야 합니다.
 unsafe fn add_to_count(inc: u32) {
     unsafe {
         COUNTER += inc;
@@ -462,37 +443,37 @@ unsafe fn add_to_count(inc: u32) {
 
 fn main() {
     unsafe {
-        // SAFETY: This is only called from a single thread in `main`.
+        // SAFETY: 이는 `main`의 단일 스레드에서만 호출됩니다.
         add_to_count(3);
         println!("COUNTER: {}", *(&amp;raw const COUNTER));
     }
 }</code></pre></pre>
 </Listing>
-<p>As with regular variables, we specify mutability using the <code>mut</code> keyword. Any code that reads or writes from <code>COUNTER</code> must be within an <code>unsafe</code> block. The code in Listing 20-11 compiles and prints <code>COUNTER: 3</code> as we would expect because it’s single threaded. Having multiple threads access <code>COUNTER</code> would likely result in data races, so it is undefined behavior. Therefore, we need to mark the entire function as <code>unsafe</code>, and document the safety limitation, so anyone calling the function knows what they are and are not allowed to do safely.</p>
-<p>Whenever we write an unsafe function, it is idiomatic to write a comment starting with <code>SAFETY</code> and explaining what the caller needs to do to call the function safely. Likewise, whenever we perform an unsafe operation, it is idiomatic to write a comment starting with <code>SAFETY</code> to explain how the safety rules are upheld.</p>
-<p>Additionally, the compiler will not allow you to create references to a mutable static variable. You can only access it via a raw pointer, created with one of the raw borrow operators. That includes in cases where the reference is created invisibly, as when it is used in the <code>println!</code> in this code listing. The requirement that references to static mutable variables can only be created via raw pointers helps make the safety requirements for using them more obvious.</p>
-<p>With mutable data that is globally accessible, it’s difficult to ensure there are no data races, which is why Rust considers mutable static variables to be unsafe. Where possible, it’s preferable to use the concurrency techniques and thread-safe smart pointers we discussed in Chapter 16 so the compiler checks that data accessed from different threads is done safely.</p>
-<h3 id="implementing-an-unsafe-trait"><a class="header" href="#implementing-an-unsafe-trait">Implementing an Unsafe Trait</a></h3>
-<p>We can use <code>unsafe</code> to implement an unsafe trait. A trait is unsafe when at least one of its methods has some invariant that the compiler can’t verify. We declare that a trait is <code>unsafe</code> by adding the <code>unsafe</code> keyword before <code>trait</code> and marking the implementation of the trait as <code>unsafe</code> too, as shown in Listing 20-12.</p>
+<p>일반 변수와 마찬가지로 <code>mut</code> 키워드를 사용하여 가변성을 지정합니다. <code>COUNTER</code>를 읽거나 쓰는 모든 코드는 <code>unsafe</code> 블록 내에 있어야 합니다. 예제 20-11의 코드는 단일 스레드이므로 예상대로 컴파일되고 <code>COUNTER: 3</code>을 출력합니다. 여러 스레드가 <code>COUNTER</code>에 접근하는 것은 데이터 경합을 초래할 가능성이 높으며, 이는 정의되지 않은 동작입니다. 따라서 함수 전체를 <code>unsafe</code>로 표시하고 안전상의 제한 사항을 문서화하여, 함수를 호출하는 누구나 안전하게 수행할 수 있는 일과 없는 일이 무엇인지 알 수 있도록 해야 합니다.</p>
+<p>안전하지 않은 함수를 작성할 때마다 <code>SAFETY</code>로 시작하는 주석을 작성하여 호출자가 함수를 안전하게 호출하기 위해 무엇을 해야 하는지 설명하는 것이 관례입니다. 마찬가지로, 안전하지 않은 연산을 수행할 때마다 <code>SAFETY</code>로 시작하는 주석을 작성하여 안전 규칙이 어떻게 준수되는지 설명하는 것이 관례입니다.</p>
+<p>또한 컴파일러는 가변 정적 변수에 대한 참조를 만드는 것을 허용하지 않습니다. 원시 대여 연산자 중 하나를 사용하여 만든 원시 포인터를 통해서만 접근할 수 있습니다. 여기에는 이 코드 예제의 <code>println!</code>에서 사용될 때처럼 참조가 보이지 않게 생성되는 경우도 포함됩니다. 가변 정적 변수에 대한 참조가 오직 원시 포인터를 통해서만 생성될 수 있다는 요구 사항은 이를 사용하는 데 필요한 안전 요건을 더 명확하게 만드는 데 도움이 됩니다.</p>
+<p>전역적으로 접근 가능한 가변 데이터의 경우 데이터 경합이 없음을 보장하기 어렵기 때문에, 러스트는 가변 정적 변수를 안전하지 않다고 간주합니다. 가능하다면 16장에서 논의한 동시성 기술과 스레드 안전한 스마트 포인터를 사용하는 것이 좋습니다. 그러면 컴파일러가 서로 다른 스레드에서 데이터에 안전하게 접근하는지 확인할 수 있습니다.</p>
+<h3 id="안전하지-않은-트레이트-구현하기"><a class="header" href="#안전하지-않은-트레이트-구현하기">안전하지 않은 트레이트 구현하기</a></h3>
+<p><code>unsafe</code>를 사용하여 안전하지 않은 트레이트를 구현할 수 있습니다. 트레이트의 메서드 중 적어도 하나에 컴파일러가 확인할 수 없는 불변성(invariant)이 있을 때 해당 트레이트는 안전하지 않습니다. 트레이트를 선언할 때 <code>trait</code> 앞에 <code>unsafe</code> 키워드를 추가하고, 해당 트레이트의 구현부 역시 <code>unsafe</code>로 표시함으로써 안전하지 않은 트레이트임을 선언합니다. 예제 20-12가 이를 보여줍니다.</p>
 <Listing number="20-12" caption="Defining and implementing an unsafe trait">
 <pre><pre class="playground"><code class="language-rust edition2021">unsafe trait Foo {
-    // methods go here
+    // 메서드가 여기에 옵니다
 }
 
 unsafe impl Foo for i32 {
-    // method implementations go here
+    // 메서드 구현이 여기에 옵니다
 }
 
 fn main() {}</code></pre></pre>
 </Listing>
-<p>By using <code>unsafe impl</code>, we’re promising that we’ll uphold the invariants that the compiler can’t verify.</p>
-<p>As an example, recall the <code>Sync</code> and <code>Send</code> marker traits we discussed in <a href="ch16-04-extensible-concurrency-sync-and-send.html#extensible-concurrency-with-the-sync-and-send-traits">“Extensible Concurrency with the <code>Sync</code> and <code>Send</code> Traits”</a><!-- ignore --> in Chapter 16: the compiler implements these traits automatically if our types are composed entirely of <code>Send</code> and <code>Sync</code> types. If we implement a type that contains a type that is not <code>Send</code> or <code>Sync</code>, such as raw pointers, and we want to mark that type as <code>Send</code> or <code>Sync</code>, we must use <code>unsafe</code>. Rust can’t verify that our type upholds the guarantees that it can be safely sent across threads or accessed from multiple threads; therefore, we need to do those checks manually and indicate as such with <code>unsafe</code>.</p>
-<h3 id="accessing-fields-of-a-union"><a class="header" href="#accessing-fields-of-a-union">Accessing Fields of a Union</a></h3>
-<p>The final action that works only with <code>unsafe</code> is accessing fields of a <em>union</em>. A <code>union</code> is similar to a <code>struct</code>, but only one declared field is used in a particular instance at one time. Unions are primarily used to interface with unions in C code. Accessing union fields is unsafe because Rust can’t guarantee the type of the data currently being stored in the union instance. You can learn more about unions in <a href="../reference/items/unions.html">the Rust Reference</a>.</p>
-<h3 id="using-miri-to-check-unsafe-code"><a class="header" href="#using-miri-to-check-unsafe-code">Using Miri to check unsafe code</a></h3>
-<p>When writing unsafe code, you might want to check that what you have written actually is safe and correct. One of the best ways to do that is to use <a href="https://github.com/rust-lang/miri">Miri</a>, an official Rust tool for detecting undefined behavior. Whereas the borrow checker is a <em>static</em> tool which works at compile time, Miri is a <em>dynamic</em> tool which works at runtime. It checks your code by running your program, or its test suite, and detecting when you violate the rules it understands about how Rust should work.</p>
-<p>Using Miri requires a nightly build of Rust (which we talk about more in <a href="appendix-07-nightly-rust.html">Appendix G: How Rust is Made and “Nightly Rust”</a>). You can install both a nightly version of Rust and the Miri tool by typing <code>rustup +nightly component add miri</code>. This does not change what version of Rust your project uses; it only adds the tool to your system so you can use it when you want to. You can run Miri on a project by typing <code>cargo +nightly miri run</code> or <code>cargo +nightly miri test</code>.</p>
-<p>For an example of how helpful this can be, consider what happens when we run it against Listing 20-11:</p>
+<p><code>unsafe impl</code>을 사용함으로써, 컴파일러가 확인할 수 없는 불변성을 우리가 준수할 것임을 약속하는 것입니다.</p>
+<p>예를 들어, 16장의 <a href="ch16-04-extensible-concurrency-sync-and-send.html#extensible-concurrency-with-the-sync-and-send-traits">“<code>Sync</code>와 <code>Send</code> 트레이트로 확장 가능한 동시성”</a><!-- ignore -->에서 다룬 <code>Sync</code>와 <code>Send</code> 마커 트레이트를 떠올려 보세요. 컴파일러는 타입이 전적으로 <code>Send</code>와 <code>Sync</code> 타입으로만 구성되어 있다면 이 트레이트들을 자동으로 구현합니다. 만약 원시 포인터와 같이 <code>Send</code>나 <code>Sync</code>가 아닌 타입을 포함하는 타입을 구현하면서 그 타입을 <code>Send</code>나 <code>Sync</code>로 표시하고 싶다면, 반드시 <code>unsafe</code>를 사용해야 합니다. 러스트는 우리 타입이 스레드 간에 안전하게 전달될 수 있는지 혹은 여러 스레드에서 안전하게 접근될 수 있는지에 대한 보장을 준수하는지 확인할 수 없습니다. 따라서 우리가 직접 그 검사를 수행하고 <code>unsafe</code>로 그 사실을 명시해야 합니다.</p>
+<h3 id="유니온의-필드에-접근하기"><a class="header" href="#유니온의-필드에-접근하기">유니온의 필드에 접근하기</a></h3>
+<p><code>unsafe</code>에서만 작동하는 마지막 동작은 _유니온(union)_의 필드에 접근하는 것입니다. <code>union</code>은 <code>struct</code>와 유사하지만, 특정 인스턴스에서 한 번에 하나의 필드만 사용됩니다. 유니온은 주로 C 코드의 유니온과 인터페이스하는 데 사용됩니다. 유니온 인스턴스에 현재 저장된 데이터의 타입을 러스트가 보장할 수 없기 때문에 유니온 필드에 접근하는 것은 안전하지 않습니다. 유니온에 대한 자세한 내용은 <a href="../reference/items/unions.html">러스트 레퍼런스(Rust Reference)</a>에서 확인할 수 있습니다.</p>
+<h3 id="miri를-사용하여-안전하지-않은-코드-확인하기"><a class="header" href="#miri를-사용하여-안전하지-않은-코드-확인하기">Miri를 사용하여 안전하지 않은 코드 확인하기</a></h3>
+<p>안전하지 않은 코드를 작성할 때, 여러분이 작성한 것이 실제로 안전하고 올바른지 확인하고 싶을 수 있습니다. 이를 위한 가장 좋은 방법 중 하나는 정의되지 않은 동작을 감지하기 위한 공식 러스트 도구인 <a href="https://github.com/rust-lang/miri">Miri</a>를 사용하는 것입니다. 대여 검사기가 컴파일 시간에 작동하는 <em>정적(static)</em> 도구인 반면, Miri는 런타임에 작동하는 <em>동적(dynamic)</em> 도구입니다. Miri는 여러분의 프로그램이나 테스트 스위트를 실행하여 러스트가 어떻게 작동해야 하는지에 대해 알고 있는 규칙을 위반하는 경우를 감지함으로써 코드를 확인합니다.</p>
+<p>Miri를 사용하려면 러스트 나이틀리 빌드가 필요합니다(이에 대해서는 <a href="appendix-07-nightly-rust.html">부록 G: 러스트가 만들어지는 방법과 "나이틀리 러스트"</a>에서 더 자세히 다룹니다). <code>rustup +nightly component add miri</code>를 입력하여 나이틀리 버전의 러스트와 Miri 도구를 모두 설치할 수 있습니다. 이는 여러분의 프로젝트가 사용하는 러스트 버전을 변경하지는 않습니다. 단지 시스템에 도구를 추가하여 원할 때 사용할 수 있도록 할 뿐입니다. 프로젝트에서 <code>cargo +nightly miri run</code> 또는 <code>cargo +nightly miri test</code>를 입력하여 Miri를 실행할 수 있습니다.</p>
+<p>이것이 얼마나 도움이 될 수 있는지에 대한 예로, 예제 20-11에 대해 Miri를 실행했을 때 어떤 일이 발생하는지 고려해 보세요.</p>
 <pre><code class="language-console">$ cargo +nightly miri run
    Compiling unsafe-example v0.1.0 (file:///projects/unsafe-example)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
@@ -509,11 +490,11 @@ warning: creating a shared reference to mutable static is discouraged
 
 COUNTER: 3
 </code></pre>
-<p>It helpfully and correctly notices that we have shared references to mutable data, and warns about it. In this case, it does not tell us how to fix the problem, but it means that we know there is a possible issue and can think about how to make sure it is safe. In other cases, it can actually tell us that some code is <em>sure</em> to be wrong and make recommendations about how to fix it.</p>
-<p>Miri doesn’t catch <em>everything</em> you might get wrong when writing unsafe code. For one thing, since it is a dynamic check, it only catches problems with code that actually gets run. That means you will need to use it in conjunction with good testing techniques to increase your confidence about the unsafe code you have written. For another thing, it does not cover every possible way your code can be unsound. If Miri <em>does</em> catch a problem, you know there’s a bug, but just because Miri <em>doesn’t</em> catch a bug doesn’t mean there isn’t a problem. Miri can catch a lot, though. Try running it on the other examples of unsafe code in this chapter and see what it says!</p>
-<h3 id="when-to-use-unsafe-code"><a class="header" href="#when-to-use-unsafe-code">When to Use Unsafe Code</a></h3>
-<p>Using <code>unsafe</code> to take one of the five actions (superpowers) just discussed isn’t wrong or even frowned upon. But it is trickier to get <code>unsafe</code> code correct because the compiler can’t help uphold memory safety. When you have a reason to use <code>unsafe</code> code, you can do so, and having the explicit <code>unsafe</code> annotation makes it easier to track down the source of problems when they occur. Whenever you write unsafe code, you can use Miri to help you be more confident that the code you have written upholds Rust’s rules.</p>
-<p>For a much deeper exploration of how to work effectively with unsafe Rust, read Rust’s official guide to the subject, the <a href="https://doc.rust-lang.org/nomicon/">Rustonomicon</a>.</p>
+<p>Miri는 가변 데이터에 대한 공유 참조가 있음을 유용하고 정확하게 인지하고 이에 대해 경고합니다. 이 경우 문제를 해결하는 방법을 알려주지는 않지만, 가능한 문제가 있음을 알게 되어 이를 어떻게 안전하게 만들 수 있을지 생각할 수 있게 해줍니다. 다른 경우에는 실제로 어떤 코드가 <em>확실히</em> 잘못되었음을 알려주고 이를 해결하는 방법에 대한 권장 사항을 제시할 수도 있습니다.</p>
+<p>Miri가 안전하지 않은 코드를 작성할 때 저지를 수 있는 <em>모든</em> 실수를 잡아내는 것은 아닙니다. 우선 Miri는 동적 검사이기 때문에 실제로 실행되는 코드의 문제만 잡아냅니다. 즉, 여러분이 작성한 안전하지 않은 코드에 대한 확신을 높이려면 좋은 테스트 기법과 함께 Miri를 사용해야 함을 의미합니다. 또한 Miri가 여러분의 코드가 견고하지 않을 수 있는 모든 가능성을 다루지는 않습니다. Miri가 문제를 잡아낸다면 버그가 있다는 것을 알 수 있지만, Miri가 버그를 잡아내지 못했다고 해서 문제가 없다는 뜻은 아닙니다. 그럼에도 Miri는 많은 것을 잡아낼 수 있습니다. 이 장의 다른 안전하지 않은 코드 예제들에 대해 Miri를 실행해 보고 어떤 결과가 나오는지 확인해 보세요!</p>
+<h3 id="언제-안전하지-않은-코드를-사용하는가"><a class="header" href="#언제-안전하지-않은-코드를-사용하는가">언제 안전하지 않은 코드를 사용하는가</a></h3>
+<p>방금 논의한 다섯 가지 동작(슈퍼파워) 중 하나를 수행하기 위해 <code>unsafe</code>를 사용하는 것은 잘못된 것이 아니며 눈총을 받을 일도 아닙니다. 하지만 컴파일러가 메모리 안전성을 보장하는 데 도움을 줄 수 없기 때문에 <code>unsafe</code> 코드를 올바르게 작성하는 것은 더 까다롭습니다. <code>unsafe</code> 코드를 사용해야 할 이유가 있다면 그렇게 할 수 있으며, 명시적인 <code>unsafe</code> 어노테이션이 있으면 문제가 발생했을 때 문제의 근원을 추적하기가 더 쉬워집니다. 안전하지 않은 코드를 작성할 때마다 Miri를 사용하여 여러분이 작성한 코드가 러스트의 규칙을 준수하는지 더 확신할 수 있습니다.</p>
+<p>안전하지 않은 러스트를 효과적으로 다루는 방법에 대해 훨씬 더 깊이 탐구하고 싶다면, 이 주제에 대한 러스트 공식 가이드인 <a href="https://doc.rust-lang.org/nomicon/">러스토노미콘(Rustonomicon)</a>을 읽어보세요.</p>
 
                     </main>
 
