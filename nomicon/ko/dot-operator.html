@@ -214,29 +214,29 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="점-연산자"><a class="header" href="#점-연산자">점 연산자</a></h1>
-<p>The dot operator will perform a lot of magic to convert types. It will perform auto-referencing, auto-dereferencing, and coercion until types match. The detailed mechanics of method lookup are defined <a href="https://rustc-dev-guide.rust-lang.org/method-lookup.html">here</a>, but here is a brief overview that outlines the main steps.</p>
-<p>Suppose we have a function <code>foo</code> that has a receiver (a <code>self</code>, <code>&amp;self</code> or <code>&amp;mut self</code> parameter). If we call <code>value.foo()</code>, the compiler needs to determine what type <code>Self</code> is before it can call the correct implementation of the function. For this example, we will say that <code>value</code> has type <code>T</code>.</p>
-<p>We will use <a href="../book/ch19-03-advanced-traits.html#fully-qualified-syntax-for-disambiguation-calling-methods-with-the-same-name">fully-qualified syntax</a> to be more clear about exactly which type we are calling a function on.</p>
+<p>점(dot) 연산자는 타입을 변환하기 위해 많은 마법을 부립니다. 타입이 일치할 때까지 자동 참조(auto-referencing), 자동 역참조(auto-dereferencing), 그리고 강제 변환을 수행합니다. 메서드 조회의 자세한 메커니즘은 <a href="https://rustc-dev-guide.rust-lang.org/method-lookup.html">여기</a>에 정의되어 있지만, 주요 단계들을 요약하면 다음과 같습니다.</p>
+<p>수신자(<code>self</code>, <code>&amp;self</code>, 또는 <code>&amp;mut self</code> 매개변수)를 가진 함수 <code>foo</code>가 있다고 가정해 봅시다. <code>value.foo()</code>를 호출하면, 컴파일러는 함수의 올바른 구현을 호출하기 전에 <code>Self</code>가 어떤 타입인지 결정해야 합니다. 이 예제에서 <code>value</code>는 <code>T</code> 타입을 가진다고 하겠습니다.</p>
+<p>어떤 타입에 대해 함수를 호출하고 있는지 정확히 하기 위해 <a href="../book/ch19-03-advanced-traits.html#fully-qualified-syntax-for-disambiguation-calling-methods-with-the-same-name">정규화된 구문(fully-qualified syntax)</a>을 사용하겠습니다.</p>
 <ul>
-<li>First, the compiler checks if it can call <code>T::foo(value)</code> directly. This is called a "by value" method call.</li>
-<li>If it can't call this function (for example, if the function has the wrong type or a trait isn't implemented for <code>Self</code>), then the compiler tries to add in an automatic reference. This means that the compiler tries <code>&lt;&amp;T&gt;::foo(value)</code> and <code>&lt;&amp;mut T&gt;::foo(value)</code>. This is called an "autoref" method call.</li>
-<li>If none of these candidates worked, it dereferences <code>T</code> and tries again. This uses the <code>Deref</code> trait - if <code>T: Deref&lt;Target = U&gt;</code> then it tries again with type <code>U</code> instead of <code>T</code>. If it can't dereference <code>T</code>, it can also try <em>unsizing</em> <code>T</code>. This just means that if <code>T</code> has a size parameter known at compile time, it "forgets" it for the purpose of resolving methods. For instance, this unsizing step can convert <code>[i32; 2]</code> into <code>[i32]</code> by "forgetting" the size of the array.</li>
+<li>먼저, 컴파일러는 <code>T::foo(value)</code>를 직접 호출할 수 있는지 확인합니다. 이를 "값에 의한(by value)" 메서드 호출이라고 합니다.</li>
+<li>만약 이 함수를 호출할 수 없다면(예를 들어 함수가 잘못된 타입을 가졌거나 <code>Self</code>에 대해 트레잇이 구현되지 않은 경우), 컴파일러는 자동 참조를 추가하려고 시도합니다. 즉, <code>&lt;&amp;T&gt;::foo(value)</code>와 <code>&lt;&amp;mut T&gt;::foo(value)</code>를 시도해 봅니다. 이를 "자동 참조(autoref)" 메서드 호출이라고 합니다.</li>
+<li>이 후보들 중 어느 것도 작동하지 않으면, <code>T</code>를 역참조하고 다시 시도합니다. 이는 <code>Deref</code> 트레잇을 사용합니다. 만약 <code>T: Deref&lt;Target = U&gt;</code>라면 <code>T</code> 대신 <code>U</code> 타입으로 다시 시도합니다. <code>T</code>를 역참조할 수 없는 경우, <code>T</code>를 <em>언사이징(unsizing)</em> 해볼 수도 있습니다. 이는 <code>T</code>가 컴파일 타임에 알려진 크기 매개변수를 가지고 있다면, 메서드 조회를 위해 그것을 "잊어버리는" 것을 의미합니다. 예를 들어, 이 언사이징 단계는 배열의 크기를 "잊음"으로써 <code>[i32; 2]</code>를 <code>[i32]</code>로 변환할 수 있습니다.</li>
 </ul>
-<p>Here is an example of the method lookup algorithm:</p>
+<p>다음은 메서드 조회 알고리즘의 예시입니다:</p>
 <pre><code class="language-rust ignore">let array: Rc&lt;Box&lt;[T; 3]&gt;&gt; = ...;
 let first_entry = array[0];</code></pre>
-<p>How does the compiler actually compute <code>array[0]</code> when the array is behind so many indirections? First, <code>array[0]</code> is really just syntax sugar for the <a href="../std/ops/trait.Index.html"><code>Index</code></a> trait - the compiler will convert <code>array[0]</code> into <code>array.index(0)</code>. Now, the compiler checks to see if <code>array</code> implements <code>Index</code>, so that it can call the function.</p>
-<p>Then, the compiler checks if <code>Rc&lt;Box&lt;[T; 3]&gt;&gt;</code> implements <code>Index</code>, but it does not, and neither do <code>&amp;Rc&lt;Box&lt;[T; 3]&gt;&gt;</code> or <code>&amp;mut Rc&lt;Box&lt;[T; 3]&gt;&gt;</code>. Since none of these worked, the compiler dereferences the <code>Rc&lt;Box&lt;[T; 3]&gt;&gt;</code> into <code>Box&lt;[T; 3]&gt;</code> and tries again. <code>Box&lt;[T; 3]&gt;</code>, <code>&amp;Box&lt;[T; 3]&gt;</code>, and <code>&amp;mut Box&lt;[T; 3]&gt;</code> do not implement <code>Index</code>, so it dereferences again. <code>[T; 3]</code> and its autorefs also do not implement <code>Index</code>. It can't dereference <code>[T; 3]</code>, so the compiler unsizes it, giving <code>[T]</code>. Finally, <code>[T]</code> implements <code>Index</code>, so it can now call the actual <code>index</code> function.</p>
-<p>Consider the following more complicated example of the dot operator at work:</p>
+<p>배열이 이토록 많은 간접 참조 뒤에 숨어 있을 때, 컴파일러는 실제로 어떻게 <code>array[0]</code>을 계산할까요? 먼저, <code>array[0]</code>은 실제로는 <a href="../std/ops/trait.Index.html"><code>Index</code></a> 트레잇에 대한 구문 설탕일 뿐입니다. 컴파일러는 <code>array[0]</code>을 <code>array.index(0)</code>으로 변환합니다. 이제 컴파일러는 함수를 호출할 수 있도록 <code>array</code>가 <code>Index</code>를 구현하는지 확인합니다.</p>
+<p>그다음 컴파일러는 <code>Rc&lt;Box&lt;[T; 3]&gt;&gt;</code>가 <code>Index</code>를 구현하는지 확인하지만, 구현하지 않으며 <code>&amp;Rc&lt;Box&lt;[T; 3]&gt;&gt;</code>나 <code>&amp;mut Rc&lt;Box&lt;[T; 3]&gt;&gt;</code>도 마찬가지입니다. 어느 것도 작동하지 않았으므로, 컴파일러는 <code>Rc&lt;Box&lt;[T; 3]&gt;&gt;</code>를 <code>Box&lt;[T; 3]&gt;</code>로 역참조하고 다시 시도합니다. <code>Box&lt;[T; 3]&gt;</code>, <code>&amp;Box&lt;[T; 3]&gt;</code>, <code>&amp;mut Box&lt;[T; 3]&gt;</code>도 <code>Index</code>를 구현하지 않으므로 다시 역참조합니다. <code>[T; 3]</code>과 그 자동 참조들도 <code>Index</code>를 구현하지 않습니다. <code>[T; 3]</code>은 더 이상 역참조할 수 없으므로, 컴파일러는 이를 언사이징하여 <code>[T]</code>를 얻습니다. 마침내 <code>[T]</code>가 <code>Index</code>를 구현하고 있으므로, 이제 실제 <code>index</code> 함수를 호출할 수 있습니다.</p>
+<p>점 연산자가 작동하는 더 복잡한 다음 예제를 고려해 보세요:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn do_stuff&lt;T: Clone&gt;(value: &amp;T) {
     let cloned = value.clone();
 }
 <span class="boring">}</span></code></pre></pre>
-<p>What type is <code>cloned</code>? First, the compiler checks if it can call by value. The type of <code>value</code> is <code>&amp;T</code>, and so the <code>clone</code> function has signature <code>fn clone(&amp;T) -&gt; T</code>. It knows that <code>T: Clone</code>, so the compiler finds that <code>cloned: T</code>.</p>
-<p>What would happen if the <code>T: Clone</code> restriction was removed? It would not be able to call by value, since there is no implementation of <code>Clone</code> for <code>T</code>. So the compiler tries to call by autoref. In this case, the function has the signature <code>fn clone(&amp;&amp;T) -&gt; &amp;T</code> since <code>Self = &amp;T</code>. The compiler sees that <code>&amp;T: Clone</code>, and then deduces that <code>cloned: &amp;T</code>.</p>
-<p>Here is another example where the autoref behavior is used to create some subtle effects:</p>
+<p><code>cloned</code>는 어떤 타입일까요? 먼저 컴파일러는 값에 의해 호출할 수 있는지 확인합니다. <code>value</code>의 타입은 <code>&amp;T</code>이므로, <code>clone</code> 함수의 시그니처는 <code>fn clone(&amp;T) -&gt; T</code>가 됩니다. 컴파일러는 <code>T: Clone</code>임을 알고 있으므로 <code>cloned: T</code>임을 찾아냅니다.</p>
+<p><code>T: Clone</code> 제약이 제거되면 어떻게 될까요? <code>T</code>에 대한 <code>Clone</code> 구현이 없으므로 값에 의해 호출할 수 없게 됩니다. 따라서 컴파일러는 자동 참조에 의한 호출을 시도합니다. 이 경우 <code>Self = &amp;T</code>이므로 함수의 시그니처는 <code>fn clone(&amp;&amp;T) -&gt; &amp;T</code>가 됩니다. 컴파일러는 <code>&amp;T: Clone</code>임을 확인하고, <code>cloned: &amp;T</code>라고 추론합니다.</p>
+<p>다음은 자동 참조 동작이 미묘한 효과를 만들어내는 또 다른 예시입니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use std::sync::Arc;
@@ -249,20 +249,20 @@ fn clone_containers&lt;T&gt;(foo: &amp;Container&lt;i32&gt;, bar: &amp;Container
     let bar_cloned = bar.clone();
 }
 <span class="boring">}</span></code></pre></pre>
-<p>What types are <code>foo_cloned</code> and <code>bar_cloned</code>? We know that <code>Container&lt;i32&gt;: Clone</code>, so the compiler calls <code>clone</code> by value to give <code>foo_cloned: Container&lt;i32&gt;</code>. However, <code>bar_cloned</code> actually has type <code>&amp;Container&lt;T&gt;</code>. Surely this doesn't make sense - we added <code>#[derive(Clone)]</code> to <code>Container</code>, so it must implement <code>Clone</code>! Looking closer, the code generated by the <code>derive</code> macro is (roughly):</p>
+<p><code>foo_cloned</code>와 <code>bar_cloned</code>는 어떤 타입일까요? <code>Container&lt;i32&gt;: Clone</code>임을 알고 있으므로, 컴파일러는 <code>clone</code>을 값에 의해 호출하여 <code>foo_cloned: Container&lt;i32&gt;</code>를 얻습니다. 하지만 <code>bar_cloned</code>는 실제로는 <code>&amp;Container&lt;T&gt;</code> 타입을 가집니다. 이것은 말이 안 되는 것 같습니다. <code>Container</code>에 <code>#[derive(Clone)]</code>을 추가했으니 반드시 <code>Clone</code>을 구현해야 합니다! 자세히 살펴보면, <code>derive</code> 매크로에 의해 생성된 코드는 (대략) 다음과 같습니다:</p>
 <pre><code class="language-rust ignore">impl&lt;T&gt; Clone for Container&lt;T&gt; where T: Clone {
     fn clone(&amp;self) -&gt; Self {
         Self(Arc::clone(&amp;self.0))
     }
 }</code></pre>
-<p>The derived <code>Clone</code> implementation is <a href="../std/clone/trait.Clone.html#derivable">only defined where <code>T: Clone</code></a>, so there is no implementation for <code>Container&lt;T&gt;: Clone</code> for a generic <code>T</code>. The compiler then looks to see if <code>&amp;Container&lt;T&gt;</code> implements <code>Clone</code>, which it does. So it deduces that <code>clone</code> is called by autoref, and so <code>bar_cloned</code> has type <code>&amp;Container&lt;T&gt;</code>.</p>
-<p>We can fix this by implementing <code>Clone</code> manually without requiring <code>T: Clone</code>:</p>
+<p>자동으로 파생된 <code>Clone</code> 구현은 <a href="../std/clone/trait.Clone.html#derivable"><code>T: Clone</code>인 경우에만 정의되므로</a>, 제네릭 <code>T</code>에 대해 <code>Container&lt;T&gt;: Clone</code> 구현은 존재하지 않습니다. 컴파일러는 <code>&amp;Container&lt;T&gt;</code>가 <code>Clone</code>을 구현하는지 확인하는데, 실제로 구현하고 있습니다. 따라서 <code>clone</code>이 자동 참조에 의해 호출되었다고 추론하여, <code>bar_cloned</code>는 <code>&amp;Container&lt;T&gt;</code> 타입을 갖게 됩니다.</p>
+<p>우리는 <code>T: Clone</code>을 요구하지 않고 수동으로 <code>Clone</code>을 구현함으로써 이를 해결할 수 있습니다:</p>
 <pre><code class="language-rust ignore">impl&lt;T&gt; Clone for Container&lt;T&gt; {
     fn clone(&amp;self) -&gt; Self {
         Self(Arc::clone(&amp;self.0))
     }
 }</code></pre>
-<p>Now, the type checker deduces that <code>bar_cloned: Container&lt;T&gt;</code>.</p>
+<p>이제 타입 검사기는 <code>bar_cloned: Container&lt;T&gt;</code>라고 추론합니다.</p>
 
                     </main>
 

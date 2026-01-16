@@ -214,24 +214,24 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="레이아웃"><a class="header" href="#레이아웃">레이아웃</a></h1>
-<p>First off, we need to come up with the struct layout. A Vec has three parts: a pointer to the allocation, the size of the allocation, and the number of elements that have been initialized.</p>
-<p>Naively, this means we just want this design:</p>
+<p>먼저, 구조체 레이아웃을 생각해내야 합니다. Vec은 세 부분으로 구성됩니다: 할당에 대한 포인터, 할당의 크기, 그리고 초기화된 요소의 개수입니다.</p>
+<p>단순하게 생각하면, 우리는 이런 디자인을 원할 것입니다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">pub struct Vec&lt;T&gt; {
     ptr: *mut T,
     cap: usize,
     len: usize,
 }</code></pre>
-<p>And indeed this would compile. Unfortunately, it would be too strict. The compiler will give us too strict variance. So a <code>&amp;Vec&lt;&amp;'static str&gt;</code> couldn't be used where a <code>&amp;Vec&lt;&amp;'a str&gt;</code> was expected. See <a href="../ownership.html">the chapter on ownership and lifetimes</a> for all the details on variance.</p>
-<p>As we saw in the ownership chapter, the standard library uses <code>Unique&lt;T&gt;</code> in place of <code>*mut T</code> when it has a raw pointer to an allocation that it owns. Unique is unstable, so we'd like to not use it if possible, though.</p>
-<p>As a recap, Unique is a wrapper around a raw pointer that declares that:</p>
+<p>그리고 실제로 이것은 컴파일될 것입니다. 불행히도, 이것은 너무 엄격할 것입니다. 컴파일러는 우리에게 너무 엄격한 공변성을 부여할 것입니다. 그래서 <code>&amp;Vec&lt;&amp;'a str&gt;</code>이 예상되는 곳에 <code>&amp;Vec&lt;&amp;'static str&gt;</code>를 사용할 수 없을 것입니다. 공변성에 대한 모든 세부 사항은 <a href="../ownership.html">소유권과 수명 장</a>을 참조하세요.</p>
+<p>소유권 장에서 보았듯이, 표준 라이브러리는 자신이 소유한 할당에 대한 원시 포인터를 가질 때 <code>*mut T</code> 대신 <code>Unique&lt;T&gt;</code>를 사용합니다. 하지만 Unique는 불안정하므로 가능하다면 사용하고 싶지 않습니다.</p>
+<p>요약하자면, Unique는 다음을 선언하는 원시 포인터의 래퍼입니다:</p>
 <ul>
-<li>We are covariant over <code>T</code></li>
-<li>We may own a value of type <code>T</code> (this is not relevant for our example here, but see <a href="../phantom-data.html">the chapter on PhantomData</a> on why the real <code>std::vec::Vec&lt;T&gt;</code> needs this)</li>
-<li>We are Send/Sync if <code>T</code> is Send/Sync</li>
-<li>Our pointer is never null (so <code>Option&lt;Vec&lt;T&gt;&gt;</code> is null-pointer-optimized)</li>
+<li>우리는 <code>T</code>에 대해 공변입니다</li>
+<li>우리는 <code>T</code> 타입의 값을 소유할 수 있습니다(여기 예제에서는 관련이 없지만, 진짜 <code>std::vec::Vec&lt;T&gt;</code>가 이것을 필요로 하는 이유는 <a href="../phantom-data.html">PhantomData 장</a>을 참조하세요).</li>
+<li>T가 Send/Sync이면 우리도 Send/Sync입니다</li>
+<li>우리의 포인터는 절대 null이 아닙니다(따라서 Option&lt;Vec<T>&gt;는 널 포인터 최적화가 적용됩니다)</li>
 </ul>
-<p>We can implement all of the above requirements in stable Rust. To do this, instead of using <code>Unique&lt;T&gt;</code> we will use <a href="../../std/ptr/struct.NonNull.html"><code>NonNull&lt;T&gt;</code></a>, another wrapper around a raw pointer, which gives us two of the above properties, namely it is covariant over <code>T</code> and is declared to never be null. By implementing Send/Sync if <code>T</code> is, we get the same results as using <code>Unique&lt;T&gt;</code>:</p>
+<p>우리는 위의 모든 요구 사항을 안정적인(stable) 러스트에서 구현할 수 있습니다. 이를 위해 Unique<T> 대신 원시 포인터의 또 다른 래퍼인 NonNull<T>를 사용할 것입니다. NonNull<T>는 위의 두 가지 속성, 즉 T에 대해 공변하며 절대 null이 아님을 선언하는 속성을 제공합니다. T가 Send/Sync일 때 Send/Sync를 구현함으로써 Unique<T>를 사용하는 것과 동일한 결과를 얻을 수 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021">use std::ptr::NonNull;
 
 pub struct Vec&lt;T&gt; {

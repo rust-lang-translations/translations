@@ -214,51 +214,50 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="클로닝"><a class="header" href="#클로닝">클로닝</a></h1>
-<p>Now that we've got some basic code set up, we'll need a way to clone the <code>Arc</code>.</p>
-<p>Basically, we need to:</p>
+<p>기본적인 코드가 설정되었으므로, 이제 <code>Arc</code>를 클론할 방법이 필요합니다.</p>
+<p>기본적으로, 우리는 다음을 수행해야 합니다:</p>
 <ol>
-<li>Increment the atomic reference count</li>
-<li>Construct a new instance of the <code>Arc</code> from the inner pointer</li>
+<li>원자적 참조 횟수를 증가시킵니다.</li>
+<li>내부 포인터로부터 <code>Arc</code>의 새로운 인스턴스를 생성합니다.</li>
 </ol>
-<p>First, we need to get access to the <code>ArcInner</code>:</p>
+<p>먼저 <code>ArcInner</code>에 접근해야 합니다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">let inner = unsafe { self.ptr.as_ref() };</code></pre>
-<p>We can update the atomic reference count as follows:</p>
+<p>다음과 같이 원자적 참조 횟수를 업데이트할 수 있습니다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">let old_rc = inner.rc.fetch_add(1, Ordering::???);</code></pre>
-<p>But what ordering should we use here? We don't really have any code that will need atomic synchronization when cloning, as we do not modify the internal value while cloning. Thus, we can use a Relaxed ordering here, which implies no happens-before relationship but is atomic. When <code>Drop</code>ping the Arc, however, we'll need to atomically synchronize when decrementing the reference count. This is described more in <a href="arc-drop.html">the section on the <code>Drop</code> implementation for <code>Arc</code></a>. For more information on atomic relationships and Relaxed ordering, see <a href="../atomics.html">the section on atomics</a>.</p>
-<p>Thus, the code becomes this:</p>
+<p>그런데 여기서 어떤 정렬(ordering)을 사용해야 할까요? 클론하는 동안에는 내부 값을 수정하지 않으므로, 클론 시에 아토믹 동기화가 필요한 코드는 딱히 없습니다. 따라서 여기서는 <code>Relaxed</code> 정렬을 사용할 수 있습니다. 이는 발생 전(happens-before) 관계를 함축하지는 않지만 원자적입니다. 하지만 Arc를 <code>Drop</code>할 때는 참조 횟수를 감소시킬 때 원자적 동기화가 필요합니다. 이에 대해서는 <a href="arc-drop.html"><code>Arc</code>의 <code>Drop</code> 구현 섹션</a>에서 더 자세히 설명합니다. 아토믹 관계와 <code>Relaxed</code> 정렬에 대한 자세한 내용은 <a href="../atomics.html">아토믹 섹션</a>을 참조하십시오.</p>
+<p>따라서 코드는 다음과 같이 됩니다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">let old_rc = inner.rc.fetch_add(1, Ordering::Relaxed);</code></pre>
-<p>We'll need to add another import to use <code>Ordering</code>:</p>
+<p><code>Ordering</code>을 사용하기 위해 임포트를 하나 더 추가해야 합니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::atomic::Ordering;
 <span class="boring">}</span></code></pre></pre>
-<p>However, we have one problem with this implementation right now. What if someone decides to <code>mem::forget</code> a bunch of Arcs? The code we have written so far (and will write) assumes that the reference count accurately portrays how many Arcs are in memory, but with <code>mem::forget</code> this is false. Thus, when more and more Arcs are cloned from this one without them being <code>Drop</code>ped and the reference count being decremented, we can overflow! This will cause use-after-free which is <strong>INCREDIBLY BAD!</strong></p>
-<p>To handle this, we need to check that the reference count does not go over some arbitrary value (below <code>usize::MAX</code>, as we're storing the reference count as an <code>AtomicUsize</code>), and do <em>something</em>.</p>
-<p>The standard library's implementation decides to just abort the program (as it is an incredibly unlikely case in normal code and if it happens, the program is probably incredibly degenerate) if the reference count reaches <code>isize::MAX</code> (about half of <code>usize::MAX</code>) on any thread, on the assumption that there are probably not about 2 billion threads (or about <strong>9 quintillion</strong> on some 64-bit machines) incrementing the reference count at once. This is what we'll do.</p>
-<p>It's pretty simple to implement this behavior:</p>
+<p>하지만 현재 이 구현에는 한 가지 문제가 있습니다. 누군가 수많은 Arc를 <code>mem::forget</code>하기로 결정한다면 어떻게 될까요? 우리가 지금까지 작성한(그리고 작성할) 코드는 참조 횟수가 메모리에 있는 Arc의 수를 정확히 나타낸다고 가정하지만, <code>mem::forget</code>을 사용하면 이 가정이 깨집니다. 따라서 Arc들이 <code>Drop</code>되어 참조 횟수가 감소하지 않은 채 계속해서 클론된다면, 오버플로가 발생할 수 있습니다! 이는 해제 후 사용(use-after-free)을 초래하며, 이는 <strong>매우 끔찍한 일입니다!</strong></p>
+<p>이를 처리하기 위해, 참조 횟수가 임의의 값(<code>AtomicUsize</code>로 저장하므로 <code>usize::MAX</code> 미만)을 넘지 않는지 확인하고, 무언가 조치를 취해야 합니다.</p>
+<p>표준 라이브러리의 구현은 어떤 스레드에서든 참조 횟수가 <code>isize::MAX</code>(<code>usize::MAX</code>의 약 절반)에 도달하면 프로그램을 그냥 중단(abort)시키기로 결정했습니다. 이는 일반적인 코드에서는 발생할 가능성이 매우 희박하며, 만약 발생한다면 프로그램이 매우 비정상적인 상태일 것이기 때문입니다. 또한 약 20억 개의 스레드(일부 64비트 머신에서는 약 <strong>900경</strong> 개)가 동시에 참조 횟수를 증가시키지는 않을 것이라는 가정하에 내린 결정입니다. 우리도 똑같이 할 것입니다.</p>
+<p>이 동작을 구현하는 것은 꽤 간단합니다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">if old_rc &gt;= isize::MAX as usize {
     std::process::abort();
 }</code></pre>
-<p>Then, we need to return a new instance of the <code>Arc</code>:</p>
+<p>그런 다음, <code>Arc</code>의 새로운 인스턴스를 반환해야 합니다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">Self {
     ptr: self.ptr,
     phantom: PhantomData
 }</code></pre>
-<p>Now, let's wrap this all up inside the <code>Clone</code> implementation:</p>
+<p>이제 이 모든 것을 <code>Clone</code> 구현 내부에 담아봅시다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">use std::sync::atomic::Ordering;
 
 impl&lt;T&gt; Clone for Arc&lt;T&gt; {
     fn clone(&amp;self) -&gt; Arc&lt;T&gt; {
         let inner = unsafe { self.ptr.as_ref() };
-        // Using a relaxed ordering is alright here as we don't need any atomic
-        // synchronization here as we're not modifying or accessing the inner
-        // data.
+        // 여기서는 내부 데이터를 수정하거나 접근하지 않으므로 아토믹 동기화가
+        // 필요 없기 때문에 릴랙스드(relaxed) 정렬을 사용해도 괜찮습니다.
         let old_rc = inner.rc.fetch_add(1, Ordering::Relaxed);
 
         if old_rc &gt;= isize::MAX as usize {

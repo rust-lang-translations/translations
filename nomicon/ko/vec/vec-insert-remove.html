@@ -214,18 +214,18 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="삽입과-제거"><a class="header" href="#삽입과-제거">삽입과 제거</a></h1>
-<p>Something <em>not</em> provided by slice is <code>insert</code> and <code>remove</code>, so let's do those next.</p>
-<p>Insert needs to shift all the elements at the target index to the right by one. To do this we need to use <code>ptr::copy</code>, which is our version of C's <code>memmove</code>. This copies some chunk of memory from one location to another, correctly handling the case where the source and destination overlap (which will definitely happen here).</p>
-<p>If we insert at index <code>i</code>, we want to shift the <code>[i .. len]</code> to <code>[i+1 .. len+1]</code> using the old len.</p>
+<p>슬라이스에서 제공하지 <em>않는</em> 기능은 <code>insert</code>와 <code>remove</code>입니다. 다음으로 이것들을 구현해 봅시다.</p>
+<p>Insert는 대상 인덱스에 있는 모든 요소를 오른쪽으로 한 칸씩 이동시켜야 합니다. 이를 위해 우리는 C의 <code>memmove</code>에 해당하는 <code>ptr::copy</code>를 사용해야 합니다. 이 함수는 메모리 덩어리를 한 위치에서 다른 위치로 복사하며, 원본과 대상이 겹치는 경우(여기서는 반드시 발생합니다)를 올바르게 처리합니다.</p>
+<p>인덱스 <code>i</code>에 삽입한다면, 이전 길이를 사용하여 <code>[i .. len]</code> 범위를 <code>[i+1 .. len+1]</code> 위치로 이동시키고 싶을 것입니다.</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">pub fn insert(&amp;mut self, index: usize, elem: T) {
-    // Note: `&lt;=` because it's valid to insert after everything
-    // which would be equivalent to push.
-    assert!(index &lt;= self.len, "index out of bounds");
+    // 참고: 모든 요소 다음에 삽입하는 것도 유효하므로 `&lt;=`를 사용합니다.
+    // 이는 push와 동일한 동작이 됩니다.
+    assert!(index &lt;= self.len, "인덱스 범위를 벗어남");
     if self.len == self.cap { self.grow(); }
 
     unsafe {
-        // ptr::copy(src, dest, len): "copy from src to dest len elems"
+        // ptr::copy(src, dest, len): "src에서 dest로 len개의 요소를 복사"
         ptr::copy(
             self.ptr.as_ptr().add(index),
             self.ptr.as_ptr().add(index + 1),
@@ -236,11 +236,11 @@
 
     self.len += 1;
 }</code></pre>
-<p>Remove behaves in the opposite manner. We need to shift all the elements from <code>[i+1 .. len + 1]</code> to <code>[i .. len]</code> using the <em>new</em> len.</p>
+<p>Remove는 반대로 동작합니다. 우리는 <em>새로운</em> 길이를 사용하여 <code>[i+1 .. len+1]</code> 범위의 모든 요소를 <code>[i .. len]</code> 위치로 이동시켜야 합니다.</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">pub fn remove(&amp;mut self, index: usize) -&gt; T {
-    // Note: `&lt;` because it's *not* valid to remove after everything
-    assert!(index &lt; self.len, "index out of bounds");
+    // 참고: 모든 요소 다음의 위치를 삭제하는 것은 유효하지 않으므로 `&lt;`를 사용합니다.
+    assert!(index &lt; self.len, "인덱스 범위를 벗어남");
     unsafe {
         self.len -= 1;
         let result = ptr::read(self.ptr.as_ptr().add(index));

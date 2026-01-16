@@ -214,45 +214,45 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="드롭하기"><a class="header" href="#드롭하기">드롭하기</a></h1>
-<p>We now need a way to decrease the reference count and drop the data once it is low enough, otherwise the data will live forever on the heap.</p>
-<p>To do this, we can implement <code>Drop</code>.</p>
-<p>Basically, we need to:</p>
+<p>이제 참조 횟수를 줄이고, 횟수가 충분히 낮아지면 데이터를 드롭할 방법이 필요합니다. 그렇지 않으면 데이터는 힙에 영원히 남아있게 될 것입니다.</p>
+<p>이를 위해 <code>Drop</code>을 구현할 수 있습니다.</p>
+<p>기본적으로, 우리는 다음을 수행해야 합니다:</p>
 <ol>
-<li>Decrement the reference count</li>
-<li>If there is only one reference remaining to the data, then:</li>
-<li>Atomically fence the data to prevent reordering of the use and deletion of the data</li>
-<li>Drop the inner data</li>
+<li>참조 횟수를 감소시킵니다.</li>
+<li>데이터에 대한 참조가 하나만 남았다면:</li>
+<li>데이터의 사용과 삭제가 재배치되는 것을 방지하기 위해 아토믹 펜스를 칩니다.</li>
+<li>내부 데이터를 드롭합니다.</li>
 </ol>
-<p>First, we'll need to get access to the <code>ArcInner</code>:</p>
+<p>먼저 <code>ArcInner</code>에 접근해야 합니다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">let inner = unsafe { self.ptr.as_ref() };</code></pre>
-<p>Now, we need to decrement the reference count. To streamline our code, we can also return if the returned value from <code>fetch_sub</code> (the value of the reference count before decrementing it) is not equal to <code>1</code> (which happens when we are not the last reference to the data).</p>
+<p>이제 참조 횟수를 감소시켜야 합니다. 코드를 간결하게 만들기 위해, <code>fetch_sub</code>에서 반환된 값(감소시키기 전의 참조 횟수 값)이 <code>1</code>이 아니라면 (즉, 우리가 마지막 참조가 아니라면) 그냥 반환하도록 할 수 있습니다.</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">if inner.rc.fetch_sub(1, Ordering::Release) != 1 {
     return;
 }</code></pre>
-<p>We then need to create an atomic fence to prevent reordering of the use of the data and deletion of the data. As described in <a href="https://github.com/rust-lang/rust/blob/e1884a8e3c3e813aada8254edfa120e85bf5ffca/library/alloc/src/sync.rs#L1440-L1467">the standard library's implementation of <code>Arc</code></a>:</p>
+<p>그 다음, 데이터의 사용과 삭제가 재배치되는 것을 방지하기 위해 아토믹 펜스를 생성해야 합니다. <a href="https://github.com/rust-lang/rust/blob/e1884a8e3c3e813aada8254edfa120e85bf5ffca/library/alloc/src/sync.rs#L1440-L1467">표준 라이브러리의 <code>Arc</code> 구현</a>에 설명된 대로입니다:</p>
 <blockquote>
-<p>This fence is needed to prevent reordering of use of the data and deletion of the data. Because it is marked <code>Release</code>, the decreasing of the reference count synchronizes with this <code>Acquire</code> fence. This means that use of the data happens before decreasing the reference count, which happens before this fence, which happens before the deletion of the data.</p>
-<p>As explained in the <a href="https://www.boost.org/doc/libs/1_55_0/doc/html/atomic/usage_examples.html">Boost documentation</a>,</p>
+<p>이 펜스는 데이터의 사용과 삭제가 재배치되는 것을 방지하기 위해 필요합니다. 참조 횟수를 줄이는 작업이 <code>Release</code>로 표시되어 있기 때문에, 이 <code>Acquire</code> 펜스와 동기화됩니다. 이는 데이터의 사용이 참조 횟수 감소보다 먼저 발생하고, 이는 다시 펜스보다 먼저 발생하며, 이는 최종적으로 데이터의 삭제보다 먼저 발생함을 의미합니다.</p>
+<p><a href="https://www.boost.org/doc/libs/1_55_0/doc/html/atomic/usage_examples.html">Boost 문서</a>에 설명된 대로:</p>
 <blockquote>
-<p>It is important to enforce any possible access to the object in one thread (through an existing reference) to <em>happen before</em> deleting the object in a different thread. This is achieved by a "release" operation after dropping a reference (any access to the object through this reference must obviously happened before), and an "acquire" operation before deleting the object.</p>
+<p>한 스레드에서의 객체에 대한 모든 가능한 접근(기존 참조를 통한 접근)이 다른 스레드에서의 객체 삭제보다 반드시 _먼저 발생(happen before)_하도록 강제하는 것이 중요합니다. 이는 참조를 드롭한 후의 "release" 연산(이 참조를 통한 객체 접근은 분명히 그 전에 발생했어야 함)과, 객체를 삭제하기 전의 "acquire" 연산을 통해 달성됩니다.</p>
 </blockquote>
-<p>In particular, while the contents of an Arc are usually immutable, it's possible to have interior writes to something like a <code>Mutex&lt;T&gt;</code>. Since a Mutex is not acquired when it is deleted, we can't rely on its synchronization logic to make writes in thread A visible to a destructor running in thread B.</p>
-<p>Also note that the Acquire fence here could probably be replaced with an Acquire load, which could improve performance in highly-contended situations. See <a href="https://github.com/rust-lang/rust/pull/41714">2</a>.</p>
+<p>특히, Arc의 내용은 보통 불변이지만, <code>Mutex&lt;T&gt;</code>와 같은 것을 통해 내부 쓰기가 발생할 수 있습니다. Mutex는 삭제될 때 어콰이어되지 않으므로, 스레드 A에서의 쓰기를 스레드 B에서 실행되는 소멸자에게 보이게 하기 위해 Mutex의 동기화 로직에 의존할 수 없습니다.</p>
+<p>또한 여기서의 Acquire 펜스는 아마도 Acquire 로드(load)로 대체될 수 있으며, 이는 경쟁이 심한 상황에서 성능을 향상시킬 수 있습니다. <a href="https://github.com/rust-lang/rust/pull/41714">2</a>를 참조하십시오.</p>
 </blockquote>
-<p>To do this, we do the following:</p>
+<p>이를 위해 다음과 같이 합니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use std::sync::atomic::Ordering;
 </span>use std::sync::atomic;
 atomic::fence(Ordering::Acquire);
 <span class="boring">}</span></code></pre></pre>
-<p>Finally, we can drop the data itself. We use <code>Box::from_raw</code> to drop the boxed <code>ArcInner&lt;T&gt;</code> and its data. This takes a <code>*mut T</code> and not a <code>NonNull&lt;T&gt;</code>, so we must convert using <code>NonNull::as_ptr</code>.</p>
+<p>마지막으로, 데이터 자체를 드롭할 수 있습니다. 우리는 <code>Box::from_raw</code>를 사용하여 박스에 담긴 <code>ArcInner&lt;T&gt;</code>와 그 데이터를 드롭합니다. 이 함수는 <code>NonNull&lt;T&gt;</code>가 아닌 <code>*mut T</code>를 받으므로, <code>NonNull::as_ptr</code>을 사용하여 변환해야 합니다.</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">unsafe { Box::from_raw(self.ptr.as_ptr()); }</code></pre>
-<p>This is safe as we know we have the last pointer to the <code>ArcInner</code> and that its pointer is valid.</p>
-<p>Now, let's wrap this all up inside the <code>Drop</code> implementation:</p>
+<p>우리는 우리가 <code>ArcInner</code>에 대한 마지막 포인터를 가지고 있다는 것과 그 포인터가 유효하다는 것을 알고 있으므로, 이는 안전합니다.</p>
+<p>이제 이 모든 것을 <code>Drop</code> 구현 내부에 담아봅시다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">impl&lt;T&gt; Drop for Arc&lt;T&gt; {
     fn drop(&amp;mut self) {
@@ -260,11 +260,11 @@ atomic::fence(Ordering::Acquire);
         if inner.rc.fetch_sub(1, Ordering::Release) != 1 {
             return;
         }
-        // This fence is needed to prevent reordering of the use and deletion
-        // of the data.
+        // 이 펜스는 데이터의 사용과 삭제가 재배치되는 것을 방지하기 위해
+        // 필요합니다.
         atomic::fence(Ordering::Acquire);
-        // This is safe as we know we have the last pointer to the `ArcInner`
-        // and that its pointer is valid.
+        // 우리가 `ArcInner`에 대한 마지막 포인터를 가지고 있고 그 포인터가
+        // 유효하다는 것을 알고 있으므로 이는 안전합니다.
         unsafe { Box::from_raw(self.ptr.as_ptr()); }
     }
 }</code></pre>

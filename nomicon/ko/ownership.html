@@ -213,40 +213,40 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="ownership-and-lifetimes"><a class="header" href="#ownership-and-lifetimes">Ownership and Lifetimes</a></h1>
-<p>Ownership is the breakout feature of Rust. It allows Rust to be completely memory-safe and efficient, while avoiding garbage collection. Before getting into the ownership system in detail, we will consider the motivation of this design.</p>
-<p>We will assume that you accept that garbage collection (GC) is not always an optimal solution, and that it is desirable to manually manage memory in some contexts. If you do not accept this, might I interest you in a different language?</p>
-<p>Regardless of your feelings on GC, it is pretty clearly a <em>massive</em> boon to making code safe. You never have to worry about things going away <em>too soon</em> (although whether you still wanted to be pointing at that thing is a different issue...). This is a pervasive problem that C and C++ programs need to deal with. Consider this simple mistake that all of us who have used a non-GC'd language have made at one point:</p>
+                        <h1 id="소유권과-수명ownership-and-lifetimes"><a class="header" href="#소유권과-수명ownership-and-lifetimes">소유권과 수명(Ownership and Lifetimes)</a></h1>
+<p>소유권은 러스트의 획기적인 기능입니다. 소유권 덕분에 러스트는 가비지 컬렉션을 피하면서도 완전히 메모리에 안전하고 효율적일 수 있습니다. 소유권 시스템에 대해 자세히 알아보기 전에, 이 설계의 동기를 먼저 살펴보겠습니다.</p>
+<p>우리는 여러분이 가비지 컬렉션(GC)이 항상 최적의 솔루션은 아니며, 일부 상황에서는 메모리를 수동으로 관리하는 것이 바람직하다는 점을 받아들인다고 가정하겠습니다. 만약 이것을 받아들이지 못하신다면, 다른 언어를 추천해 드려도 될까요?</p>
+<p>GC에 대해 어떻게 생각하든, GC가 코드를 안전하게 만드는 데 <em>엄청난</em> 혜택을 준다는 것은 매우 분명합니다. 여러분은 어떤 것이 <em>너무 일찍</em> 사라지는 것에 대해 걱정할 필요가 없습니다(물론 여전히 그것을 가리키고 싶은지는 별개의 문제입니다만...). 이것은 C와 C++ 프로그램이 다루어야 하는 만연한 문제입니다. GC가 없는 언어를 사용해 본 우리 모두가 한 번쯤 저질러 봤을 법한 간단한 실수를 예로 들어보겠습니다.</p>
 <pre><pre class="playground"><code class="language-rust compile_fail edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn as_str(data: &amp;u32) -&gt; &amp;str {
-    // compute the string
+    // 문자열 계산
     let s = format!("{}", data);
 
-    // OH NO! We returned a reference to something that
-    // exists only in this function!
-    // Dangling pointer! Use after free! Alas!
-    // (this does not compile in Rust)
+    // 오 안 돼! 이 함수 내에서만 존재하는 무언가에 대한
+    // 참조를 반환했습니다!
+    // 댕글링 포인터! 해제 후 사용(Use after free)! 아아!
+    // (이 코드는 러스트에서 컴파일되지 않습니다)
     &amp;s
 }
 <span class="boring">}</span></code></pre></pre>
-<p>This is exactly what Rust's ownership system was built to solve. Rust knows the scope in which the <code>&amp;s</code> lives, and as such can prevent it from escaping. However this is a simple case that even a C compiler could plausibly catch. Things get more complicated as code gets bigger and pointers get fed through various functions. Eventually, a C compiler will fall down and won't be able to perform sufficient escape analysis to prove your code unsound. It will consequently be forced to accept your program on the assumption that it is correct.</p>
-<p>This will never happen to Rust. It's up to the programmer to prove to the compiler that everything is sound.</p>
-<p>Of course, Rust's story around ownership is much more complicated than just verifying that references don't escape the scope of their referent. That's because ensuring pointers are always valid is much more complicated than this. For instance in this code,</p>
+<p>이것이 바로 러스트의 소유권 시스템이 해결하고자 하는 문제입니다. 러스트는 <code>&amp;s</code>가 유효한 범위를 알고 있으며, 따라서 그것이 탈출(escape)하는 것을 막을 수 있습니다. 하지만 이는 C 컴파일러도 그럴듯하게 잡아낼 수 있는 간단한 사례입니다. 코드가 커지고 포인터가 다양한 함수를 거치면서 상황은 더 복잡해집니다. 결국 C 컴파일러는 한계에 부딪혀 코드가 불건전하다는 것을 증명하기 위한 충분한 탈출 분석(escape analysis)을 수행할 수 없게 됩니다. 결과적으로 프로그램이 올바르다는 가정하에 수락할 수밖에 없습니다.</p>
+<p>러스트에서는 이런 일이 절대 일어나지 않습니다. 모든 것이 건전하다는 것을 컴파일러에게 증명하는 것은 프로그래머의 몫입니다.</p>
+<p>물론 소유권에 대한 러스트의 이야기는 단순히 참조가 지칭 대상의 범위를 벗어나지 않는지 확인하는 것보다 훨씬 더 복잡합니다. 포인터가 항상 유효하도록 보장하는 것은 이보다 훨씬 복잡하기 때문입니다. 예를 들어 이 코드에서,</p>
 <pre><pre class="playground"><code class="language-rust compile_fail edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut data = vec![1, 2, 3];
-// get an internal reference
+// 내부 참조 획득
 let x = &amp;data[0];
 
-// OH NO! `push` causes the backing storage of `data` to be reallocated.
-// Dangling pointer! Use after free! Alas!
-// (this does not compile in Rust)
+// 오 안 돼! `push`는 `data`의 배후 저장 공간이 재할당되도록 만듭니다.
+// 댕글링 포인터! 해제 후 사용! 아아!
+// (이 코드는 러스트에서 컴파일되지 않습니다)
 data.push(4);
 
 println!("{}", x);
 <span class="boring">}</span></code></pre></pre>
-<p>naive scope analysis would be insufficient to prevent this bug, because <code>data</code> does in fact live as long as we needed. However it was <em>changed</em> while we had a reference into it. This is why Rust requires any references to freeze the referent and its owners.</p>
+<p>단순한 범위 분석으로는 이 버그를 방지하기에 불충분합니다. <code>data</code>는 실제로 우리가 필요한 만큼 오래 살기 때문입니다. 하지만 우리가 그 내부를 참조하는 동안 그것이 _변경_되었습니다. 이것이 바로 러스트가 모든 참조에 대해 지칭 대상과 그 소유자를 동결(freeze)하도록 요구하는 이유입니다.</p>
 
                     </main>
 

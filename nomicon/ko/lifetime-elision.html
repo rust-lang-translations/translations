@@ -214,60 +214,60 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="수명-생략"><a class="header" href="#수명-생략">수명 생략</a></h1>
-<p>In order to make common patterns more ergonomic, Rust allows lifetimes to be <em>elided</em> in function signatures.</p>
-<p>A <em>lifetime position</em> is anywhere you can write a lifetime in a type:</p>
+<p>일반적인 패턴을 더 인체공학적으로 만들기 위해, 러스트는 함수 시그니처에서 수명을 _생략(elide)_할 수 있게 허용합니다.</p>
+<p>_수명 위치(lifetime position)_는 타입 내에서 수명을 쓸 수 있는 모든 곳을 말합니다.</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">&amp;'a T
 &amp;'a mut T
 T&lt;'a&gt;</code></pre>
-<p>Lifetime positions can appear as either "input" or "output":</p>
+<p>수명 위치는 "입력" 또는 "출력"으로 나타날 수 있습니다.</p>
 <ul>
 <li>
-<p>For <code>fn</code> definitions, <code>fn</code> types, and the traits <code>Fn</code>, <code>FnMut</code>, and <code>FnOnce</code>, input refers to the types of the formal arguments, while output refers to result types. So <code>fn foo(s: &amp;str) -&gt; (&amp;str, &amp;str)</code> has elided one lifetime in input position and two lifetimes in output position. Note that the input positions of a <code>fn</code> method definition do not include the lifetimes that occur in the method's <code>impl</code> header (nor lifetimes that occur in the trait header, for a default method).</p>
+<p><code>fn</code> 정의, <code>fn</code> 타입, 그리고 트레잇 <code>Fn</code>, <code>FnMut</code>, <code>FnOnce</code>의 경우, 입력은 형식 인자의 타입을 가리키며 출력은 결과 타입을 가리킵니다. 따라서 <code>fn foo(s: &amp;str) -&gt; (&amp;str, &amp;str)</code>는 입력 위치에서 하나의 수명을, 출력 위치에서 두 개의 수명을 생략했습니다. <code>fn</code> 메서드 정의의 입력 위치에는 메서드의 <code>impl</code> 헤더에 나타나는 수명(또는 기본 메서드의 경우 트레잇 헤더에 나타나는 수명)은 포함되지 않는다는 점에 유의하세요.</p>
 </li>
 <li>
-<p>For <code>impl</code> headers, all types are input. So <code>impl Trait&lt;&amp;T&gt; for Struct&lt;&amp;T&gt;</code> has elided two lifetimes in input position, while <code>impl Struct&lt;&amp;T&gt;</code> has elided one.</p>
+<p><code>impl</code> 헤더의 경우, 모든 타입은 입력입니다. 따라서 <code>impl Trait&lt;&amp;T&gt; for Struct&lt;&amp;T&gt;</code>는 입력 위치에서 두 개의 수명을 생략했으며, <code>impl Struct&lt;&amp;T&gt;</code>는 하나를 생략했습니다.</p>
 </li>
 </ul>
-<p>Elision rules are as follows:</p>
+<p>생략 규칙은 다음과 같습니다.</p>
 <ul>
 <li>
-<p>Each elided lifetime in input position becomes a distinct lifetime parameter.</p>
+<p>입력 위치에서 생략된 각 수명은 서로 다른 수명 매개변수가 됩니다.</p>
 </li>
 <li>
-<p>If there is exactly one input lifetime position (elided or not), that lifetime is assigned to <em>all</em> elided output lifetimes.</p>
+<p>입력 수명 위치가 (생략되었든 아니든) 정확히 하나만 있다면, 해당 수명이 <em>모든</em> 생략된 출력 수명에 할당됩니다.</p>
 </li>
 <li>
-<p>If there are multiple input lifetime positions, but one of them is <code>&amp;self</code> or <code>&amp;mut self</code>, the lifetime of <code>self</code> is assigned to <em>all</em> elided output lifetimes.</p>
+<p>입력 수명 위치가 여러 개 있지만 그중 하나가 <code>&amp;self</code> 또는 <code>&amp;mut self</code>라면, <code>self</code>의 수명이 <em>모든</em> 생략된 출력 수명에 할당됩니다.</p>
 </li>
 <li>
-<p>Otherwise, it is an error to elide an output lifetime.</p>
+<p>그렇지 않은 경우, 출력 수명을 생략하는 것은 에러입니다.</p>
 </li>
 </ul>
-<p>Examples:</p>
+<p>예제:</p>
 <!-- ignore: simplified code -->
-<pre><code class="language-rust ignore">fn print(s: &amp;str);                                      // elided
-fn print&lt;'a&gt;(s: &amp;'a str);                               // expanded
+<pre><code class="language-rust ignore">fn print(s: &amp;str);                                      // 생략됨
+fn print&lt;'a&gt;(s: &amp;'a str);                               // 확장됨
 
-fn debug(lvl: usize, s: &amp;str);                          // elided
-fn debug&lt;'a&gt;(lvl: usize, s: &amp;'a str);                   // expanded
+fn debug(lvl: usize, s: &amp;str);                          // 생략됨
+fn debug&lt;'a&gt;(lvl: usize, s: &amp;'a str);                   // 확장됨
 
-fn substr(s: &amp;str, until: usize) -&gt; &amp;str;               // elided
-fn substr&lt;'a&gt;(s: &amp;'a str, until: usize) -&gt; &amp;'a str;     // expanded
+fn substr(s: &amp;str, until: usize) -&gt; &amp;str;               // 생략됨
+fn substr&lt;'a&gt;(s: &amp;'a str, until: usize) -&gt; &amp;'a str;     // 확장됨
 
-fn get_str() -&gt; &amp;str;                                   // ILLEGAL
+fn get_str() -&gt; &amp;str;                                   // 불법(ILLEGAL)
 
-fn frob(s: &amp;str, t: &amp;str) -&gt; &amp;str;                      // ILLEGAL
+fn frob(s: &amp;str, t: &amp;str) -&gt; &amp;str;                      // 불법(ILLEGAL)
 
-fn get_mut(&amp;mut self) -&gt; &amp;mut T;                        // elided
-fn get_mut&lt;'a&gt;(&amp;'a mut self) -&gt; &amp;'a mut T;              // expanded
+fn get_mut(&amp;mut self) -&gt; &amp;mut T;                        // 생략됨
+fn get_mut&lt;'a&gt;(&amp;'a mut self) -&gt; &amp;'a mut T;              // 확장됨
 
-fn args&lt;T: ToCStr&gt;(&amp;mut self, args: &amp;[T]) -&gt; &amp;mut Command                  // elided
-fn args&lt;'a, 'b, T: ToCStr&gt;(&amp;'a mut self, args: &amp;'b [T]) -&gt; &amp;'a mut Command // expanded
+fn args&lt;T: ToCStr&gt;(&amp;mut self, args: &amp;[T]) -&gt; &amp;mut Command                  // 생략됨
+fn args&lt;'a, 'b, T: ToCStr&gt;(&amp;'a mut self, args: &amp;'b [T]) -&gt; &amp;'a mut Command // 확장됨
 
-fn new(buf: &amp;mut [u8]) -&gt; BufWriter;                    // elided
-fn new(buf: &amp;mut [u8]) -&gt; BufWriter&lt;'_&gt;;                // elided (with `rust_2018_idioms`)
-fn new&lt;'a&gt;(buf: &amp;'a mut [u8]) -&gt; BufWriter&lt;'a&gt;          // expanded</code></pre>
+fn new(buf: &amp;mut [u8]) -&gt; BufWriter;                    // 생략됨
+fn new(buf: &amp;mut [u8]) -&gt; BufWriter&lt;'_&gt;;                // 생략됨 (`rust_2018_idioms` 적용)
+fn new&lt;'a&gt;(buf: &amp;'a mut [u8]) -&gt; BufWriter&lt;'a&gt;          // 확장됨</code></pre>
 
                     </main>
 

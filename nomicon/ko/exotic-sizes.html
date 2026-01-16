@@ -214,26 +214,26 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="이례적인-크기의-타입"><a class="header" href="#이례적인-크기의-타입">이례적인 크기의 타입</a></h1>
-<p>Most of the time, we expect types to have a statically known and positive size. This isn't always the case in Rust.</p>
-<h2 id="dynamically-sized-types-dsts"><a class="header" href="#dynamically-sized-types-dsts">Dynamically Sized Types (DSTs)</a></h2>
-<p>Rust supports Dynamically Sized Types (DSTs): types without a statically known size or alignment. On the surface, this is a bit nonsensical: Rust <em>must</em> know the size and alignment of something in order to correctly work with it! In this regard, DSTs are not normal types. Since they lack a statically known size, these types can only exist behind a pointer. Any pointer to a DST consequently becomes a <em>wide</em> pointer consisting of the pointer and the information that "completes" them (more on this below).</p>
-<p>There are two major DSTs exposed by the language:</p>
+<p>대부분의 경우, 우리는 타입이 정적으로 알려진 양수의 크기를 가질 것으로 기대합니다. 하지만 러스트에서는 항상 그런 것은 아닙니다.</p>
+<h2 id="동적으로-크기가-지정된-타입dsts"><a class="header" href="#동적으로-크기가-지정된-타입dsts">동적으로 크기가 지정된 타입(DSTs)</a></h2>
+<p>러스트는 동적으로 크기가 지정된 타입(DSTs)을 지원합니다. 이는 정적으로 알려진 크기나 정렬이 없는 타입입니다. 겉보기에는 조금 말이 안 되는 것 같을 수 있습니다. 러스트가 무언가를 올바르게 다루려면 그것의 크기와 정렬을 <em>반드시</em> 알아야 하기 때문입니다! 이런 점에서 DST는 일반적인 타입이 아닙니다. 정적으로 알려진 크기가 없기 때문에, 이러한 타입은 포인터 뒤에만 존재할 수 있습니다. 따라서 DST에 대한 모든 포인터는 포인터와 그것들을 "완성하는" 정보로 구성된 <em>와이드(wide)</em> 포인터가 됩니다(이에 대한 자세한 내용은 아래를 참조하세요).</p>
+<p>언어에서 노출하는 두 가지 주요 DST가 있습니다:</p>
 <ul>
-<li>trait objects: <code>dyn MyTrait</code></li>
-<li>slices: <a href="../std/primitive.slice.html"><code>[T]</code></a>, <a href="../std/primitive.str.html"><code>str</code></a>, and others</li>
+<li>트레잇 객체(trait objects): <code>dyn MyTrait</code></li>
+<li>슬라이스(slices): <a href="../std/primitive.slice.html"><code>[T]</code></a>, <a href="../std/primitive.str.html"><code>str</code></a> 등</li>
 </ul>
-<p>A trait object represents some type that implements the traits it specifies. The exact original type is <em>erased</em> in favor of runtime reflection with a vtable containing all the information necessary to use the type. The information that completes a trait object pointer is the vtable pointer. The runtime size of the pointee can be dynamically requested from the vtable.</p>
-<p>A slice is simply a view into some contiguous storage -- typically an array or <code>Vec</code>. The information that completes a slice pointer is just the number of elements it points to. The runtime size of the pointee is just the statically known size of an element multiplied by the number of elements.</p>
-<p>Structs can actually store a single DST directly as their last field, but this makes them a DST as well:</p>
+<p>트레잇 객체는 지정된 트레잇을 구현하는 어떤 타입을 나타냅니다. 원래의 구체적인 타입은 타입 사용에 필요한 모든 정보를 담고 있는 vtable을 이용한 런타임 리플렉션을 위해 <em>지워집니다(erased)</em>. 트레잇 객체 포인터를 완성하는 정보는 vtable 포인터입니다. 피지칭자(pointee)의 런타임 크기는 vtable에서 동적으로 요청할 수 있습니다.</p>
+<p>슬라이스는 단순히 어떤 연속적인 저장 공간(일반적으로 배열이나 <code>Vec</code>)에 대한 뷰입니다. 슬라이스 포인터를 완성하는 정보는 단순히 그것이 가리키는 요소의 개수입니다. 피지칭자의 런타임 크기는 단순히 요소의 정적으로 알려진 크기에 요소의 개수를 곱한 값입니다.</p>
+<p>구조체는 실제로 마지막 필드로 단일 DST를 직접 저장할 수 있지만, 이 경우 해당 구조체 역시 DST가 됩니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Can't be stored on the stack directly
+</span>// 스택에 직접 저장할 수 없음
 struct MySuperSlice {
     info: u32,
     data: [u8],
 }
 <span class="boring">}</span></code></pre></pre>
-<p>Unfortunately, such a type is largely useless without a way to construct it. Currently the only properly supported way to create a custom DST is by making your type generic and performing an <em>unsizing coercion</em>:</p>
+<p>불행히도, 이러한 타입은 생성할 방법이 없다면 거의 무용지물입니다. 현재 사용자 정의 DST를 만드는 유일하게 제대로 지원되는 방법은 타입을 제네릭으로 만들고 _언사이징 강제 변환(unsizing coercion)_을 수행하는 것입니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2021">struct MySuperSliceable&lt;T: ?Sized&gt; {
     info: u32,
     data: T,
@@ -247,51 +247,51 @@ fn main() {
 
     let dynamic: &amp;MySuperSliceable&lt;[u8]&gt; = &amp;sized;
 
-    // prints: "17 [0, 0, 0, 0, 0, 0, 0, 0]"
+    // 출력: "17 [0, 0, 0, 0, 0, 0, 0, 0]"
     println!("{} {:?}", dynamic.info, &amp;dynamic.data);
 }</code></pre></pre>
-<p>(Yes, custom DSTs are a largely half-baked feature for now.)</p>
-<h2 id="zero-sized-types-zsts"><a class="header" href="#zero-sized-types-zsts">Zero Sized Types (ZSTs)</a></h2>
-<p>Rust also allows types to be specified that occupy no space:</p>
+<p>(그렇습니다. 사용자 정의 DST는 현재로서는 상당히 미완성된 기능입니다.)</p>
+<h2 id="크기가-0인-타입zsts"><a class="header" href="#크기가-0인-타입zsts">크기가 0인 타입(ZSTs)</a></h2>
+<p>러스트는 또한 공간을 차지하지 않는 타입을 지정할 수 있게 해줍니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>struct Nothing; // No fields = no size
+</span>struct Nothing; // 필드 없음 = 크기 없음
 
-// All fields have no size = no size
+// 모든 필드가 크기 없음 = 크기 없음
 struct LotsOfNothing {
     foo: Nothing,
-    qux: (),      // empty tuple has no size
-    baz: [u8; 0], // empty array has no size
+    qux: (),      // 빈 튜플은 크기가 없음
+    baz: [u8; 0], // 빈 배열은 크기가 없음
 }
 <span class="boring">}</span></code></pre></pre>
-<p>On their own, Zero Sized Types (ZSTs) are, for obvious reasons, pretty useless. However as with many curious layout choices in Rust, their potential is realized in a generic context: Rust largely understands that any operation that produces or stores a ZST can be reduced to a no-op. First off, storing it doesn't even make sense -- it doesn't occupy any space. Also there's only one value of that type, so anything that loads it can just produce it from the aether -- which is also a no-op since it doesn't occupy any space.</p>
-<p>One of the most extreme examples of this is Sets and Maps. Given a <code>Map&lt;Key, Value&gt;</code>, it is common to implement a <code>Set&lt;Key&gt;</code> as just a thin wrapper around <code>Map&lt;Key, UselessJunk&gt;</code>. In many languages, this would necessitate allocating space for UselessJunk and doing work to store and load UselessJunk only to discard it. Proving this unnecessary would be a difficult analysis for the compiler.</p>
-<p>However in Rust, we can just say that  <code>Set&lt;Key&gt; = Map&lt;Key, ()&gt;</code>. Now Rust statically knows that every load and store is useless, and no allocation has any size. The result is that the monomorphized code is basically a custom implementation of a HashSet with none of the overhead that HashMap would have to support values.</p>
-<p>Safe code need not worry about ZSTs, but <em>unsafe</em> code must be careful about the consequence of types with no size. In particular, pointer offsets are no-ops, and allocators typically <a href="../std/alloc/trait.GlobalAlloc.html#tymethod.alloc">require a non-zero size</a>.</p>
-<p>Note that references to ZSTs (including empty slices), just like all other references, must be non-null and suitably aligned. Dereferencing a null or unaligned pointer to a ZST is <a href="what-unsafe-does.html">undefined behavior</a>, just like for any other type.</p>
-<h2 id="empty-types"><a class="header" href="#empty-types">Empty Types</a></h2>
-<p>Rust also enables types to be declared that <em>cannot even be instantiated</em>. These types can only be talked about at the type level, and never at the value level. Empty types can be declared by specifying an enum with no variants:</p>
+<p>크기가 0인 타입(ZSTs)은 그 자체로는 분명한 이유로 꽤 무용지물입니다. 하지만 러스트의 많은 기묘한 레이아웃 선택과 마찬가지로, 이들의 잠재력은 제네릭 문맥에서 실현됩니다. 러스트는 ZST를 생성하거나 저장하는 모든 작업이 무연산(no-op)으로 축소될 수 있음을 잘 알고 있습니다. 우선, 그것을 저장하는 것은 의미조차 없습니다. 공간을 전혀 차지하지 않기 때문입니다. 또한 해당 타입의 값은 단 하나뿐이므로, 그것을 로드하는 모든 작업은 그냥 허공(aether)에서 생성해낼 수 있습니다. 이 또한 공간을 차지하지 않으므로 무연산입니다.</p>
+<p>이것의 가장 극단적인 예 중 하나는 집합(Set)과 맵(Map)입니다. <code>Map&lt;Key, Value&gt;</code>가 주어졌을 때, <code>Set&lt;Key&gt;</code>를 단순히 <code>Map&lt;Key, UselessJunk&gt;</code>를 감싸는 얇은 래퍼로 구현하는 것이 일반적입니다. 많은 언어에서 이는 <code>UselessJunk</code>를 위한 공간을 할당하고, 그것을 저장하고 로드한 뒤 버리는 작업을 필요로 합니다. 이것이 불필요하다는 것을 증명하는 것은 컴파일러에게 어려운 분석일 것입니다.</p>
+<p>하지만 러스트에서는 단순히 <code>Set&lt;Key&gt; = Map&lt;Key, ()&gt;</code>라고 말할 수 있습니다. 이제 러스트는 모든 로드와 저장이 무의미하고 어떤 할당도 크기를 갖지 않는다는 것을 정적으로 압니다. 그 결과, 단형성화된 코드는 기본적으로 <code>HashMap</code>이 값을 지원하기 위해 가져야 하는 오버헤드가 전혀 없는 <code>HashSet</code>의 커스텀 구현체가 됩니다.</p>
+<p>안전한 코드는 ZST에 대해 걱정할 필요가 없지만, <em>안전하지 않은(unsafe)</em> 코드는 크기가 없는 타입의 결과에 주의해야 합니다. 특히, 포인터 오프셋은 무연산이며, 할당자는 일반적으로 <a href="../std/alloc/trait.GlobalAlloc.html#tymethod.alloc">0이 아닌 크기를 요구합니다</a>.</p>
+<p>ZST에 대한 참조(빈 슬라이스 포함)는 다른 모든 참조와 마찬가지로 null이 아니어야 하며 적절하게 정렬되어야 합니다. ZST에 대한 null 또는 정렬되지 않은 포인터를 역참조하는 것은 다른 타입과 마찬가지로 <a href="what-unsafe-does.html">정의되지 않은 동작(undefined behavior)</a>입니다.</p>
+<h2 id="빈-타입empty-types"><a class="header" href="#빈-타입empty-types">빈 타입(Empty Types)</a></h2>
+<p>러스트는 또한 <em>심지어 인스턴스화할 수도 없는</em> 타입을 선언할 수 있게 해줍니다. 이러한 타입은 타입 수준에서만 논의될 수 있으며, 값 수준에서는 절대 존재할 수 없습니다. 빈 타입은 변형(variant)이 없는 열거형(enum)을 지정하여 선언할 수 있습니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>enum Void {} // No variants = EMPTY
+</span>enum Void {} // 변형 없음 = 비어 있음(EMPTY)
 <span class="boring">}</span></code></pre></pre>
-<p>Empty types are even more marginal than ZSTs. The primary motivating example for an empty type is type-level unreachability. For instance, suppose an API needs to return a Result in general, but a specific case actually is infallible. It's actually possible to communicate this at the type level by returning a <code>Result&lt;T, Void&gt;</code>. Consumers of the API can confidently unwrap such a Result knowing that it's <em>statically impossible</em> for this value to be an <code>Err</code>, as this would require providing a value of type <code>Void</code>.</p>
-<p>In principle, Rust can do some interesting analyses and optimizations based on this fact. For instance, <code>Result&lt;T, Void&gt;</code> is represented as just <code>T</code>, because the <code>Err</code> case doesn't actually exist (strictly speaking, this is only an optimization that is not guaranteed, so for example transmuting one into the other is still Undefined Behavior).</p>
-<p>The following also compiles:</p>
+<p>빈 타입은 ZST보다 훨씬 더 미미한 존재입니다. 빈 타입을 사용하는 주된 동기 부여 사례는 타입 수준의 도달 불가능성(type-level unreachability)입니다. 예를 들어, 어떤 API가 일반적으로 <code>Result</code>를 반환해야 하지만, 특정한 경우에는 실제로는 절대 실패하지 않는(infallible) 상황을 가정해 봅시다. <code>Result&lt;T, Void&gt;</code>를 반환함으로써 이를 타입 수준에서 전달하는 것이 가능합니다. 이 API의 사용자는 이 값이 <code>Err</code>이 되는 것이 _정적으로 불가능_하다는 것을 알기 때문에 안심하고 <code>unwrap</code>할 수 있습니다. <code>Err</code>이 되려면 <code>Void</code> 타입의 값을 제공해야 하기 때문입니다.</p>
+<p>원칙적으로 러스트는 이 사실에 기반하여 흥미로운 분석과 최적화를 수행할 수 있습니다. 예를 들어, <code>Result&lt;T, Void&gt;</code>는 단순히 <code>T</code>로 표현되는데, 이는 <code>Err</code> 케이스가 실제로 존재하지 않기 때문입니다(엄밀히 말하면 이는 보장되지 않는 최적화일 뿐이므로, 예를 들어 하나를 다른 하나로 <code>transmute</code>하는 것은 여전히 정의되지 않은 동작입니다).</p>
+<p>다음 코드도 컴파일됩니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>enum Void {}
 
 let res: Result&lt;u32, Void&gt; = Ok(0);
 
-// Err doesn't exist anymore, so Ok is actually irrefutable.
+// Err가 더 이상 존재하지 않으므로, Ok는 실제로 반박 불가능(irrefutable)합니다.
 let Ok(num) = res;
 <span class="boring">}</span></code></pre></pre>
-<p>One final subtle detail about empty types is that raw pointers to them are actually valid to construct, but dereferencing them is Undefined Behavior because that wouldn't make sense.</p>
-<p>We recommend against modelling C's <code>void*</code> type with <code>*const Void</code>. A lot of people started doing that but quickly ran into trouble because Rust doesn't really have any safety guards against trying to instantiate empty types with unsafe code, and if you do it, it's Undefined Behavior. This was especially problematic because developers had a habit of converting raw pointers to references and <code>&amp;Void</code> is <em>also</em> Undefined Behavior to construct.</p>
-<p><code>*const ()</code> (or equivalent) works reasonably well for <code>void*</code>, and can be made into a reference without any safety problems. It still doesn't prevent you from trying to read or write values, but at least it compiles to a no-op instead of Undefined Behavior.</p>
-<h2 id="extern-types"><a class="header" href="#extern-types">Extern Types</a></h2>
-<p>There is <a href="https://github.com/rust-lang/rfcs/blob/master/text/1861-extern-types.md">an accepted RFC</a> to add proper types with an unknown size, called <em>extern types</em>, which would let Rust developers model things like C's <code>void*</code> and other "declared but never defined" types more accurately. However as of Rust 2018, <a href="https://github.com/rust-lang/rust/issues/43467">the feature is stuck in limbo over how <code>size_of_val::&lt;MyExternType&gt;()</code> should behave</a>.</p>
+<p>빈 타입에 관한 한 가지 마지막 미묘한 세부 사항은 빈 타입에 대한 원시 포인터를 생성하는 것은 실제로 유효하지만, 이를 역참조하는 것은 말이 되지 않으므로 정의되지 않은 동작이라는 점입니다.</p>
+<p>C의 <code>void*</code> 타입을 <code>*const Void</code>로 모델링하는 것은 권장하지 않습니다. 많은 사람들이 그렇게 하기 시작했지만, 곧 문제에 봉착했습니다. 러스트는 unsafe 코드를 통해 빈 타입을 인스턴스화하려는 시도에 대해 별다른 안전 장치가 없으며, 그렇게 할 경우 정의되지 않은 동작이 발생하기 때문입니다. 특히 개발자들이 원시 포인터를 참조로 변환하는 습관이 있었는데, <code>&amp;Void</code>를 생성하는 것 <em>역시</em> 정의되지 않은 동작이라는 점이 문제가 되었습니다.</p>
+<p><code>*const ()</code>(또는 그와 동등한 타입)는 <code>void*</code> 용도로 꽤 잘 작동하며, 안전성 문제 없이 참조로 변환될 수 있습니다. 여전히 값을 읽거나 쓰려는 시도를 막지는 못하지만, 적어도 정의되지 않은 동작 대신 무연산으로 컴파일됩니다.</p>
+<h2 id="외부-타입extern-types"><a class="header" href="#외부-타입extern-types">외부 타입(Extern Types)</a></h2>
+<p>알 수 없는 크기를 가진 적절한 타입인 _외부 타입(extern types)_을 추가하자는 <a href="https://github.com/rust-lang/rfcs/blob/master/text/1861-extern-types.md">승인된 RFC</a>가 있습니다. 이는 러스트 개발자들이 C의 <code>void*</code> 및 기타 "선언되었으나 정의되지 않은" 타입들을 더 정확하게 모델링할 수 있게 해줄 것입니다. 하지만 러스트 2018 기준으로, <a href="https://github.com/rust-lang/rust/issues/43467">이 기능은 <code>size_of_val::&lt;MyExternType&gt;()</code>이 어떻게 작동해야 하는지에 대한 문제로 교착 상태에 빠져 있습니다</a>.</p>
 
                     </main>
 

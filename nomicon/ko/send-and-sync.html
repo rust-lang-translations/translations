@@ -214,22 +214,22 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="send와-sync"><a class="header" href="#send와-sync">Send와 Sync</a></h1>
-<p>Not everything obeys inherited mutability, though. Some types allow you to have multiple aliases of a location in memory while mutating it. Unless these types use synchronization to manage this access, they are absolutely not thread-safe. Rust captures this through the <code>Send</code> and <code>Sync</code> traits.</p>
+<p>하지만 모든 것이 상속된 가변성(inherited mutability)을 따르는 것은 아닙니다. 어떤 타입들은 메모리 위치를 수정하면서 동시에 여러 개의 별칭(alias)을 갖는 것을 허용합니다. 이러한 타입들이 동기화를 사용하여 접근을 관리하지 않는 한, 그것들은 절대로 스레드 세이프(thread-safe)하지 않습니다. 러스트는 <code>Send</code>와 <code>Sync</code> 트레잇을 통해 이를 규정합니다.</p>
 <ul>
-<li>A type is Send if it is safe to send it to another thread.</li>
-<li>A type is Sync if it is safe to share between threads (T is Sync if and only if <code>&amp;T</code> is Send).</li>
+<li>어떤 타입을 다른 스레드로 보내는 것이 안전하다면, 그 타입은 <code>Send</code>입니다.</li>
+<li>스레드 간에 공유하는 것이 안전하다면 그 타입은 <code>Sync</code>입니다(<code>&amp;T</code>가 <code>Send</code>라면 <code>T</code>는 <code>Sync</code>이고, 그 역도 성립합니다).</li>
 </ul>
-<p>Send and Sync are fundamental to Rust's concurrency story. As such, a substantial amount of special tooling exists to make them work right. First and foremost, they're <a href="safe-unsafe-meaning.html">unsafe traits</a>. This means that they are unsafe to implement, and other unsafe code can assume that they are correctly implemented. Since they're <em>marker traits</em> (they have no associated items like methods), correctly implemented simply means that they have the intrinsic properties an implementor should have. Incorrectly implementing Send or Sync can cause Undefined Behavior.</p>
-<p>Send and Sync are also automatically derived traits. This means that, unlike every other trait, if a type is composed entirely of Send or Sync types, then it is Send or Sync. Almost all primitives are Send and Sync, and as a consequence pretty much all types you'll ever interact with are Send and Sync.</p>
-<p>Major exceptions include:</p>
+<p><code>Send</code>와 <code>Sync</code>는 러스트 동시성 이야기의 핵심입니다. 따라서 이들을 올바르게 작동시키기 위한 상당한 양의 특별한 도구들이 존재합니다. 무엇보다도, 이들은 <a href="safe-unsafe-meaning.html">비안전 트레잇</a>입니다. 이는 이들을 구현하는 것이 안전하지 않으며, 다른 비안전 코드는 이들이 올바르게 구현되었다고 가정할 수 있다는 것을 의미합니다. 이들은 <em>마커 트레잇</em>(메서드와 같은 연관 항목이 없음)이기 때문에, 올바르게 구현되었다는 것은 단순히 구현체가 가져야 할 고유한 속성을 가지고 있음을 의미합니다. <code>Send</code>나 <code>Sync</code>를 잘못 구현하면 정의되지 않은 동작을 유발할 수 있습니다.</p>
+<p><code>Send</code>와 <code>Sync</code>는 또한 자동으로 파생되는 트레잇입니다. 이는 다른 모든 트레잇과 달리, 어떤 타입이 전적으로 <code>Send</code> 또는 <code>Sync</code>인 타입들로만 구성되어 있다면, 그 타입도 <code>Send</code> 또는 <code>Sync</code>가 된다는 것을 의미합니다. 거의 모든 기본 타입은 <code>Send</code>이자 <code>Sync</code>이며, 결과적으로 여러분이 다루게 될 거의 모든 타입은 <code>Send</code>이자 <code>Sync</code>입니다.</p>
+<p>주요 예외는 다음과 같습니다:</p>
 <ul>
-<li>raw pointers are neither Send nor Sync (because they have no safety guards).</li>
-<li><code>UnsafeCell</code> isn't Sync (and therefore <code>Cell</code> and <code>RefCell</code> aren't).</li>
-<li><code>Rc</code> isn't Send or Sync (because the refcount is shared and unsynchronized).</li>
+<li>원시 포인터는 <code>Send</code>도 아니고 <code>Sync</code>도 아닙니다(안전 장치가 없기 때문입니다).</li>
+<li><code>UnsafeCell</code>은 <code>Sync</code>가 아닙니다(따라서 <code>Cell</code>과 <code>RefCell</code>도 아닙니다).</li>
+<li><code>Rc</code>는 <code>Send</code>나 <code>Sync</code>가 아닙니다(참조 카운트가 공유되며 동기화되지 않기 때문입니다).</li>
 </ul>
-<p><code>Rc</code> and <code>UnsafeCell</code> are very fundamentally not thread-safe: they enable unsynchronized shared mutable state. However raw pointers are, strictly speaking, marked as thread-unsafe as more of a <em>lint</em>. Doing anything useful with a raw pointer requires dereferencing it, which is already unsafe. In that sense, one could argue that it would be "fine" for them to be marked as thread safe.</p>
-<p>However it's important that they aren't thread-safe to prevent types that contain them from being automatically marked as thread-safe. These types have non-trivial untracked ownership, and it's unlikely that their author was necessarily thinking hard about thread safety. In the case of <code>Rc</code>, we have a nice example of a type that contains a <code>*mut</code> that is definitely not thread-safe.</p>
-<p>Types that aren't automatically derived can simply implement them if desired:</p>
+<p><code>Rc</code>와 <code>UnsafeCell</code>은 매우 근본적으로 스레드에 안전하지 않습니다. 이들은 동기화되지 않은 공유 가변 상태를 가능하게 합니다. 하지만 엄밀히 말하면 원시 포인터는 일종의 _린트(lint)_로서 스레드에 안전하지 않다고 표시된 것입니다. 원시 포인터로 유용한 작업을 하려면 역참조가 필요한데, 이는 이미 안전하지 않습니다. 그런 의미에서, 원시 포인터를 스레드 세이프하다고 표시해도 "괜찮다"고 주장할 수도 있습니다.</p>
+<p>하지만 원시 포인터를 포함하는 타입들이 자동으로 스레드 세이프하다고 표시되는 것을 방지하기 위해 이들이 스레드에 안전하지 않은 것이 중요합니다. 이러한 타입들은 사소하지 않은 추적되지 않는 소유권을 가지고 있으며, 작성자가 반드시 스레드 안전성에 대해 깊이 고민했을 것 같지는 않습니다. <code>Rc</code>의 경우, <code>*mut</code>를 포함하며 확실히 스레드 세이프하지 않은 타입의 좋은 예입니다.</p>
+<p>자동으로 파생되지 않는 타입들도 원한다면 간단히 이들을 구현할 수 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct MyBox(*mut u8);
@@ -237,22 +237,22 @@
 unsafe impl Send for MyBox {}
 unsafe impl Sync for MyBox {}
 <span class="boring">}</span></code></pre></pre>
-<p>In the <em>incredibly rare</em> case that a type is inappropriately automatically derived to be Send or Sync, then one can also unimplement Send and Sync:</p>
+<p>어떤 타입이 부적절하게 <code>Send</code>나 <code>Sync</code>로 자동 파생되는 <em>믿을 수 없을 정도로 드문</em> 경우에는, <code>Send</code>와 <code>Sync</code> 구현을 제거할 수도 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span>#![feature(negative_impls)]
 
 <span class="boring">fn main() {
-</span>// I have some magic semantics for some synchronization primitive!
+</span>// 어떤 동기화 기본 요소를 위한 마법 같은 의미론이 있습니다!
 struct SpecialThreadToken(u8);
 
 impl !Send for SpecialThreadToken {}
 impl !Sync for SpecialThreadToken {}
 <span class="boring">}</span></code></pre></pre>
-<p>Note that <em>in and of itself</em> it is impossible to incorrectly derive Send and Sync. Only types that are ascribed special meaning by other unsafe code can possibly cause trouble by being incorrectly Send or Sync.</p>
-<p>Most uses of raw pointers should be encapsulated behind a sufficient abstraction that Send and Sync can be derived. For instance all of Rust's standard collections are Send and Sync (when they contain Send and Sync types) in spite of their pervasive use of raw pointers to manage allocations and complex ownership. Similarly, most iterators into these collections are Send and Sync because they largely behave like an <code>&amp;</code> or <code>&amp;mut</code> into the collection.</p>
-<h2 id="example"><a class="header" href="#example">Example</a></h2>
-<p><a href="https://doc.rust-lang.org/std/boxed/struct.Box.html"><code>Box</code></a> is implemented as its own special intrinsic type by the compiler for <a href="https://manishearth.github.io/blog/2017/01/10/rust-tidbits-box-is-special/">various reasons</a>, but we can implement something with similar-ish behavior ourselves to see an example of when it is sound to implement Send and Sync. Let's call it a <code>Carton</code>.</p>
-<p>We start by writing code to take a value allocated on the stack and transfer it to the heap.</p>
+<p><em>그 자체로는</em> <code>Send</code>와 <code>Sync</code>를 잘못 파생하는 것이 불가능하다는 점에 유의하세요. 다른 비안전 코드에 의해 특별한 의미가 부여된 타입들만이 잘못된 <code>Send</code> 또는 <code>Sync</code>로 인해 문제를 일으킬 수 있습니다.</p>
+<p>대부분의 원시 포인터 사용은 <code>Send</code>와 <code>Sync</code>가 파생될 수 있도록 충분한 추상화 뒤에 캡슐화되어야 합니다. 예를 들어, 러스트의 모든 표준 컬렉션은 할당과 복잡한 소유권을 관리하기 위해 원시 포인터를 광범위하게 사용함에도 불구하고 (<code>Send</code>와 <code>Sync</code> 타입을 포함할 때) <code>Send</code>이자 <code>Sync</code>입니다. 마찬가지로, 이러한 컬렉션에 대한 대부분의 반복자(iterator)들도 컬렉션에 대한 <code>&amp;</code>나 <code>&amp;mut</code>처럼 동작하므로 <code>Send</code>이자 <code>Sync</code>입니다.</p>
+<h2 id="예제"><a class="header" href="#예제">예제</a></h2>
+<p><a href="https://doc.rust-lang.org/std/boxed/struct.Box.html"><code>Box</code></a>는 <a href="https://manishearth.github.io/blog/2017/01/10/rust-tidbits-box-is-special/">여러 이유</a>로 인해 컴파일러에 의해 자체적인 특별한 내장 타입으로 구현되어 있지만, <code>Send</code>와 <code>Sync</code>를 구현하는 것이 언제 건전한지에 대한 예를 보기 위해 비슷한 동작을 하는 무언가를 직접 구현해 볼 수 있습니다. 이것을 <code>Carton</code>이라고 부르기로 합시다.</p>
+<p>스택에 할당된 값을 가져와 힙으로 전송하는 코드를 작성하는 것으로 시작합니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">pub mod libc {
@@ -271,8 +271,8 @@ struct Carton&lt;T&gt;(ptr::NonNull&lt;T&gt;);
 
 impl&lt;T&gt; Carton&lt;T&gt; {
     pub fn new(value: T) -&gt; Self {
-        // Allocate enough memory on the heap to store one T.
-        assert_ne!(size_of::&lt;T&gt;(), 0, "Zero-sized types are out of the scope of this example");
+        // T 하나를 저장할 수 있을 만큼의 힙 메모리를 할당합니다.
+        assert_ne!(size_of::&lt;T&gt;(), 0, "크기가 0인 타입은 이 예제의 범위를 벗어납니다");
         let mut memptr: *mut T = ptr::null_mut();
         unsafe {
             let ret = libc::posix_memalign(
@@ -280,21 +280,21 @@ impl&lt;T&gt; Carton&lt;T&gt; {
                 max(align_of::&lt;T&gt;(), size_of::&lt;usize&gt;()),
                 size_of::&lt;T&gt;()
             );
-            assert_eq!(ret, 0, "Failed to allocate or invalid alignment");
+            assert_eq!(ret, 0, "할당 실패 또는 잘못된 정렬");
         };
 
-        // NonNull is just a wrapper that enforces that the pointer isn't null.
+        // NonNull은 포인터가 null이 아님을 강제하는 래퍼일 뿐입니다.
         let ptr = {
-            // Safety: memptr is dereferenceable because we created it from a
-            // reference and have exclusive access.
+            // 안전성: memptr은 참조로부터 생성했고 배타적인 접근 권한을 가지고 있으므로
+            // 역참조 가능합니다.
             ptr::NonNull::new(memptr)
-                .expect("Guaranteed non-null if posix_memalign returns 0")
+                .expect("posix_memalign이 0을 반환하면 null이 아님을 보장함")
         };
 
-        // Move value from the stack to the location we allocated on the heap.
+        // 스택에서 힙에 할당한 위치로 값을 이동합니다.
         unsafe {
-            // Safety: If non-null, posix_memalign gives us a ptr that is valid
-            // for writes and properly aligned.
+            // 안전성: null이 아니라면, posix_memalign은 쓰기에 유효하고
+            // 적절히 정렬된 포인터를 제공합니다.
             ptr.as_ptr().write(value);
         }
 
@@ -302,7 +302,7 @@ impl&lt;T&gt; Carton&lt;T&gt; {
     }
 }
 <span class="boring">}</span></code></pre></pre>
-<p>This isn't very useful, because once our users give us a value they have no way to access it. <a href="https://doc.rust-lang.org/std/boxed/struct.Box.html"><code>Box</code></a> implements <a href="https://doc.rust-lang.org/core/ops/trait.Deref.html"><code>Deref</code></a> and <a href="https://doc.rust-lang.org/core/ops/trait.DerefMut.html"><code>DerefMut</code></a> so that you can access the inner value. Let's do that.</p>
+<p>이것은 별로 유용하지 않습니다. 사용자가 우리에게 값을 주면, 그들은 그것에 접근할 방법이 없기 때문입니다. <a href="https://doc.rust-lang.org/std/boxed/struct.Box.html"><code>Box</code></a>는 <a href="https://doc.rust-lang.org/core/ops/trait.Deref.html"><code>Deref</code></a>와 <a href="https://doc.rust-lang.org/core/ops/trait.DerefMut.html"><code>DerefMut</code></a>를 구현하여 내부 값에 접근할 수 있게 합니다. 우리도 그렇게 해봅시다.</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::ops::{Deref, DerefMut};
@@ -314,12 +314,11 @@ impl&lt;T&gt; Carton&lt;T&gt; {
 
     fn deref(&amp;self) -&gt; &amp;Self::Target {
         unsafe {
-            // Safety: The pointer is aligned, initialized, and dereferenceable
-            //   by the logic in [`Self::new`]. We require readers to borrow the
-            //   Carton, and the lifetime of the return value is elided to the
-            //   lifetime of the input. This means the borrow checker will
-            //   enforce that no one can mutate the contents of the Carton until
-            //   the reference returned is dropped.
+            // 안전성: 포인터는 [`Self::new`]의 로직에 의해 정렬되고, 초기화되었으며,
+            //   역참조 가능합니다. 우리는 읽는이가 Carton을 대여하도록 요구하며,
+            //   반환 값의 수명은 입력의 수명으로 생략됩니다.
+            //   이는 반환된 참조가 드롭될 때까지 아무도 Carton의 내용을
+            //   변경할 수 없도록 대여 검사기가 강제한다는 것을 의미합니다.
             self.0.as_ref()
         }
     }
@@ -328,44 +327,43 @@ impl&lt;T&gt; Carton&lt;T&gt; {
 impl&lt;T&gt; DerefMut for Carton&lt;T&gt; {
     fn deref_mut(&amp;mut self) -&gt; &amp;mut Self::Target {
         unsafe {
-            // Safety: The pointer is aligned, initialized, and dereferenceable
-            //   by the logic in [`Self::new`]. We require writers to mutably
-            //   borrow the Carton, and the lifetime of the return value is
-            //   elided to the lifetime of the input. This means the borrow
-            //   checker will enforce that no one else can access the contents
-            //   of the Carton until the mutable reference returned is dropped.
+            // 안전성: 포인터는 [`Self::new`]의 로직에 의해 정렬되고, 초기화되었으며,
+            //   역참조 가능합니다. 우리는 쓰는이가 Carton을 가변 대여하도록 요구하며,
+            //   반환 값의 수명은 입력의 수명으로 생략됩니다.
+            //   이는 반환된 가변 참조가 드롭될 때까지 다른 누구도 Carton의
+            //   내용에 접근할 수 없도록 대여 검사기가 강제한다는 것을 의미합니다.
             self.0.as_mut()
         }
     }
 }
 <span class="boring">}</span></code></pre></pre>
-<p>Finally, let's think about whether our <code>Carton</code> is Send and Sync. Something can safely be Send unless it shares mutable state with something else without enforcing exclusive access to it. Each <code>Carton</code> has a unique pointer, so we're good.</p>
+<p>마지막으로, 우리의 <code>Carton</code>이 <code>Send</code>이고 <code>Sync</code>인지 생각해 봅시다. 배타적 접근을 강제하지 않으면서 다른 무언가와 가변 상태를 공유하지 않는 한, 어떤 것은 안전하게 <code>Send</code>가 될 수 있습니다. 각 <code>Carton</code>은 유일한 포인터를 가지고 있으므로 문제 없습니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct Carton&lt;T&gt;(std::ptr::NonNull&lt;T&gt;);
-</span>// Safety: No one besides us has the raw pointer, so we can safely transfer the
-// Carton to another thread if T can be safely transferred.
+</span>// 안전성: 우리 외에는 아무도 원시 포인터를 가지고 있지 않으므로,
+// T가 안전하게 전송될 수 있다면 Carton을 다른 스레드로 안전하게 전송할 수 있습니다.
 unsafe impl&lt;T&gt; Send for Carton&lt;T&gt; where T: Send {}
 <span class="boring">}</span></code></pre></pre>
-<p>What about Sync? For <code>Carton</code> to be Sync we have to enforce that you can't write to something stored in a <code>&amp;Carton</code> while that same something could be read or written to from another <code>&amp;Carton</code>. Since you need an <code>&amp;mut Carton</code> to write to the pointer, and the borrow checker enforces that mutable references must be exclusive, there are no soundness issues making <code>Carton</code> sync either.</p>
+<p><code>Sync</code>는 어떨까요? <code>Carton</code>이 <code>Sync</code>가 되려면, 다른 <code>&amp;Carton</code>에서 읽거나 쓰고 있는 동안 <code>&amp;Carton</code>에 저장된 무언가에 쓸 수 없도록 강제해야 합니다. 포인터에 쓰려면 <code>&amp;mut Carton</code>이 필요하고, 대여 검사기가 가변 참조의 배타성을 강제하므로, <code>Carton</code>을 <code>Sync</code>로 만드는 데에도 건전성 문제는 없습니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct Carton&lt;T&gt;(std::ptr::NonNull&lt;T&gt;);
-</span>// Safety: Since there exists a public way to go from a `&amp;Carton&lt;T&gt;` to a `&amp;T`
-// in an unsynchronized fashion (such as `Deref`), then `Carton&lt;T&gt;` can't be
-// `Sync` if `T` isn't.
-// Conversely, `Carton` itself does not use any interior mutability whatsoever:
-// all the mutations are performed through an exclusive reference (`&amp;mut`). This
-// means it suffices that `T` be `Sync` for `Carton&lt;T&gt;` to be `Sync`:
+</span>// 안전성: 동기화되지 않은 방식(`Deref` 등)으로 `&amp;Carton&lt;T&gt;`에서 `&amp;T`로 가는
+// 공개된 방법이 존재하므로, `T`가 `Sync`가 아니면 `Carton&lt;T&gt;`도 `Sync`일 수
+// 없습니다.
+// 반대로, `Carton` 자체는 내부 가변성을 전혀 사용하지 않습니다.
+// 모든 변경은 배타적 참조(`&amp;mut`)를 통해 수행됩니다. 이는 `Carton&lt;T&gt;`가
+// `Sync`이기 위해 `T`가 `Sync`인 것으로 충분하다는 것을 의미합니다:
 unsafe impl&lt;T&gt; Sync for Carton&lt;T&gt; where T: Sync  {}
 <span class="boring">}</span></code></pre></pre>
-<p>When we assert our type is Send and Sync we usually need to enforce that every contained type is Send and Sync. When writing custom types that behave like standard library types we can assert that we have the same requirements. For example, the following code asserts that a Carton is Send if the same sort of Box would be Send, which in this case is the same as saying T is Send.</p>
+<p>우리의 타입이 <code>Send</code>이고 <code>Sync</code>라고 주장할 때, 우리는 보통 포함된 모든 타입이 <code>Send</code>이고 <code>Sync</code>임을 강제해야 합니다. 표준 라이브러리 타입처럼 동작하는 사용자 정의 타입을 작성할 때, 우리는 동일한 요구 사항을 갖는다고 주장할 수 있습니다. 예를 들어, 다음 코드는 동일한 종류의 <code>Box</code>가 <code>Send</code>라면 <code>Carton</code>도 <code>Send</code>라고 주장하는데, 이 경우 이는 <code>T</code>가 <code>Send</code>라는 말과 같습니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct Carton&lt;T&gt;(std::ptr::NonNull&lt;T&gt;);
 </span>unsafe impl&lt;T&gt; Send for Carton&lt;T&gt; where Box&lt;T&gt;: Send {}
 <span class="boring">}</span></code></pre></pre>
-<p>Right now <code>Carton&lt;T&gt;</code> has a memory leak, as it never frees the memory it allocates. Once we fix that we have a new requirement we have to ensure we meet to be Send: we need to know <code>free</code> can be called on a pointer that was yielded by an allocation done on another thread. We can check this is true in the docs for <a href="https://linux.die.net/man/3/free"><code>libc::free</code></a>.</p>
+<p>지금 <code>Carton&lt;T&gt;</code>는 할당한 메모리를 절대 해제하지 않으므로 메모리 누수가 있습니다. 이를 수정하면 <code>Send</code>가 되기 위해 충족해야 할 새로운 요구 사항이 생깁니다. 우리는 다른 스레드에서 수행된 할당으로 얻은 포인터에 대해 <code>free</code>를 호출할 수 있는지 알아야 합니다. <a href="https://linux.die.net/man/3/free"><code>libc::free</code></a> 문서에서 이것이 사실임을 확인할 수 있습니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct Carton&lt;T&gt;(std::ptr::NonNull&lt;T&gt;);
@@ -381,8 +379,8 @@ unsafe impl&lt;T&gt; Sync for Carton&lt;T&gt; where T: Sync  {}
     }
 }
 <span class="boring">}</span></code></pre></pre>
-<p>A nice example where this does not happen is with a MutexGuard: notice how <a href="https://doc.rust-lang.org/std/sync/struct.MutexGuard.html#impl-Send-for-MutexGuard%3C&#x27;_,+T%3E">it is not Send</a>. The implementation of MutexGuard <a href="https://github.com/rust-lang/rust/issues/23465#issuecomment-82730326">uses libraries</a> that require you to ensure you don't try to free a lock that you acquired in a different thread. If you were able to Send a MutexGuard to another thread the destructor would run in the thread you sent it to, violating the requirement. MutexGuard can still be Sync because all you can send to another thread is an <code>&amp;MutexGuard</code> and dropping a reference does nothing.</p>
-<p>TODO: better explain what can or can't be Send or Sync. Sufficient to appeal only to data races?</p>
+<p>이것이 성립하지 않는 좋은 예는 <code>MutexGuard</code>입니다. <a href="https://doc.rust-lang.org/std/sync/struct.MutexGuard.html#impl-Send-for-MutexGuard%3C&#x27;_,+T%3E"><code>Send</code>가 아님</a>에 주목하세요. <code>MutexGuard</code>의 구현은 다른 스레드에서 획득한 잠금을 해제하려고 시도하지 않도록 보장해야 하는 <a href="https://github.com/rust-lang/rust/issues/23465#issuecomment-82730326">라이브러리를 사용합니다</a>. 만약 <code>MutexGuard</code>를 다른 스레드로 보낼(<code>Send</code>) 수 있다면, 소멸자가 보낸 스레드에서 실행되어 요구 사항을 위반하게 될 것입니다. <code>MutexGuard</code>는 여전히 <code>Sync</code>일 수 있는데, 다른 스레드로 보낼 수 있는 것은 <code>&amp;MutexGuard</code>뿐이고 참조를 드롭하는 것은 아무 일도 하지 않기 때문입니다.</p>
+<p>TODO: 무엇이 <code>Send</code>나 <code>Sync</code>가 될 수 있고 없는지 더 잘 설명해야 함. 데이터 경쟁에만 호소하는 것으로 충분한가?</p>
 
                     </main>
 

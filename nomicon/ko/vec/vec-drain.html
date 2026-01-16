@@ -214,14 +214,14 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="드레인"><a class="header" href="#드레인">드레인</a></h1>
-<p>Let's move on to Drain. Drain is largely the same as IntoIter, except that instead of consuming the Vec, it borrows the Vec and leaves its allocation untouched. For now we'll only implement the "basic" full-range version.</p>
+<p>이제 Drain으로 넘어가 봅시다. Drain은 IntoIter와 거의 동일하지만, Vec을 소비하는 대신 대여(borrow)하며 할당된 메모리를 그대로 둡니다. 우선은 가장 기본적인 전체 범위 버전을 구현해 보겠습니다.</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">use std::marker::PhantomData;
 
 struct Drain&lt;'a, T: 'a&gt; {
-    // Need to bound the lifetime here, so we do it with `&amp;'a mut Vec&lt;T&gt;`
-    // because that's semantically what we contain. We're "just" calling
-    // `pop()` and `remove(0)`.
+    // 여기서 수명을 제한해야 하므로, 의미론적으로 우리가 포함하고 있는
+    // `&amp;'a mut Vec&lt;T&gt;`를 사용합니다. 우리는 그저 `pop()`과 `remove(0)`을
+    // 호출할 뿐입니다.
     vec: PhantomData&lt;&amp;'a mut Vec&lt;T&gt;&gt;,
     start: *const T,
     end: *const T,
@@ -232,7 +232,7 @@ impl&lt;'a, T&gt; Iterator for Drain&lt;'a, T&gt; {
     fn next(&amp;mut self) -&gt; Option&lt;T&gt; {
         if self.start == self.end {
             None</code></pre>
-<p>-- wait, this is seeming familiar. Let's do some more compression. Both IntoIter and Drain have the exact same structure, let's just factor it out.</p>
+<p>잠깐만요, 이거 좀 익숙해 보이네요. 좀 더 압축해 봅시다. IntoIter와 Drain은 완전히 동일한 구조를 가지고 있으니, 그냥 따로 분리해 냅시다.</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">struct RawValIter&lt;T&gt; {
     start: *const T,
@@ -240,17 +240,16 @@ impl&lt;'a, T&gt; Iterator for Drain&lt;'a, T&gt; {
 }
 
 impl&lt;T&gt; RawValIter&lt;T&gt; {
-    // unsafe to construct because it has no associated lifetimes.
-    // This is necessary to store a RawValIter in the same struct as
-    // its actual allocation. OK since it's a private implementation
-    // detail.
+    // 연관된 수명이 없으므로 생성하기에 안전하지 않습니다.
+    // 이는 RawValIter를 실제 할당된 것과 동일한 구조체에 저장하기 위해
+    // 필요합니다. 내부 구현 세부 사항이므로 괜찮습니다.
     unsafe fn new(slice: &amp;[T]) -&gt; Self {
         RawValIter {
             start: slice.as_ptr(),
             end: if slice.len() == 0 {
-                // if `len = 0`, then this is not actually allocated memory.
-                // Need to avoid offsetting because that will give wrong
-                // information to LLVM via GEP.
+                // `len = 0`이면 실제로는 할당된 메모리가 아닙니다.
+                // GEP를 통해 LLVM에 잘못된 정보를 줄 수 있으므로
+                // 오프셋을 계산하는 것을 피해야 합니다.
                 slice.as_ptr()
             } else {
                 slice.as_ptr().add(slice.len())
@@ -259,11 +258,11 @@ impl&lt;T&gt; RawValIter&lt;T&gt; {
     }
 }
 
-// Iterator and DoubleEndedIterator impls identical to IntoIter.</code></pre>
-<p>And IntoIter becomes the following:</p>
+// Iterator 및 DoubleEndedIterator 구현은 IntoIter와 동일합니다.</code></pre>
+<p>그리고 IntoIter는 다음과 같이 바뀝니다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">pub struct IntoIter&lt;T&gt; {
-    _buf: RawVec&lt;T&gt;, // we don't actually care about this. Just need it to live.
+    _buf: RawVec&lt;T&gt;, // 우리는 사실 이것에 신경 쓰지 않습니다. 그저 존재하기만 하면 됩니다.
     iter: RawValIter&lt;T&gt;,
 }
 
@@ -300,8 +299,8 @@ impl&lt;T&gt; IntoIterator for Vec&lt;T&gt; {
         }
     }
 }</code></pre>
-<p>Note that I've left a few quirks in this design to make upgrading Drain to work with arbitrary subranges a bit easier. In particular we <em>could</em> have RawValIter drain itself on drop, but that won't work right for a more complex Drain. We also take a slice to simplify Drain initialization.</p>
-<p>Alright, now Drain is really easy:</p>
+<p>Drain이 임의의 하위 범위와 작동하도록 업그레이드하기 쉽게 만들기 위해, 이 디자인에 몇 가지 독특한 점들을 남겨두었습니다. 특히 RawValIter가 드롭될 때 스스로를 비우도록(drain) 할 수도 있었지만, 더 복잡한 Drain에서는 제대로 작동하지 않을 것입니다. 또한 Drain 초기화를 단순화하기 위해 슬라이스를 받습니다.</p>
+<p>좋습니다, 이제 Drain은 정말 간단합니다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">use std::marker::PhantomData;
 
@@ -330,9 +329,9 @@ impl&lt;T&gt; Vec&lt;T&gt; {
     pub fn drain(&amp;mut self) -&gt; Drain&lt;T&gt; {
         let iter = unsafe { RawValIter::new(&amp;self) };
 
-        // this is a mem::forget safety thing. If Drain is forgotten, we just
-        // leak the whole Vec's contents. Also we need to do this *eventually*
-        // anyway, so why not do it now?
+        // 이는 mem::forget에 대한 안전장치입니다. Drain이 잊혀지면(forgotten),
+        // Vec의 전체 내용을 누수하게 됩니다. 어차피 언젠가는 이 작업을
+        // 수행해야 하므로, 지금 하는 게 어떨까요?
         self.len = 0;
 
         Drain {
@@ -341,7 +340,7 @@ impl&lt;T&gt; Vec&lt;T&gt; {
         }
     }
 }</code></pre>
-<p>For more details on the <code>mem::forget</code> problem, see the <a href="../leaking.html">section on leaks</a>.</p>
+<p><code>mem::forget</code> 문제에 대한 자세한 내용은 <a href="../leaking.html">누수 섹션</a>을 참조하십시오.</p>
 
                     </main>
 

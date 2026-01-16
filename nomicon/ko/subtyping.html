@@ -214,10 +214,10 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="서브타이핑과-공변성"><a class="header" href="#서브타이핑과-공변성">서브타이핑과 공변성</a></h1>
-<p>Rust uses lifetimes to track the relationships between borrows and ownership. However, a naive implementation of lifetimes would be either too restrictive, or permit undefined behavior.</p>
-<p>In order to allow flexible usage of lifetimes while also preventing their misuse, Rust uses <strong>subtyping</strong> and <strong>variance</strong>.</p>
-<p>Let's start with an example.</p>
-<pre><pre class="playground"><code class="language-rust edition2021">// Note: debug expects two parameters with the *same* lifetime
+<p>러스트는 대여와 소유권 간의 관계를 추적하기 위해 수명을 사용합니다. 하지만 수명을 단순히 구현하면 너무 제한적이거나 정의되지 않은 동작을 허용하게 될 수 있습니다.</p>
+<p>수명의 유연한 사용을 허용하면서도 오용을 방지하기 위해, 러스트는 **서브타이핑(subtyping)**과 **공변성(variance)**을 사용합니다.</p>
+<p>예제를 통해 시작해 보겠습니다.</p>
+<pre><pre class="playground"><code class="language-rust edition2021">// 참고: debug는 *동일한* 수명을 가진 두 개의 매개변수를 기대합니다
 fn debug&lt;'a&gt;(a: &amp;'a str, b: &amp;'a str) {
     println!("a = {a:?} b = {b:?}");
 }
@@ -226,11 +226,11 @@ fn main() {
     let hello: &amp;'static str = "hello";
     {
         let world = String::from("world");
-        let world = &amp;world; // 'world has a shorter lifetime than 'static
+        let world = &amp;world; // 'world는 'static보다 수명이 짧습니다
         debug(hello, world);
     }
 }</code></pre></pre>
-<p>In a conservative implementation of lifetimes, since <code>hello</code> and <code>world</code> have different lifetimes, we might see the following error:</p>
+<p>보수적인 수명 구현에서는 <code>hello</code>와 <code>world</code>가 서로 다른 수명을 가지므로 다음과 같은 에러를 보게 될 것입니다.</p>
 <pre><code class="language-text">error[E0308]: mismatched types
  --&gt; src/main.rs:10:16
    |
@@ -239,27 +239,27 @@ fn main() {
    |                      |
    |                      expected `&amp;'static str`, found struct `&amp;'world str`
 </code></pre>
-<p>This would be rather unfortunate. In this case, what we want is to accept any type that lives <em>at least as long</em> as <code>'world</code>. Let's try using subtyping with our lifetimes.</p>
-<h2 id="subtyping"><a class="header" href="#subtyping">Subtyping</a></h2>
-<p>Subtyping is the idea that one type can be used in place of another.</p>
-<p>Let's define that <code>Sub</code> is a subtype of <code>Super</code> (we'll be using the notation <code>Sub &lt;: Super</code> throughout this chapter).</p>
-<p>What this is suggesting to us is that the set of <em>requirements</em> that <code>Super</code> defines are completely satisfied by <code>Sub</code>. <code>Sub</code> may then have more requirements.</p>
-<p>Now, in order to use subtyping with lifetimes, we need to define the requirement of a lifetime:</p>
+<p>이것은 꽤 안타까운 일입니다. 이 경우 우리가 원하는 것은 <em>적어도</em> <code>'world</code>만큼 오래 사는 모든 타입을 수용하는 것입니다. 수명에 서브타이핑을 적용해 봅시다.</p>
+<h2 id="서브타이핑subtyping"><a class="header" href="#서브타이핑subtyping">서브타이핑(Subtyping)</a></h2>
+<p>서브타이핑은 하나의 타입을 다른 타입 대신 사용할 수 있다는 개념입니다.</p>
+<p><code>Sub</code>가 <code>Super</code>의 서브타입이라고 정의합시다(이 장 전체에서 <code>Sub &lt;: Super</code>라는 표기법을 사용할 것입니다).</p>
+<p>이것이 우리에게 시사하는 바는 <code>Super</code>가 정의하는 _요구 사항_의 집합을 <code>Sub</code>가 완전히 만족시킨다는 것입니다. <code>Sub</code>는 그보다 더 많은 요구 사항을 가질 수도 있습니다.</p>
+<p>이제 수명과 함께 서브타이핑을 사용하기 위해, 수명의 요구 사항을 정의해야 합니다.</p>
 <blockquote>
-<p><code>'a</code> defines a region of code.</p>
+<p><code>'a</code>는 코드의 영역을 정의합니다.</p>
 </blockquote>
-<p>Now that we have a defined set of requirements for lifetimes, we can define how they relate to each other:</p>
+<p>이제 수명에 대한 요구 사항 집합이 정의되었으므로, 이들이 서로 어떻게 관련되는지 정의할 수 있습니다.</p>
 <blockquote>
-<p><code>'long &lt;: 'short</code> if and only if <code>'long</code> defines a region of code that <strong>completely contains</strong> <code>'short</code>.</p>
+<p><code>'long</code>이 <code>'short</code>를 <strong>완전히 포함하는</strong> 코드 영역을 정의할 때만 <code>'long &lt;: 'short</code>가 성립합니다.</p>
 </blockquote>
-<p><code>'long</code> may define a region larger than <code>'short</code>, but that still fits our definition.</p>
+<p><code>'long</code>은 <code>'short</code>보다 더 큰 영역을 정의할 수 있지만, 이는 여전히 우리의 정의에 부합합니다.</p>
 <blockquote>
-<p>As we will see throughout the rest of this chapter, subtyping is a lot more complicated and subtle than this, but this simple rule is a very good 99% intuition. And unless you write unsafe code, the compiler will automatically handle all the corner cases for you.</p>
+<p>이 장의 나머지 부분에서 보게 되겠지만, 서브타이핑은 이보다 훨씬 복잡하고 미묘합니다. 하지만 이 간단한 규칙은 99%의 경우에 매우 좋은 직관을 제공합니다. 그리고 안전하지 않은 코드를 작성하지 않는 한, 컴파일러가 여러분을 위해 모든 코너 케이스를 자동으로 처리해 줄 것입니다.</p>
 </blockquote>
 <blockquote>
-<p>But this is the Rustonomicon. We're writing unsafe code, so we need to understand how this stuff really works, and how we can mess it up.</p>
+<p>하지만 여기는 러스트노미콘입니다. 우리는 안전하지 않은 코드를 작성하고 있으므로, 이 모든 것이 실제로 어떻게 작동하는지, 그리고 우리가 어떻게 망칠 수 있는지 이해해야 합니다.</p>
 </blockquote>
-<p>Going back to our example above, we can say that <code>'static &lt;: 'world</code>. For now, let's also accept the idea that subtypes of lifetimes can be passed through references (more on this in <a href="#variance">Variance</a>), <em>e.g.</em> <code>&amp;'static str</code> is a subtype of <code>&amp;'world str</code>, then we can "downgrade" <code>&amp;'static str</code> into a <code>&amp;'world str</code>. With that, the example above will compile:</p>
+<p>위의 예제로 돌아가서, 우리는 <code>'static &lt;: 'world</code>라고 말할 수 있습니다. 지금은 수명의 서브타입이 참조를 통해 전달될 수 있다는 개념도 받아들입시다(<a href="#variance">공변성</a>에서 자세히 다룰 예정입니다). 즉, <code>&amp;'static str</code>은 <code>&amp;'world str</code>의 서브타입이므로, <code>&amp;'static str</code>을 <code>&amp;'world str</code>로 "다운그레이드"할 수 있습니다. 그러면 위의 예제는 컴파일될 것입니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2021">fn debug&lt;'a&gt;(a: &amp;'a str, b: &amp;'a str) {
     println!("a = {a:?} b = {b:?}");
 }
@@ -268,12 +268,12 @@ fn main() {
     let hello: &amp;'static str = "hello";
     {
         let world = String::from("world");
-        let world = &amp;world; // 'world has a shorter lifetime than 'static
-        debug(hello, world); // hello silently downgrades from `&amp;'static str` into `&amp;'world str`
+        let world = &amp;world; // 'world는 'static보다 수명이 짧습니다
+        debug(hello, world); // hello는 조용히 `&amp;'static str`에서 `&amp;'world str`로 다운그레이드됩니다
     }
 }</code></pre></pre>
-<h2 id="variance"><a class="header" href="#variance">Variance</a></h2>
-<p>Above, we glossed over the fact that <code>'static &lt;: 'b</code> implied that <code>&amp;'static T &lt;: &amp;'b T</code>. This uses a property known as <em>variance</em>. It's not always as simple as this example, though. To understand that, let's try to extend this example a bit:</p>
+<h2 id="공변성variance"><a class="header" href="#공변성variance">공변성(Variance)</a></h2>
+<p>위에서 우리는 <code>'static &lt;: 'b</code>가 <code>&amp;'static T &lt;: &amp;'b T</code>를 의미한다는 사실을 대충 넘어갔습니다. 이는 _공변성(variance)_이라고 알려진 속성을 사용합니다. 하지만 항상 이 예제처럼 간단한 것은 아닙니다. 이를 이해하기 위해 예제를 조금 확장해 보겠습니다.</p>
 <pre><pre class="playground"><code class="language-rust compile_fail E0597 edition2021">fn assign&lt;T&gt;(input: &amp;mut T, val: T) {
     *input = val;
 }
@@ -284,50 +284,50 @@ fn main() {
         let world = String::from("world");
         assign(&amp;mut hello, &amp;world);
     }
-    println!("{hello}"); // use after free 😿
+    println!("{hello}"); // 해제 후 사용(use after free) 😿
 }</code></pre></pre>
-<p>In <code>assign</code>, we are setting the <code>hello</code> reference to point to <code>world</code>. But then <code>world</code> goes out of scope, before the later use of <code>hello</code> in the println!</p>
-<p>This is a classic use-after-free bug!</p>
-<p>Our first instinct might be to blame the <code>assign</code> impl, but there's really nothing wrong here. It shouldn't be surprising that we might want to assign a <code>T</code> into a <code>T</code>.</p>
-<p>The problem is that we cannot assume that <code>&amp;mut &amp;'static str</code> and <code>&amp;mut &amp;'b str</code> are compatible. This means that <code>&amp;mut &amp;'static str</code> <strong>cannot</strong> be a <em>subtype</em> of <code>&amp;mut &amp;'b str</code>, even if <code>'static</code> is a subtype of <code>'b</code>.</p>
-<p>Variance is the concept that Rust borrows to define relationships about subtypes through their generic parameters.</p>
+<p><code>assign</code>에서 우리는 <code>hello</code> 참조가 <code>world</code>를 가리키도록 설정하고 있습니다. 하지만 그 후 <code>world</code>가 스코프를 벗어나고, 나중에 <code>println!</code>에서 <code>hello</code>가 사용됩니다!</p>
+<p>이것은 전형적인 해제 후 사용 버그입니다!</p>
+<p>우리의 첫 번째 본능은 <code>assign</code> 구현을 탓하는 것이겠지만, 여기에는 잘못된 것이 전혀 없습니다. <code>T</code>를 <code>T</code>에 할당하고 싶어 하는 것은 놀라운 일이 아닙니다.</p>
+<p>문제는 <code>&amp;mut &amp;'static str</code>과 <code>&amp;mut &amp;'b str</code>가 호환된다고 가정할 수 없다는 점입니다. 이는 <code>'static</code>이 <code>'b</code>의 서브타입이라 하더라도, <code>&amp;mut &amp;'static str</code>는 <code>&amp;mut &amp;'b str</code>의 _서브타입_이 될 수 <strong>없음</strong>을 의미합니다.</p>
+<p>공변성은 러스트가 제네릭 매개변수를 통해 서브타입 관계를 정의하기 위해 차용한 개념입니다.</p>
 <blockquote>
-<p>NOTE: For convenience we will define a generic type <code>F&lt;T&gt;</code> so that we can easily talk about <code>T</code>. Hopefully this is clear in context.</p>
+<p>참고: 편의를 위해 <code>T</code>에 대해 쉽게 이야기할 수 있도록 제네릭 타입 <code>F&lt;T&gt;</code>를 정의하겠습니다. 문맥상 명확하기를 바랍니다.</p>
 </blockquote>
-<p>The type <code>F</code>'s <em>variance</em> is how the subtyping of its inputs affects the subtyping of its outputs. There are three kinds of variance in Rust. Given two types <code>Sub</code> and <code>Super</code>, where <code>Sub</code> is a subtype of <code>Super</code>:</p>
+<p>타입 <code>F</code>의 _공변성_은 입력의 서브타이핑이 출력의 서브타이핑에 어떤 영향을 미치는지에 대한 것입니다. 러스트에는 세 가지 종류의 공변성이 있습니다. <code>Sub</code>가 <code>Super</code>의 서브타입인 두 타입 <code>Sub</code>와 <code>Super</code>가 주어졌을 때:</p>
 <ul>
-<li><code>F</code> is <strong>covariant</strong> if <code>F&lt;Sub&gt;</code> is a subtype of <code>F&lt;Super&gt;</code> (the subtype property is passed through)</li>
-<li><code>F</code> is <strong>contravariant</strong> if <code>F&lt;Super&gt;</code> is a subtype of <code>F&lt;Sub&gt;</code> (the subtype property is "inverted")</li>
-<li><code>F</code> is <strong>invariant</strong> otherwise (no subtyping relationship exists)</li>
+<li><code>F&lt;Sub&gt;</code>가 <code>F&lt;Super&gt;</code>의 서브타입이면 <code>F</code>는 **공변적(covariant)**입니다 (서브타입 속성이 전달됨)</li>
+<li><code>F&lt;Super&gt;</code>가 <code>F&lt;Sub&gt;</code>의 서브타입이면 <code>F</code>는 **반공변적(contravariant)**입니다 (서브타입 속성이 "뒤집힘")</li>
+<li>그렇지 않으면 <code>F</code>는 **불변적(invariant)**입니다 (서브타이핑 관계가 존재하지 않음)</li>
 </ul>
-<p>If we remember from the above examples, it was ok for us to treat <code>&amp;'a T</code> as a subtype of <code>&amp;'b T</code> if <code>'a &lt;: 'b</code>, therefore we can say that <code>&amp;'a T</code> is <em>covariant</em> over <code>'a</code>.</p>
-<p>Also, we saw that it was not ok for us to treat <code>&amp;mut &amp;'a U</code> as a subtype of <code>&amp;mut &amp;'b U</code>, therefore we can say that <code>&amp;mut T</code> is <em>invariant</em> over <code>T</code></p>
-<p>Here is a table of some other generic types and their variances:</p>
+<p>위의 예제를 기억한다면, <code>'a &lt;: 'b</code>일 때 <code>&amp;'a T</code>를 <code>&amp;'b T</code>의 서브타입으로 취급하는 것이 괜찮았습니다. 따라서 우리는 <code>&amp;'a T</code>가 <code>'a</code>에 대해 _공변적_이라고 말할 수 있습니다.</p>
+<p>또한, 우리는 <code>&amp;mut &amp;'a U</code>를 <code>&amp;mut &amp;'b U</code>의 서브타입으로 취급하는 것이 괜찮지 않음을 보았습니다. 따라서 우리는 <code>&amp;mut T</code>가 <code>T</code>에 대해 _불변적_이라고 말할 수 있습니다.</p>
+<p>다음은 몇 가지 다른 제네릭 타입과 그 공변성에 대한 표입니다:</p>
 <div class="table-wrapper"><table><thead><tr><th></th><th style="text-align: center">'a</th><th style="text-align: center">T</th><th style="text-align: center">U</th></tr></thead><tbody>
-<tr><td><code>&amp;'a T </code></td><td style="text-align: center">covariant</td><td style="text-align: center">covariant</td><td style="text-align: center"></td></tr>
-<tr><td><code>&amp;'a mut T</code></td><td style="text-align: center">covariant</td><td style="text-align: center">invariant</td><td style="text-align: center"></td></tr>
-<tr><td><code>Box&lt;T&gt;</code></td><td style="text-align: center"></td><td style="text-align: center">covariant</td><td style="text-align: center"></td></tr>
-<tr><td><code>Vec&lt;T&gt;</code></td><td style="text-align: center"></td><td style="text-align: center">covariant</td><td style="text-align: center"></td></tr>
-<tr><td><code>UnsafeCell&lt;T&gt;</code></td><td style="text-align: center"></td><td style="text-align: center">invariant</td><td style="text-align: center"></td></tr>
-<tr><td><code>Cell&lt;T&gt;</code></td><td style="text-align: center"></td><td style="text-align: center">invariant</td><td style="text-align: center"></td></tr>
-<tr><td><code>fn(T) -&gt; U</code></td><td style="text-align: center"></td><td style="text-align: center"><strong>contra</strong>variant</td><td style="text-align: center">covariant</td></tr>
-<tr><td><code>*const T</code></td><td style="text-align: center"></td><td style="text-align: center">covariant</td><td style="text-align: center"></td></tr>
-<tr><td><code>*mut T</code></td><td style="text-align: center"></td><td style="text-align: center">invariant</td><td style="text-align: center"></td></tr>
+<tr><td><code>&amp;'a T </code></td><td style="text-align: center">공변(covariant)</td><td style="text-align: center">공변(covariant)</td><td style="text-align: center"></td></tr>
+<tr><td><code>&amp;'a mut T</code></td><td style="text-align: center">공변(covariant)</td><td style="text-align: center">불변(invariant)</td><td style="text-align: center"></td></tr>
+<tr><td><code>Box&lt;T&gt;</code></td><td style="text-align: center"></td><td style="text-align: center">공변(covariant)</td><td style="text-align: center"></td></tr>
+<tr><td><code>Vec&lt;T&gt;</code></td><td style="text-align: center"></td><td style="text-align: center">공변(covariant)</td><td style="text-align: center"></td></tr>
+<tr><td><code>UnsafeCell&lt;T&gt;</code></td><td style="text-align: center"></td><td style="text-align: center">불변(invariant)</td><td style="text-align: center"></td></tr>
+<tr><td><code>Cell&lt;T&gt;</code></td><td style="text-align: center"></td><td style="text-align: center">불변(invariant)</td><td style="text-align: center"></td></tr>
+<tr><td><code>fn(T) -&gt; U</code></td><td style="text-align: center"></td><td style="text-align: center"><strong>반공변(contravariant)</strong></td><td style="text-align: center">공변(covariant)</td></tr>
+<tr><td><code>*const T</code></td><td style="text-align: center"></td><td style="text-align: center">공변(covariant)</td><td style="text-align: center"></td></tr>
+<tr><td><code>*mut T</code></td><td style="text-align: center"></td><td style="text-align: center">불변(invariant)</td><td style="text-align: center"></td></tr>
 </tbody></table>
 </div>
-<p>Some of these can be explained simply in relation to the others:</p>
+<p>이들 중 일부는 다른 것들과의 관계를 통해 간단히 설명될 수 있습니다.</p>
 <ul>
-<li><code>Vec&lt;T&gt;</code> and all other owning pointers and collections follow the same logic as <code>Box&lt;T&gt;</code></li>
-<li><code>Cell&lt;T&gt;</code> and all other interior mutability types follow the same logic as <code>UnsafeCell&lt;T&gt;</code></li>
-<li><code>UnsafeCell&lt;T&gt;</code> having interior mutability gives it the same variance properties as <code>&amp;mut T</code></li>
-<li><code>*const T</code> follows the logic of <code>&amp;T</code></li>
-<li><code>*mut T</code> follows the logic of <code>&amp;mut T</code> (or <code>UnsafeCell&lt;T&gt;</code>)</li>
+<li><code>Vec&lt;T&gt;</code>와 다른 모든 소유 포인터 및 컬렉션은 <code>Box&lt;T&gt;</code>와 동일한 논리를 따릅니다</li>
+<li><code>Cell&lt;T&gt;</code>와 다른 모든 내부 가변성 타입은 <code>UnsafeCell&lt;T&gt;</code>와 동일한 논리를 따릅니다</li>
+<li><code>UnsafeCell&lt;T&gt;</code>는 내부 가변성을 가지므로 <code>&amp;mut T</code>와 동일한 공변성 속성을 가집니다</li>
+<li><code>*const T</code>는 <code>&amp;T</code>의 논리를 따릅니다</li>
+<li><code>*mut T</code>는 <code>&amp;mut T</code>(또는 <code>UnsafeCell&lt;T&gt;</code>)의 논리를 따릅니다</li>
 </ul>
-<p>For more types, see the <a href="../reference/subtyping.html#variance">"Variance" section</a> on the reference.</p>
+<p>더 많은 타입에 대해서는 참조서의 <a href="../reference/subtyping.html#variance">"공변성" 섹션</a>을 확인하세요.</p>
 <blockquote>
-<p>NOTE: the <em>only</em> source of contravariance in the language is the arguments to a function, which is why it really doesn't come up much in practice. Invoking contravariance involves higher-order programming with function pointers that take references with specific lifetimes (as opposed to the usual "any lifetime", which gets into higher rank lifetimes, which work independently of subtyping).</p>
+<p>참고: 언어에서 반공변성의 <em>유일한</em> 원천은 함수의 인자입니다. 이것이 실제로 실전에서 반공변성이 많이 등장하지 않는 이유입니다. 반공변성을 호출하려면 특정 수명을 가진 참조를 받는 함수 포인터를 사용하는 고차 프로그래밍이 필요합니다(일반적인 "아무 수명이나" 받는 것과는 대조적인데, 후자는 서브타이핑과 독립적으로 작동하는 고차 수명으로 들어갑니다).</p>
 </blockquote>
-<p>Now that we have some more formal understanding of variance, let's go through some more examples in more detail.</p>
+<p>이제 공변성에 대해 좀 더 형식적으로 이해했으니, 몇 가지 예제를 더 자세히 살펴보겠습니다.</p>
 <pre><pre class="playground"><code class="language-rust compile_fail E0597 edition2021">fn assign&lt;T&gt;(input: &amp;mut T, val: T) {
     *input = val;
 }
@@ -340,122 +340,122 @@ fn main() {
     }
     println!("{hello}");
 }</code></pre></pre>
-<p>And what do we get when we run this?</p>
-<pre><code class="language-text">error[E0597]: `world` does not live long enough
+<p>그리고 이것을 실행하면 무엇을 얻게 될까요?</p>
+<pre><code class="language-text">error[E0597]: `world`가 충분히 오래 살지 않습니다
   --&gt; src/main.rs:9:28
    |
 6  |     let mut hello: &amp;'static str = "hello";
-   |                    ------------ type annotation requires that `world` is borrowed for `'static`
+   |                    ------------ 타입 주석은 `world`가 `'static` 동안 대여될 것을 요구합니다
 ...
 9  |         assign(&amp;mut hello, &amp;world);
-   |                            ^^^^^^ borrowed value does not live long enough
+   |                            ^^^^^^ 대여된 값이 충분히 오래 살지 않습니다
 10 |     }
-   |     - `world` dropped here while still borrowed
+   |     - `world`가 여기서 드롭되지만 여전히 대여 중입니다
 </code></pre>
-<p>Good, it doesn't compile! Let's break down what's happening here in detail.</p>
-<p>First let's look at the <code>assign</code> function:</p>
+<p>좋습니다. 컴파일되지 않는군요! 여기서 무슨 일이 일어나고 있는지 자세히 분석해 봅시다.</p>
+<p>먼저 <code>assign</code> 함수를 살펴봅시다.</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn assign&lt;T&gt;(input: &amp;mut T, val: T) {
     *input = val;
 }
 <span class="boring">}</span></code></pre></pre>
-<p>All it does is take a mutable reference and a value and overwrite the referent with it. What's important about this function is that it creates a type equality constraint. It clearly says in its signature the referent and the value must be the <em>exact same</em> type.</p>
-<p>Meanwhile, in the caller we pass in <code>&amp;mut &amp;'static str</code> and <code>&amp;'world str</code>.</p>
-<p>Because <code>&amp;mut T</code> is invariant over <code>T</code>, the compiler concludes it can't apply any subtyping to the first argument, and so <code>T</code> must be exactly <code>&amp;'static str</code>.</p>
-<p>This is counter to the <code>&amp;T</code> case:</p>
+<p>이 함수가 하는 일은 가변 참조와 값을 받아서 지칭 대상을 덮어쓰는 것뿐입니다. 이 함수에서 중요한 점은 타입 동일성 제약을 생성한다는 것입니다. 시그니처에서 지칭 대상과 값이 <em>정확히 같은</em> 타입이어야 한다고 명확하게 명시하고 있습니다.</p>
+<p>한편, 호출자에서는 <code>&amp;mut &amp;'static str</code>과 <code>&amp;'world str</code>을 전달합니다.</p>
+<p><code>&amp;mut T</code>는 <code>T</code>에 대해 불변적이므로, 컴파일러는 첫 번째 인자에 어떤 서브타이핑도 적용할 수 없다고 결론 내립니다. 따라서 <code>T</code>는 정확히 <code>&amp;'static str</code>이어야 합니다.</p>
+<p>이는 <code>&amp;T</code>의 경우와는 반대됩니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn debug&lt;T: std::fmt::Debug&gt;(a: T, b: T) {
     println!("a = {a:?} b = {b:?}");
 }
 <span class="boring">}</span></code></pre></pre>
-<p>where similarly <code>a</code> and <code>b</code> must have the same type <code>T</code>. But since <code>&amp;'a T</code> <em>is</em> covariant over <code>'a</code>, we are allowed to perform subtyping. So the compiler decides that <code>&amp;'static str</code> can become <code>&amp;'b str</code> if and only if <code>&amp;'static str</code> is a subtype of <code>&amp;'b str</code>, which will hold if <code>'static &lt;: 'b</code>. This is true, so the compiler is happy to continue compiling this code.</p>
-<p>As it turns out, the argument for why it's ok for Box (and Vec, HashMap, etc.) to be covariant is pretty similar to the argument for why it's ok for lifetimes to be covariant: as soon as you try to stuff them in something like a mutable reference, they inherit invariance and you're prevented from doing anything bad.</p>
-<p>However Box makes it easier to focus on the by-value aspect of references that we partially glossed over.</p>
-<p>Unlike a lot of languages which allow values to be freely aliased at all times, Rust has a very strict rule: if you're allowed to mutate or move a value, you are guaranteed to be the only one with access to it.</p>
-<p>Consider the following code:</p>
+<p>여기서도 마찬가지로 <code>a</code>와 <code>b</code>는 같은 타입 <code>T</code>를 가져야 합니다. 하지만 <code>&amp;'a T</code>는 <code>'a</code>에 대해 _공변적_이므로 서브타이핑을 수행할 수 있습니다. 따라서 컴파일러는 <code>&amp;'static str</code>이 <code>&amp;'b str</code>의 서브타입인 경우에만 <code>&amp;'b str</code>이 될 수 있다고 결정합니다. 이는 <code>'static &lt;: 'b</code>일 때 성립합니다. 이것은 참이므로 컴파일러는 기꺼이 이 코드를 계속 컴파일합니다.</p>
+<p>알고 보니, Box(그리고 Vec, HashMap 등)가 공변적이어도 괜찮은 이유는 수명이 공변적이어도 괜찮은 이유와 꽤 비슷합니다. 가변 참조와 같은 것에 넣으려고 하는 순간 불변성을 상속받게 되어 나쁜 짓을 하는 것이 방지됩니다.</p>
+<p>하지만 Box는 우리가 부분적으로 대충 넘어갔던 참조의 값에 의한(by-value) 측면에 집중하기 쉽게 해줍니다.</p>
+<p>값이 항상 자유롭게 별칭되는 것을 허용하는 많은 언어들과 달리, 러스트는 매우 엄격한 규칙을 가지고 있습니다. 값을 변경하거나 이동할 수 있다면, 당신만이 그 값에 접근할 수 있는 유일한 존재임이 보장됩니다.</p>
+<p>다음 코드를 고려해 보세요:</p>
 <pre><code class="language-rust ignore">let hello: Box&lt;&amp;'static str&gt; = Box::new("hello");
 
 let mut world: Box&lt;&amp;'b str&gt;;
 world = hello;</code></pre>
-<p>There is no problem at all with the fact that we have forgotten that <code>hello</code> was alive for <code>'static</code>, because as soon as we moved <code>hello</code> to a variable that only knew it was alive for <code>'b</code>, <strong>we destroyed the only thing in the universe that remembered it lived for longer</strong>!</p>
-<p>Only one thing left to explain: function pointers.</p>
-<p>To see why <code>fn(T) -&gt; U</code> should be covariant over <code>U</code>, consider the following signature:</p>
+<p><code>hello</code>가 <code>'static</code> 동안 살아있었다는 사실을 잊어버린 것은 전혀 문제가 되지 않습니다. <code>hello</code>를 <code>'b</code> 동안만 살아있다고 아는 변수로 이동시키는 순간, <strong>우리는 그것이 더 오래 산다는 것을 기억하는 우주의 유일한 존재를 파괴했기 때문입니다</strong>!</p>
+<p>설명할 것이 하나 남았습니다: 함수 포인터.</p>
+<p><code>fn(T) -&gt; U</code>가 <code>U</code>에 대해 공변적이어야 하는 이유를 알아보기 위해 다음 시그니처를 고려해 보세요:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">fn get_str() -&gt; &amp;'a str;</code></pre>
-<p>This function claims to produce a <code>str</code> bound by some lifetime <code>'a</code>. As such, it is perfectly valid to provide a function with the following signature instead:</p>
+<p>이 함수는 어떤 수명 <code>'a</code>에 의해 제한된 <code>str</code>을 생성한다고 주장합니다. 따라서 대신 다음 시그니처를 가진 함수를 제공하는 것은 완전히 유효합니다.</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">fn get_static() -&gt; &amp;'static str;</code></pre>
-<p>So when the function is called, all it's expecting is a <code>&amp;str</code> which lives at least the lifetime of <code>'a</code>, it doesn't matter if the value actually lives longer.</p>
-<p>However, the same logic does not apply to <em>arguments</em>. Consider trying to satisfy:</p>
+<p>따라서 함수가 호출될 때 기대하는 것은 적어도 <code>'a</code> 수명만큼 사는 <code>&amp;str</code>일 뿐이며, 값이 실제로 더 오래 사는지는 중요하지 않습니다.</p>
+<p>하지만 동일한 논리가 _인자_에는 적용되지 않습니다. 다음을 만족시키려 한다고 가정해 보세요:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">fn store_ref(&amp;'a str);</code></pre>
-<p>with:</p>
+<p>다음을 사용해서:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">fn store_static(&amp;'static str);</code></pre>
-<p>The first function can accept any string reference as long as it lives at least for <code>'a</code>, but the second cannot accept a string reference that lives for any duration less than <code>'static</code>, which would cause a conflict. Covariance doesn't work here. But if we flip it around, it actually <em>does</em> work! If we need a function that can handle <code>&amp;'static str</code>, a function that can handle <em>any</em> reference lifetime will surely work fine.</p>
-<p>Let's see this in practice</p>
+<p>첫 번째 함수는 적어도 <code>'a</code>만큼 사는 한 어떤 문자열 참조든 받을 수 있지만, 두 번째 함수는 <code>'static</code>보다 짧게 사는 문자열 참조를 받을 수 없으므로 충돌이 발생합니다. 여기서는 공변성이 작동하지 않습니다. 하지만 뒤집어 보면 실제로 <em>작동합니다</em>! <code>&amp;'static str</code>을 처리할 수 있는 함수가 필요하다면, <em>어떤</em> 참조 수명이라도 처리할 수 있는 함수는 확실히 잘 작동할 것입니다.</p>
+<p>실제로 확인해 봅시다</p>
 <pre><pre class="playground"><code class="language-rust compile_fail edition2021"><span class="boring">use std::cell::RefCell;
 </span>thread_local! {
     pub static StaticVecs: RefCell&lt;Vec&lt;&amp;'static str&gt;&gt; = RefCell::new(Vec::new());
 }
 
-/// saves the input given into a thread local `Vec&lt;&amp;'static str&gt;`
+/// 주어진 입력을 스레드 로컬 `Vec&lt;&amp;'static str&gt;`에 저장합니다
 fn store(input: &amp;'static str) {
     StaticVecs.with_borrow_mut(|v| v.push(input));
 }
 
-/// Calls the function with it's input (must have the same lifetime!)
+/// 입력을 가지고 함수를 호출합니다 (반드시 같은 수명이어야 합니다!)
 fn demo&lt;'a&gt;(input: &amp;'a str, f: fn(&amp;'a str)) {
     f(input);
 }
 
 fn main() {
-    demo("hello", store); // "hello" is 'static. Can call `store` fine
+    demo("hello", store); // "hello"는 'static입니다. `store`를 문제없이 호출할 수 있습니다
 
     {
         let smuggle = String::from("smuggle");
 
-        // `&amp;smuggle` is not static. If we were to call `store` with `&amp;smuggle`,
-        // we would have pushed an invalid lifetime into the `StaticVecs`.
-        // Therefore, `fn(&amp;'static str)` cannot be a subtype of `fn(&amp;'a str)`
+        // `&amp;smuggle`은 static이 아닙니다. 만약 `store`를 `&amp;smuggle`로 호출한다면,
+        // 유효하지 않은 수명을 `StaticVecs`에 넣게 됩니다.
+        // 따라서 `fn(&amp;'static str)`은 `fn(&amp;'a str)`의 서브타입이 될 수 없습니다
         demo(&amp;smuggle, store);
     }
 
-    // use after free 😿
+    // 해제 후 사용(use after free) 😿
     StaticVecs.with_borrow(|v| println!("{v:?}"));
 }</code></pre></pre>
-<p>And that's why function types, unlike anything else in the language, are <strong>contra</strong>variant over their arguments.</p>
-<p>Now, this is all well and good for the types the standard library provides, but how is variance determined for types that <em>you</em> define? A struct, informally speaking, inherits the variance of its fields. If a struct <code>MyType</code> has a generic argument <code>A</code> that is used in a field <code>a</code>, then MyType's variance over <code>A</code> is exactly <code>a</code>'s variance over <code>A</code>.</p>
-<p>However if <code>A</code> is used in multiple fields:</p>
+<p>이것이 바로 함수 타입이 언어의 다른 것들과 달리 그 인자에 대해 **반공변성(contravariant)**을 갖는 이유입니다.</p>
+<p>표준 라이브러리가 제공하는 타입들의 경우는 이 정도로 충분하지만, 여러분이 직접 정의하는 타입의 공변성은 어떻게 결정될까요? 비공식적으로 말하자면, 구조체는 필드의 공변성을 상속합니다. 만약 구조체 <code>MyType</code>이 필드 <code>a</code>에서 사용되는 제네릭 인자 <code>A</code>를 가지고 있다면, <code>MyType</code>의 <code>A</code>에 대한 공변성은 정확히 <code>a</code>의 <code>A</code>에 대한 공변성과 같습니다.</p>
+<p>하지만 <code>A</code>가 여러 필드에서 사용된다면 다음과 같습니다.</p>
 <ul>
-<li>If all uses of <code>A</code> are covariant, then MyType is covariant over <code>A</code></li>
-<li>If all uses of <code>A</code> are contravariant, then MyType is contravariant over <code>A</code></li>
-<li>Otherwise, MyType is invariant over <code>A</code></li>
+<li><code>A</code>를 사용하는 모든 곳이 공변적이라면, <code>MyType</code>은 <code>A</code>에 대해 공변합니다.</li>
+<li><code>A</code>를 사용하는 모든 곳이 반공변적이라면, <code>MyType</code>은 <code>A</code>에 대해 반공변합니다.</li>
+<li>그렇지 않으면 <code>MyType</code>은 <code>A</code>에 대해 불변입니다.</li>
 </ul>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::cell::Cell;
 
 struct MyType&lt;'a, 'b, A: 'a, B: 'b, C, D, E, F, G, H, In, Out, Mixed&gt; {
-    a: &amp;'a A,     // covariant over 'a and A
-    b: &amp;'b mut B, // covariant over 'b and invariant over B
+    a: &amp;'a A,     // 'a와 A에 대해 공변
+    b: &amp;'b mut B, // 'b에 대해 공변이고 B에 대해 불변
 
-    c: *const C,  // covariant over C
-    d: *mut D,    // invariant over D
+    c: *const C,  // C에 대해 공변
+    d: *mut D,    // D에 대해 불변
 
-    e: E,         // covariant over E
-    f: Vec&lt;F&gt;,    // covariant over F
-    g: Cell&lt;G&gt;,   // invariant over G
+    e: E,         // E에 대해 공변
+    f: Vec&lt;F&gt;,    // F에 대해 공변
+    g: Cell&lt;G&gt;,   // G에 대해 불변
 
-    h1: H,        // would also be covariant over H except...
-    h2: Cell&lt;H&gt;,  // invariant over H, because invariance wins all conflicts
+    h1: H,        // ...가 아니었다면 H에 대해서도 공변이었을 것입니다
+    h2: Cell&lt;H&gt;,  // H에 대해 불변입니다. 모든 충돌에서 불변성이 우선하기 때문입니다.
 
-    i: fn(In) -&gt; Out,       // contravariant over In, covariant over Out
+    i: fn(In) -&gt; Out,       // In에 대해 반공변, Out에 대해 공변
 
-    k1: fn(Mixed) -&gt; usize, // would be contravariant over Mixed except..
-    k2: Mixed,              // invariant over Mixed, because invariance wins all conflicts
+    k1: fn(Mixed) -&gt; usize, // ...가 아니었다면 Mixed에 대해 반공변이었을 것입니다
+    k2: Mixed,              // Mixed에 대해 불변입니다. 모든 충돌에서 불변성이 우선하기 때문입니다.
 }
 <span class="boring">}</span></code></pre></pre>
 

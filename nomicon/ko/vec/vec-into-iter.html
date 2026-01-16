@@ -214,18 +214,18 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="intoiter"><a class="header" href="#intoiter">IntoIter</a></h1>
-<p>Let's move on to writing iterators. <code>iter</code> and <code>iter_mut</code> have already been written for us thanks to The Magic of Deref. However there's two interesting iterators that Vec provides that slices can't: <code>into_iter</code> and <code>drain</code>.</p>
-<p>IntoIter consumes the Vec by-value, and can consequently yield its elements by-value. In order to enable this, IntoIter needs to take control of Vec's allocation.</p>
-<p>IntoIter needs to be DoubleEnded as well, to enable reading from both ends. Reading from the back could just be implemented as calling <code>pop</code>, but reading from the front is harder. We could call <code>remove(0)</code> but that would be insanely expensive. Instead we're going to just use ptr::read to copy values out of either end of the Vec without mutating the buffer at all.</p>
-<p>To do this we're going to use a very common C idiom for array iteration. We'll make two pointers; one that points to the start of the array, and one that points to one-element past the end. When we want an element from one end, we'll read out the value pointed to at that end and move the pointer over by one. When the two pointers are equal, we know we're done.</p>
-<p>Note that the order of read and offset are reversed for <code>next</code> and <code>next_back</code> For <code>next_back</code> the pointer is always after the element it wants to read next, while for <code>next</code> the pointer is always at the element it wants to read next. To see why this is, consider the case where every element but one has been yielded.</p>
-<p>The array looks like this:</p>
+<p>이제 반복자(iterator)를 작성해 봅시다. <code>iter</code>와 <code>iter_mut</code>는 Deref의 마법 덕분에 이미 작성된 것이나 다름없습니다. 하지만 슬라이스는 제공할 수 없지만 Vec은 제공하는 두 가지 흥미로운 반복자가 있습니다: <code>into_iter</code>와 <code>drain</code>입니다.</p>
+<p>IntoIter는 Vec을 값으로 소비(consume)하며, 결과적으로 그 요소들을 값으로 생성할 수 있습니다. 이를 가능하게 하기 위해, IntoIter는 Vec의 할당에 대한 제어권을 가져와야 합니다.</p>
+<p>IntoIter는 양쪽 끝에서 읽을 수 있도록 DoubleEnded여야 합니다. 뒤에서부터 읽는 것은 단순히 <code>pop</code>을 호출하는 것으로 구현할 수 있지만, 앞에서부터 읽는 것은 더 어렵습니다. <code>remove(0)</code>을 호출할 수도 있겠지만, 이는 매우 비효율적일 것입니다. 대신 우리는 <code>ptr::read</code>를 사용하여 버퍼를 전혀 변경하지 않고 Vec의 양쪽 끝에서 값을 복사해올 것입니다.</p>
+<p>이를 위해 우리는 배열 반복에 매우 흔히 쓰이는 C의 관용구를 사용할 것입니다. 두 개의 포인터를 만들 것입니다. 하나는 배열의 시작을 가리키고, 다른 하나는 배열의 끝에서 한 요소 다음을 가리킵니다. 한쪽 끝에서 요소를 원할 때마다, 해당 끝이 가리키는 값을 읽어오고 포인터를 한 칸 이동시킵니다. 두 포인터가 같아지면 모든 작업이 끝난 것입니다.</p>
+<p><code>next</code>와 <code>next_back</code>에서 읽기와 오프셋의 순서가 반대임에 유의하십시오. <code>next_back</code>의 경우 포인터는 항상 다음에 읽으려는 요소 뒤에 위치하는 반면, <code>next</code>의 경우 포인터는 항상 다음에 읽으려는 요소 위에 위치합니다. 왜 그런지 이해하기 위해, 단 하나의 요소만 남고 나머지는 모두 생성된 경우를 생각해 보십시오.</p>
+<p>배열은 다음과 같은 모습일 것입니다:</p>
 <pre><code class="language-text">          S  E
 [X, X, X, O, X, X, X]
 </code></pre>
-<p>If E pointed directly at the element it wanted to yield next, it would be indistinguishable from the case where there are no more elements to yield.</p>
-<p>Although we don't actually care about it during iteration, we also need to hold onto the Vec's allocation information in order to free it once IntoIter is dropped.</p>
-<p>So we're going to use the following struct:</p>
+<p>만약 E가 다음에 생성할 요소를 직접 가리키고 있다면, 더 이상 생성할 요소가 없는 경우와 구별할 수 없게 될 것입니다.</p>
+<p>반복 과정 중에는 실제로 필요하지 않지만, IntoIter가 드롭될 때 메모리를 해제하기 위해 Vec의 할당 정보도 계속 유지해야 합니다.</p>
+<p>따라서 우리는 다음과 같은 구조체를 사용할 것입니다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">pub struct IntoIter&lt;T&gt; {
     buf: NonNull&lt;T&gt;,
@@ -233,16 +233,16 @@
     start: *const T,
     end: *const T,
 }</code></pre>
-<p>And this is what we end up with for initialization:</p>
+<p>그리고 초기화 코드는 다음과 같습니다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">impl&lt;T&gt; IntoIterator for Vec&lt;T&gt; {
     type Item = T;
     type IntoIter = IntoIter&lt;T&gt;;
     fn into_iter(self) -&gt; IntoIter&lt;T&gt; {
-        // Make sure not to drop Vec since that would free the buffer
+        // Vec을 드롭하지 않도록 주의하십시오. 버퍼가 해제될 수 있습니다.
         let vec = ManuallyDrop::new(self);
 
-        // Can't destructure Vec since it's Drop
+        // Vec은 Drop을 구현하므로 구조 해체(destructure)할 수 없습니다.
         let ptr = vec.ptr;
         let cap = vec.cap;
         let len = vec.len;
@@ -252,7 +252,7 @@
             cap,
             start: ptr.as_ptr(),
             end: if cap == 0 {
-                // can't offset off this pointer, it's not allocated!
+                // 이 포인터로부터 오프셋을 할당할 수 없습니다. 할당된 메모리가 아닙니다!
                 ptr.as_ptr()
             } else {
                 unsafe { ptr.as_ptr().add(len) }
@@ -260,7 +260,7 @@
         }
     }
 }</code></pre>
-<p>Here's iterating forward:</p>
+<p>다음은 정방향 반복입니다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">impl&lt;T&gt; Iterator for IntoIter&lt;T&gt; {
     type Item = T;
@@ -282,7 +282,7 @@
         (len, Some(len))
     }
 }</code></pre>
-<p>And here's iterating backwards.</p>
+<p>그리고 다음은 역방향 반복입니다.</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">impl&lt;T&gt; DoubleEndedIterator for IntoIter&lt;T&gt; {
     fn next_back(&amp;mut self) -&gt; Option&lt;T&gt; {
@@ -296,12 +296,12 @@
         }
     }
 }</code></pre>
-<p>Because IntoIter takes ownership of its allocation, it needs to implement Drop to free it. However it also wants to implement Drop to drop any elements it contains that weren't yielded.</p>
+<p>IntoIter는 할당에 대한 소유권을 가지므로, 메모리를 해제하기 위해 Drop을 구현해야 합니다. 또한 아직 생성되지 않은 상태로 남아 있는 요소들을 드롭하기 위해서도 Drop 구현이 필요합니다.</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">impl&lt;T&gt; Drop for IntoIter&lt;T&gt; {
     fn drop(&amp;mut self) {
         if self.cap != 0 {
-            // drop any remaining elements
+            // 남은 요소들을 드롭합니다.
             for _ in &amp;mut *self {}
             let layout = Layout::array::&lt;T&gt;(self.cap).unwrap();
             unsafe {

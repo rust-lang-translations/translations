@@ -214,19 +214,19 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="언와인딩"><a class="header" href="#언와인딩">언와인딩</a></h1>
-<p>Rust has a <em>tiered</em> error-handling scheme:</p>
+<p>러스트는 <em>계층화된</em> 에러 처리 체계를 가지고 있습니다:</p>
 <ul>
-<li>If something might reasonably be absent, Option is used.</li>
-<li>If something goes wrong and can reasonably be handled, Result is used.</li>
-<li>If something goes wrong and cannot reasonably be handled, the thread panics.</li>
-<li>If something catastrophic happens, the program aborts.</li>
+<li>어떤 것이 합리적으로 부재할 가능성이 있다면, <code>Option</code>을 사용합니다.</li>
+<li>무언가 잘못되었지만 합리적으로 처리 가능하다면, <code>Result</code>를 사용합니다.</li>
+<li>무언가 잘못되었는데 합리적으로 처리할 수 없다면, 스레드는 패닉(panic)을 일으킵니다.</li>
+<li>치명적인 일이 발생하면, 프로그램은 중단(abort)됩니다.</li>
 </ul>
-<p>Option and Result are overwhelmingly preferred in most situations, especially since they can be promoted into a panic or abort at the API user's discretion. Panics cause the thread to halt normal execution and unwind its stack, calling destructors as if every function instantly returned.</p>
-<p>As of 1.0, Rust is of two minds when it comes to panics. In the long-long-ago, Rust was much more like Erlang. Like Erlang, Rust had lightweight tasks, and tasks were intended to kill themselves with a panic when they reached an untenable state. Unlike an exception in Java or C++, a panic could not be caught at any time. Panics could only be caught by the owner of the task, at which point they had to be handled or <em>that</em> task would itself panic.</p>
-<p>Unwinding was important to this story because if a task's destructors weren't called, it would cause memory and other system resources to leak. Since tasks were expected to die during normal execution, this would make Rust very poor for long-running systems!</p>
-<p>As the Rust we know today came to be, this style of programming grew out of fashion in the push for less-and-less abstraction. Light-weight tasks were killed in the name of heavy-weight OS threads. Still, on stable Rust as of 1.0 panics can only be caught by the parent thread. This means catching a panic requires spinning up an entire OS thread! This unfortunately stands in conflict to Rust's philosophy of zero-cost abstractions.</p>
-<p>There is an API called <a href="https://doc.rust-lang.org/std/panic/fn.catch_unwind.html"><code>catch_unwind</code></a> that enables catching a panic without spawning a thread. Still, we would encourage you to only do this sparingly. In particular, Rust's current unwinding implementation is heavily optimized for the "doesn't unwind" case. If a program doesn't unwind, there should be no runtime cost for the program being <em>ready</em> to unwind. As a consequence, actually unwinding will be more expensive than in e.g. Java. Don't build your programs to unwind under normal circumstances. Ideally, you should only panic for programming errors or <em>extreme</em> problems.</p>
-<p>Rust's unwinding strategy is not specified to be fundamentally compatible with any other language's unwinding. As such, unwinding into Rust from another language, or unwinding into another language from Rust is Undefined Behavior. You must <em>absolutely</em> catch any panics at the FFI boundary! What you do at that point is up to you, but <em>something</em> must be done. If you fail to do this, at best, your application will crash and burn. At worst, your application <em>won't</em> crash and burn, and will proceed with completely clobbered state.</p>
+<p>대부분의 상황에서는 <code>Option</code>과 <code>Result</code>가 압도적으로 선호됩니다. 특히 이들은 API 사용자의 재량에 따라 패닉이나 중단으로 승격될 수 있기 때문입니다. 패닉은 스레드의 정상적인 실행을 멈추고 스택을 언와인드(unwind)하며, 마치 모든 함수가 즉시 반환된 것처럼 소멸자들을 호출합니다.</p>
+<p>1.0 버전 기준으로, 패닉에 대해 러스트는 두 가지 생각을 가지고 있습니다. 아주 먼 옛날, 러스트는 얼랑(Erlang)과 훨씬 더 비슷했습니다. 얼랑처럼 러스트도 경량 태스크(lightweight tasks)를 가졌고, 태스크가 감당할 수 없는 상태에 도달하면 패닉과 함께 스스로 죽도록 고안되었습니다. 자바나 C++의 예외와는 달리, 패닉은 아무 때나 잡힐 수 없었습니다. 패닉은 태스크의 소유자만이 잡을 수 있었고, 그 시점에서 처리되지 않으면 <em>그</em> 태스크 자체가 패닉을 일으켰습니다.</p>
+<p>언와인딩은 이 이야기에서 매우 중요했습니다. 태스크의 소멸자가 호출되지 않으면 메모리와 기타 시스템 자원이 누수될 것이기 때문입니다. 태스크가 정상적인 실행 도중에 죽을 수도 있는 환경에서, 이는 러스트를 장시간 실행되는 시스템에 부적합하게 만들었을 것입니다!</p>
+<p>오늘날 우리가 아는 러스트가 만들어지면서, 추상화를 줄이려는 움직임 속에 이런 스타일의 프로그래밍은 점차 유행에서 멀어지게 되었습니다. 경량 태스크들은 중량급 OS 스레드들에게 자리를 내주고 사라졌습니다. 여전히 1.0 안정 버전 러스트에서 패닉은 부모 스레드에 의해서만 잡힐 수 있습니다. 이는 패닉을 잡기 위해 OS 스레드를 통째로 하나 띄워야 함을 의미합니다! 이는 안타깝게도 제로 비용 추상화라는 러스트의 철학과 충돌합니다.</p>
+<p>스레드를 생성하지 않고도 패닉을 잡을 수 있게 해주는 <a href="https://doc.rust-lang.org/std/panic/fn.catch_unwind.html"><code>catch_unwind</code></a>라는 API가 있습니다. 하지만 우리는 여전히 이를 자제해서 사용하기를 권장합니다. 특히 러스트의 현재 언와인딩 구현은 "언와인드되지 않는" 경우에 매우 최적화되어 있습니다. 프로그램이 언와인드되지 않는다면, 언와인드될 _준비_가 되어 있다는 것만으로 인한 런타임 비용은 없어야 합니다. 그 결과, 실제로 언와인딩이 일어날 때는 자바(Java)와 같은 언어보다 더 많은 비용이 듭니다. 정상적인 상황에서 언와인드가 발생하도록 프로그램을 설계하지 마세요. 이상적으로는 프로그래밍 에러나 <em>극단적인</em> 문제가 발생했을 때만 패닉을 일으켜야 합니다.</p>
+<p>러스트의 언와인딩 전략은 다른 언어의 언와인딩과 근본적으로 호환되도록 명시되어 있지 않습니다. 따라서 다른 언어에서 러스트로, 혹은 러스트에서 다른 언어로 언와인드하는 것은 정의되지 않은 동작입니다. FFI 경계에서는 <em>반드시</em> 모든 패닉을 잡아야 합니다! 그 시점에서 무엇을 할지는 여러분에게 달려 있지만, <em>어떤 조치든</em> 취해야 합니다. 이를 소홀히 한다면 기껏해야 애플리케이션이 완전히 망가져서 중단되겠지만, 최악의 경우 애플리케이션이 중단되지 <em>않고</em> 완전히 엉망이 된 상태로 계속 실행될 것입니다.</p>
 
                     </main>
 

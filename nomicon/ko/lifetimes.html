@@ -214,34 +214,34 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="수명"><a class="header" href="#수명">수명</a></h1>
-<p>Rust enforces these rules through <em>lifetimes</em>. Lifetimes are named regions of code that a reference must be valid for. Those regions may be fairly complex, as they correspond to paths of execution in the program. There may even be holes in these paths of execution, as it's possible to invalidate a reference as long as it's reinitialized before it's used again. Types which contain references (or pretend to) may also be tagged with lifetimes so that Rust can prevent them from being invalidated as well.</p>
-<p>In most of our examples, the lifetimes will coincide with scopes. This is because our examples are simple. The more complex cases where they don't coincide are described below.</p>
-<p>Within a function body, Rust generally doesn't let you explicitly name the lifetimes involved. This is because it's generally not really necessary to talk about lifetimes in a local context; Rust has all the information and can work out everything as optimally as possible. Many anonymous scopes and temporaries that you would otherwise have to write are often introduced to make your code Just Work.</p>
-<p>However once you cross the function boundary, you need to start talking about lifetimes. Lifetimes are denoted with an apostrophe: <code>'a</code>, <code>'static</code>. To dip our toes with lifetimes, we're going to pretend that we're actually allowed to label scopes with lifetimes, and desugar the examples from the start of this chapter.</p>
-<p>Originally, our examples made use of <em>aggressive</em> sugar -- high fructose corn syrup even -- around scopes and lifetimes, because writing everything out explicitly is <em>extremely noisy</em>. All Rust code relies on aggressive inference and elision of "obvious" things.</p>
-<p>One particularly interesting piece of sugar is that each <code>let</code> statement implicitly introduces a scope. For the most part, this doesn't really matter. However it does matter for variables that refer to each other. As a simple example, let's completely desugar this simple piece of Rust code:</p>
+<p>러스트는 _수명(lifetimes)_을 통해 이러한 규칙들을 강제합니다. 수명은 참조가 유효해야 하는 코드의 명명된 영역입니다. 이러한 영역은 프로그램의 실행 경로에 대응하므로 상당히 복잡할 수 있습니다. 심지어 실행 경로에 구멍이 있을 수도 있는데, 참조가 다시 사용되기 전에 재초기화된다면 그 전까지는 참조를 무효화하는 것이 가능하기 때문입니다. 참조를 포함하거나 포함하는 척하는 타입들 또한 수명으로 태그될 수 있으며, 이를 통해 러스트는 이들이 무효화되는 것을 방지할 수 있습니다.</p>
+<p>대부분의 예제에서 수명은 스코프(scope)와 일치할 것입니다. 이는 예제가 단순하기 때문입니다. 수명이 스코프와 일치하지 않는 더 복잡한 사례들은 아래에서 설명합니다.</p>
+<p>함수 본문 내에서 러스트는 일반적으로 관련된 수명을 명시적으로 명명하는 것을 허용하지 않습니다. 지역 문맥에서는 수명에 대해 이야기할 필요가 거의 없기 때문입니다. 러스트는 모든 정보를 가지고 있으며 가능한 한 최적으로 모든 것을 해결할 수 있습니다. 여러분이 직접 작성해야 했을 많은 익명 스코프와 임시 변수들이 코드가 "그냥 작동(Just Work)"하도록 자주 도입됩니다.</p>
+<p>하지만 함수 경계를 넘어서면 수명에 대해 이야기하기 시작해야 합니다. 수명은 어포스트로피와 함께 표기합니다: <code>'a</code>, <code>'static</code>. 수명에 익숙해지기 위해, 우리는 실제로 스코프에 수명을 라벨링하는 것이 허용된다고 가정하고 이 장의 시작 부분에 나왔던 예제들의 설탕을 제거(desugar)해 보겠습니다.</p>
+<p>원래 우리의 예제들은 스코프와 수명 주변에 <em>공격적인</em> 문법 설탕(당도가 매우 높은 액상 과당 수준의)을 사용했습니다. 모든 것을 명시적으로 작성하는 것은 <em>매우 시끄럽기</em> 때문입니다. 모든 러스트 코드는 "명백한" 것들에 대한 공격적인 추론과 생략에 의존합니다.</p>
+<p>특히 흥미로운 문법 설탕 중 하나는 각 <code>let</code> 문이 암시적으로 스코프를 도입한다는 점입니다. 대부분의 경우 이는 중요하지 않습니다. 하지만 서로를 참조하는 변수들의 경우에는 중요합니다. 간단한 예로, 이 간단한 러스트 코드의 설탕을 완전히 제거해 보겠습니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let x = 0;
 let y = &amp;x;
 let z = &amp;y;
 <span class="boring">}</span></code></pre></pre>
-<p>The borrow checker always tries to minimize the extent of a lifetime, so it will likely desugar to the following:</p>
+<p>빌림 검사기(borrow checker)는 항상 수명의 범위를 최소화하려고 노력하므로, 아마도 다음과 같이 설탕이 제거될 것입니다.</p>
 <!-- ignore: desugared code -->
-<pre><code class="language-rust ignore">// NOTE: `'a: {` and `&amp;'b x` is not valid syntax!
+<pre><code class="language-rust ignore">// 참고: `'a: {` 및 `&amp;'b x`는 유효한 구문이 아닙니다!
 'a: {
     let x: i32 = 0;
     'b: {
-        // lifetime used is 'b because that's good enough.
+        // 수명 `'b`를 사용하는 것으로 충분하므로 그것이 사용됩니다.
         let y: &amp;'b i32 = &amp;'b x;
         'c: {
-            // ditto on 'c
-            let z: &amp;'c &amp;'b i32 = &amp;'c y; // "a reference to a reference to an i32" (with lifetimes annotated)
+            // `'c`도 마찬가지입니다.
+            let z: &amp;'c &amp;'b i32 = &amp;'c y; // "i32에 대한 참조에 대한 참조" (수명이 주석으로 표시됨)
         }
     }
 }</code></pre>
-<p>Wow. That's... awful. Let's all take a moment to thank Rust for making this easier.</p>
-<p>Actually passing references to outer scopes will cause Rust to infer a larger lifetime:</p>
+<p>와... 정말 끔찍하네요. 이 작업을 쉽게 만들어 준 러스트에게 감사하는 시간을 잠시 가집시다.</p>
+<p>참조를 외부 스코프로 전달하면 러스트는 더 큰 수명을 추론합니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let x = 0;
@@ -255,15 +255,15 @@ z = y;
     'b: {
         let z: &amp;'b i32;
         'c: {
-            // Must use 'b here because the reference to x is
-            // being passed to the scope 'b.
+            // `x`에 대한 참조가 스코프 `'b`로 전달되므로
+            // 여기서는 반드시 `'b`를 사용해야 합니다.
             let y: &amp;'b i32 = &amp;'b x;
             z = y;
         }
     }
 }</code></pre>
-<h2 id="example-references-that-outlive-referents"><a class="header" href="#example-references-that-outlive-referents">Example: references that outlive referents</a></h2>
-<p>Alright, let's look at some of those examples from before:</p>
+<h2 id="예제-지칭-대상보다-오래-사는-참조"><a class="header" href="#예제-지칭-대상보다-오래-사는-참조">예제: 지칭 대상보다 오래 사는 참조</a></h2>
+<p>좋습니다. 이전에 보았던 몇 가지 예제들을 다시 살펴보겠습니다.</p>
 <pre><pre class="playground"><code class="language-rust compile_fail edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn as_str(data: &amp;u32) -&gt; &amp;str {
@@ -271,7 +271,7 @@ z = y;
     &amp;s
 }
 <span class="boring">}</span></code></pre></pre>
-<p>desugars to:</p>
+<p>다음과 같이 설탕이 제거됩니다.</p>
 <!-- ignore: desugared code -->
 <pre><code class="language-rust ignore">fn as_str&lt;'a&gt;(data: &amp;'a u32) -&gt; &amp;'a str {
     'b: {
@@ -279,9 +279,9 @@ z = y;
         return &amp;'a s;
     }
 }</code></pre>
-<p>This signature of <code>as_str</code> takes a reference to a u32 with <em>some</em> lifetime, and promises that it can produce a reference to a str that can live <em>just as long</em>. Already we can see why this signature might be trouble. That basically implies that we're going to find a str somewhere in the scope the reference to the u32 originated in, or somewhere <em>even earlier</em>. That's a bit of a tall order.</p>
-<p>We then proceed to compute the string <code>s</code>, and return a reference to it. Since the contract of our function says the reference must outlive <code>'a</code>, that's the lifetime we infer for the reference. Unfortunately, <code>s</code> was defined in the scope <code>'b</code>, so the only way this is sound is if <code>'b</code> contains <code>'a</code> -- which is clearly false since <code>'a</code> must contain the function call itself. We have therefore created a reference whose lifetime outlives its referent, which is <em>literally</em> the first thing we said that references can't do. The compiler rightfully blows up in our face.</p>
-<p>To make this more clear, we can expand the example:</p>
+<p><code>as_str</code>의 이 시그니처는 <em>어떤</em> 수명을 가진 <code>u32</code>에 대한 참조를 받아, 그와 <em>동일한 기간</em> 동안 살 수 있는 <code>str</code>에 대한 참조를 생성할 수 있음을 약속합니다. 벌써 이 시그니처가 왜 문제가 될 수 있는지 알 수 있습니다. 이는 기본적으로 <code>u32</code>에 대한 참조가 시작된 스코프 어딘가에서, 혹은 그보다 <em>훨씬 이전</em> 어딘가에서 <code>str</code>을 찾아낼 것이라는 의미입니다. 이는 좀 무리한 요구입니다.</p>
+<p>그다음 문자열 <code>s</code>를 계산하고 그에 대한 참조를 반환합니다. 함수의 계약에서 참조가 <code>'a</code>보다 오래 살아야 한다고 했으므로, 우리는 참조의 수명을 <code>'a</code>로 추론합니다. 불행히도 <code>s</code>는 스코프 <code>'b</code>에서 정의되었으므로, 이것이 건전하려면 <code>'b</code>가 <code>'a</code>를 포함해야만 합니다. 하지만 <code>'a</code>는 함수 호출 자체를 포함해야 하므로 이는 명백히 거짓입니다. 따라서 우리는 참조의 수명이 그 지칭 대상보다 오래 지속되는 상황을 만들었으며, 이는 우리가 참조가 할 수 없다고 말한 <em>정확히 첫 번째</em> 규칙을 위반한 것입니다. 컴파일러는 당연히 우리 면전에 대고 폭발할 것입니다.</p>
+<p>이를 더 명확히 하기 위해 예제를 확장해 볼 수 있습니다.</p>
 <!-- ignore: desugared code -->
 <pre><code class="language-rust ignore">fn as_str&lt;'a&gt;(data: &amp;'a u32) -&gt; &amp;'a str {
     'b: {
@@ -294,26 +294,26 @@ fn main() {
     'c: {
         let x: u32 = 0;
         'd: {
-            // An anonymous scope is introduced because the borrow does not
-            // need to last for the whole scope x is valid for. The return
-            // of as_str must find a str somewhere before this function
-            // call. Obviously not happening.
+            // 빌림이 `x`가 유효한 전체 스코프 동안 지속될 필요가 없으므로
+            // 익명 스코프가 도입됩니다. `as_str`의 반환값은
+            // 이 함수 호출 이전의 어딘가에서 `str`을 찾아야 합니다.
+            // 당연히 그런 일은 일어나지 않습니다.
             println!("{}", as_str::&lt;'d&gt;(&amp;'d x));
         }
     }
 }</code></pre>
-<p>Shoot!</p>
-<p>Of course, the right way to write this function is as follows:</p>
+<p>이런!</p>
+<p>물론, 이 함수를 올바르게 작성하는 방법은 다음과 같습니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn to_string(data: &amp;u32) -&gt; String {
     format!("{}", data)
 }
 <span class="boring">}</span></code></pre></pre>
-<p>We must produce an owned value inside the function to return it! The only way we could have returned an <code>&amp;'a str</code> would have been if it was in a field of the <code>&amp;'a u32</code>, which is obviously not the case.</p>
-<p>(Actually we could have also just returned a string literal, which as a global can be considered to reside at the bottom of the stack; though this limits our implementation <em>just a bit</em>.)</p>
-<h2 id="example-aliasing-a-mutable-reference"><a class="header" href="#example-aliasing-a-mutable-reference">Example: aliasing a mutable reference</a></h2>
-<p>How about the other example:</p>
+<p>반환하기 위해서는 함수 내부에서 소유권을 가진 값을 생성해야 합니다! <code>&amp;'a str</code>을 반환할 수 있는 유일한 방법은 그것이 <code>&amp;'a u32</code>의 필드에 있는 경우였을 텐데, 지금은 명백히 그렇지 않습니다.</p>
+<p>(사실 전역 상수로 간주되어 스택의 맨 아래에 거주하는 문자열 리터럴을 반환할 수도 있었겠지만, 이는 구현을 <em>약간</em> 제한하게 됩니다.)</p>
+<h2 id="예제-가변-참조-별칭하기"><a class="header" href="#예제-가변-참조-별칭하기">예제: 가변 참조 별칭하기</a></h2>
+<p>다른 예제는 어떨까요?</p>
 <pre><pre class="playground"><code class="language-rust compile_fail edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut data = vec![1, 2, 3];
@@ -325,32 +325,32 @@ println!("{}", x);
 <pre><code class="language-rust ignore">'a: {
     let mut data: Vec&lt;i32&gt; = vec![1, 2, 3];
     'b: {
-        // 'b is as big as we need this borrow to be
-        // (just need to get to `println!`)
+        // 'b는 이 빌림이 필요한 만큼의 크기입니다
+        // (`println!`까지만 도달하면 됩니다)
         let x: &amp;'b i32 = Index::index::&lt;'b&gt;(&amp;'b data, 0);
         'c: {
-            // Temporary scope because we don't need the
-            // &amp;mut to last any longer.
+            // `&amp;mut`가 더 오래 지속될 필요가 없으므로
+            // 임시 스코프가 사용됩니다.
             Vec::push(&amp;'c mut data, 4);
         }
         println!("{}", x);
     }
 }</code></pre>
-<p>The problem here is a bit more subtle and interesting. We want Rust to reject this program for the following reason: We have a live shared reference <code>x</code> to a descendant of <code>data</code> when we try to take a mutable reference to <code>data</code> to <code>push</code>. This would create an aliased mutable reference, which would violate the <em>second</em> rule of references.</p>
-<p>However this is <em>not at all</em> how Rust reasons that this program is bad. Rust doesn't understand that <code>x</code> is a reference to a subpath of <code>data</code>. It doesn't understand <code>Vec</code> at all. What it <em>does</em> see is that <code>x</code> has to live for <code>'b</code> in order to be printed. The signature of <code>Index::index</code> subsequently demands that the reference we take to <code>data</code> has to survive for <code>'b</code>. When we try to call <code>push</code>, it then sees us try to make an <code>&amp;'c mut data</code>. Rust knows that <code>'c</code> is contained within <code>'b</code>, and rejects our program because the <code>&amp;'b data</code> must still be alive!</p>
-<p>Here we see that the lifetime system is much more coarse than the reference semantics we're actually interested in preserving. For the most part, <em>that's totally ok</em>, because it keeps us from spending all day explaining our program to the compiler. However it does mean that several programs that are totally correct with respect to Rust's <em>true</em> semantics are rejected because lifetimes are too dumb.</p>
-<h2 id="the-area-covered-by-a-lifetime"><a class="header" href="#the-area-covered-by-a-lifetime">The area covered by a lifetime</a></h2>
-<p>A reference (sometimes called a <em>borrow</em>) is <em>alive</em> from the place it is created to its last use. The borrowed value needs to outlive only borrows that are alive. This looks simple, but there are a few subtleties.</p>
-<p>The following snippet compiles, because after printing <code>x</code>, it is no longer needed, so it doesn't matter if it is dangling or aliased (even though the variable <code>x</code> <em>technically</em> exists to the very end of the scope).</p>
+<p>여기서의 문제는 조금 더 미묘하고 흥미롭습니다. 우리는 러스트가 다음과 같은 이유로 이 프로그램을 거부하기를 원합니다: <code>push</code>를 하기 위해 <code>data</code>에 대한 가변 참조를 얻으려 할 때, <code>data</code>의 자손인 <code>x</code>에 대한 활성 공유 참조가 존재합니다. 이는 별칭된 가변 참조를 생성하게 되며, 이는 참조의 <em>두 번째</em> 규칙을 위반하는 것입니다.</p>
+<p>하지만 러스트가 이 프로그램이 나쁘다고 판단하는 근거는 이것과는 <em>전혀 다릅니다</em>. 러스트는 <code>x</code>가 <code>data</code>의 하위 경로에 대한 참조라는 것을 이해하지 못합니다. <code>Vec</code>에 대해서도 전혀 모릅니다. 러스트가 보는 것은 <code>x</code>가 출력되기 위해 <code>'b</code> 동안 살아야 한다는 것입니다. 그에 따라 <code>Index::index</code>의 시그니처는 우리가 <code>data</code>로부터 취하는 참조가 <code>'b</code> 동안 살아남을 것을 요구합니다. 우리가 <code>push</code>를 호출하려 할 때, 러스트는 우리가 <code>&amp;'c mut data</code>를 만들려는 것을 보게 됩니다. 러스트는 <code>'c</code>가 <code>'b</code> 내에 포함되어 있음을 알고, <code>&amp;'b data</code>가 여전히 살아있어야 하므로 프로그램을 거부합니다!</p>
+<p>여기서 우리는 수명 시스템이 우리가 실제로 보존하고자 하는 참조 의미론(semantics)보다 훨씬 더 거칠다는 것을 알 수 있습니다. 대부분의 경우 <em>그것은 완전히 괜찮습니다</em>. 덕분에 프로그래머가 컴파일러에게 하루 종일 프로그램을 설명하느라 시간을 허비하지 않아도 되기 때문입니다. 하지만 이는 러스트의 <em>진정한</em> 의미론 관점에서는 완전히 올바른 여러 프로그램이 수명이 너무 단순하다는 이유로 거부됨을 의미하기도 합니다.</p>
+<h2 id="수명이-다루는-영역"><a class="header" href="#수명이-다루는-영역">수명이 다루는 영역</a></h2>
+<p>참조(때때로 _빌림_이라고 불림)는 그것이 생성된 지점부터 마지막 사용 지점까지 <em>살아있습니다(alive)</em>. 빌려온 값은 살아있는 빌림보다 더 오래 살기만 하면 됩니다. 이는 간단해 보이지만 몇 가지 미묘한 점이 있습니다.</p>
+<p>다음 코드는 컴파일됩니다. <code>x</code>를 출력한 후에는 더 이상 필요하지 않으므로, 그것이 댕글링 상태이든 별칭 상태이든 상관없기 때문입니다(변수 <code>x</code>가 <em>기술적으로는</em> 스코프 끝까지 존재하더라도 말입니다).</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut data = vec![1, 2, 3];
 let x = &amp;data[0];
 println!("{}", x);
-// This is OK, x is no longer needed
+// 이것은 괜찮습니다. x는 더 이상 필요하지 않습니다.
 data.push(4);
 <span class="boring">}</span></code></pre></pre>
-<p>However, if the value has a destructor, the destructor is run at the end of the scope. And running the destructor is considered a use ‒ obviously the last one. So, this will <em>not</em> compile.</p>
+<p>하지만 값에 소멸자(destructor)가 있는 경우, 소멸자는 스코프 끝에서 실행됩니다. 그리고 소멸자를 실행하는 것은 사용(use)으로 간주되며, 분명히 그것이 마지막 사용이 됩니다. 따라서 이 코드는 컴파일되지 <em>않을</em> 것입니다.</p>
 <pre><pre class="playground"><code class="language-rust compile_fail edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Debug)]
@@ -364,10 +364,10 @@ let mut data = vec![1, 2, 3];
 let x = X(&amp;data[0]);
 println!("{:?}", x);
 data.push(4);
-// Here, the destructor is run and therefore this'll fail to compile.
+// 여기서 소멸자가 실행되므로 컴파일에 실패합니다.
 <span class="boring">}</span></code></pre></pre>
-<p>One way to convince the compiler that <code>x</code> is no longer valid is by using <code>drop(x)</code> before <code>data.push(4)</code>.</p>
-<p>Furthermore, there might be multiple possible last uses of the borrow, for example in each branch of a condition.</p>
+<p>컴파일러에게 <code>x</code>가 더 이상 유효하지 않음을 알리는 한 가지 방법은 <code>data.push(4)</code> 이전에 <code>drop(x)</code>를 사용하는 것입니다.</p>
+<p>더 나아가, 대여의 마지막 사용이 여러 개일 수 있습니다. 예를 들어 조건문의 각 분기마다 있을 수 있습니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">fn some_condition() -&gt; bool { true }
@@ -375,27 +375,26 @@ data.push(4);
 let x = &amp;data[0];
 
 if some_condition() {
-    println!("{}", x); // This is the last use of `x` in this branch
-    data.push(4);      // So we can push here
+    println!("{}", x); // 이 분기에서 `x`의 마지막 사용입니다.
+    data.push(4);      // 따라서 여기서 push할 수 있습니다.
 } else {
-    // There's no use of `x` in here, so effectively the last use is the
-    // creation of x at the top of the example.
+    // 여기서는 `x`의 사용이 없으므로, 사실상 마지막 사용은 예제 상단에서 x를 생성한 시점입니다.
     data.push(5);
 }
 <span class="boring">}</span></code></pre></pre>
-<p>And a lifetime can have a pause in it. Or you might look at it as two distinct borrows just being tied to the same local variable. This often happens around loops (writing a new value of a variable at the end of the loop and using it for the last time at the top of the next iteration).</p>
+<p>그리고 수명에는 공백이 있을 수 있습니다. 또는 동일한 지역 변수에 묶인 두 개의 서로 다른 대여로 볼 수도 있습니다. 이는 루프 주변에서 종종 발생합니다(루프 끝에서 변수에 새 값을 쓰고 다음 반복문의 시작 부분에서 마지막으로 사용하는 경우).</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut data = vec![1, 2, 3];
-// This mut allows us to change where the reference points to
+// 이 mut은 참조가 가리키는 위치를 변경할 수 있게 해줍니다.
 let mut x = &amp;data[0];
 
-println!("{}", x); // Last use of this borrow
+println!("{}", x); // 이 대여의 마지막 사용입니다.
 data.push(4);
-x = &amp;data[3]; // We start a new borrow here
+x = &amp;data[3]; // 여기서 새로운 대여를 시작합니다.
 println!("{}", x);
 <span class="boring">}</span></code></pre></pre>
-<p>Historically, Rust kept the borrow alive until the end of scope, so these examples might fail to compile with older compilers. Also, there are still some corner cases where Rust fails to properly shorten the live part of the borrow and fails to compile even when it looks like it should. These'll be solved over time.</p>
+<p>역사적으로 러스트는 대여를 스코프 끝까지 유지했으므로, 이 예제들은 이전 컴파일러에서 컴파일에 실패할 수 있습니다. 또한, 러스트가 대여의 생존 기간을 적절히 단축하지 못해 컴파일되어야 할 것 같음에도 실패하는 몇 가지 예외적인 사례들이 여전히 존재합니다. 이러한 문제들은 시간이 지나면서 해결될 것입니다.</p>
 
                     </main>
 

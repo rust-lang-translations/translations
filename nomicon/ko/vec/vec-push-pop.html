@@ -214,10 +214,10 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="푸시와-팝"><a class="header" href="#푸시와-팝">푸시와 팝</a></h1>
-<p>Alright. We can initialize. We can allocate. Let's actually implement some functionality! Let's start with <code>push</code>. All it needs to do is check if we're full to grow, unconditionally write to the next index, and then increment our length.</p>
-<p>To do the write we have to be careful not to evaluate the memory we want to write to. At worst, it's truly uninitialized memory from the allocator. At best it's the bits of some old value we popped off. Either way, we can't just index to the memory and dereference it, because that will evaluate the memory as a valid instance of T. Worse, <code>foo[idx] = x</code> will try to call <code>drop</code> on the old value of <code>foo[idx]</code>!</p>
-<p>The correct way to do this is with <code>ptr::write</code>, which just blindly overwrites the target address with the bits of the value we provide. No evaluation involved.</p>
-<p>For <code>push</code>, if the old len (before push was called) is 0, then we want to write to the 0th index. So we should offset by the old len.</p>
+<p>좋습니다. 초기화도 할 수 있고, 할당도 할 수 있습니다. 이제 실제 기능을 몇 가지 구현해 봅시다! <code>push</code>부터 시작하겠습니다. <code>push</code>가 해야 할 일은 용량이 가득 찼는지 확인하여 늘리고, 다음 인덱스에 무조건 값을 쓰고, 길이를 증가시키는 것뿐입니다.</p>
+<p>값을 쓸 때는 우리가 쓰려는 메모리를 평가(evaluate)하지 않도록 주의해야 합니다. 최악의 경우 그곳은 할당자로부터 받은 정말로 초기화되지 않은 메모리일 것이고, 운이 좋아도 이전에 꺼낸(popped) 어떤 오래된 값의 비트들이 남아 있을 것입니다. 어느 쪽이든, 단순히 메모리를 인덱싱하고 역참조할 수는 없습니다. 그렇게 하면 해당 메모리를 T의 유효한 인스턴스로 평가하려고 하기 때문입니다. 더 나쁜 것은, <code>foo[idx] = x</code>와 같은 식은 <code>foo[idx]</code>의 이전 값에 대해 <code>drop</code>을 호출하려고 시도할 것입니다!</p>
+<p>이를 수행하는 올바른 방법은 <code>ptr::write</code>를 사용하는 것입니다. 이 함수는 우리가 제공한 값의 비트로 대상 주소를 무작정 덮어씁니다. 이 과정에는 어떤 평가도 개입하지 않습니다.</p>
+<p><code>push</code>의 경우, (push를 호출하기 전의) 이전 길이가 0이라면 0번째 인덱스에 값을 쓰고 싶을 것입니다. 따라서 이전 길이만큼 오프셋(offset)해야 합니다.</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">pub fn push(&amp;mut self, elem: T) {
     if self.len == self.cap { self.grow(); }
@@ -226,11 +226,11 @@
         ptr::write(self.ptr.as_ptr().add(self.len), elem);
     }
 
-    // Can't fail, we'll OOM first.
+    // 실패할 수 없습니다. 실패하기 전에 메모리 부족(OOM)이 발생할 것입니다.
     self.len += 1;
 }</code></pre>
-<p>Easy! How about <code>pop</code>? Although this time the index we want to access is initialized, Rust won't just let us dereference the location of memory to move the value out, because that would leave the memory uninitialized! For this we need <code>ptr::read</code>, which just copies out the bits from the target address and interprets it as a value of type T. This will leave the memory at this address logically uninitialized, even though there is in fact a perfectly good instance of T there.</p>
-<p>For <code>pop</code>, if the old len is 1, for example, we want to read out of the 0th index. So we should offset by the new len.</p>
+<p>간단하죠! <code>pop</code>은 어떨까요? 이번에는 접근하려는 인덱스가 초기화되어 있지만, 러스트는 단순히 메모리 위치를 역참조해서 값을 꺼내오게 두지 않을 것입니다. 그렇게 하면 해당 메모리가 초기화되지 않은 상태로 남기 때문입니다! 이를 위해 우리는 <code>ptr::read</code>가 필요합니다. 이 함수는 단순히 대상 주소에서 비트들을 복사해서 T 타입의 값으로 해석합니다. 이는 사실 해당 주소에 완벽하게 유효한 T의 인스턴스가 있음에도 불구하고, 그 위치의 메모리를 논리적으로 초기화되지 않은 상태로 남깁니다.</p>
+<p><code>pop</code>의 경우, 예를 들어 이전 길이가 1이라면 0번째 인덱스에서 값을 읽어오고 싶을 것입니다. 따라서 새로운 길이만큼 오프셋해야 합니다.</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">pub fn pop(&amp;mut self) -&gt; Option&lt;T&gt; {
     if self.len == 0 {

@@ -213,7 +213,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="the-final-code"><a class="header" href="#the-final-code">The Final Code</a></h1>
+                        <h1 id="최종-코드"><a class="header" href="#최종-코드">최종 코드</a></h1>
 <pre><pre class="playground"><code class="language-rust edition2021">use std::alloc::{self, Layout};
 use std::marker::PhantomData;
 use std::mem;
@@ -230,10 +230,10 @@ unsafe impl&lt;T: Sync&gt; Sync for RawVec&lt;T&gt; {}
 
 impl&lt;T&gt; RawVec&lt;T&gt; {
     fn new() -&gt; Self {
-        // !0 is usize::MAX. This branch should be stripped at compile time.
+        // !0은 usize::MAX입니다. 이 분기는 컴파일 타임에 제거되어야 합니다.
         let cap = if mem::size_of::&lt;T&gt;() == 0 { !0 } else { 0 };
 
-        // `NonNull::dangling()` doubles as "unallocated" and "zero-sized allocation"
+        // `NonNull::dangling()`은 "할당되지 않음"과 "0 크기 할당"의 두 가지 역할을 모두 수행합니다.
         RawVec {
             ptr: NonNull::dangling(),
             cap,
@@ -241,27 +241,27 @@ impl&lt;T&gt; RawVec&lt;T&gt; {
     }
 
     fn grow(&amp;mut self) {
-        // since we set the capacity to usize::MAX when T has size 0,
-        // getting to here necessarily means the Vec is overfull.
-        assert!(mem::size_of::&lt;T&gt;() != 0, "capacity overflow");
+        // T의 크기가 0일 때 용량을 usize::MAX로 설정하므로,
+        // 여기에 도달했다는 것은 반드시 Vec이 가득 찼음을 의미합니다.
+        assert!(mem::size_of::&lt;T&gt;() != 0, "용량 오버플로");
 
         let (new_cap, new_layout) = if self.cap == 0 {
             (1, Layout::array::&lt;T&gt;(1).unwrap())
         } else {
-            // This can't overflow because we ensure self.cap &lt;= isize::MAX.
+            // self.cap &lt;= isize::MAX임을 보장하므로 오버플로할 수 없습니다.
             let new_cap = 2 * self.cap;
 
-            // `Layout::array` checks that the number of bytes is &lt;= usize::MAX,
-            // but this is redundant since old_layout.size() &lt;= isize::MAX,
-            // so the `unwrap` should never fail.
+            // `Layout::array`는 바이트 수가 usize::MAX 이하인지 확인하지만,
+            // old_layout.size() &lt;= isize::MAX이므로 이는 중복 확인입니다.
+            // 따라서 `unwrap`은 절대 실패하지 않아야 합니다.
             let new_layout = Layout::array::&lt;T&gt;(new_cap).unwrap();
             (new_cap, new_layout)
         };
 
-        // Ensure that the new allocation doesn't exceed `isize::MAX` bytes.
+        // 새로운 할당이 `isize::MAX` 바이트를 초과하지 않도록 보장합니다.
         assert!(
             new_layout.size() &lt;= isize::MAX as usize,
-            "Allocation too large"
+            "할당이 너무 큼"
         );
 
         let new_ptr = if self.cap == 0 {
@@ -272,7 +272,7 @@ impl&lt;T&gt; RawVec&lt;T&gt; {
             unsafe { alloc::realloc(old_ptr, old_layout, new_layout.size()) }
         };
 
-        // If allocation fails, `new_ptr` will be null, in which case we abort.
+        // 할당이 실패하면 `new_ptr`은 null이 되며, 이 경우 프로그램을 중단(abort)합니다.
         self.ptr = match NonNull::new(new_ptr as *mut T) {
             Some(p) =&gt; p,
             None =&gt; alloc::handle_alloc_error(new_layout),
@@ -325,7 +325,7 @@ impl&lt;T&gt; Vec&lt;T&gt; {
             ptr::write(self.ptr().add(self.len), elem);
         }
 
-        // Can't overflow, we'll OOM first.
+        // 오버플로할 수 없습니다. 오버플로하기 전에 메모리 부족(OOM)이 발생할 것입니다.
         self.len += 1;
     }
 
@@ -339,7 +339,7 @@ impl&lt;T&gt; Vec&lt;T&gt; {
     }
 
     pub fn insert(&amp;mut self, index: usize, elem: T) {
-        assert!(index &lt;= self.len, "index out of bounds");
+        assert!(index &lt;= self.len, "인덱스 범위를 벗어남");
         if self.len == self.cap() {
             self.buf.grow();
         }
@@ -357,7 +357,7 @@ impl&lt;T&gt; Vec&lt;T&gt; {
     }
 
     pub fn remove(&amp;mut self, index: usize) -&gt; T {
-        assert!(index &lt; self.len, "index out of bounds");
+        assert!(index &lt; self.len, "인덱스 범위를 벗어남");
 
         self.len -= 1;
 
@@ -375,9 +375,9 @@ impl&lt;T&gt; Vec&lt;T&gt; {
     pub fn drain(&amp;mut self) -&gt; Drain&lt;T&gt; {
         let iter = unsafe { RawValIter::new(&amp;self) };
 
-        // this is a mem::forget safety thing. If Drain is forgotten, we just
-        // leak the whole Vec's contents. Also we need to do this *eventually*
-        // anyway, so why not do it now?
+        // 이는 mem::forget에 대한 안전장치입니다. Drain이 잊혀지면(forgotten),
+        // Vec의 전체 내용을 누수하게 됩니다. 어차피 언젠가는 이 작업을
+        // 수행해야 하므로, 지금 하는 게 어떨까요?
         self.len = 0;
 
         Drain {
@@ -390,7 +390,7 @@ impl&lt;T&gt; Vec&lt;T&gt; {
 impl&lt;T&gt; Drop for Vec&lt;T&gt; {
     fn drop(&amp;mut self) {
         while let Some(_) = self.pop() {}
-        // deallocation is handled by RawVec
+        // 할당 해제는 RawVec에 의해 처리됩니다.
     }
 }
 
@@ -490,7 +490,7 @@ impl&lt;T&gt; DoubleEndedIterator for RawValIter&lt;T&gt; {
 }
 
 pub struct IntoIter&lt;T&gt; {
-    _buf: RawVec&lt;T&gt;, // we don't actually care about this. Just need it to live.
+    _buf: RawVec&lt;T&gt;, // 우리는 사실 이것에 신경 쓰지 않습니다. 그저 존재하기만 하면 됩니다.
     iter: RawValIter&lt;T&gt;,
 }
 
@@ -539,7 +539,7 @@ impl&lt;'a, T&gt; DoubleEndedIterator for Drain&lt;'a, T&gt; {
 
 impl&lt;'a, T&gt; Drop for Drain&lt;'a, T&gt; {
     fn drop(&amp;mut self) {
-        // pre-drain the iter
+        // 반복자를 미리 비웁니다(pre-drain).
         for _ in &amp;mut *self {}
     }
 }
@@ -549,7 +549,7 @@ impl&lt;'a, T&gt; Drop for Drain&lt;'a, T&gt; {
 </span><span class="boring">    tests::iter_test();
 </span><span class="boring">    tests::test_drain();
 </span><span class="boring">    tests::test_zst();
-</span><span class="boring">    println!("All tests finished OK");
+</span><span class="boring">    println!("모든 테스트가 성공적으로 종료되었습니다");
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">mod tests {

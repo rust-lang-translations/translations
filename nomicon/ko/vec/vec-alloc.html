@@ -213,16 +213,16 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="allocating-memory"><a class="header" href="#allocating-memory">Allocating Memory</a></h1>
-<p>Using <code>NonNull</code> throws a wrench in an important feature of Vec (and indeed all of the std collections): creating an empty Vec doesn't actually allocate at all. This is not the same as allocating a zero-sized memory block, which is not allowed by the global allocator (it results in undefined behavior!). So if we can't allocate, but also can't put a null pointer in <code>ptr</code>, what do we do in <code>Vec::new</code>? Well, we just put some other garbage in there!</p>
-<p>This is perfectly fine because we already have <code>cap == 0</code> as our sentinel for no allocation. We don't even need to handle it specially in almost any code because we usually need to check if <code>cap &gt; len</code> or <code>len &gt; 0</code> anyway. The recommended Rust value to put here is <code>mem::align_of::&lt;T&gt;()</code>. <code>NonNull</code> provides a convenience for this: <code>NonNull::dangling()</code>. There are quite a few places where we'll want to use <code>dangling</code> because there's no real allocation to talk about but <code>null</code> would make the compiler do bad things.</p>
-<p>So:</p>
+                        <h1 id="메모리-할당하기"><a class="header" href="#메모리-할당하기">메모리 할당하기</a></h1>
+<p>NonNull을 사용하는 것은 Vec(그리고 실제로 모든 표준 라이브러리 컬렉션)의 중요한 기능에 걸림돌이 됩니다. 빈 Vec을 생성할 때는 실제로 메모리를 전혀 할당하지 않는다는 점입니다. 이는 크기가 0인 메모리 블록을 할당하는 것과는 다릅니다. 전역 할당자(global allocator)는 크기가 0인 할당을 허용하지 않기 때문입니다(이는 정의되지 않은 동작을 초래합니다!). 그렇다면 할당을 할 수 없으면서 ptr에 null 포인터를 넣을 수도 없다면, Vec::new에서 무엇을 해야 할까요? 음, 그냥 그곳에 다른 쓰레기 값을 넣어두면 됩니다!</p>
+<p>이는 전혀 문제가 되지 않습니다. 할당이 없음을 나타내는 파수꾼(sentinel) 값으로 이미 <code>cap == 0</code>을 사용하고 있기 때문입니다. 거의 모든 코드에서 이를 특별히 처리할 필요조차 없습니다. 어차피 보통 <code>cap &gt; len</code>이나 <code>len &gt; 0</code>인지 확인해야 하기 때문입니다. 여기에 넣는 것이 권장되는 러스트 값은 <code>mem::align_of::&lt;T&gt;()</code>입니다. <code>NonNull</code>은 이를 위한 편의 기능인 <code>NonNull::dangling()</code>을 제공합니다. 실제 할당된 메모리는 없지만 <code>null</code>을 사용하면 컴파일러가 원치 않는 동작을 할 수 있는 곳이 꽤 많으므로, 그럴 때 <code>dangling</code>을 사용하게 됩니다.</p>
+<p>그래서:</p>
 <!-- ignore: explanation code -->
 <pre><code class="language-rust ignore">use std::mem;
 
 impl&lt;T&gt; Vec&lt;T&gt; {
     pub fn new() -&gt; Self {
-        assert!(mem::size_of::&lt;T&gt;() != 0, "We're not ready to handle ZSTs");
+        assert!(mem::size_of::&lt;T&gt;() != 0, "아직 ZST를 처리할 준비가 되지 않았습니다");
         Vec {
             ptr: NonNull::dangling(),
             len: 0,
@@ -231,11 +231,11 @@ impl&lt;T&gt; Vec&lt;T&gt; {
     }
 }
 <span class="boring">fn main() {}</span></code></pre>
-<p>I slipped in that assert there because zero-sized types will require some special handling throughout our code, and I want to defer the issue for now. Without this assert, some of our early drafts will do some Very Bad Things.</p>
-<p>Next we need to figure out what to actually do when we <em>do</em> want space. For that, we use the global allocation functions <a href="../../alloc/alloc/fn.alloc.html"><code>alloc</code></a>, <a href="../../alloc/alloc/fn.realloc.html"><code>realloc</code></a>, and <a href="../../alloc/alloc/fn.dealloc.html"><code>dealloc</code></a> which are available in stable Rust in <a href="../../alloc/alloc/index.html"><code>std::alloc</code></a>. These functions are expected to become deprecated in favor of the methods of <a href="../../std/alloc/struct.Global.html"><code>std::alloc::Global</code></a> after this type is stabilized.</p>
-<p>We'll also need a way to handle out-of-memory (OOM) conditions. The standard library provides a function <a href="../../alloc/alloc/fn.handle_alloc_error.html"><code>alloc::handle_alloc_error</code></a>, which will abort the program in a platform-specific manner. The reason we abort and don't panic is because unwinding can cause allocations to happen, and that seems like a bad thing to do when your allocator just came back with "hey I don't have any more memory".</p>
-<p>Of course, this is a bit silly since most platforms don't actually run out of memory in a conventional way. Your operating system will probably kill the application by another means if you legitimately start using up all the memory. The most likely way we'll trigger OOM is by just asking for ludicrous quantities of memory at once (e.g. half the theoretical address space). As such it's <em>probably</em> fine to panic and nothing bad will happen. Still, we're trying to be like the standard library as much as possible, so we'll just kill the whole program.</p>
-<p>Okay, now we can write growing. Roughly, we want to have this logic:</p>
+<p>여기에 단언문(assert)을 살짝 끼워 넣은 이유는 크기가 0인 타입(ZST)은 코드 전반에 걸쳐 특별한 처리가 필요하기 때문입니다. 일단 이 문제는 나중에 다루고 싶습니다. 이 단언문이 없다면, 초기 초안 중 일부는 아주 끔찍한 일을 저지를 것입니다.</p>
+<p>다음으로 우리가 정말로 공간을 원할 때 무엇을 해야 할지 알아내야 합니다. 이를 위해 안정적인(stable) 러스트의 <a href="../../alloc/alloc/index.html"><code>std::alloc</code></a>에서 제공하는 전역 할당 함수인 <a href="../../alloc/alloc/fn.alloc.html"><code>alloc</code></a>, <a href="../../alloc/alloc/fn.realloc.html"><code>realloc</code></a>, <a href="../../alloc/alloc/fn.dealloc.html"><code>dealloc</code></a>을 사용합니다. 이 함수들은 <a href="../../std/alloc/struct.Global.html"><code>std::alloc::Global</code></a> 타입이 안정화된 이후에는 해당 타입의 메서드들로 대체되면서 사라질 예정입니다.</p>
+<p>또한 메모리 부족(OOM) 상황을 처리할 방법이 필요합니다. 표준 라이브러리는 <a href="../../alloc/alloc/fn.handle_alloc_error.html"><code>alloc::handle_alloc_error</code></a> 함수를 제공하는데, 이 함수는 플랫폼별 방식에 따라 프로그램을 중단(abort)시킵니다. 패닉을 발생시키지 않고 중단하는 이유는 언와인딩(unwinding) 과정에서 추가적인 할당이 발생할 수 있기 때문입니다. 할당자가 방금 "메모리가 부족하다"고 했는데 추가 할당을 시도하는 것은 좋은 생각이 아닌 것 같습니다.</p>
+<p>물론 대부분의 플랫폼에서 전통적인 방식으로 메모리가 부족해지는 일은 거의 없으므로 이는 조금 우스운 일일 수 있습니다. 실제로 메모리를 전부 사용하기 시작하면 운영 체제가 다른 수단을 통해 애플리케이션을 강제 종료할 가능성이 높습니다. 우리가 OOM을 유발할 수 있는 가장 가능성 높은 방법은 한 번에 터무니없는 양의 메모리(예: 이론적 주소 공간의 절반)를 요구하는 것입니다. 그런 경우라면 패닉을 발생시켜도 별다른 나쁜 일은 일어나지 않을 것이며 아마 괜찮을 것입니다. 그럼에도 불구하고 우리는 가능한 한 표준 라이브러리와 유사하게 만들고 싶으므로, 그냥 전체 프로그램을 종료할 것입니다.</p>
+<p>좋습니다. 이제 용량 확장(growing) 로직을 작성해 봅시다. 대략적으로 다음과 같은 로직을 원합니다:</p>
 <pre><code class="language-text">if cap == 0:
     allocate()
     cap = 1
@@ -243,24 +243,24 @@ else:
     reallocate()
     cap *= 2
 </code></pre>
-<p>But Rust's only supported allocator API is so low level that we'll need to do a fair bit of extra work. We also need to guard against some special conditions that can occur with really large allocations or empty allocations.</p>
-<p>In particular, <code>ptr::offset</code> will cause us a lot of trouble, because it has the semantics of LLVM's GEP inbounds instruction. If you're fortunate enough to not have dealt with this instruction, here's the basic story with GEP: alias analysis, alias analysis, alias analysis. It's super important to an optimizing compiler to be able to reason about data dependencies and aliasing.</p>
-<p>As a simple example, consider the following fragment of code:</p>
+<p>하지만 러스트에서 지원하는 유일한 할당자 API는 너무 저수준이라 꽤 많은 추가 작업을 해야 합니다. 또한 아주 큰 할당이나 빈 할당에서 발생할 수 있는 몇 가지 특별한 상황에 대해서도 대비해야 합니다.</p>
+<p>특히 <code>ptr::offset</code>은 우리에게 많은 문제를 일으킬 것입니다. 이는 LLVM의 GEP inbounds 명령어의 의미론을 가지고 있기 때문입니다. 만약 이 명령어를 다뤄보지 않은 행운아라면, GEP에 대한 기본적인 이야기는 이렇습니다: 별칭 분석(alias analysis), 별칭 분석, 그리고 별칭 분석입니다. 최적화 컴파일러가 데이터 의존성과 별칭에 대해 추론할 수 있는 능력은 매우 중요합니다.</p>
+<p>간단한 예로, 다음 코드 조각을 고려해 보십시오:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">*x *= 7;
 *y *= 3;</code></pre>
-<p>If the compiler can prove that <code>x</code> and <code>y</code> point to different locations in memory, the two operations can in theory be executed in parallel (by e.g. loading them into different registers and working on them independently). However the compiler can't do this in general because if x and y point to the same location in memory, the operations need to be done to the same value, and they can't just be merged afterwards.</p>
-<p>When you use GEP inbounds, you are specifically telling LLVM that the offsets you're about to do are within the bounds of a single "allocated" entity. The ultimate payoff being that LLVM can assume that if two pointers are known to point to two disjoint objects, all the offsets of those pointers are <em>also</em> known to not alias (because you won't just end up in some random place in memory). LLVM is heavily optimized to work with GEP offsets, and inbounds offsets are the best of all, so it's important that we use them as much as possible.</p>
-<p>So that's what GEP's about, how can it cause us trouble?</p>
-<p>The first problem is that we index into arrays with unsigned integers, but GEP (and as a consequence <code>ptr::offset</code>) takes a signed integer. This means that half of the seemingly valid indices into an array will overflow GEP and actually go in the wrong direction! As such we must limit all allocations to <code>isize::MAX</code> elements. This actually means we only need to worry about byte-sized objects, because e.g. <code>&gt; isize::MAX</code> <code>u16</code>s will truly exhaust all of the system's memory. However in order to avoid subtle corner cases where someone reinterprets some array of <code>&lt; isize::MAX</code> objects as bytes, std limits all allocations to <code>isize::MAX</code> bytes.</p>
-<p>On all 64-bit targets that Rust currently supports we're artificially limited to significantly less than all 64 bits of the address space (modern x64 platforms only expose 48-bit addressing), so we can rely on just running out of memory first. However on 32-bit targets, particularly those with extensions to use more of the address space (PAE x86 or x32), it's theoretically possible to successfully allocate more than <code>isize::MAX</code> bytes of memory.</p>
-<p>However since this is a tutorial, we're not going to be particularly optimal here, and just unconditionally check, rather than use clever platform-specific <code>cfg</code>s.</p>
-<p>The other corner-case we need to worry about is empty allocations. There will be two kinds of empty allocations we need to worry about: <code>cap = 0</code> for all T, and <code>cap &gt; 0</code> for zero-sized types.</p>
-<p>These cases are tricky because they come down to what LLVM means by "allocated". LLVM's notion of an allocation is significantly more abstract than how we usually use it. Because LLVM needs to work with different languages' semantics and custom allocators, it can't really intimately understand allocation. Instead, the main idea behind allocation is "doesn't overlap with other stuff". That is, heap allocations, stack allocations, and globals don't randomly overlap. Yep, it's about alias analysis. As such, Rust can technically play a bit fast and loose with the notion of an allocation as long as it's <em>consistent</em>.</p>
-<p>Getting back to the empty allocation case, there are a couple of places where we want to offset by 0 as a consequence of generic code. The question is then: is it consistent to do so? For zero-sized types, we have concluded that it is indeed consistent to do a GEP inbounds offset by an arbitrary number of elements. This is a runtime no-op because every element takes up no space, and it's fine to pretend that there's infinite zero-sized types allocated at <code>0x01</code>. No allocator will ever allocate that address, because they won't allocate <code>0x00</code> and they generally allocate to some minimal alignment higher than a byte. Also generally the whole first page of memory is protected from being allocated anyway (a whole 4k, on many platforms).</p>
-<p>However what about for positive-sized types? That one's a bit trickier. In principle, you can argue that offsetting by 0 gives LLVM no information: either there's an element before the address or after it, but it can't know which. However we've chosen to conservatively assume that it may do bad things. As such we will guard against this case explicitly.</p>
-<p><em>Phew</em></p>
-<p>Ok with all the nonsense out of the way, let's actually allocate some memory:</p>
+<p>만약 컴파일러가 <code>x</code>와 <code>y</code>가 메모리의 서로 다른 위치를 가리키고 있음을 증명할 수 있다면, 이론적으로 두 연산은 (예를 들어 서로 다른 레지스터에 로드하여 독립적으로 작업함으로써) 병렬로 실행될 수 있습니다. 하지만 일반적인 상황에서 컴파일러는 이를 수행할 수 없습니다. x와 y가 메모리의 동일한 위치를 가리킨다면, 연산이 동일한 값에 대해 수행되어야 하며 나중에 단순히 병합될 수 없기 때문입니다.</p>
+<p>GEP inbounds를 사용할 때, 당신은 수행하려는 오프셋이 단일 "할당된" 개체의 범위 내에 있음을 LLVM에 명시적으로 알리는 것입니다. 그 결과로 얻는 궁극적인 이득은, 두 포인터가 서로 겹치지 않는 두 객체를 가리키는 것으로 알려져 있다면 LLVM이 그 포인터들의 모든 오프셋 또한 서로 별칭되지 않는다고 가정할 수 있다는 점입니다 (메모리의 엉뚱한 곳에 도달하지 않을 것이기 때문입니다). LLVM은 GEP 오프셋 작업에 고도로 최적화되어 있으며, 그중에서도 inbounds 오프셋이 가장 뛰어나므로 가능한 한 많이 사용하는 것이 중요합니다.</p>
+<p>이것이 GEP에 대한 이야기입니다. 그렇다면 이것이 어떻게 우리에게 문제를 일으킬 수 있을까요?</p>
+<p>첫 번째 문제는 우리가 배열을 인덱싱할 때는 부호 없는 정수(unsigned integers)를 사용하지만, GEP(결과적으로 <code>ptr::offset</code>)는 부호 있는 정수(signed integer)를 받는다는 점입니다. 이는 겉보기에 유효해 보이는 배열 인덱스의 절반이 GEP에서 오버플로를 일으켜 실제로는 엉뚱한 방향으로 가게 된다는 것을 의미합니다! 따라서 모든 할당을 <code>isize::MAX</code>개 요소로 제한해야 합니다. 이는 사실 바이트 크기 객체들에 대해서만 걱정하면 된다는 뜻이기도 합니다. 예를 들어 <code>isize::MAX</code>를 넘어서는 개수의 <code>u16</code>은 시스템의 모든 메모리를 고갈시킬 것이기 때문입니다. 하지만 누군가 <code>isize::MAX</code>개 미만의 객체 배열을 바이트 단위로 재해석하는 미묘한 예외 상황을 방지하기 위해, 표준 라이브러리(std)는 모든 할당을 <code>isize::MAX</code> 바이트로 제한합니다.</p>
+<p>현재 러스트가 지원하는 모든 64비트 타겟에서 우리는 인위적으로 64비트 주소 공간 전체보다 훨씬 적은 공간으로 제한되어 있습니다(현대적인 x64 플랫폼은 48비트 주소 지정만 노출함). 따라서 메모리가 먼저 고갈될 것이라고 믿어도 좋습니다. 하지만 32비트 타겟, 특히 주소 공간을 더 많이 사용하기 위한 확장 기능(PAE x86 또는 x32)이 있는 경우에는 이론적으로 <code>isize::MAX</code> 바이트를 넘는 메모리를 성공적으로 할당하는 것이 가능할 수 있습니다.</p>
+<p>하지만 이것은 튜토리얼이므로, 영리한 플랫폼별 <code>cfg</code>를 사용하기보다는 여기서 특별히 최적화하지 않고 무조건적으로 체크하도록 하겠습니다.</p>
+<p>우리가 걱정해야 할 또 다른 예외 상황은 빈 할당(empty allocations)입니다. 걱정해야 할 빈 할당에는 두 가지 종류가 있습니다: 모든 T에 대해 <code>cap = 0</code>인 경우와, 크기가 0인 타입에 대해 <code>cap &gt; 0</code>인 경우입니다.</p>
+<p>이러한 경우들이 까다로운 이유는 LLVM이 말하는 "할당됨(allocated)"이 무엇을 의미하는지에 달려 있기 때문입니다. LLVM의 할당 개념은 우리가 평소에 사용하는 것보다 훨씬 더 추상적입니다. LLVM은 다양한 언어의 의미론 및 사용자 정의 할당자와 연동되어야 하므로, 할당을 아주 상세하게 이해할 수는 없습니다. 대신 할당의 주요 개념은 "다른 것과 겹치지 않는다"는 것입니다. 즉, 힙 할당, 스택 할당, 전역 변수들이 무작위로 겹치지 않는다는 점입니다. 네, 바로 별칭 분석에 관한 이야기입니다. 따라서 러스트는 _일관성_만 유지된다면 기술적으로 할당의 개념을 조금 느슨하게 다룰 수 있습니다.</p>
+<p>빈 할당 사례로 돌아가서, 제네릭 코드의 결과로 0만큼 오프셋(offset)을 수행하려는 곳들이 몇 군데 있습니다. 그렇다면 질문은 이렇습니다: 그렇게 하는 것이 일관성이 있을까요? 크기가 0인 타입(ZST)의 경우, 임의의 개수만큼 GEP inbounds 오프셋을 수행하는 것이 실제로 일관성이 있다고 결론지었습니다. 모든 요소가 공간을 차지하지 않으므로 이는 런타임에 아무 작업도 수행하지 않으며(no-op), <code>0x01</code> 위치에 무한한 수의 ZST가 할당되어 있다고 가정해도 괜찮습니다. 어떤 할당자도 그 주소를 할당하지 않을 것입니다. 할당자는 <code>0x00</code>을 할당하지 않으며, 보통 1바이트보다 높은 최소 정렬 단위로 할당하기 때문입니다. 또한 일반적으로 메모리의 첫 번째 페이지 전체(많은 플랫폼에서 4k 전체)는 어차피 할당되지 않도록 보호됩니다.</p>
+<p>하지만 크기가 0보다 큰 타입은 어떨까요? 그 경우는 조금 더 까다롭습니다. 원칙적으로 0만큼 오프셋하는 것은 LLVM에 아무런 정보도 주지 않는다고 주장할 수 있습니다: 주소 앞이나 뒤에 요소가 있을 수 있지만 어느 쪽인지 알 수 없기 때문입니다. 하지만 우리는 보수적으로 이것이 나쁜 영향을 줄 수 있다고 가정하기로 했습니다. 따라서 이 경우에 대해 명시적으로 대비할 것입니다.</p>
+<p><em>휴우</em></p>
+<p>좋습니다. 이제 부수적인 이야기들은 치워두고, 실제로 메모리를 할당해 봅시다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">use std::alloc::{self, Layout};
 
@@ -269,18 +269,18 @@ impl&lt;T&gt; Vec&lt;T&gt; {
         let (new_cap, new_layout) = if self.cap == 0 {
             (1, Layout::array::&lt;T&gt;(1).unwrap())
         } else {
-            // This can't overflow since self.cap &lt;= isize::MAX.
+            // self.cap &lt;= isize::MAX이므로 이는 오버플로할 수 없습니다.
             let new_cap = 2 * self.cap;
 
-            // `Layout::array` checks that the number of bytes is &lt;= usize::MAX,
-            // but this is redundant since old_layout.size() &lt;= isize::MAX,
-            // so the `unwrap` should never fail.
+            // `Layout::array`는 바이트 수가 usize::MAX 이하인지 확인하지만,
+            // old_layout.size() &lt;= isize::MAX이므로 이는 중복 확인입니다.
+            // 따라서 `unwrap`은 절대 실패하지 않아야 합니다.
             let new_layout = Layout::array::&lt;T&gt;(new_cap).unwrap();
             (new_cap, new_layout)
         };
 
-        // Ensure that the new allocation doesn't exceed `isize::MAX` bytes.
-        assert!(new_layout.size() &lt;= isize::MAX as usize, "Allocation too large");
+        // 새로운 할당이 `isize::MAX` 바이트를 초과하지 않도록 보장합니다.
+        assert!(new_layout.size() &lt;= isize::MAX as usize, "할당이 너무 큼");
 
         let new_ptr = if self.cap == 0 {
             unsafe { alloc::alloc(new_layout) }
@@ -290,7 +290,7 @@ impl&lt;T&gt; Vec&lt;T&gt; {
             unsafe { alloc::realloc(old_ptr, old_layout, new_layout.size()) }
         };
 
-        // If allocation fails, `new_ptr` will be null, in which case we abort.
+        // 할당이 실패하면 `new_ptr`은 null이 되며, 이 경우 프로그램을 중단(abort)합니다.
         self.ptr = match NonNull::new(new_ptr as *mut T) {
             Some(p) =&gt; p,
             None =&gt; alloc::handle_alloc_error(new_layout),

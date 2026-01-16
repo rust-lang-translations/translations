@@ -214,9 +214,9 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="무한-수명"><a class="header" href="#무한-수명">무한 수명</a></h1>
-<p>Unsafe code can often end up producing references or lifetimes out of thin air. Such lifetimes come into the world as <em>unbounded</em>. The most common source of this is taking a reference to a dereferenced raw pointer, which produces a reference with an unbounded lifetime. Such a lifetime becomes as big as context demands. This is in fact more powerful than simply becoming <code>'static</code>, because for instance <code>&amp;'static &amp;'a T</code> will fail to typecheck, but the unbound lifetime will perfectly mold into <code>&amp;'a &amp;'a T</code> as needed. However for most intents and purposes, such an unbounded lifetime can be regarded as <code>'static</code>.</p>
-<p>Almost no reference is <code>'static</code>, so this is probably wrong. <code>transmute</code> and <code>transmute_copy</code> are the two other primary offenders. One should endeavor to bound an unbounded lifetime as quickly as possible, especially across function boundaries.</p>
-<p>Given a function, any output lifetimes that don't derive from inputs are unbounded. For instance:</p>
+<p>안전하지 않은 코드는 종종 허공에서 참조나 수명을 생성해내기도 합니다. 이러한 수명은 <em>무한한(unbounded)</em> 상태로 세상에 나옵니다. 가장 흔한 원인은 역참조된 원시 포인터에 대한 참조를 얻는 것인데, 이는 무한한 수명을 가진 참조를 생성합니다. 이러한 수명은 문맥이 요구하는 만큼 커집니다. 사실 이것은 단순히 <code>'static</code>이 되는 것보다 더 강력한데, 예를 들어 <code>&amp;'static &amp;'a T</code>는 타입 검사에 실패하지만 무한한 수명은 필요에 따라 <code>&amp;'a &amp;'a T</code>로 완벽하게 맞춰질 수 있기 때문입니다. 하지만 대부분의 의도와 목적에서 이러한 무한한 수명은 <code>'static</code>으로 간주될 수 있습니다.</p>
+<p><code>'static</code>인 참조는 거의 없으므로, 이는 아마도 틀렸을 것입니다. <code>transmute</code>와 <code>transmute_copy</code>가 다른 두 가지 주요 원인입니다. 특히 함수 경계를 넘을 때는 무한한 수명을 가능한 한 빨리 제한하도록 노력해야 합니다.</p>
+<p>함수가 주어졌을 때, 입력에서 파생되지 않은 모든 출력 수명은 무한합니다. 예를 들어:</p>
 <!-- no_run: This example exhibits undefined behavior. -->
 <pre><pre class="playground"><code class="language-rust no_run edition2021">fn get_str&lt;'a&gt;(s: *const String) -&gt; &amp;'a str {
     unsafe { &amp;*s }
@@ -226,10 +226,10 @@ fn main() {
     let soon_dropped = String::from("hello");
     let dangling = get_str(&amp;soon_dropped);
     drop(soon_dropped);
-    println!("Invalid str: {}", dangling); // Invalid str: gӚ_`
+    println!("잘못된 str: {}", dangling); // 잘못된 str: gӚ_`
 }</code></pre></pre>
 <p>The easiest way to avoid unbounded lifetimes is to use lifetime elision at the function boundary. If an output lifetime is elided, then it <em>must</em> be bounded by an input lifetime. Of course it might be bounded by the <em>wrong</em> lifetime, but this will usually just cause a compiler error, rather than allow memory safety to be trivially violated.</p>
-<p>Within a function, bounding lifetimes is more error-prone. The safest and easiest way to bound a lifetime is to return it from a function with a bound lifetime. However if this is unacceptable, the reference can be placed in a location with a specific lifetime. Unfortunately it's impossible to name all lifetimes involved in a function.</p>
+<p>함수 내에서 수명을 제한하는 것은 더 에러가 발생하기 쉽습니다. 수명을 제한하는 가장 안전하고 쉬운 방법은 제한된 수명을 가진 함수에서 그것을 반환하는 것입니다. 하지만 이것이 불가능하다면, 특정 수명을 가진 위치에 참조를 배치할 수 있습니다. 불행히도 함수에 관련된 모든 수명을 명명하는 것은 불가능합니다.</p>
 
                     </main>
 

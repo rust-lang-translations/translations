@@ -214,11 +214,11 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="드롭-체크"><a class="header" href="#드롭-체크">드롭 체크</a></h1>
-<p>We have seen how lifetimes provide us some fairly simple rules for ensuring that we never read dangling references. However up to this point we have only ever interacted with the <em>outlives</em> relationship in an inclusive manner. That is, when we talked about <code>'a: 'b</code>, it was ok for <code>'a</code> to live <em>exactly</em> as long as <code>'b</code>. At first glance, this seems to be a meaningless distinction. Nothing ever gets dropped at the same time as another, right? This is why we used the following desugaring of <code>let</code> statements:</p>
+<p>우리는 수명이 매달린 참조(dangling references)를 읽지 않도록 보장하는 몇 가지 간단한 규칙을 제공하는 것을 보았습니다. 하지만 지금까지 우리는 <em>outlives</em> 관계를 포함적인(inclusive) 방식으로만 다루어 왔습니다. 즉, <code>'a: 'b</code>라고 말할 때, <code>'a</code>가 <code>'b</code>와 <em>정확히</em> 같은 기간 동안 사는 것도 괜찮았습니다. 언뜻 보기에 이는 무의미한 구분처럼 보입니다. 어떤 것도 다른 것과 동시에 드롭(dropped)되지 않으니까요, 그렇죠? 이것이 우리가 <code>let</code> 문을 다음과 같이 설탕 제거(desugaring)하여 사용한 이유입니다.</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">let x;
 let y;</code></pre>
-<p>desugaring to:</p>
+<p>다음과 같이 설탕 제거됨:</p>
 <!-- ignore: desugared code -->
 <pre><code class="language-rust ignore">{
     let x;
@@ -226,12 +226,12 @@ let y;</code></pre>
         let y;
     }
 }</code></pre>
-<p>There are some more complex situations which are not possible to desugar using scopes, but the order is still defined ‒ variables are dropped in the reverse order of their definition, fields of structs and tuples in order of their definition. There are some more details about order of drop in <a href="https://github.com/rust-lang/rfcs/blob/master/text/1857-stabilize-drop-order.md">RFC 1857</a>.</p>
-<p>Let's do this:</p>
+<p>스코프를 사용하여 설탕 제거를 할 수 없는 더 복잡한 상황들이 있지만, 순서는 여전히 정의되어 있습니다. 변수는 정의된 역순으로 드롭되고, 구조체와 튜플의 필드는 정의된 순서대로 드롭됩니다. 드롭 순서에 대한 더 자세한 내용은 <a href="https://github.com/rust-lang/rfcs/blob/master/text/1857-stabilize-drop-order.md">RFC 1857</a>에서 확인할 수 있습니다.</p>
+<p>이렇게 해봅시다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">let tuple = (vec![], vec![]);</code></pre>
-<p>The left vector is dropped first. But does it mean the right one strictly outlives it in the eyes of the borrow checker? The answer to this question is <em>no</em>. The borrow checker could track fields of tuples separately, but it would still be unable to decide what outlives what in case of vector elements, which are dropped manually via pure-library code the borrow checker doesn't understand.</p>
-<p>So why do we care? We care because if the type system isn't careful, it could accidentally make dangling pointers. Consider the following simple program:</p>
+<p>왼쪽 벡터가 먼저 드롭됩니다. 하지만 이것이 대여 검사기(borrow checker)의 관점에서 오른쪽 벡터가 왼쪽 벡터보다 엄격하게 더 오래 산다는 것을 의미할까요? 대답은 _아니오_입니다. 대여 검사기는 튜플의 필드를 개별적으로 추적할 수도 있겠지만, 대여 검사기가 이해하지 못하는 순수 라이브러리 코드를 통해 수동으로 드롭되는 벡터 요소의 경우, 무엇이 무엇보다 더 오래 사는지 결정할 수 없을 것입니다.</p>
+<p>그렇다면 왜 우리가 이것에 신경을 써야 할까요? 타입 시스템이 주의를 기울이지 않으면 실수로 매달린 포인터를 만들 수 있기 때문입니다. 다음의 간단한 프로그램을 고려해 보세요.</p>
 <pre><pre class="playground"><code class="language-rust edition2021">struct Inspector&lt;'a&gt;(&amp;'a u8);
 
 struct World&lt;'a&gt; {
@@ -246,13 +246,13 @@ fn main() {
     };
     world.inspector = Some(Inspector(&amp;world.days));
 }</code></pre></pre>
-<p>This program is totally sound and compiles today. The fact that <code>days</code> does not strictly outlive <code>inspector</code> doesn't matter. As long as the <code>inspector</code> is alive, so is <code>days</code>.</p>
-<p>However if we add a destructor, the program will no longer compile!</p>
+<p>이 프로그램은 완전히 건전하며 현재 컴파일됩니다. <code>days</code>가 <code>inspector</code>보다 엄격하게 더 오래 살지 않는다는 사실은 중요하지 않습니다. <code>inspector</code>가 살아있는 동안은 <code>days</code>도 살아있기 때문입니다.</p>
+<p>하지만 소멸자를 추가하면, 프로그램은 더 이상 컴파일되지 않습니다!</p>
 <pre><pre class="playground"><code class="language-rust compile_fail edition2021">struct Inspector&lt;'a&gt;(&amp;'a u8);
 
 impl&lt;'a&gt; Drop for Inspector&lt;'a&gt; {
     fn drop(&amp;mut self) {
-        println!("I was only {} days from retirement!", self.0);
+        println!("은퇴까지 고작 {}일 남았었는데!", self.0);
     }
 }
 
@@ -267,8 +267,8 @@ fn main() {
         days: Box::new(1),
     };
     world.inspector = Some(Inspector(&amp;world.days));
-    // Let's say `days` happens to get dropped first.
-    // Then when Inspector is dropped, it will try to read free'd memory!
+    // 만약 `days`가 우연히 먼저 드롭된다고 가정해 봅시다.
+    // 그러면 Inspector가 드롭될 때, 이미 해제된 메모리를 읽으려고 시도할 것입니다!
 }</code></pre></pre>
 <pre><code class="language-text">error[E0597]: `world.days` does not live long enough
   --&gt; src/main.rs:19:38
@@ -282,18 +282,18 @@ fn main() {
    | `world.days` dropped here while still borrowed
    | borrow might be used here, when `world` is dropped and runs the destructor for type `World&lt;'_&gt;`
 </code></pre>
-<p>You can try changing the order of fields or use a tuple instead of the struct, it'll still not compile.</p>
-<p>Implementing <code>Drop</code> lets the <code>Inspector</code> execute some arbitrary code during its death. This means it can potentially observe that types that are supposed to live as long as it does actually were destroyed first.</p>
-<p>Interestingly, only generic types need to worry about this. If they aren't generic, then the only lifetimes they can harbor are <code>'static</code>, which will truly live <em>forever</em>. This is why this problem is referred to as <em>sound generic drop</em>. Sound generic drop is enforced by the <em>drop checker</em>. As of this writing, some of the finer details of how the drop checker (also called dropck) validates types is totally up in the air. However The Big Rule is the subtlety that we have focused on this whole section:</p>
-<p><strong>For a generic type to soundly implement drop, its generics arguments must strictly outlive it.</strong></p>
-<p>Obeying this rule is (usually) necessary to satisfy the borrow checker; obeying it is sufficient but not necessary to be sound. That is, if your type obeys this rule then it's definitely sound to drop.</p>
-<p>The reason that it is not always necessary to satisfy the above rule is that some Drop implementations will not access borrowed data even though their type gives them the capability for such access, or because we know the specific drop order and the borrowed data is still fine even if the borrow checker doesn't know that.</p>
-<p>For example, this variant of the above <code>Inspector</code> example will never access borrowed data:</p>
+<p>필드의 순서를 바꾸거나 구조체 대신 튜플을 사용해 볼 수도 있지만, 여전히 컴파일되지 않을 것입니다.</p>
+<p>Drop을 구현하면 Inspector가 소멸하는 동안 임의의 코드를 실행할 수 있게 됩니다. 이는 자신만큼 오래 살아야 하는 타입들이 실제로는 먼저 파괴되었다는 것을 잠재적으로 관찰할 수 있음을 의미합니다.</p>
+<p>흥미롭게도, 제네릭 타입만이 이를 걱정해야 합니다. 제네릭이 아니라면, 가질 수 있는 유일한 수명은 진정으로 <em>영원히</em> 사는 <code>'static</code>뿐이기 때문입니다. 이것이 바로 이 문제를 _건전한 제네릭 드롭(sound generic drop)_이라고 부르는 이유입니다. 건전한 제네릭 드롭은 _드롭 검사기(drop checker)_에 의해 강제됩니다. 이 글을 쓰는 시점에서 드롭 검사기(dropck라고도 함)가 타입을 검증하는 방식에 대한 세부적인 사항 중 일부는 아직 정해지지 않았습니다. 하지만 '커다란 규칙(The Big Rule)'은 우리가 이 섹션 전체에서 집중해 온 미묘한 차이입니다.</p>
+<p><strong>제네릭 타입이 건전하게 드롭을 구현하려면, 그 제네릭 인자들이 해당 타입보다 엄격하게 더 오래 살아야 합니다.</strong></p>
+<p>이 규칙을 준수하는 것은 (대개) 대여 검사기를 만족시키기 위해 필요합니다. 이 규칙을 준수하는 것은 건전함을 보장하기에 충분하지만 필수적인 것은 아닙니다. 즉, 여러분의 타입이 이 규칙을 따른다면 드롭하는 것이 확실히 건전합니다.</p>
+<p>위의 규칙을 항상 만족해야 할 필요가 없는 이유는, 일부 <code>Drop</code> 구현이 타입상으로는 접근할 수 있음에도 불구하고 빌린 데이터에 접근하지 않거나, 우리가 특정 드롭 순서를 알고 있어서 대여 검사기가 모르더라도 빌린 데이터가 여전히 유효하기 때문입니다.</p>
+<p>예를 들어, 위 <code>Inspector</code> 예제의 이 변형은 빌려온 데이터에 절대 접근하지 않습니다.</p>
 <pre><pre class="playground"><code class="language-rust compile_fail edition2021">struct Inspector&lt;'a&gt;(&amp;'a u8, &amp;'static str);
 
 impl&lt;'a&gt; Drop for Inspector&lt;'a&gt; {
     fn drop(&amp;mut self) {
-        println!("Inspector(_, {}) knows when *not* to inspect.", self.1);
+        println!("Inspector(_, {})는 언제 검사하지 *않아야* 할지 알고 있습니다.", self.1);
     }
 }
 
@@ -308,16 +308,15 @@ fn main() {
         days: Box::new(1),
     };
     world.inspector = Some(Inspector(&amp;world.days, "gadget"));
-    // Let's say `days` happens to get dropped first.
-    // Even when Inspector is dropped, its destructor will not access the
-    // borrowed `days`.
+    // 만약 `days`가 우연히 먼저 드롭된다고 가정해 봅시다.
+    // Inspector가 드롭되더라도, 소멸자는 빌려온 `days`에 접근하지 않을 것입니다.
 }</code></pre></pre>
-<p>Likewise, this variant will also never access borrowed data:</p>
+<p>마찬가지로, 이 변형 또한 빌려온 데이터에 절대 접근하지 않습니다.</p>
 <pre><pre class="playground"><code class="language-rust compile_fail edition2021">struct Inspector&lt;T&gt;(T, &amp;'static str);
 
 impl&lt;T&gt; Drop for Inspector&lt;T&gt; {
     fn drop(&amp;mut self) {
-        println!("Inspector(_, {}) knows when *not* to inspect.", self.1);
+        println!("Inspector(_, {})는 언제 검사하지 *않아야* 할지 알고 있습니다.", self.1);
     }
 }
 
@@ -332,26 +331,25 @@ fn main() {
         days: Box::new(1),
     };
     world.inspector = Some(Inspector(&amp;world.days, "gadget"));
-    // Let's say `days` happens to get dropped first.
-    // Even when Inspector is dropped, its destructor will not access the
-    // borrowed `days`.
+    // 만약 `days`가 우연히 먼저 드롭된다고 가정해 봅시다.
+    // Inspector가 드롭되더라도, 소멸자는 빌려온 `days`에 접근하지 않을 것입니다.
 }</code></pre></pre>
-<p>However, <em>both</em> of the above variants are rejected by the borrow checker during the analysis of <code>fn main</code>, saying that <code>days</code> does not live long enough.</p>
-<p>The reason is that the borrow checking analysis of <code>main</code> does not know about the internals of each <code>Inspector</code>'s <code>Drop</code> implementation. As far as the borrow checker knows while it is analyzing <code>main</code>, the body of an inspector's destructor might access that borrowed data.</p>
-<p>Therefore, the drop checker forces all borrowed data in a value to strictly outlive that value.</p>
-<h2 id="an-escape-hatch"><a class="header" href="#an-escape-hatch">An Escape Hatch</a></h2>
-<p>The precise rules that govern drop checking may be less restrictive in the future.</p>
-<p>The current analysis is deliberately conservative and trivial; it forces all borrowed data in a value to outlive that value, which is certainly sound.</p>
-<p>Future versions of the language may make the analysis more precise, to reduce the number of cases where sound code is rejected as unsafe. This would help address cases such as the two <code>Inspector</code>s above that know not to inspect during destruction.</p>
-<p>In the meantime, there is an unstable attribute that one can use to assert (unsafely) that a generic type's destructor is <em>guaranteed</em> to not access any expired data, even if its type gives it the capability to do so.</p>
-<p>That attribute is called <code>may_dangle</code> and was introduced in <a href="https://github.com/rust-lang/rfcs/blob/master/text/1327-dropck-param-eyepatch.md">RFC 1327</a>. To deploy it on the <code>Inspector</code> from above, we would write:</p>
+<p>하지만 위 두 변형 모두 <code>fn main</code> 분석 과정에서 <code>days</code>가 충분히 오래 살지 않는다는 이유로 대여 검사기에 의해 거부됩니다.</p>
+<p>그 이유는 <code>main</code>의 빌림 검사 분석이 각 <code>Inspector</code>의 <code>Drop</code> 구현 내부를 모르기 때문입니다. 빌림 검사기가 <code>main</code>을 분석하는 동안 아는 한, 검사기(inspector)의 소멸자 본문은 빌려온 데이터에 접근할 수도 있습니다.</p>
+<p>따라서 드롭 검사기는 값 안에 있는 모든 빌려온 데이터가 해당 값보다 엄격하게 더 오래 살도록 강제합니다.</p>
+<h2 id="탈출구-an-escape-hatch"><a class="header" href="#탈출구-an-escape-hatch">탈출구 (An Escape Hatch)</a></h2>
+<p>드롭 검사를 규정하는 정확한 규칙은 미래에 덜 제한적으로 변할 수도 있습니다.</p>
+<p>현재의 분석은 의도적으로 보수적이고 단순합니다. 값 내부의 모든 빌린 데이터가 그 값보다 더 오래 살도록 강제하며, 이는 확실히 건전합니다.</p>
+<p>미래 버전의 언어에서는 분석이 더 정밀해져서, 건전한 코드가 안전하지 않다는 이유로 거부되는 사례를 줄일 수 있을 것입니다. 이는 위에서 살펴본 파괴되는 동안 검사하지 않는 두 <code>Inspector</code>와 같은 사례를 해결하는 데 도움이 될 것입니다.</p>
+<p>그동안은 제네릭 타입의 소멸자가 만료된 데이터에 접근하지 않는다는 것이 (비안전하게) 보장됨을 단언(assert)하기 위해 사용할 수 있는 불안정(unstable) 속성이 있습니다. 타입 자체는 접근 능력을 제공하더라도 말이죠.</p>
+<p>그 속성은 <code>may_dangle</code>이라고 불리며 <a href="https://github.com/rust-lang/rfcs/blob/master/text/1327-dropck-param-eyepatch.md">RFC 1327</a>에서 도입되었습니다. 위의 <code>Inspector</code>에 적용하려면 다음과 같이 작성합니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021">#![feature(dropck_eyepatch)]
 
 struct Inspector&lt;'a&gt;(&amp;'a u8, &amp;'static str);
 
 unsafe impl&lt;#[may_dangle] 'a&gt; Drop for Inspector&lt;'a&gt; {
     fn drop(&amp;mut self) {
-        println!("Inspector(_, {}) knows when *not* to inspect.", self.1);
+        println!("Inspector(_, {})는 언제 검사하지 *않아야* 할지 알고 있습니다.", self.1);
     }
 }
 
@@ -367,8 +365,8 @@ fn main() {
     };
     world.inspector = Some(Inspector(&amp;world.days, "gadget"));
 }</code></pre></pre>
-<p>Use of this attribute requires the <code>Drop</code> impl to be marked <code>unsafe</code> because the compiler is not checking the implicit assertion that no potentially expired data (e.g. <code>self.0</code> above) is accessed.</p>
-<p>The attribute can be applied to any number of lifetime and type parameters. In the following example, we assert that we access no data behind a reference of lifetime <code>'b</code> and that the only uses of <code>T</code> will be moves or drops, but omit the attribute from <code>'a</code> and <code>U</code>, because we do access data with that lifetime and that type:</p>
+<p>이 속성을 사용하려면 <code>Drop</code> 구현을 <code>unsafe</code>로 표시해야 합니다. 컴파일러는 잠재적으로 만료된 데이터(예: 위의 <code>self.0</code>)에 접근하지 않는다는 암묵적인 단언을 검사하지 않기 때문입니다.</p>
+<p>이 속성은 임의의 개수의 수명 및 타입 매개변수에 적용될 수 있습니다. 다음 예제에서, 우리는 수명 <code>'b</code>를 가진 참조 뒤의 데이터에 접근하지 않으며 <code>T</code>는 이동되거나 드롭되는 용도로만 사용된다고 단언합니다. 하지만 <code>'a</code>와 <code>U</code>에서는 이 속성을 생략했는데, 해당 수명과 타입을 가진 데이터에는 실제로 접근하기 때문입니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span>#![feature(dropck_eyepatch)]
 <span class="boring">fn main() {
@@ -382,26 +380,26 @@ unsafe impl&lt;'a, #[may_dangle] 'b, #[may_dangle] T, U: Display&gt; Drop for In
     }
 }
 <span class="boring">}</span></code></pre></pre>
-<p>It is sometimes obvious that no such access can occur, like the case above. However, when dealing with a generic type parameter, such access can occur indirectly. Examples of such indirect access are:</p>
+<p>위의 경우처럼 그런 접근이 발생할 수 없음이 명백할 때도 있습니다. 하지만 제네릭 타입 매개변수를 다룰 때는 그런 접근이 간접적으로 발생할 수 있습니다. 간접적인 접근의 예는 다음과 같습니다:</p>
 <ul>
-<li>invoking a callback,</li>
-<li>via a trait method call.</li>
+<li>콜백 호출,</li>
+<li>트레잇 메서드 호출을 경유.</li>
 </ul>
-<p>(Future changes to the language, such as impl specialization, may add other avenues for such indirect access.)</p>
-<p>Here is an example of invoking a callback:</p>
+<p>(구현 전문화(impl specialization)와 같이 미래에 언어에 추가될 변경 사항들이 이런 간접 접근의 또 다른 통로를 열 수도 있습니다.)</p>
+<p>콜백 호출의 예시는 다음과 같습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Inspector&lt;T&gt;(T, &amp;'static str, Box&lt;for &lt;'r&gt; fn(&amp;'r T) -&gt; String&gt;);
 
 impl&lt;T&gt; Drop for Inspector&lt;T&gt; {
     fn drop(&amp;mut self) {
-        // The `self.2` call could access a borrow e.g. if `T` is `&amp;'a _`.
-        println!("Inspector({}, {}) unwittingly inspects expired data.",
+        // `self.2` 호출은 가령 `T`가 `&amp;'a _`라면 빌림에 접근할 수 있습니다.
+        println!("Inspector({}, {})는 무의식중에 만료된 데이터를 검사합니다.",
                  (self.2)(&amp;self.0), self.1);
     }
 }
 <span class="boring">}</span></code></pre></pre>
-<p>Here is an example of a trait method call:</p>
+<p>트레잇 메서드 호출의 예시는 다음과 같습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::fmt;
@@ -410,19 +408,19 @@ struct Inspector&lt;T: fmt::Display&gt;(T, &amp;'static str);
 
 impl&lt;T: fmt::Display&gt; Drop for Inspector&lt;T&gt; {
     fn drop(&amp;mut self) {
-        // There is a hidden call to `&lt;T as Display&gt;::fmt` below, which
-        // could access a borrow e.g. if `T` is `&amp;'a _`
-        println!("Inspector({}, {}) unwittingly inspects expired data.",
+        // 아래에는 숨겨진 `&lt;T as Display&gt;::fmt` 호출이 있으며,
+        // 가령 `T`가 `&amp;'a _`라면 빌림에 접근할 수 있습니다.
+        println!("Inspector({}, {})는 무의식중에 만료된 데이터를 검사합니다.",
                  self.0, self.1);
     }
 }
 <span class="boring">}</span></code></pre></pre>
-<p>And of course, all of these accesses could be further hidden within some other method invoked by the destructor, rather than being written directly within it.</p>
-<p>In all of the above cases where the <code>&amp;'a u8</code> is accessed in the destructor, adding the <code>#[may_dangle]</code> attribute makes the type vulnerable to misuse that the borrow checker will not catch, inviting havoc. It is better to avoid adding the attribute.</p>
-<h2 id="a-related-side-note-about-drop-order"><a class="header" href="#a-related-side-note-about-drop-order">A related side note about drop order</a></h2>
-<p>While the drop order of fields inside a struct is defined, relying on it is fragile and subtle. When the order matters, it is better to use the <a href="../std/mem/struct.ManuallyDrop.html"><code>ManuallyDrop</code></a> wrapper.</p>
-<h2 id="is-that-all-about-drop-checker"><a class="header" href="#is-that-all-about-drop-checker">Is that all about drop checker?</a></h2>
-<p>It turns out that when writing unsafe code, we generally don't need to worry at all about doing the right thing for the drop checker. However there is one special case that you need to worry about, which we will look at in the next section.</p>
+<p>물론, 이러한 모든 접근은 소멸자 내에 직접 작성되는 대신 소멸자가 호출하는 다른 메서드 내에 더 깊이 숨겨져 있을 수도 있습니다.</p>
+<p>소멸자에서 <code>&amp;'a u8</code>에 접근하는 위의 모든 사례에서 <code>#[may_dangle]</code> 속성을 추가하면, 빌림 검사기가 잡아내지 못하는 오용에 타입이 취약해져 대혼란을 초래하게 됩니다. 속성을 추가하지 않는 것이 좋습니다.</p>
+<h2 id="드롭-순서에-관한-관련-사이드-노트"><a class="header" href="#드롭-순서에-관한-관련-사이드-노트">드롭 순서에 관한 관련 사이드 노트</a></h2>
+<p>구조체 내부 필드의 드롭 순서는 정의되어 있지만, 여기에 의존하는 것은 깨지기 쉽고 미묘합니다. 순서가 중요하다면 <a href="../std/mem/struct.ManuallyDrop.html"><code>ManuallyDrop</code></a> 래퍼를 사용하는 것이 더 좋습니다.</p>
+<h2 id="드롭-검사기에-대한-내용은-이게-전부인가요"><a class="header" href="#드롭-검사기에-대한-내용은-이게-전부인가요">드롭 검사기에 대한 내용은 이게 전부인가요?</a></h2>
+<p>알고 보니 unsafe 코드를 작성할 때, 우리는 일반적으로 드롭 검사기를 위해 올바른 일을 하는 것에 대해 전혀 걱정할 필요가 없습니다. 하지만 걱정해야 할 한 가지 특별한 경우가 있는데, 그것은 다음 섹션에서 살펴보겠습니다.</p>
 
                     </main>
 

@@ -213,74 +213,71 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="unchecked-uninitialized-memory"><a class="header" href="#unchecked-uninitialized-memory">Unchecked Uninitialized Memory</a></h1>
-<p>One interesting exception to this rule is working with arrays. Safe Rust doesn't permit you to partially initialize an array. When you initialize an array, you can either set every value to the same thing with <code>let x = [val; N]</code>, or you can specify each member individually with <code>let x = [val1, val2, val3]</code>. Unfortunately this is pretty rigid, especially if you need to initialize your array in a more incremental or dynamic way.</p>
-<p>Unsafe Rust gives us a powerful tool to handle this problem: <a href="../core/mem/union.MaybeUninit.html"><code>MaybeUninit</code></a>. This type can be used to handle memory that has not been fully initialized yet.</p>
-<p>With <code>MaybeUninit</code>, we can initialize an array element by element as follows:</p>
+                        <h1 id="확인되지-않은-초기화되지-않은-메모리"><a class="header" href="#확인되지-않은-초기화되지-않은-메모리">확인되지 않은 초기화되지 않은 메모리</a></h1>
+<p>이 규칙에 대한 흥미로운 예외 중 하나는 배열로 작업할 때입니다. 안전한 러스트는 배열을 부분적으로 초기화하는 것을 허용하지 않습니다. 배열을 초기화할 때는 <code>let x = [val; N]</code>을 사용하여 모든 값을 동일하게 설정하거나, <code>let x = [val1, val2, val3]</code>과 같이 각 요소를 개별적으로 지정해야 합니다. 불행히도 이는 상당히 경직되어 있으며, 특히 배열을 더 점진적이거나 동적인 방식으로 초기화해야 할 때 더욱 그렇습니다.</p>
+<p>비안전한 러스트는 이 문제를 해결하기 위해 강력한 도구인 <a href="../core/mem/union.MaybeUninit.html"><code>MaybeUninit</code></a>를 제공합니다. 이 타입은 아직 완전히 초기화되지 않은 메모리를 다루는 데 사용될 수 있습니다.</p>
+<p><code>MaybeUninit</code>을 사용하면 다음과 같이 배열을 요소별로 하나씩 초기화할 수 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::mem::{self, MaybeUninit};
 
-// Size of the array is hard-coded but easy to change (meaning, changing just
-// the constant is sufficient). This means we can't use [a, b, c] syntax to
-// initialize the array, though, as we would have to keep that in sync
-// with `SIZE`!
+// 배열의 크기는 하드코딩되어 있지만 변경하기 쉽습니다(즉, 상수만 변경하면 충분합니다).
+// 하지만 이 방식은 [a, b, c] 구문을 사용하여 배열을 초기화할 수 없음을 의미합니다.
+// 그 구문을 사용하면 `SIZE` 상수와 동기화 상태를 유지해야 하기 때문입니다!
 const SIZE: usize = 10;
 
 let x = {
-    // Create an uninitialized array of `MaybeUninit`. The `assume_init` is
-    // safe because the type we are claiming to have initialized here is a
-    // bunch of `MaybeUninit`s, which do not require initialization.
+    // `MaybeUninit`의 초기화되지 않은 배열을 생성합니다. 여기서 `assume_init`은
+    // 안전합니다. 우리가 여기서 초기화했다고 주장하는 타입은 여러 개의
+    // `MaybeUninit`들이며, 이것들은 초기화를 필요로 하지 않기 때문입니다.
     let mut x: [MaybeUninit&lt;Box&lt;u32&gt;&gt;; SIZE] = unsafe {
         MaybeUninit::uninit().assume_init()
     };
 
-    // Dropping a `MaybeUninit` does nothing. Thus using raw pointer
-    // assignment instead of `ptr::write` does not cause the old
-    // uninitialized value to be dropped.
-    // Exception safety is not a concern because Box can't panic
+    // `MaybeUninit`을 드롭하는 것은 아무 일도 하지 않습니다. 따라서 `ptr::write` 대신
+    // 원시 포인터 할당을 사용해도 이전의 초기화되지 않은 값이 드롭되지 않습니다.
+    // Box는 패닉을 일으키지 않으므로 예외 안전성(exception safety)은 고려 대상이 아닙니다.
     for i in 0..SIZE {
         x[i] = MaybeUninit::new(Box::new(i as u32));
     }
 
-    // Everything is initialized. Transmute the array to the
-    // initialized type.
+    // 모든 것이 초기화되었습니다. 배열을 초기화된 타입으로 트랜스뮤트합니다.
     unsafe { mem::transmute::&lt;_, [Box&lt;u32&gt;; SIZE]&gt;(x) }
 };
 
 dbg!(x);
 <span class="boring">}</span></code></pre></pre>
-<p>This code proceeds in three steps:</p>
+<p>이 코드는 세 단계로 진행됩니다:</p>
 <ol>
 <li>
-<p>Create an array of <code>MaybeUninit&lt;T&gt;</code>. With current stable Rust, we have to use unsafe code for this: we take some uninitialized piece of memory (<code>MaybeUninit::uninit()</code>) and claim we have fully initialized it (<a href="../core/mem/union.MaybeUninit.html#method.assume_init"><code>assume_init()</code></a>). This seems ridiculous, because we didn't! The reason this is correct is that the array consists itself entirely of <code>MaybeUninit</code>, which do not actually require initialization. For most other types, doing <code>MaybeUninit::uninit().assume_init()</code> produces an invalid instance of said type, so you got yourself some Undefined Behavior.</p>
+<p><code>MaybeUninit&lt;T&gt;</code>의 배열을 생성합니다. 현재의 안정 버전 러스트에서는 이를 위해 unsafe 코드를 사용해야 합니다. 즉, 초기화되지 않은 메모리 조각(<code>MaybeUninit::uninit()</code>)을 취하고 그것을 완전히 초기화했다고 주장(<a href="../core/mem/union.MaybeUninit.html#method.assume_init"><code>assume_init()</code></a>)하는 것입니다. 실제로는 초기화하지 않았기 때문에 이는 어처구니없어 보일 수 있습니다! 이것이 올바른 이유는 배열 자체가 실제로 초기화를 필요로 하지 않는 <code>MaybeUninit</code>들로만 구성되어 있기 때문입니다. 대부분의 다른 타입들에 대해 <code>MaybeUninit::uninit().assume_init()</code>을 수행하는 것은 해당 타입의 유효하지 않은 인스턴스를 생성하게 되며, 따라서 정의되지 않은 동작을 일으키게 됩니다.</p>
 </li>
 <li>
-<p>Initialize the array. The subtle aspect of this is that usually, when we use <code>=</code> to assign to a value that the Rust type checker considers to already be initialized (like <code>x[i]</code>), the old value stored on the left-hand side gets dropped. This would be a disaster. However, in this case, the type of the left-hand side is <code>MaybeUninit&lt;Box&lt;u32&gt;&gt;</code>, and dropping that does not do anything! See below for some more discussion of this <code>drop</code> issue.</p>
+<p>배열을 초기화합니다. 여기서 미묘한 점은 보통 러스트 타입 검사기가 이미 초기화되었다고 간주하는 값(예: <code>x[i]</code>)에 <code>=</code>을 사용하여 할당할 때, 좌변에 저장되어 있던 이전 값이 드롭된다는 것입니다. 이는 재앙이 될 것입니다. 하지만 이 경우 좌변의 타입은 <code>MaybeUninit&lt;Box&lt;u32&gt;&gt;</code>이며, 이를 드롭하는 것은 아무런 일도 하지 않습니다! 이 <code>drop</code> 이슈에 대한 자세한 논의는 아래를 참조하세요.</p>
 </li>
 <li>
-<p>Finally, we have to change the type of our array to remove the <code>MaybeUninit</code>. With current stable Rust, this requires a <code>transmute</code>. This transmute is legal because in memory, <code>MaybeUninit&lt;T&gt;</code> looks the same as <code>T</code>.</p>
-<p>However, note that in general, <code>Container&lt;MaybeUninit&lt;T&gt;&gt;&gt;</code> does <em>not</em> look the same as <code>Container&lt;T&gt;</code>! Imagine if <code>Container</code> was <code>Option</code>, and <code>T</code> was <code>bool</code>, then <code>Option&lt;bool&gt;</code> exploits that <code>bool</code> only has two valid values, but <code>Option&lt;MaybeUninit&lt;bool&gt;&gt;</code> cannot do that because the <code>bool</code> does not have to be initialized.</p>
-<p>So, it depends on <code>Container</code> whether transmuting away the <code>MaybeUninit</code> is allowed. For arrays, it is (and eventually the standard library will acknowledge that by providing appropriate methods).</p>
+<p>마지막으로, <code>MaybeUninit</code>을 제거하기 위해 배열의 타입을 변경해야 합니다. 현재 안정 버전 러스트에서는 이를 위해 <code>transmute</code>가 필요합니다. 이 트랜스뮤트는 적법한데, 메모리상에서 <code>MaybeUninit&lt;T&gt;</code>는 <code>T</code>와 동일하게 보이기 때문입니다.</p>
+<p>하지만 일반적으로 <code>Container&lt;MaybeUninit&lt;T&gt;&gt;</code>가 <code>Container&lt;T&gt;</code>와 동일하게 보이는 것은 아닙니다! 예를 들어 <code>Container</code>가 <code>Option</code>이고 <code>T</code>가 <code>bool</code>이라면, <code>Option&lt;bool&gt;</code>은 <code>bool</code>이 단 두 개의 유효한 값만을 가진다는 점을 활용하지만, <code>Option&lt;MaybeUninit&lt;bool&gt;&gt;</code>은 <code>bool</code>이 초기화될 필요가 없으므로 그렇게 할 수 없습니다.</p>
+<p>따라서 <code>MaybeUninit</code>을 트랜스뮤트로 제거하는 것이 허용되는지는 <code>Container</code>에 달려 있습니다. 배열의 경우에는 허용됩니다(결국 표준 라이브러리에서도 적절한 메서드를 제공함으로써 이를 인정하게 될 것입니다).</p>
 </li>
 </ol>
-<p>It's worth spending a bit more time on the loop in the middle, and in particular the assignment operator and its interaction with <code>drop</code>. If we wrote something like:</p>
+<p>중간에 있는 루프, 특히 할당 연산자와 <code>drop</code>의 상호 작용에 대해 좀 더 시간을 할애해 볼 가치가 있습니다. 만약 우리가 다음과 같이 쓴다면:</p>
 <!-- ignore: simplified code -->
-<pre><code class="language-rust ignore">*x[i].as_mut_ptr() = Box::new(i as u32); // WRONG!</code></pre>
-<p>we would actually overwrite a <code>Box&lt;u32&gt;</code>, leading to <code>drop</code> of uninitialized data, which would cause much sadness and pain.</p>
-<p>The correct alternative, if for some reason we cannot use <code>MaybeUninit::new</code>, is to use the <a href="../core/ptr/index.html"><code>ptr</code></a> module. In particular, it provides three functions that allow us to assign bytes to a location in memory without dropping the old value: <a href="../core/ptr/fn.write.html"><code>write</code></a>, <a href="../std/ptr/fn.copy.html"><code>copy</code></a>, and <a href="../std/ptr/fn.copy_nonoverlapping.html"><code>copy_nonoverlapping</code></a>.</p>
+<pre><code class="language-rust ignore">*x[i].as_mut_ptr() = Box::new(i as u32); // 틀림!</code></pre>
+<p>실제로 <code>Box&lt;u32&gt;</code>를 덮어쓰게 되어 초기화되지 않은 데이터에 대한 <code>drop</code>이 발생하고, 이는 커다란 슬픔과 고통을 초래할 것입니다.</p>
+<p>어떤 이유로 <code>MaybeUninit::new</code>를 사용할 수 없는 경우의 올바른 대안은 <a href="../core/ptr/index.html"><code>ptr</code></a> 모듈을 사용하는 것입니다. 특히 이 모듈은 이전 값을 드롭하지 않고 메모리 위치에 바이트를 할당할 수 있게 해주는 세 가지 함수를 제공합니다: <a href="../core/ptr/fn.write.html"><code>write</code></a>, <a href="../std/ptr/fn.copy.html"><code>copy</code></a>, 그리고 <a href="../std/ptr/fn.copy_nonoverlapping.html"><code>copy_nonoverlapping</code></a>입니다.</p>
 <ul>
-<li><code>ptr::write(ptr, val)</code> takes a <code>val</code> and moves it into the address pointed to by <code>ptr</code>.</li>
-<li><code>ptr::copy(src, dest, count)</code> copies the bits that <code>count</code> T items would occupy from src to dest. (this is equivalent to C's memmove -- note that the argument order is reversed!)</li>
-<li><code>ptr::copy_nonoverlapping(src, dest, count)</code> does what <code>copy</code> does, but a little faster on the assumption that the two ranges of memory don't overlap. (this is equivalent to C's memcpy -- note that the argument order is reversed!)</li>
+<li><code>ptr::write(ptr, val)</code>는 <code>val</code>을 받아서 <code>ptr</code>이 가리키는 주소로 이동시킵니다.</li>
+<li><code>ptr::copy(src, dest, count)</code>는 <code>count</code>개의 <code>T</code> 아이템이 차지할 비트를 <code>src</code>에서 <code>dest</code>로 복사합니다. (이는 C의 <code>memmove</code>와 동일합니다. 인자 순서가 반대임에 유의하세요!)</li>
+<li><code>ptr::copy_nonoverlapping(src, dest, count)</code>는 <code>copy</code>와 동일한 작업을 수행하지만, 두 메모리 범위가 겹치지 않는다는 가정하에 조금 더 빠릅니다. (이는 C의 <code>memcpy</code>와 동일합니다. 인자 순서가 반대임에 유의하세요!)</li>
 </ul>
-<p>It should go without saying that these functions, if misused, will cause serious havoc or just straight up Undefined Behavior. The only requirement of these functions <em>themselves</em> is that the locations you want to read and write are allocated and properly aligned. However, the ways writing arbitrary bits to arbitrary locations of memory can break things are basically uncountable!</p>
-<p>It's worth noting that you don't need to worry about <code>ptr::write</code>-style shenanigans with types which don't implement <code>Drop</code> or contain <code>Drop</code> types, because Rust knows not to try to drop them. This is what we relied on in the above example.</p>
-<p>However when working with uninitialized memory you need to be ever-vigilant for Rust trying to drop values you make like this before they're fully initialized. Every control path through that variable's scope must initialize the value before it ends, if it has a destructor. <em><a href="unwinding.html">This includes code panicking</a></em>. <code>MaybeUninit</code> helps a bit here, because it does not implicitly drop its content - but all this really means in case of a panic is that instead of a double-free of the not yet initialized parts, you end up with a memory leak of the already initialized parts.</p>
-<p>Note that, to use the <code>ptr</code> methods, you need to first obtain a <em>raw pointer</em> to the data you want to initialize. It is illegal to construct a <em>reference</em> to uninitialized data, which implies that you have to be careful when obtaining said raw pointer:</p>
+<p>말할 필요도 없이, 이 함수들을 잘못 사용하면 심각한 혼란이나 문자 그대로의 정의되지 않은 동작을 야기할 것입니다. 이 함수들 _자체_의 유일한 요구 사항은 읽고 쓰려는 위치가 할당되어 있고 적절하게 정렬되어 있어야 한다는 것뿐입니다. 하지만 임의의 비트를 임의의 메모리 위치에 쓰는 행위가 시스템을 망가뜨릴 수 있는 방법은 기본적으로 셀 수 없이 많습니다!</p>
+<p><code>Drop</code>을 구현하지 않거나 <code>Drop</code> 타입을 포함하지 않는 타입들에 대해서는 <code>ptr::write</code> 방식의 복잡한 처리를 걱정할 필요가 없다는 점에 주목할 가치가 있습니다. 러스트가 그것들을 드롭하려고 시도하지 않는다는 것을 알기 때문입니다. 이것이 우리가 위 예제에서 의존했던 점입니다.</p>
+<p>하지만 초기화되지 않은 메모리를 다룰 때는, 여러분이 만든 이러한 값들이 완전히 초기화되기 전에 러스트가 그것들을 드롭하려고 시도하지 않는지 항상 경계해야 합니다. 변수의 스코프를 통과하는 모든 제어 경로는 변수가 끝나기 전에(소멸자가 있는 경우) 값을 초기화해야 합니다. <em><a href="unwinding.html">여기에는 패닉이 발생하는 코드도 포함됩니다</a></em>. <code>MaybeUninit</code>은 여기서 약간의 도움이 되는데, 내용물을 암시적으로 드롭하지 않기 때문입니다. 하지만 패닉이 발생할 경우 이것이 의미하는 바는, 아직 초기화되지 않은 부분에 대한 이중 해제(double-free) 대신, 이미 초기화된 부분에 대한 메모리 누수가 발생한다는 것뿐입니다.</p>
+<p>참고로, <code>ptr</code> 메서드를 사용하려면 먼저 초기화하려는 데이터에 대한 _원시 포인터_를 얻어야 합니다. 초기화되지 않은 데이터에 대한 _참조_를 생성하는 것은 불법이며, 이는 해당 원시 포인터를 얻을 때 매우 주의해야 함을 의미합니다:</p>
 <ul>
-<li>For an array of <code>T</code>, you can use <code>base_ptr.add(idx)</code> where <code>base_ptr: *mut T</code> to compute the address of array index <code>idx</code>. This relies on how arrays are laid out in memory.</li>
-<li>For a struct, however, in general we do not know how it is laid out, and we also cannot use <code>&amp;mut base_ptr.field</code> as that would be creating a reference. So, you must carefully use the <a href="../reference/types/pointer.html#r-type.pointer.raw.constructor">raw reference</a> syntax. This creates a raw pointer to the field without creating an intermediate reference:</li>
+<li><code>T</code> 타입의 배열에 대해서는, <code>base_ptr: *mut T</code>일 때 <code>base_ptr.add(idx)</code>를 사용하여 배열 인덱스 <code>idx</code>의 주소를 계산할 수 있습니다. 이는 메모리상에서 배열이 어떻게 배치되는지에 의존합니다.</li>
+<li>하지만 구조체의 경우, 일반적으로 그것이 어떻게 배치되어 있는지 알 수 없으며, <code>&amp;mut base_ptr.field</code>를 사용할 수도 없습니다. 그렇게 하는 것은 참조를 생성하는 것이기 때문입니다. 따라서 <a href="../reference/types/pointer.html#r-type.pointer.raw.constructor">원시 참조(raw reference)</a> 구문을 주의해서 사용해야 합니다. 이 구문은 중간 참조를 생성하지 않고 필드에 대한 원시 포인터를 생성합니다:</li>
 </ul>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -291,15 +288,15 @@ struct Demo {
 }
 
 let mut uninit = MaybeUninit::&lt;Demo&gt;::uninit();
-// `&amp;uninit.as_mut().field` would create a reference to an uninitialized `bool`,
-// and thus be Undefined Behavior!
+// `&amp;uninit.as_mut().field`는 초기화되지 않은 `bool`에 대한 참조를 생성하게 되며,
+// 따라서 정의되지 않은 동작이 됩니다!
 let f1_ptr = unsafe { &amp;raw mut (*uninit.as_mut_ptr()).field };
 unsafe { f1_ptr.write(true); }
 
 let init = unsafe { uninit.assume_init() };
 <span class="boring">}</span></code></pre></pre>
-<p>One last remark: when reading old Rust code, you might stumble upon the deprecated <code>mem::uninitialized</code> function.  That function used to be the only way to deal with uninitialized memory on the stack, but it turned out to be impossible to properly integrate with the rest of the language.  Always use <code>MaybeUninit</code> instead in new code, and port old code over when you get the opportunity.</p>
-<p>And that's about it for working with uninitialized memory! Basically nothing anywhere expects to be handed uninitialized memory, so if you're going to pass it around at all, be sure to be <em>really</em> careful.</p>
+<p>마지막으로 한 마디 더 하자면, 오래된 러스트 코드를 읽다 보면 이제는 권장되지 않는(deprecated) <code>mem::uninitialized</code> 함수를 마주칠 수 있습니다. 이 함수는 예전에 스택상의 초기화되지 않은 메모리를 다루는 유일한 방법이었지만, 언어의 나머지 부분들과 적절히 통합되는 것이 불가능하다는 것이 밝혀졌습니다. 새로운 코드에서는 항상 대신 <code>MaybeUninit</code>을 사용하고, 기회가 될 때 오래된 코드를 포팅하세요.</p>
+<p>초기화되지 않은 메모리를 다루는 법은 이 정도면 충분합니다! 기본적으로 어디에서도 초기화되지 않은 메모리를 전달받을 것이라고 예상하지 않으므로, 이를 어딘가로 전달해야 한다면 정말로, <em>진짜로</em> 주의를 기울이시기 바랍니다.</p>
 
                     </main>
 

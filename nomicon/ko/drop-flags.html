@@ -214,53 +214,53 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="드롭-플래그"><a class="header" href="#드롭-플래그">드롭 플래그</a></h1>
-<p>The examples in the previous section introduce an interesting problem for Rust. We have seen that it's possible to conditionally initialize, deinitialize, and reinitialize locations of memory totally safely. For Copy types, this isn't particularly notable since they're just a random pile of bits. However types with destructors are a different story: Rust needs to know whether to call a destructor whenever a variable is assigned to, or a variable goes out of scope. How can it do this with conditional initialization?</p>
-<p>Note that this is not a problem that all assignments need worry about. In particular, assigning through a dereference unconditionally drops, and assigning in a <code>let</code> unconditionally doesn't drop:</p>
+<p>이전 섹션의 예제들은 러스트에게 흥미로운 과제를 던져줍니다. 우리는 메모리 위치를 조건부로 초기화, 미초기화, 그리고 재초기화하는 것이 완전히 안전하게 가능하다는 것을 보았습니다. <code>Copy</code> 타입의 경우, 그것들은 단지 무작위적인 비트 더미일 뿐이므로 특별히 주목할 만한 점은 없습니다. 하지만 소멸자(destructor)를 가진 타입들의 경우는 이야기가 다릅니다. 러스트는 변수에 값이 할당되거나 변수가 스코프를 벗어날 때마다 소멸자를 호출해야 할지 말아야 할지를 알아야 합니다. 조건부 초기화가 이루어지는 상황에서 어떻게 이를 수행할 수 있을까요?</p>
+<p>모든 할당이 이 문제를 걱정해야 하는 것은 아닙니다. 특히 역참조(dereference)를 통한 할당은 무조건 드롭(drop)을 수행하며, <code>let</code>을 통한 할당은 무조건 드롭을 수행하지 않습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>let mut x = Box::new(0); // let makes a fresh variable, so never need to drop
+</span>let mut x = Box::new(0); // let은 새로운 변수를 만드므로, 결코 드롭할 필요가 없습니다
 let y = &amp;mut x;
-*y = Box::new(1); // Deref assumes the referent is initialized, so always drops
+*y = Box::new(1); // 역참조는 지칭 대상이 초기화되었다고 가정하므로, 항상 드롭합니다
 <span class="boring">}</span></code></pre></pre>
-<p>This is only a problem when overwriting a previously initialized variable or one of its subfields.</p>
-<p>It turns out that Rust actually tracks whether a type should be dropped or not <em>at runtime</em>. As a variable becomes initialized and uninitialized, a <em>drop flag</em> for that variable is toggled. When a variable might need to be dropped, this flag is evaluated to determine if it should be dropped.</p>
-<p>Of course, it is often the case that a value's initialization state can be statically known at every point in the program. If this is the case, then the compiler can theoretically generate more efficient code! For instance, straight- line code has such <em>static drop semantics</em>:</p>
+<p>이는 이전에 초기화된 변수나 그 하위 필드를 덮어쓸 때만 문제가 됩니다.</p>
+<p>알고 보니 러스트는 실제로 타입이 드롭되어야 하는지 여부를 <em>런타임에</em> 추적합니다. 변수가 초기화되거나 미초기화됨에 따라, 해당 변수에 대한 _드롭 플래그(drop flag)_가 토글됩니다. 변수가 드롭될 필요가 있을 때, 이 플래그를 확인하여 실제로 드롭을 수행할지 결정합니다.</p>
+<p>물론, 값의 초기화 상태가 프로그램의 모든 시점에서 정적으로 알려질 수 있는 경우도 많습니다. 이런 경우 컴파일러는 이론적으로 더 효율적인 코드를 생성할 수 있습니다! 예를 들어, 분기 없는 직선적인 코드는 다음과 같은 _정적 드롭 의미론(static drop semantics)_을 갖습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>let mut x = Box::new(0); // x was uninit; just overwrite.
-let mut y = x;           // y was uninit; just overwrite and make x uninit.
-x = Box::new(0);         // x was uninit; just overwrite.
-y = x;                   // y was init; Drop y, overwrite it, and make x uninit!
-                         // y goes out of scope; y was init; Drop y!
-                         // x goes out of scope; x was uninit; do nothing.
+</span>let mut x = Box::new(0); // x는 미초기화 상태였음. 그냥 덮어씀.
+let mut y = x;           // y는 미초기화 상태였음. 그냥 덮어쓰고 x를 미초기화 상태로 만듦.
+x = Box::new(0);         // x는 미초기화 상태였음. 그냥 덮어씀.
+y = x;                   // y는 초기화된 상태였음. y를 드롭하고, 덮어쓰고, x를 미초기화 상태로 만듦!
+                         // y가 스코프를 벗어남. y는 초기화된 상태였음. y를 드롭!
+                         // x가 스코프를 벗어남. x는 미초기화 상태였음. 아무것도 하지 않음.
 <span class="boring">}</span></code></pre></pre>
-<p>Similarly, branched code where all branches have the same behavior with respect to initialization has static drop semantics:</p>
+<p>마찬가지로, 모든 분기가 초기화와 관련하여 동일하게 동작하는 분기 코드도 정적 드롭 의미론을 갖습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">let condition = true;
-</span>let mut x = Box::new(0);    // x was uninit; just overwrite.
+</span>let mut x = Box::new(0);    // x는 미초기화 상태였음. 그냥 덮어씀.
 if condition {
-    drop(x)                 // x gets moved out; make x uninit.
+    drop(x)                 // x가 이동됨. x를 미초기화 상태로 만듦.
 } else {
     println!("{}", x);
-    drop(x)                 // x gets moved out; make x uninit.
+    drop(x)                 // x가 이동됨. x를 미초기화 상태로 만듦.
 }
-x = Box::new(0);            // x was uninit; just overwrite.
-                            // x goes out of scope; x was init; Drop x!
+x = Box::new(0);            // x는 미초기화 상태였음. 그냥 덮어씀.
+                            // x가 스코프를 벗어남. x는 초기화된 상태였음. x를 드롭!
 <span class="boring">}</span></code></pre></pre>
-<p>However code like this <em>requires</em> runtime information to correctly Drop:</p>
+<p>하지만 다음과 같은 코드는 올바르게 드롭하기 위해 <em>런타임</em> 정보가 필요합니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">let condition = true;
 </span>let x;
 if condition {
-    x = Box::new(0);        // x was uninit; just overwrite.
+    x = Box::new(0);        // x는 미초기화 상태였음. 그냥 덮어씀.
     println!("{}", x);
 }
-                            // x goes out of scope; x might be uninit;
-                            // check the flag!
+                            // x가 스코프를 벗어남. x는 미초기화 상태일 수 있음.
+                            // 플래그를 확인!
 <span class="boring">}</span></code></pre></pre>
-<p>Of course, in this case it's trivial to retrieve static drop semantics:</p>
+<p>물론, 이 경우에는 정적 드롭 의미론을 다시 확보하는 것이 매우 쉽습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">let condition = true;
@@ -269,7 +269,7 @@ if condition {
     println!("{}", x);
 }
 <span class="boring">}</span></code></pre></pre>
-<p>The drop flags are tracked on the stack. In old Rust versions, drop flags were stashed in a hidden field of types that implement <code>Drop</code>.</p>
+<p>드롭 플래그는 스택에서 추적됩니다. 이전 버전의 러스트에서는 <code>Drop</code>을 구현하는 타입의 숨겨진 필드에 드롭 플래그가 저장되었습니다.</p>
 
                     </main>
 

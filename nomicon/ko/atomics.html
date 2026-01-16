@@ -214,24 +214,24 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="아토믹"><a class="header" href="#아토믹">아토믹</a></h1>
-<p>Rust pretty blatantly just inherits the memory model for atomics from C++20. This is not due to this model being particularly excellent or easy to understand. Indeed, this model is quite complex and known to have <a href="http://plv.mpi-sws.org/c11comp/popl15.pdf">several flaws</a>. Rather, it is a pragmatic concession to the fact that <em>everyone</em> is pretty bad at modeling atomics. At very least, we can benefit from existing tooling and research around the C/C++ memory model. (You'll often see this model referred to as "C/C++11" or just "C11". C just copies the C++ memory model; and C++11 was the first version of the model but it has received some bugfixes since then.)</p>
-<p>Trying to fully explain the model in this book is fairly hopeless. It's defined in terms of madness-inducing causality graphs that require a full book to properly understand in a practical way. If you want all the nitty-gritty details, you should check out the <a href="https://en.cppreference.com/w/cpp/atomic/memory_order">C++ specification</a>. Still, we'll try to cover the basics and some of the problems Rust developers face.</p>
-<p>The C++ memory model is fundamentally about trying to bridge the gap between the semantics we want, the optimizations compilers want, and the inconsistent chaos our hardware wants. <em>We</em> would like to just write programs and have them do exactly what we said but, you know, fast. Wouldn't that be great?</p>
-<h2 id="compiler-reordering"><a class="header" href="#compiler-reordering">Compiler Reordering</a></h2>
-<p>Compilers fundamentally want to be able to do all sorts of complicated transformations to reduce data dependencies and eliminate dead code. In particular, they may radically change the actual order of events, or make events never occur! If we write something like:</p>
+<p>러스트는 C++20의 아토믹 메모리 모델을 아주 노골적으로 그대로 상속받습니다. 이는 이 모델이 특별히 훌륭하거나 이해하기 쉬워서가 아닙니다. 실제로 이 모델은 꽤 복잡하며 <a href="http://plv.mpi-sws.org/c11comp/popl15.pdf">여러 결함</a>이 있는 것으로 알려져 있습니다. 오히려, 이는 _모든 사람_이 아토믹을 모델링하는 데 꽤 서툴다는 사실에 대한 실용적인 양보입니다. 적어도 우리는 C/C++ 메모리 모델을 둘러싼 기존 도구와 연구의 혜택을 누릴 수 있습니다. (이 모델은 종종 "C/C++11" 또는 그냥 "C11"이라고 불립니다. C는 C++ 메모리 모델을 그대로 복사하며, C++11은 이 모델의 첫 번째 버전이었으나 그 이후로 몇 가지 버그 수정이 있었습니다.)</p>
+<p>이 책에서 모델을 완전히 설명하려고 하는 것은 거의 가망이 없습니다. 이는 실질적으로 제대로 이해하려면 책 한 권이 필요한, 광기를 유발하는 인과 관계 그래프로 정의되어 있습니다. 아주 상세한 내용을 원한다면 <a href="https://en.cppreference.com/w/cpp/atomic/memory_order">C++ 사양</a>을 확인해야 합니다. 그래도 우리는 기본 사항과 러스트 개발자가 직면하는 몇 가지 문제를 다루려고 노력할 것입니다.</p>
+<p>C++ 메모리 모델은 근본적으로 우리가 원하는 의미론, 컴파일러가 원하는 최적화, 그리고 하드웨어가 원하는 일관성 없는 혼돈 사이의 간극을 메우려는 시도입니다. _우리_는 그저 프로그램을 작성하고 우리가 말한 그대로 실행되기를 원합니다. 하지만, 알다시피, 빠르게 말이죠. 정말 좋지 않을까요?</p>
+<h2 id="컴파일러-재배치-compiler-reordering"><a class="header" href="#컴파일러-재배치-compiler-reordering">컴파일러 재배치 (Compiler Reordering)</a></h2>
+<p>컴파일러는 근본적으로 데이터 의존성을 줄이고 죽은 코드를 제거하기 위해 온갖 종류의 복잡한 변환을 수행할 수 있기를 원합니다. 특히, 이벤트의 실제 순서를 근본적으로 바꾸거나 이벤트가 아예 발생하지 않게 만들 수도 있습니다! 우리가 다음과 같이 작성한다면:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">x = 1;
 y = 3;
 x = 2;</code></pre>
-<p>The compiler may conclude that it would be best if your program did:</p>
+<p>컴파일러는 프로그램이 다음과 같이 동작하는 것이 가장 좋다고 결론 내릴 수 있습니다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">x = 2;
 y = 3;</code></pre>
-<p>This has inverted the order of events and completely eliminated one event. From a single-threaded perspective this is completely unobservable: after all the statements have executed we are in exactly the same state. But if our program is multi-threaded, we may have been relying on <code>x</code> to actually be assigned to 1 before <code>y</code> was assigned. We would like the compiler to be able to make these kinds of optimizations, because they can seriously improve performance. On the other hand, we'd also like to be able to depend on our program <em>doing the thing we said</em>.</p>
-<h2 id="hardware-reordering"><a class="header" href="#hardware-reordering">Hardware Reordering</a></h2>
-<p>On the other hand, even if the compiler totally understood what we wanted and respected our wishes, our hardware might instead get us in trouble. Trouble comes from CPUs in the form of memory hierarchies. There is indeed a global shared memory space somewhere in your hardware, but from the perspective of each CPU core it is <em>so very far away</em> and <em>so very slow</em>. Each CPU would rather work with its local cache of the data and only go through all the anguish of talking to shared memory only when it doesn't actually have that memory in cache.</p>
-<p>After all, that's the whole point of the cache, right? If every read from the cache had to run back to shared memory to double check that it hadn't changed, what would the point be? The end result is that the hardware doesn't guarantee that events that occur in some order on <em>one</em> thread, occur in the same order on <em>another</em> thread. To guarantee this, we must issue special instructions to the CPU telling it to be a bit less smart.</p>
-<p>For instance, say we convince the compiler to emit this logic:</p>
+<p>이는 이벤트의 순서를 뒤집고 하나의 이벤트를 완전히 제거했습니다. 단일 스레드 관점에서는 이를 전혀 관찰할 수 없습니다. 모든 문이 실행된 후 우리는 정확히 동일한 상태에 있게 됩니다. 하지만 프로그램이 멀티 스레드라면, 우리는 <code>y</code>가 할당되기 전에 <code>x</code>가 실제로 1로 할당되는 것에 의존하고 있었을지도 모릅니다. 우리는 컴파일러가 이러한 종류의 최적화를 수행할 수 있기를 바랍니다. 성능을 크게 향상시킬 수 있기 때문입니다. 반면에, 우리는 프로그램이 _우리가 말한 대로 수행_하는 것에 의존할 수 있기를 원하기도 합니다.</p>
+<h2 id="하드웨어-재배치-hardware-reordering"><a class="header" href="#하드웨어-재배치-hardware-reordering">하드웨어 재배치 (Hardware Reordering)</a></h2>
+<p>반면에, 컴파일러가 우리가 원하는 것을 완전히 이해하고 우리의 소원을 존중한다고 해도, 하드웨어가 우리를 곤경에 빠뜨릴 수 있습니다. 문제는 메모리 계층 구조의 형태로 CPU에서 발생합니다. 하드웨어 어딘가에 전역 공유 메모리 공간이 실제로 존재하지만, 각 CPU 코어의 관점에서 보면 그것은 <em>너무나 멀고</em> <em>너무나 느립니다</em>. 각 CPU는 차라리 로컬 데이터 캐시로 작업하고 싶어 하며, 실제로 캐시에 해당 메모리가 없을 때만 공유 메모리와 대화하는 모든 고통을 겪습니다.</p>
+<p>결국 그것이 캐시의 존재 이유 아니겠습니까? 캐시에서 읽을 때마다 공유 메모리로 달려가서 변경되지 않았는지 다시 확인해야 한다면, 무슨 의미가 있을까요? 결론적으로 하드웨어는 <em>한</em> 스레드에서 어떤 순서로 발생한 이벤트가 <em>다른</em> 스레드에서도 같은 순서로 발생한다고 보장하지 않습니다. 이를 보장하려면, 우리는 CPU에게 조금 덜 똑똑하게 굴라고 말하는 특별한 명령을 내려야 합니다.</p>
+<p>예를 들어, 우리가 컴파일러를 설득하여 다음 로직을 방출하게 했다고 가정해 봅시다:</p>
 <pre><code class="language-text">initial state: x = 0, y = 1
 
 THREAD 1        THREAD 2
@@ -239,68 +239,68 @@ y = 3;          if x == 1 {
 x = 1;              y *= 2;
                 }
 </code></pre>
-<p>Ideally this program has 2 possible final states:</p>
+<p>이상적으로 이 프로그램은 2가지 가능한 최종 상태를 가집니다:</p>
 <ul>
-<li><code>y = 3</code>: (thread 2 did the check before thread 1 completed)</li>
-<li><code>y = 6</code>: (thread 2 did the check after thread 1 completed)</li>
+<li><code>y = 3</code>: (스레드 1이 완료되기 전에 스레드 2가 확인을 수행함)</li>
+<li><code>y = 6</code>: (스레드 1이 완료된 후에 스레드 2가 확인을 수행함)</li>
 </ul>
-<p>However there's a third potential state that the hardware enables:</p>
+<p>하지만 하드웨어가 가능하게 하는 세 번째 잠재적 상태가 있습니다:</p>
 <ul>
-<li><code>y = 2</code>: (thread 2 saw <code>x = 1</code>, but not <code>y = 3</code>, and then overwrote <code>y = 3</code>)</li>
+<li><code>y = 2</code>: (스레드 2가 <code>x = 1</code>은 보았지만 <code>y = 3</code>은 보지 못했고, 그 후 <code>y = 3</code>을 덮어씀)</li>
 </ul>
-<p>It's worth noting that different kinds of CPU provide different guarantees. It is common to separate hardware into two categories: strongly-ordered and weakly-ordered. Most notably x86/64 provides strong ordering guarantees, while ARM provides weak ordering guarantees. This has two consequences for concurrent programming:</p>
+<p>CPU 종류에 따라 서로 다른 보장을 제공한다는 점은 주목할 만합니다. 하드웨어를 두 가지 범주, 즉 강하게 정렬된(strongly-ordered) 것과 약하게 정렬된(weakly-ordered) 것으로 나누는 것이 일반적입니다. 가장 눈에 띄게 x86/64는 강력한 정렬 보장을 제공하는 반면, ARM은 약한 정렬 보장을 제공합니다. 이는 동시성 프로그래밍에 두 가지 결과를 가져옵니다:</p>
 <ul>
 <li>
-<p>Asking for stronger guarantees on strongly-ordered hardware may be cheap or even free because they already provide strong guarantees unconditionally. Weaker guarantees may only yield performance wins on weakly-ordered hardware.</p>
+<p>강하게 정렬된 하드웨어에서 더 강력한 보장을 요구하는 것은 저렴하거나 심지어 무료일 수 있습니다. 그들은 이미 무조건적으로 강력한 보장을 제공하기 때문입니다. 더 약한 보장은 약하게 정렬된 하드웨어에서만 성능 이득을 얻을 수 있습니다.</p>
 </li>
 <li>
-<p>Asking for guarantees that are too weak on strongly-ordered hardware is more likely to <em>happen</em> to work, even though your program is strictly incorrect. If possible, concurrent algorithms should be tested on weakly-ordered hardware.</p>
+<p>강하게 정렬된 하드웨어에서 너무 약한 보장을 요구하는 경우, 프로그램이 엄밀히 말해 틀렸음에도 불구하고 <em>우연히</em> 작동할 가능성이 더 높습니다. 가능하다면 동시성 알고리즘은 약하게 정렬된 하드웨어에서 테스트해야 합니다.</p>
 </li>
 </ul>
-<h2 id="data-accesses"><a class="header" href="#data-accesses">Data Accesses</a></h2>
-<p>The C++ memory model attempts to bridge the gap by allowing us to talk about the <em>causality</em> of our program. Generally, this is by establishing a <em>happens before</em> relationship between parts of the program and the threads that are running them. This gives the hardware and compiler room to optimize the program more aggressively where a strict happens-before relationship isn't established, but forces them to be more careful where one is established. The way we communicate these relationships are through <em>data accesses</em> and <em>atomic accesses</em>.</p>
-<p>Data accesses are the bread-and-butter of the programming world. They are fundamentally unsynchronized and compilers are free to aggressively optimize them. In particular, data accesses are free to be reordered by the compiler on the assumption that the program is single-threaded. The hardware is also free to propagate the changes made in data accesses to other threads as lazily and inconsistently as it wants. Most critically, data accesses are how data races happen. Data accesses are very friendly to the hardware and compiler, but as we've seen they offer <em>awful</em> semantics to try to write synchronized code with. Actually, that's too weak.</p>
-<p><strong>It is literally impossible to write correct synchronized code using only data accesses.</strong></p>
-<p>Atomic accesses are how we tell the hardware and compiler that our program is multi-threaded. Each atomic access can be marked with an <em>ordering</em> that specifies what kind of relationship it establishes with other accesses. In practice, this boils down to telling the compiler and hardware certain things they <em>can't</em> do. For the compiler, this largely revolves around re-ordering of instructions. For the hardware, this largely revolves around how writes are propagated to other threads. The set of orderings Rust exposes are:</p>
+<h2 id="데이터-접근-data-accesses"><a class="header" href="#데이터-접근-data-accesses">데이터 접근 (Data Accesses)</a></h2>
+<p>C++ 메모리 모델은 우리 프로그램의 _인과 관계(causality)_에 대해 이야기할 수 있게 함으로써 간극을 메우려고 시도합니다. 일반적으로 이는 프로그램의 부분들과 그것들을 실행하는 스레드들 사이에 <em>발생 전(happens before)</em> 관계를 확립하는 방식입니다. 이는 엄격한 발생 전 관계가 확립되지 않은 곳에서는 하드웨어와 컴파일러가 프로그램을 더 공격적으로 최적화할 수 있는 여지를 주지만, 관계가 확립된 곳에서는 더 주의하도록 강제합니다. 우리가 이러한 관계를 전달하는 방식은 _데이터 접근_과 _아토믹 접근_을 통해서입니다.</p>
+<p>데이터 접근은 프로그래밍 세계의 기본입니다. 이들은 근본적으로 동기화되지 않으며 컴파일러는 이들을 공격적으로 최적화할 자유가 있습니다. 특히, 데이터 접근은 프로그램이 단일 스레드라는 가정하에 컴파일러에 의해 자유롭게 재배치될 수 있습니다. 하드웨어 또한 데이터 접근에서 이루어진 변경 사항을 다른 스레드에 원하는 만큼 게으르고 비일관적으로 전파할 자유가 있습니다. 가장 치명적인 것은, 데이터 접근이 바로 데이터 경쟁이 발생하는 원인이라는 점입니다. 데이터 접근은 하드웨어와 컴파일러에게는 매우 친화적이지만, 우리가 보았듯이 동기화된 코드를 작성하려고 할 때 <em>끔찍한</em> 의미론을 제공합니다. 사실, 끔찍하다는 표현도 부족합니다.</p>
+<p><strong>데이터 접근만을 사용하여 올바른 동기화 코드를 작성하는 것은 말 그대로 불가능합니다.</strong></p>
+<p>아토믹 접근은 우리 프로그램이 멀티 스레드임을 하드웨어와 컴파일러에 알리는 방법입니다. 각 아토믹 접근은 다른 접근들과 어떤 종류의 관계를 맺는지 지정하는 _정렬(ordering)_로 표시될 수 있습니다. 실제로는, 이것은 컴파일러와 하드웨어에게 그들이 할 수 <em>없는</em> 특정 작업들을 말해주는 것으로 귀결됩니다. 컴파일러의 경우, 이는 주로 명령어의 재배치를 중심으로 돌아갑니다. 하드웨어의 경우, 이는 주로 쓰기가 다른 스레드에 전파되는 방식을 중심으로 돌아갑니다. 러스트가 노출하는 정렬 집합은 다음과 같습니다:</p>
 <ul>
-<li>Sequentially Consistent (SeqCst)</li>
-<li>Release</li>
-<li>Acquire</li>
-<li>Relaxed</li>
+<li>순차적 일관성 (Sequentially Consistent, SeqCst)</li>
+<li>릴리스 (Release)</li>
+<li>어콰이어 (Acquire)</li>
+<li>릴랙스드 (Relaxed)</li>
 </ul>
-<p>(Note: We explicitly do not expose the C++ <em>consume</em> ordering)</p>
-<p>TODO: negative reasoning vs positive reasoning? TODO: "can't forget to synchronize"</p>
-<h2 id="sequentially-consistent"><a class="header" href="#sequentially-consistent">Sequentially Consistent</a></h2>
-<p>Sequentially Consistent is the most powerful of all, implying the restrictions of all other orderings. Intuitively, a sequentially consistent operation cannot be reordered: all accesses on one thread that happen before and after a SeqCst access stay before and after it. A data-race-free program that uses only sequentially consistent atomics and data accesses has the very nice property that there is a single global execution of the program's instructions that all threads agree on. This execution is also particularly nice to reason about: it's just an interleaving of each thread's individual executions. This does not hold if you start using the weaker atomic orderings.</p>
-<p>The relative developer-friendliness of sequential consistency doesn't come for free. Even on strongly-ordered platforms sequential consistency involves emitting memory fences.</p>
-<p>In practice, sequential consistency is rarely necessary for program correctness. However sequential consistency is definitely the right choice if you're not confident about the other memory orders. Having your program run a bit slower than it needs to is certainly better than it running incorrectly! It's also mechanically trivial to downgrade atomic operations to have a weaker consistency later on. Just change <code>SeqCst</code> to <code>Relaxed</code> and you're done! Of course, proving that this transformation is <em>correct</em> is a whole other matter.</p>
-<h2 id="acquire-release"><a class="header" href="#acquire-release">Acquire-Release</a></h2>
-<p>Acquire and Release are largely intended to be paired. Their names hint at their use case: they're perfectly suited for acquiring and releasing locks, and ensuring that critical sections don't overlap.</p>
-<p>Intuitively, an acquire access ensures that every access after it stays after it. However operations that occur before an acquire are free to be reordered to occur after it. Similarly, a release access ensures that every access before it stays before it. However operations that occur after a release are free to be reordered to occur before it.</p>
-<p>When thread A releases a location in memory and then thread B subsequently acquires <em>the same</em> location in memory, causality is established. Every write (including non-atomic and relaxed atomic writes) that happened before A's release will be observed by B after its acquisition. However no causality is established with any other threads. Similarly, no causality is established if A and B access <em>different</em> locations in memory.</p>
-<p>Basic use of release-acquire is therefore simple: you acquire a location of memory to begin the critical section, and then release that location to end it. For instance, a simple spinlock might look like:</p>
+<p>(참고: 우리는 C++의 <em>consume</em> 정렬을 명시적으로 노출하지 않습니다)</p>
+<p>TODO: 부정적 추론 vs 긍정적 추론? TODO: "동기화하는 것을 잊을 수 없음"</p>
+<h2 id="순차적-일관성-sequentially-consistent"><a class="header" href="#순차적-일관성-sequentially-consistent">순차적 일관성 (Sequentially Consistent)</a></h2>
+<p>순차적 일관성(Sequentially Consistent)은 가장 강력한 정렬로, 다른 모든 정렬의 제약 조건을 포함합니다. 직관적으로, 순차적으로 일관된 작업은 재배치될 수 없습니다. <code>SeqCst</code> 접근 전후에 발생하는 한 스레드의 모든 접근은 그 전후에 머무릅니다. 순차적으로 일관된 아토믹과 데이터 접근만을 사용하는 데이터 경쟁 없는 프로그램은 모든 스레드가 동의하는 단일 전역 실행 순서가 있다는 아주 좋은 속성을 가집니다. 이 실행은 추론하기에도 매우 좋습니다. 각 스레드의 개별 실행을 인터리빙(interleaving)한 것일 뿐이기 때문입니다. 더 약한 아토믹 정렬을 사용하기 시작하면 이 속성은 유지되지 않습니다.</p>
+<p>순차적 일관성의 상대적인 개발자 친화성은 공짜가 아닙니다. 강하게 정렬된 플랫폼에서도 순차적 일관성은 메모리 펜스(memory fence) 방출을 수반합니다.</p>
+<p>실제로는 프로그램의 정확성을 위해 순차적 일관성이 필요한 경우는 드뭅니다. 하지만 다른 메모리 순서에 대해 확신이 없다면 순차적 일관성이 확실히 올바른 선택입니다. 프로그램이 필요 이상으로 조금 느리게 실행되는 것이 잘못 실행되는 것보다 확실히 낫습니다! 나중에 아토믹 연산을 더 약한 일관성으로 다운그레이드하는 것도 기계적으로 매우 간단합니다. 그냥 <code>SeqCst</code>를 <code>Relaxed</code>로 바꾸면 끝입니다! 물론, 이 변환이 _올바르다_는 것을 증명하는 것은 완전히 다른 문제입니다.</p>
+<h2 id="어콰이어-릴리스-acquire-release"><a class="header" href="#어콰이어-릴리스-acquire-release">어콰이어-릴리스 (Acquire-Release)</a></h2>
+<p>어콰이어(Acquire)와 릴리스(Release)는 주로 쌍을 이루도록 의도되었습니다. 그들의 이름이 사용 사례를 암시합니다. 즉, 잠금을 획득(acquire)하고 해제(release)하며, 임계 영역(critical section)이 겹치지 않도록 보장하는 데 완벽하게 적합합니다.</p>
+<p>직관적으로, 어콰이어 접근은 그 이후의 모든 접근이 그 이후에 머무르도록 보장합니다. 하지만 어콰이어 이전에 발생하는 작업은 자유롭게 재배치되어 그 이후에 발생할 수 있습니다. 마찬가지로, 릴리스 접근은 그 이전의 모든 접근이 그 이전에 머무르도록 보장합니다. 하지만 릴리스 이후에 발생하는 작업은 자유롭게 재배치되어 그 이전에 발생할 수 있습니다.</p>
+<p>스레드 A가 메모리의 한 위치를 릴리스하고, 그 후 스레드 B가 메모리의 <em>동일한</em> 위치를 어콰이어하면, 인과 관계가 성립됩니다. A의 릴리스 이전에 발생한 모든 쓰기(비원자적 및 릴랙스드 아토믹 쓰기 포함)는 B가 어콰이어한 후에 관찰됩니다. 하지만 다른 어떤 스레드와도 인과 관계가 성립하지 않습니다. 마찬가지로, A와 B가 메모리의 <em>서로 다른</em> 위치에 접근한다면 인과 관계는 성립하지 않습니다.</p>
+<p>따라서 릴리스-어콰이어의 기본적인 사용법은 간단합니다. 임계 영역을 시작하기 위해 메모리 위치를 어콰이어하고, 끝내기 위해 해당 위치를 릴리스합니다. 예를 들어, 간단한 스핀락은 다음과 같을 수 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021">use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 
 fn main() {
-    let lock = Arc::new(AtomicBool::new(false)); // value answers "am I locked?"
+    let lock = Arc::new(AtomicBool::new(false)); // 값은 "잠겨 있습니까?"에 답합니다.
 
-    // ... distribute lock to threads somehow ...
+    // ... 어떻게든 스레드들에게 잠금을 분배 ...
 
-    // Try to acquire the lock by setting it to true
+    // 값을 true로 설정하여 잠금 획득을 시도합니다.
     while lock.compare_and_swap(false, true, Ordering::Acquire) { }
-    // broke out of the loop, so we successfully acquired the lock!
+    // 루프를 빠져나왔으므로, 성공적으로 잠금을 획득했습니다!
 
-    // ... scary data accesses ...
+    // ... 무시무시한 데이터 접근 ...
 
-    // ok we're done, release the lock
+    // 좋아, 다 끝났으니 잠금을 해제합니다.
     lock.store(false, Ordering::Release);
 }</code></pre></pre>
-<p>On strongly-ordered platforms most accesses have release or acquire semantics, making release and acquire often totally free. This is not the case on weakly-ordered platforms.</p>
-<h2 id="relaxed"><a class="header" href="#relaxed">Relaxed</a></h2>
-<p>Relaxed accesses are the absolute weakest. They can be freely re-ordered and provide no happens-before relationship. Still, relaxed operations are still atomic. That is, they don't count as data accesses and any read-modify-write operations done to them occur atomically. Relaxed operations are appropriate for things that you definitely want to happen, but don't particularly otherwise care about. For instance, incrementing a counter can be safely done by multiple threads using a relaxed <code>fetch_add</code> if you're not using the counter to synchronize any other accesses.</p>
-<p>There's rarely a benefit in making an operation relaxed on strongly-ordered platforms, since they usually provide release-acquire semantics anyway. However relaxed operations can be cheaper on weakly-ordered platforms.</p>
+<p>강하게 정렬된 플랫폼에서 대부분의 접근은 릴리스 또는 어콰이어 의미론을 가지므로, 릴리스와 어콰이어는 종종 완전히 무료입니다. 약하게 정렬된 플랫폼에서는 그렇지 않습니다.</p>
+<h2 id="릴랙스드-relaxed"><a class="header" href="#릴랙스드-relaxed">릴랙스드 (Relaxed)</a></h2>
+<p>릴랙스드(Relaxed) 접근은 절대적으로 가장 약합니다. 자유롭게 재배치될 수 있으며 발생 전 관계를 제공하지 않습니다. 그럼에도 불구하고, 릴랙스드 연산은 여전히 원자적(atomic)입니다. 즉, 데이터 접근으로 간주되지 않으며 이에 대해 수행되는 모든 읽기-수정-쓰기 작업은 원자적으로 발생합니다. 릴랙스드 연산은 반드시 일어나기를 원하지만 그 외에는 특별히 신경 쓰지 않는 작업에 적합합니다. 예를 들어, 카운터를 사용하여 다른 접근을 동기화하지 않는다면 릴랙스드 <code>fetch_add</code>를 사용하여 여러 스레드에서 안전하게 카운터를 증가시킬 수 있습니다.</p>
+<p>강하게 정렬된 플랫폼에서는 어차피 릴리스-어콰이어 의미론을 제공하는 경우가 많으므로 연산을 릴랙스드로 만드는 이점은 거의 없습니다. 하지만 약하게 정렬된 플랫폼에서는 릴랙스드 연산이 더 저렴할 수 있습니다.</p>
 
                     </main>
 

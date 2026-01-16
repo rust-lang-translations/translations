@@ -214,8 +214,8 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="rawvec"><a class="header" href="#rawvec">RawVec</a></h1>
-<p>We've actually reached an interesting situation here: we've duplicated the logic for specifying a buffer and freeing its memory in Vec and IntoIter. Now that we've implemented it and identified <em>actual</em> logic duplication, this is a good time to perform some logic compression.</p>
-<p>We're going to abstract out the <code>(ptr, cap)</code> pair and give them the logic for allocating, growing, and freeing:</p>
+<p>여기서 흥미로운 상황에 도달했습니다. Vec과 IntoIter 모두에서 버퍼를 지정하고 그 메모리를 해제하는 로직이 중복되었습니다. 이제 구현을 완료하고 실제로 로직이 중복된다는 점을 확인했으니, 로직을 압축할 좋은 시기입니다.</p>
+<p>우리는 <code>(ptr, cap)</code> 쌍을 추상화하여, 할당, 확장, 해제 로직을 부여할 것입니다.</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">struct RawVec&lt;T&gt; {
     ptr: NonNull&lt;T&gt;,
@@ -227,7 +227,7 @@ unsafe impl&lt;T: Sync&gt; Sync for RawVec&lt;T&gt; {}
 
 impl&lt;T&gt; RawVec&lt;T&gt; {
     fn new() -&gt; Self {
-        assert!(mem::size_of::&lt;T&gt;() != 0, "TODO: implement ZST support");
+        assert!(mem::size_of::&lt;T&gt;() != 0, "TODO: ZST 지원 구현");
         RawVec {
             ptr: NonNull::dangling(),
             cap: 0,
@@ -235,16 +235,16 @@ impl&lt;T&gt; RawVec&lt;T&gt; {
     }
 
     fn grow(&amp;mut self) {
-        // This can't overflow because we ensure self.cap &lt;= isize::MAX.
+        // self.cap &lt;= isize::MAX임을 보장하므로 오버플로할 수 없습니다.
         let new_cap = if self.cap == 0 { 1 } else { 2 * self.cap };
 
-        // Layout::array checks that the number of bytes is &lt;= usize::MAX,
-        // but this is redundant since old_layout.size() &lt;= isize::MAX,
-        // so the `unwrap` should never fail.
+        // Layout::array는 바이트 수가 usize::MAX 이하인지 확인하지만,
+        // old_layout.size() &lt;= isize::MAX이므로 이는 중복 확인입니다.
+        // 따라서 `unwrap`은 절대 실패하지 않아야 합니다.
         let new_layout = Layout::array::&lt;T&gt;(new_cap).unwrap();
 
-        // Ensure that the new allocation doesn't exceed `isize::MAX` bytes.
-        assert!(new_layout.size() &lt;= isize::MAX as usize, "Allocation too large");
+        // 새로운 할당이 `isize::MAX` 바이트를 초과하지 않도록 보장합니다.
+        assert!(new_layout.size() &lt;= isize::MAX as usize, "할당이 너무 큼");
 
         let new_ptr = if self.cap == 0 {
             unsafe { alloc::alloc(new_layout) }
@@ -254,7 +254,7 @@ impl&lt;T&gt; RawVec&lt;T&gt; {
             unsafe { alloc::realloc(old_ptr, old_layout, new_layout.size()) }
         };
 
-        // If allocation fails, `new_ptr` will be null, in which case we abort.
+        // 할당이 실패하면 `new_ptr`은 null이 되며, 이 경우 프로그램을 중단(abort)합니다.
         self.ptr = match NonNull::new(new_ptr as *mut T) {
             Some(p) =&gt; p,
             None =&gt; alloc::handle_alloc_error(new_layout),
@@ -273,7 +273,7 @@ impl&lt;T&gt; Drop for RawVec&lt;T&gt; {
         }
     }
 }</code></pre>
-<p>And change Vec as follows:</p>
+<p>그리고 Vec을 다음과 같이 변경합니다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">pub struct Vec&lt;T&gt; {
     buf: RawVec&lt;T&gt;,
@@ -296,7 +296,7 @@ impl&lt;T&gt; Vec&lt;T&gt; {
         }
     }
 
-    // push/pop/insert/remove largely unchanged:
+    // push/pop/insert/remove는 거의 변하지 않았습니다:
     // * `self.ptr.as_ptr() -&gt; self.ptr()`
     // * `self.cap -&gt; self.cap()`
     // * `self.grow() -&gt; self.buf.grow()`
@@ -305,23 +305,23 @@ impl&lt;T&gt; Vec&lt;T&gt; {
 impl&lt;T&gt; Drop for Vec&lt;T&gt; {
     fn drop(&amp;mut self) {
         while let Some(_) = self.pop() {}
-        // deallocation is handled by RawVec
+        // 할당 해제는 RawVec에 의해 처리됩니다.
     }
 }</code></pre>
-<p>And finally we can really simplify IntoIter:</p>
+<p>마지막으로 IntoIter를 정말로 단순화할 수 있습니다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">pub struct IntoIter&lt;T&gt; {
-    _buf: RawVec&lt;T&gt;, // we don't actually care about this. Just need it to live.
+    _buf: RawVec&lt;T&gt;, // 우리는 사실 이것에 신경 쓰지 않습니다. 그저 존재하기만 하면 됩니다.
     start: *const T,
     end: *const T,
 }
 
-// next and next_back literally unchanged since they never referred to the buf
+// next와 next_back은 buf를 참조하지 않았으므로 문자 그대로 변하지 않았습니다.
 
 impl&lt;T&gt; Drop for IntoIter&lt;T&gt; {
     fn drop(&amp;mut self) {
-        // only need to ensure all our elements are read;
-        // buffer will clean itself up afterwards.
+        // 모든 요소가 읽혔는지만 확인하면 됩니다.
+        // 버퍼는 나중에 스스로 정리될 것입니다.
         for _ in &amp;mut *self {}
     }
 }
@@ -330,8 +330,8 @@ impl&lt;T&gt; IntoIterator for Vec&lt;T&gt; {
     type Item = T;
     type IntoIter = IntoIter&lt;T&gt;;
     fn into_iter(self) -&gt; IntoIter&lt;T&gt; {
-        // need to use ptr::read to unsafely move the buf out since it's
-        // not Copy, and Vec implements Drop (so we can't destructure it).
+        // buf는 Copy가 아니고 Vec은 Drop을 구현하므로 (구조 해체할 수 없음),
+        // ptr::read를 사용하여 비안전하게 buf를 꺼내와야 합니다.
         let buf = unsafe { ptr::read(&amp;self.buf) };
         let len = self.len;
         mem::forget(self);
@@ -339,7 +339,7 @@ impl&lt;T&gt; IntoIterator for Vec&lt;T&gt; {
         IntoIter {
             start: buf.ptr.as_ptr(),
             end: if buf.cap == 0 {
-                // can't offset off of a pointer unless it's part of an allocation
+                // 할당된 부분의 일부가 아니라면 포인터에서 오프셋을 계산할 수 없습니다.
                 buf.ptr.as_ptr()
             } else {
                 unsafe { buf.ptr.as_ptr().add(len) }
@@ -348,7 +348,7 @@ impl&lt;T&gt; IntoIterator for Vec&lt;T&gt; {
         }
     }
 }</code></pre>
-<p>Much better.</p>
+<p>훨씬 낫네요.</p>
 
                     </main>
 

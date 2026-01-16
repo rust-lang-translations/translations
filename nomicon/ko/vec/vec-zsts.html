@@ -214,23 +214,23 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="크기-0-타입-처리"><a class="header" href="#크기-0-타입-처리">크기 0 타입 처리</a></h1>
-<p>It's time. We're going to fight the specter that is zero-sized types. Safe Rust <em>never</em> needs to care about this, but Vec is very intensive on raw pointers and raw allocations, which are exactly the two things that care about zero-sized types. We need to be careful of two things:</p>
+<p>때가 되었습니다. 우리는 크기가 0인 타입(ZST)이라는 유령과 싸워볼 것입니다. 안전한 러스트는 이에 대해 전혀 신경 쓸 필요가 없지만, Vec은 원시 포인터와 원시 할당을 집중적으로 사용하며, 이 두 가지가 바로 ZST에 주의해야 할 것들입니다. 우리는 다음 두 가지를 조심해야 합니다:</p>
 <ul>
-<li>The raw allocator API has undefined behavior if you pass in 0 for an allocation size.</li>
-<li>raw pointer offsets are no-ops for zero-sized types, which will break our C-style pointer iterator.</li>
+<li>원시 할당자 API에 할당 크기로 0을 전달하면 정의되지 않은 동작(UB)이 발생합니다.</li>
+<li>ZST에 대해 원시 포인터 오프셋 계산은 아무 일도 하지 않으므로(no-op), 우리의 C 스타일 포인터 반복자를 망가뜨릴 것입니다.</li>
 </ul>
-<p>Thankfully we abstracted out pointer-iterators and allocating handling into <code>RawValIter</code> and <code>RawVec</code> respectively. How mysteriously convenient.</p>
-<h2 id="allocating-zero-sized-types"><a class="header" href="#allocating-zero-sized-types">Allocating Zero-Sized Types</a></h2>
-<p>So if the allocator API doesn't support zero-sized allocations, what on earth do we store as our allocation? <code>NonNull::dangling()</code> of course! Almost every operation with a ZST is a no-op since ZSTs have exactly one value, and therefore no state needs to be considered to store or load them. This actually extends to <code>ptr::read</code> and <code>ptr::write</code>: they won't actually look at the pointer at all. As such we never need to change the pointer.</p>
-<p>Note however that our previous reliance on running out of memory before overflow is no longer valid with zero-sized types. We must explicitly guard against capacity overflow for zero-sized types.</p>
-<p>Due to our current architecture, all this means is writing 3 guards, one in each method of <code>RawVec</code>.</p>
+<p>다행히도 우리는 포인터 반복자와 할당 처리를 각각 <code>RawValIter</code>와 <code>RawVec</code>으로 추상화해 두었습니다. 참으로 신기할 정도로 편리하군요.</p>
+<h2 id="크기가-0인-타입-할당하기"><a class="header" href="#크기가-0인-타입-할당하기">크기가 0인 타입 할당하기</a></h2>
+<p>그렇다면 할당자 API가 0 크기 할당을 지원하지 않는다면, 도대체 할당된 메모리로 무엇을 저장해야 할까요? 당연히 <code>NonNull::dangling()</code>입니다! ZST는 정확히 하나의 값만 가지므로 거의 모든 연산이 아무 일도 하지 않으며, 따라서 이를 저장하거나 로드할 때 어떤 상태도 고려할 필요가 없습니다. 이는 사실 <code>ptr::read</code>와 <code>ptr::write</code>에도 해당됩니다. 이들은 포인터를 전혀 쳐다보지도 않을 것입니다. 따라서 우리는 포인터를 변경할 필요가 전혀 없습니다.</p>
+<p>하지만 오버플로가 발생하기 전에 메모리가 먼저 고갈될 것이라는 이전의 믿음은 ZST에 대해서는 더 이상 유효하지 않음에 유의하십시오. 우리는 ZST에 대해 용량(capacity) 오버플로를 명시적으로 방지해야 합니다.</p>
+<p>현재 우리의 구조 덕분에, <code>RawVec</code>의 각 메서드에 하나씩 총 3개의 방어 로직을 작성하기만 하면 됩니다.</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">impl&lt;T&gt; RawVec&lt;T&gt; {
     fn new() -&gt; Self {
-        // This branch should be stripped at compile time.
+        // 이 분기는 컴파일 타임에 제거되어야 합니다.
         let cap = if mem::size_of::&lt;T&gt;() == 0 { usize::MAX } else { 0 };
 
-        // `NonNull::dangling()` doubles as "unallocated" and "zero-sized allocation"
+        // `NonNull::dangling()`은 "할당되지 않음"과 "0 크기 할당"의 두 가지 역할을 모두 수행합니다.
         RawVec {
             ptr: NonNull::dangling(),
             cap,
@@ -238,25 +238,25 @@
     }
 
     fn grow(&amp;mut self) {
-        // since we set the capacity to usize::MAX when T has size 0,
-        // getting to here necessarily means the Vec is overfull.
-        assert!(mem::size_of::&lt;T&gt;() != 0, "capacity overflow");
+        // T의 크기가 0일 때 용량을 usize::MAX로 설정하므로,
+        // 여기에 도달했다는 것은 반드시 Vec이 가득 찼음을 의미합니다.
+        assert!(mem::size_of::&lt;T&gt;() != 0, "용량 오버플로");
 
         let (new_cap, new_layout) = if self.cap == 0 {
             (1, Layout::array::&lt;T&gt;(1).unwrap())
         } else {
-            // This can't overflow because we ensure self.cap &lt;= isize::MAX.
+            // self.cap &lt;= isize::MAX임을 보장하므로 오버플로할 수 없습니다.
             let new_cap = 2 * self.cap;
 
-            // `Layout::array` checks that the number of bytes is &lt;= usize::MAX,
-            // but this is redundant since old_layout.size() &lt;= isize::MAX,
-            // so the `unwrap` should never fail.
+            // `Layout::array`는 바이트 수가 usize::MAX 이하인지 확인하지만,
+            // old_layout.size() &lt;= isize::MAX이므로 이는 중복 확인입니다.
+            // 따라서 `unwrap`은 절대 실패하지 않아야 합니다.
             let new_layout = Layout::array::&lt;T&gt;(new_cap).unwrap();
             (new_cap, new_layout)
         };
 
-        // Ensure that the new allocation doesn't exceed `isize::MAX` bytes.
-        assert!(new_layout.size() &lt;= isize::MAX as usize, "Allocation too large");
+        // 새로운 할당이 `isize::MAX` 바이트를 초과하지 않도록 보장합니다.
+        assert!(new_layout.size() &lt;= isize::MAX as usize, "할당이 너무 큼");
 
         let new_ptr = if self.cap == 0 {
             unsafe { alloc::alloc(new_layout) }
@@ -266,7 +266,7 @@
             unsafe { alloc::realloc(old_ptr, old_layout, new_layout.size()) }
         };
 
-        // If allocation fails, `new_ptr` will be null, in which case we abort.
+        // 할당이 실패하면 `new_ptr`은 null이 되며, 이 경우 프로그램을 중단(abort)합니다.
         self.ptr = match NonNull::new(new_ptr as *mut T) {
             Some(p) =&gt; p,
             None =&gt; alloc::handle_alloc_error(new_layout),
@@ -289,9 +289,9 @@ impl&lt;T&gt; Drop for RawVec&lt;T&gt; {
         }
     }
 }</code></pre>
-<p>That's it. We support pushing and popping zero-sized types now. Our iterators (that aren't provided by slice Deref) are still busted, though.</p>
-<h2 id="iterating-zero-sized-types"><a class="header" href="#iterating-zero-sized-types">Iterating Zero-Sized Types</a></h2>
-<p>Zero-sized offsets are no-ops. This means that our current design will always initialize <code>start</code> and <code>end</code> as the same value, and our iterators will yield nothing. The current solution to this is to cast the pointers to integers, increment, and then cast them back:</p>
+<p>됐습니다. 이제 크기가 0인 타입을 밀어 넣고(pushing) 뽑아내는(popping) 것이 가능해졌습니다. 하지만 슬라이스 Deref를 통해 제공되지 않는 우리의 반복자들은 여전히 고장 난 상태입니다.</p>
+<h2 id="크기가-0인-타입-반복하기"><a class="header" href="#크기가-0인-타입-반복하기">크기가 0인 타입 반복하기</a></h2>
+<p>크기가 0일 때 오프셋 계산은 아무 일도 하지 않습니다. 이는 우리의 현재 설계에서 <code>start</code>와 <code>end</code>가 항상 동일한 값으로 초기화되어, 반복자가 아무것도 생성하지 않을 것임을 의미합니다. 현재 이 문제에 대한 해결책은 포인터를 정수로 변환하여 증가시킨 뒤, 다시 포인터로 변환하는 것입니다.</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">impl&lt;T&gt; RawValIter&lt;T&gt; {
     unsafe fn new(slice: &amp;[T]) -&gt; Self {
@@ -307,7 +307,7 @@ impl&lt;T&gt; Drop for RawVec&lt;T&gt; {
         }
     }
 }</code></pre>
-<p>Now we have a different bug. Instead of our iterators not running at all, our iterators now run <em>forever</em>. We need to do the same trick in our iterator impls. Also, our size_hint computation code will divide by 0 for ZSTs. Since we'll basically be treating the two pointers as if they point to bytes, we'll just map size 0 to divide by 1. Here's what <code>next</code> will be:</p>
+<p>이제 또 다른 버그가 생겼습니다. 반복자가 아예 실행되지 않는 대신, 이제는 <em>영원히</em> 실행됩니다. 우리는 반복자 구현에서도 동일한 기술을 써야 합니다. 또한, 우리의 <code>size_hint</code> 계산 코드는 ZST에 대해 0으로 나누기를 시도할 것입니다. 우리는 기본적으로 두 포인터를 바이트를 가리키는 것처럼 다룰 것이므로, 크기 0을 1로 나누도록 매핑할 것입니다. 다음은 <code>next</code>가 될 코드입니다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">fn next(&amp;mut self) -&gt; Option&lt;T&gt; {
     if self.start == self.end {
@@ -324,9 +324,9 @@ impl&lt;T&gt; Drop for RawVec&lt;T&gt; {
         }
     }
 }</code></pre>
-<p>Do you see the "bug"? No one else did! The original author only noticed the problem when linking to this page years later. This code is kind of dubious because abusing the iterator pointers to be <em>counters</em> makes them unaligned! Our <em>one job</em> when using ZSTs is to keep pointers aligned! <em>forehead slap</em></p>
-<p>Raw pointers don't need to be aligned at all times, so the basic trick of using pointers as counters is <em>fine</em>, but they <em>should</em> definitely be aligned when passed to <code>ptr::read</code>! This is <em>possibly</em> needless pedantry because <code>ptr::read</code> is a noop for a ZST, but let's be a <em>little</em> more responsible and read from <code>NonNull::dangling</code> on the ZST path.</p>
-<p>(Alternatively you could call <code>read_unaligned</code> on the ZST path. Either is fine, because either way we're making up a value from nothing and it all compiles to doing nothing.)</p>
+<p>"버그"가 보이시나요? 아무도 못 봤을 겁니다! 원작자조차 몇 년 후에야 이 페이지에 링크를 걸다가 문제를 발견했습니다. 이 코드는 반복자 포인터를 _카운터_로 오용하여 포인터를 정렬되지 않은 상태로 만들기 때문에 다소 미심쩍습니다! ZST를 사용할 때 우리의 _유일한 임무_는 포인터를 정렬된 상태로 유지하는 것인데 말이죠! <em>이마를 탁 칩니다</em></p>
+<p>원시 포인터가 항상 정렬되어 있을 필요는 없으므로, 포인터를 카운터로 사용하는 기본적인 기법은 <em>괜찮습니다</em>. 하지만 <code>ptr::read</code>에 전달될 때는 반드시 정렬되어 있어야 합니다! ZST에 대해 <code>ptr::read</code>는 아무 일도 하지 않으므로 이는 <em>아마도</em> 불필요한 세세함일 수 있지만, 조금 더 책임감을 가지고 ZST 경로에서는 <code>NonNull::dangling</code>에서 읽어오도록 합시다.</p>
+<p>(또는 ZST 경로에서 <code>read_unaligned</code>를 호출할 수도 있습니다. 어느 쪽이든 괜찮습니다. 어차피 아무것도 없는 상태에서 값을 만들어내는 것이고, 결국 아무 일도 하지 않는 것으로 컴파일되기 때문입니다.)</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">impl&lt;T&gt; Iterator for RawValIter&lt;T&gt; {
     type Item = T;
@@ -372,7 +372,7 @@ impl&lt;T&gt; DoubleEndedIterator for RawValIter&lt;T&gt; {
         }
     }
 }</code></pre>
-<p>And that's it. Iteration works!</p>
+<p>이제 끝났습니다. 반복이 잘 작동합니다!</p>
 
                     </main>
 

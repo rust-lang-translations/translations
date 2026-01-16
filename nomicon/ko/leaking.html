@@ -214,47 +214,47 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="누수"><a class="header" href="#누수">누수</a></h1>
-<p>Ownership-based resource management is intended to simplify composition. You acquire resources when you create the object, and you release the resources when it gets destroyed. Since destruction is handled for you, it means you can't forget to release the resources, and it happens as soon as possible! Surely this is perfect and all of our problems are solved.</p>
-<p>Everything is terrible and we have new and exotic problems to try to solve.</p>
-<p>Many people like to believe that Rust eliminates resource leaks. In practice, this is basically true. You would be surprised to see a Safe Rust program leak resources in an uncontrolled way.</p>
-<p>However from a theoretical perspective this is absolutely not the case, no matter how you look at it. In the strictest sense, "leaking" is so abstract as to be unpreventable. It's quite trivial to initialize a collection at the start of a program, fill it with tons of objects with destructors, and then enter an infinite event loop that never refers to it. The collection will sit around uselessly, holding on to its precious resources until the program terminates (at which point all those resources would have been reclaimed by the OS anyway).</p>
-<p>We may consider a more restricted form of leak: failing to drop a value that is unreachable. Rust also doesn't prevent this. In fact Rust <em>has a function for doing this</em>: <code>mem::forget</code>. This function consumes the value it is passed <em>and then doesn't run its destructor</em>.</p>
-<p>In the past <code>mem::forget</code> was marked as unsafe as a sort of lint against using it, since failing to call a destructor is generally not a well-behaved thing to do (though useful for some special unsafe code). However this was generally determined to be an untenable stance to take: there are many ways to fail to call a destructor in safe code. The most famous example is creating a cycle of reference-counted pointers using interior mutability.</p>
-<p>It is reasonable for safe code to assume that destructor leaks do not happen, as any program that leaks destructors is probably wrong. However <em>unsafe</em> code cannot rely on destructors to be run in order to be safe. For most types this doesn't matter: if you leak the destructor then the type is by definition inaccessible, so it doesn't matter, right? For instance, if you leak a <code>Box&lt;u8&gt;</code> then you waste some memory but that's hardly going to violate memory-safety.</p>
-<p>However where we must be careful with destructor leaks are <em>proxy</em> types. These are types which manage access to a distinct object, but don't actually own it. Proxy objects are quite rare. Proxy objects you'll need to care about are even rarer. However we'll focus on three interesting examples in the standard library:</p>
+<p>소유권 기반 자원 관리는 구성을 단순화하기 위해 고안되었습니다. 객체를 생성할 때 자원을 획득하고, 객체가 파괴될 때 자원을 해제합니다. 파괴 처리가 자동으로 이루어지므로 자원 해제를 잊어버릴 염려가 없으며, 최대한 빨리 자원이 해제됩니다! 분명히 이는 완벽하며 우리의 모든 문제가 해결된 것 같습니다.</p>
+<p>하지만 모든 것은 끔찍하며, 우리는 해결해야 할 새롭고 기이한 문제들을 마주하게 되었습니다.</p>
+<p>많은 사람들이 러스트가 자원 누수를 완전히 제거한다고 믿고 싶어 합니다. 실질적으로 이는 대체로 사실입니다. 안전한 러스트 프로그램이 통제되지 않은 방식으로 자원을 누수하는 것을 본다면 놀라실 것입니다.</p>
+<p>하지만 이론적인 관점에서 보면, 어떻게 보더라도 결코 그렇지 않습니다. 엄밀한 의미에서 "누수(leaking)"는 너무나 추상적인 개념이어서 방지하는 것이 불가능합니다. 프로그램 시작 시점에 컬렉션을 초기화하고 소멸자가 있는 수많은 객체들로 채운 뒤, 그 컬렉션을 한 번도 참조하지 않는 무한 이벤트 루프에 진입하는 것은 매우 쉽습니다. 그러면 그 컬렉션은 프로그램이 종료될 때까지(그 시점에는 어차피 OS가 모든 자원을 회수하겠지만) 소중한 자원들을 붙잡고 무의미하게 자리만 차지하고 있을 것입니다.</p>
+<p>더 제한적인 형태의 누수를 고려해 봅시다. 즉, 도달 불가능한 값의 드롭을 수행하지 못하는 경우입니다. 러스트는 이 또한 방지하지 않습니다. 사실 러스트에는 _이를 수행하기 위한 함수_가 있습니다: 바로 <code>mem::forget</code>입니다. 이 함수는 전달받은 값을 소비하고는 <em>그 소멸자를 실행하지 않습니다</em>.</p>
+<p>과거에 <code>mem::forget</code>은 소멸자 호출을 빠뜨리는 것이 대체로 바람직하지 않은 행동이기에 (특수한 unsafe 코드에는 유용함에도 불구하고) 일종의 경고 의미로 <code>unsafe</code>로 표시되었습니다. 하지만 이는 지지받기 어려운 입장이라는 판단이 내려졌습니다. 안전한 코드에서도 소멸자 호출을 수행하지 못하게 만드는 방법은 매우 많기 때문입니다. 가장 유명한 예시는 내부 가변성(interior mutability)을 사용하여 참조 횟수 계산(reference-counted) 포인터의 순환 참조를 만드는 것입니다.</p>
+<p>안전한 코드에서 소멸자 누수가 발생하지 않는다고 가정하는 것은 합리적입니다. 소멸자를 누수하는 프로그램은 대개 잘못된 것이기 때문입니다. 하지만 <em>비안전한(unsafe)</em> 코드는 안전성을 보장하기 위해 소멸자가 반드시 실행될 것이라고 믿어서는 안 됩니다. 대부분의 타입에 대해 이는 큰 문제가 아닙니다. 소멸자가 누수된다면 해당 타입은 정의상 접근이 불가능하므로 상관없지 않겠습니까? 예를 들어, <code>Box&lt;u8&gt;</code>을 누수한다면 메모리를 낭비하게 되겠지만 그것이 메모리 안전성을 위반하지는 않습니다.</p>
+<p>하지만 소멸자 누수와 관련하여 주의해야 할 대상은 <em>프록시(proxy)</em> 타입들입니다. 이것들은 별개의 객체에 대한 접근을 관리하지만, 실제로 그 객체를 소유하지는 않는 타입들입니다. 프록시 객체는 꽤 드물며, 여러분이 신경 써야 할 프록시 객체는 더욱 드뭅니다. 하지만 여기서는 표준 라이브러리에 있는 세 가지 흥미로운 예시에 집중해 보겠습니다:</p>
 <ul>
 <li><code>vec::Drain</code></li>
 <li><code>Rc</code></li>
 <li><code>thread::scoped::JoinGuard</code></li>
 </ul>
 <h2 id="드레인"><a class="header" href="#드레인">드레인</a></h2>
-<p><code>drain</code> is a collections API that moves data out of the container without consuming the container. This enables us to reuse the allocation of a <code>Vec</code> after claiming ownership over all of its contents. It produces an iterator (Drain) that returns the contents of the Vec by-value.</p>
-<p>Now, consider Drain in the middle of iteration: some values have been moved out, and others haven't. This means that part of the Vec is now full of logically uninitialized data! We could backshift all the elements in the Vec every time we remove a value, but this would have pretty catastrophic performance consequences.</p>
-<p>Instead, we would like Drain to fix the Vec's backing storage when it is dropped. It should run itself to completion, backshift any elements that weren't removed (drain supports subranges), and then fix Vec's <code>len</code>. It's even unwinding-safe! Easy!</p>
-<p>Now consider the following:</p>
+<p><code>drain</code>은 컨테이너를 소비하지 않고 컨테이너 내부의 데이터를 밖으로 이동시키는 컬렉션 API입니다. 이를 통해 우리는 <code>Vec</code>의 모든 내용물에 대한 소유권을 가져온 뒤 해당 <code>Vec</code>의 할당된 메모리를 재사용할 수 있습니다. <code>drain</code>은 <code>Vec</code>의 내용물을 값으로 반환하는 반복자(<code>Drain</code>)를 생성합니다.</p>
+<p>이제 반복 중간의 <code>Drain</code>을 고려해 봅시다. 일부 값은 밖으로 이동되었고, 다른 값들은 아직 남아 있습니다. 이는 <code>Vec</code>의 일부가 이제 논리적으로 초기화되지 않은 데이터로 가득 차 있음을 의미합니다! 값을 제거할 때마다 <code>Vec</code>의 모든 요소들을 앞으로 당길 수도 있겠지만, 이는 심각한 성능 저하를 초래할 것입니다.</p>
+<p>대신, 우리는 <code>Drain</code>이 드롭될 때 <code>Vec</code>의 저장 공간을 복구해주기를 원합니다. 드롭될 때 남은 반복을 끝까지 수행하고, 제거되지 않은 요소들을 앞으로 당기고(drain은 하위 범위를 지원하므로), <code>Vec</code>의 <code>len</code>을 수정해야 합니다. 이는 심지어 언와인딩(unwinding)에도 안전합니다! 참 쉽죠!</p>
+<p>이제 다음 상황을 고려해 봅시다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">let mut vec = vec![Box::new(0); 4];
 
 {
-    // start draining, vec can no longer be accessed
+    // 드레인을 시작합니다. 이제 vec에 직접 접근할 수 없습니다.
     let mut drainer = vec.drain(..);
 
-    // pull out two elements and immediately drop them
+    // 두 개의 요소를 꺼내고 즉시 드롭합니다.
     drainer.next();
     drainer.next();
 
-    // get rid of drainer, but don't call its destructor
+    // 드레이너를 제거하지만, 소멸자를 호출하지는 않습니다.
     mem::forget(drainer);
 }
 
-// Oops, vec[0] was dropped, we're reading a pointer into free'd memory!
+// 맙소사, `vec[0]`이 드롭되었습니다. 우리는 이미 해제된 메모리를 가리키는 포인터를 읽고 있습니다!
 println!("{}", vec[0]);</code></pre>
-<p>This is pretty clearly Not Good. Unfortunately, we're kind of stuck between a rock and a hard place: maintaining consistent state at every step has an enormous cost (and would negate any benefits of the API). Failing to maintain consistent state gives us Undefined Behavior in safe code (making the API unsound).</p>
-<p>So what can we do? Well, we can pick a trivially consistent state: set the Vec's len to be 0 when we start the iteration, and fix it up if necessary in the destructor. That way, if everything executes like normal we get the desired behavior with minimal overhead. But if someone has the <em>audacity</em> to mem::forget us in the middle of the iteration, all that does is <em>leak even more</em> (and possibly leave the Vec in an unexpected but otherwise consistent state). Since we've accepted that mem::forget is safe, this is definitely safe. We call leaks causing more leaks a <em>leak amplification</em>.</p>
+<p>이것은 분명히 좋지 않은 상황입니다. 불행히도 우리는 진퇴양난에 빠져 있습니다. 모든 단계에서 일관된 상태를 유지하는 것은 엄청난 비용이 들며(이 API의 모든 이점을 상쇄할 것입니다), 일관된 상태를 유지하지 못하면 안전한 코드에서 정의되지 않은 동작이 발생하게 됩니다(API가 불건전해집니다).</p>
+<p>그렇다면 우리는 무엇을 할 수 있을까요? 음, 우리는 아주 단순하고 일관된 상태를 선택할 수 있습니다. 반복을 시작할 때 <code>Vec</code>의 길이를 0으로 설정하고, 소멸자에서 필요한 경우 이를 복구하는 것입니다. 그렇게 하면 모든 것이 정상적으로 실행될 때 최소한의 오버헤드로 원하는 동작을 얻을 수 있습니다. 하지만 누군가가 <em>뻔뻔하게도</em> 반복 중간에 <code>mem::forget</code>을 호출한다면, 그로 인해 발생하는 일은 단지 _더 많은 누수_가 발생하는 것뿐입니다(그리고 <code>Vec</code>을 예상치 못했지만 어쨌든 일관된 상태로 남겨둘 것입니다). 우리는 <code>mem::forget</code>이 안전하다는 것을 받아들였으므로, 이는 분명히 안전합니다. 우리는 누수가 더 많은 누수를 일으키는 것을 _누수 증폭(leak amplification)_이라고 부릅니다.</p>
 <h2 id="rc"><a class="header" href="#rc">Rc</a></h2>
-<p>Rc is an interesting case because at first glance it doesn't appear to be a proxy value at all. After all, it manages the data it points to, and dropping all the Rcs for a value will drop that value. Leaking an Rc doesn't seem like it would be particularly dangerous. It will leave the refcount permanently incremented and prevent the data from being freed or dropped, but that seems just like Box, right?</p>
-<p>Nope.</p>
-<p>Let's consider a simplified implementation of Rc:</p>
+<p><code>Rc</code>는 언뜻 보기에 프록시 값이 전혀 아닌 것처럼 보이기 때문에 흥미로운 사례입니다. 결국 <code>Rc</code>는 자신이 가리키는 데이터를 관리하며, 어떤 값에 대한 모든 <code>Rc</code>들을 드롭하면 해당 값도 드롭되기 때문입니다. <code>Rc</code>를 누수시키는 것은 특별히 위험해 보이지 않습니다. 참조 횟수를 영구적으로 증가된 상태로 남겨두어 데이터가 해제되거나 드롭되는 것을 방지하겠지만, 이는 <code>Box</code>와 마찬가지인 것 같습니다, 그렇죠?</p>
+<p>아니요.</p>
+<p>간략화된 <code>Rc</code> 구현을 고려해 봅시다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">struct Rc&lt;T&gt; {
     ptr: *mut RcBox&lt;T&gt;,
@@ -268,7 +268,7 @@ struct RcBox&lt;T&gt; {
 impl&lt;T&gt; Rc&lt;T&gt; {
     fn new(data: T) -&gt; Self {
         unsafe {
-            // Wouldn't it be nice if heap::allocate worked like this?
+            // heap::allocate가 이런 식으로 작동하면 좋지 않을까요?
             let ptr = heap::allocate::&lt;RcBox&lt;T&gt;&gt;();
             ptr::write(ptr, RcBox {
                 data,
@@ -291,65 +291,61 @@ impl&lt;T&gt; Drop for Rc&lt;T&gt; {
         unsafe {
             (*self.ptr).ref_count -= 1;
             if (*self.ptr).ref_count == 0 {
-                // drop the data and then free it
+                // 데이터를 드롭하고 메모리를 해제합니다
                 ptr::read(self.ptr);
                 heap::deallocate(self.ptr);
             }
         }
     }
 }</code></pre>
-<p>This code contains an implicit and subtle assumption: <code>ref_count</code> can fit in a <code>usize</code>, because there can't be more than <code>usize::MAX</code> Rcs in memory. However this itself assumes that the <code>ref_count</code> accurately reflects the number of Rcs in memory, which we know is false with <code>mem::forget</code>. Using <code>mem::forget</code> we can overflow the <code>ref_count</code>, and then get it down to 0 with outstanding Rcs. Then we can happily use-after-free the inner data. Bad Bad Not Good.</p>
-<p>This can be solved by just checking the <code>ref_count</code> and doing <em>something</em>. The standard library's stance is to just abort, because your program has become horribly degenerate. Also <em>oh my gosh</em> it's such a ridiculous corner case.</p>
+<p>이 코드에는 암시적이고 미묘한 가정이 포함되어 있습니다. 메모리에 <code>usize::MAX</code> 개 이상의 <code>Rc</code>가 있을 수 없으므로 <code>ref_count</code>가 <code>usize</code>에 딱 맞을 것이라는 가정입니다. 하지만 이는 <code>ref_count</code>가 메모리에 있는 <code>Rc</code>의 개수를 정확히 반영한다는 것을 전제로 하는데, 우리는 <code>mem::forget</code>으로 인해 이것이 거짓이 될 수 있음을 압니다. <code>mem::forget</code>을 사용하면 <code>ref_count</code>를 오버플로시킬 수 있고, 여전히 <code>Rc</code>가 남아있음에도 불구하고 0까지 떨어뜨릴 수 있습니다. 그러면 기분 좋게(?) 내부 데이터를 해제 후 사용(use-after-free)하게 됩니다. 정말 정말 좋지 않은 일이죠.</p>
+<p>이는 <code>ref_count</code>를 확인하고 어떤 조치를 취함으로써 해결할 수 있습니다. 표준 라이브러리의 입장은 그냥 중단(abort)하는 것인데, 프로그램이 지독하게 타락해버렸기 때문입니다. 또한, <em>세상에나</em> 이건 정말 말도 안 되는 특수한 사례입니다.</p>
 <h2 id="threadscopedjoinguard"><a class="header" href="#threadscopedjoinguard">thread::scoped::JoinGuard</a></h2>
 <blockquote>
-<p>Note: This API has already been removed from std, for more information you may refer <a href="https://github.com/rust-lang/rust/issues/24292">issue #24292</a>.</p>
-<p>This section remains here because we think this example is still important, regardless of whether it is part of std or not.</p>
+<p>참고: 이 API는 이미 표준 라이브러리에서 제거되었습니다. 더 자세한 내용은 <a href="https://github.com/rust-lang/rust/issues/24292">이슈 #24292</a>를 참조하세요.</p>
+<p>이 섹션이 여기에 남아있는 이유는, 표준 라이브러리의 일부인지 여부와 관계없이 이 예제가 여전히 중요하다고 생각하기 때문입니다.</p>
 </blockquote>
-<p>The thread::scoped API intended to allow threads to be spawned that reference data on their parent's stack without any synchronization over that data by ensuring the parent joins the thread before any of the shared data goes out of scope.</p>
+<p><code>thread::scoped</code> API는 부모 스레드의 스택에 있는 데이터를 참조하는 자식 스레드를 별도의 동기화 없이 생성할 수 있도록 고안되었습니다. 이는 공유된 데이터가 스코프를 벗어나기 전에 부모 스레드가 반드시 자식 스레드를 조인(join)하도록 보장함으로써 가능했습니다.</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">pub fn scoped&lt;'a, F&gt;(f: F) -&gt; JoinGuard&lt;'a&gt;
     where F: FnOnce() + Send + 'a</code></pre>
-<p>Here <code>f</code> is some closure for the other thread to execute. Saying that <code>F: Send + 'a</code> is saying that it closes over data that lives for <code>'a</code>, and it either owns that data or the data was Sync (implying <code>&amp;data</code> is Send).</p>
-<p>Because JoinGuard has a lifetime, it keeps all the data it closes over borrowed in the parent thread. This means the JoinGuard can't outlive the data that the other thread is working on. When the JoinGuard <em>does</em> get dropped it blocks the parent thread, ensuring the child terminates before any of the closed-over data goes out of scope in the parent.</p>
-<p>Usage looked like:</p>
+<p>여기서 <code>f</code>는 다른 스레드에서 실행될 클로저입니다. <code>F: Send + 'a</code>라는 것은 이 클로저가 <code>'a</code> 동안 살아있는 데이터를 캡처하며, 그 데이터를 소유하거나 캡처된 데이터가 <code>Sync</code>임을(즉, <code>&amp;data</code>가 <code>Send</code>임을) 의미합니다.</p>
+<p><code>JoinGuard</code>는 수명을 가지고 있기 때문에, 캡처한 모든 데이터를 부모 스레드에서 대여 중인 상태로 유지합니다. 이는 <code>JoinGuard</code>가 다른 스레드가 작업 중인 데이터보다 오래 살 수 없음을 의미합니다. <code>JoinGuard</code>가 실제로 드롭될 때, 부모 스레드를 차단(block)하여 캡처된 데이터가 부모 스레드에서 스코프를 벗어나기 전에 자식 스레드가 반드시 종료되도록 보장합니다.</p>
+<p>사용법은 다음과 같았습니다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">let mut data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 {
     let mut guards = vec![];
     for x in &amp;mut data {
-        // Move the mutable reference into the closure, and execute
-        // it on a different thread. The closure has a lifetime bound
-        // by the lifetime of the mutable reference `x` we store in it.
-        // The guard that is returned is in turn assigned the lifetime
-        // of the closure, so it also mutably borrows `data` as `x` did.
-        // This means we cannot access `data` until the guard goes away.
+        // 가변 참조를 클로저로 이동시키고, 다른 스레드에서 실행합니다.
+        // 클로저는 내부에 저장된 가변 참조 `x`에 의해 수명이 제한됩니다.
+        // 반환되는 가드(guard)는 클로저의 수명을 할당받으므로,
+        // `x`가 그랬던 것처럼 `data`를 가변으로 대여합니다.
+        // 이는 가드가 사라지기 전까지는 `data`에 접근할 수 없음을 의미합니다.
         let guard = thread::scoped(move || {
             *x *= 2;
         });
-        // store the thread's guard for later
+        // 나중에 사용하기 위해 스레드 가드를 저장합니다
         guards.push(guard);
     }
-    // All guards are dropped here, forcing the threads to join
-    // (this thread blocks here until the others terminate).
-    // Once the threads join, the borrow expires and the data becomes
-    // accessible again in this thread.
+    // 모든 가드들이 여기서 드롭되어 스레드들이 조인되도록 강제합니다
+    // (이 스레드는 다른 스레드들이 종료될 때까지 여기서 차단됩니다).
+    // 스레드들이 조인되면 대여가 만료되고 데이터에 다시 접근할 수 있게 됩니다.
 }
-// data is definitely mutated here.</code></pre>
-<p>In principle, this totally works! Rust's ownership system perfectly ensures it! ...except it relies on a destructor being called to be safe.</p>
+// 여기서 데이터는 확실하게 변경된 상태입니다.</code></pre>
+<p>원칙적으로 이는 완벽하게 작동합니다! 러스트의 소유권 시스템이 이를 완벽하게 보장합니다! 하지만... 안전을 위해 소멸자가 반드시 호출되어야 한다는 점에 의존하고 있습니다.</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">let mut data = Box::new(0);
 {
     let guard = thread::scoped(|| {
-        // This is at best a data race. At worst, it's also a use-after-free.
+        // 이것은 기껏해야 데이터 경쟁이고, 최악의 경우 해제 후 사용(use-after-free)이기도 합니다.
         *data += 1;
     });
-    // Because the guard is forgotten, expiring the loan without blocking this
-    // thread.
+    // 가드가 잊혀졌기 때문에(forgotten), 이 스레드를 차단하지 않고 대여를 만료시킵니다.
     mem::forget(guard);
 }
-// So the Box is dropped here while the scoped thread may or may not be trying
-// to access it.</code></pre>
-<p>Dang. Here the destructor running was pretty fundamental to the API, and it had to be scrapped in favor of a completely different design.</p>
+// 따라서 스코프 스레드가 박스에 접근하려고 시도할지도 모르는 상황에서 여기서 박스가 드롭됩니다.</code></pre>
+<p>이런. 여기서는 소멸자의 실행이 API의 근간이었는데, 결국 이 방식은 폐기되고 완전히 다른 설계로 대체되어야 했습니다.</p>
 
                     </main>
 

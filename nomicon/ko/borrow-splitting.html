@@ -214,7 +214,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="차용-분할"><a class="header" href="#차용-분할">차용 분할</a></h1>
-<p>The mutual exclusion property of mutable references can be very limiting when working with a composite structure. The borrow checker (a.k.a. borrowck) understands some basic stuff, but will fall over pretty easily. It does understand structs sufficiently to know that it's possible to borrow disjoint fields of a struct simultaneously. So this works today:</p>
+<p>가변 참조의 상호 배제(mutual exclusion) 속성은 복합 구조체로 작업할 때 매우 제한적일 수 있습니다. 빌림 검사기(borrowck)는 몇 가지 기본적인 사항은 이해하지만, 꽤 쉽게 한계에 부딪힙니다. 구조체에 대해서는 충분히 이해하고 있어서, 구조체의 서로 겹치지 않는(disjoint) 필드들을 동시에 대여하는 것이 가능하다는 것을 압니다. 따라서 다음과 같은 코드는 오늘날 정상적으로 작동합니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Foo {
@@ -232,7 +232,7 @@ let c2 = &amp;x.c;
 *a += 10;
 println!("{} {} {} {}", a, b, c, c2);
 <span class="boring">}</span></code></pre></pre>
-<p>However borrowck doesn't understand arrays or slices in any way, so this doesn't work:</p>
+<p>하지만 빌림 검사기는 배열이나 슬라이스를 전혀 이해하지 못하므로, 다음과 같은 코드는 작동하지 않습니다:</p>
 <pre><pre class="playground"><code class="language-rust compile_fail edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut x = [1, 2, 3];
@@ -240,21 +240,21 @@ let a = &amp;mut x[0];
 let b = &amp;mut x[1];
 println!("{} {}", a, b);
 <span class="boring">}</span></code></pre></pre>
-<pre><code class="language-text">error[E0499]: cannot borrow `x[..]` as mutable more than once at a time
+<pre><code class="language-text">error[E0499]: `x[..]`를 한 번에 두 번 이상 가변으로 대여할 수 없습니다
  --&gt; src/lib.rs:4:18
   |
 3 |     let a = &amp;mut x[0];
-  |                  ---- first mutable borrow occurs here
+  |                  ---- 첫 번째 가변 대여가 여기서 발생함
 4 |     let b = &amp;mut x[1];
-  |                  ^^^^ second mutable borrow occurs here
+  |                  ^^^^ 두 번째 가변 대여가 여기서 발생함
 5 |     println!("{} {}", a, b);
 6 | }
-  | - first borrow ends here
+  | - 첫 번째 대여가 여기서 끝남
 
-error: aborting due to previous error
+error: 이전 에러로 인해 중단됨
 </code></pre>
-<p>While it was plausible that borrowck could understand this simple case, it's pretty clearly hopeless for borrowck to understand disjointness in general container types like a tree, especially if distinct keys actually <em>do</em> map to the same value.</p>
-<p>In order to "teach" borrowck that what we're doing is ok, we need to drop down to unsafe code. For instance, mutable slices expose a <code>split_at_mut</code> function that consumes the slice and returns two mutable slices. One for everything to the left of the index, and one for everything to the right. Intuitively we know this is safe because the slices don't overlap, and therefore alias. However the implementation requires some unsafety:</p>
+<p>빌림 검사기가 이 간단한 사례를 이해할 수 있을 것이라는 기대는 해볼 수 있겠지만, 트리와 같은 일반적인 컨테이너 타입에서 서로 겹치지 않음을 이해하는 것은 분명히 가망이 없습니다. 특히 서로 다른 키들이 실제로 <em>같은</em> 값을 가리키는 경우라면 더더욱 그렇습니다.</p>
+<p>우리가 하려는 일이 괜찮다는 것을 빌림 검사기에게 "가르치기" 위해, 우리는 unsafe 코드로 내려가야 합니다. 예를 들어, 가변 슬라이스는 슬라이스를 소비하고 두 개의 가변 슬라이스를 반환하는 <code>split_at_mut</code> 함수를 노출합니다. 하나는 인덱스의 왼쪽 전부를 위한 것이고, 다른 하나는 오른쪽 전부를 위한 것입니다. 직관적으로 우리는 이 슬라이스들이 겹치지 않으며 따라서 별칭이 발생하지 않으므로 안전하다는 것을 압니다. 하지만 그 구현에는 약간의 비안전성(unsafety)이 필요합니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use std::slice::from_raw_parts_mut;
@@ -275,8 +275,8 @@ error: aborting due to previous error
 }
 <span class="boring">}
 </span><span class="boring">}</span></code></pre></pre>
-<p>This is actually a bit subtle. So as to avoid ever making two <code>&amp;mut</code>'s to the same value, we explicitly construct brand-new slices through raw pointers.</p>
-<p>However more subtle is how iterators that yield mutable references work. The iterator trait is defined as follows:</p>
+<p>이것은 사실 약간 미묘합니다. 같은 값에 대해 두 개의 <code>&amp;mut</code>를 만드는 상황을 피하기 위해, 우리는 원시 포인터를 통해 완전히 새로운 슬라이스를 명시적으로 생성합니다.</p>
+<p>하지만 가변 참조를 생성하는 반복자가 어떻게 작동하는지는 훨씬 더 미묘합니다. 반복자 트레잇은 다음과 같이 정의됩니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>trait Iterator {
@@ -285,11 +285,11 @@ error: aborting due to previous error
     fn next(&amp;mut self) -&gt; Option&lt;Self::Item&gt;;
 }
 <span class="boring">}</span></code></pre></pre>
-<p>Given this definition, Self::Item has <em>no</em> connection to <code>self</code>. This means that we can call <code>next</code> several times in a row, and hold onto all the results <em>concurrently</em>. This is perfectly fine for by-value iterators, which have exactly these semantics. It's also actually fine for shared references, as they admit arbitrarily many references to the same thing (although the iterator needs to be a separate object from the thing being shared).</p>
-<p>But mutable references make this a mess. At first glance, they might seem completely incompatible with this API, as it would produce multiple mutable references to the same object!</p>
-<p>However it actually <em>does</em> work, exactly because iterators are one-shot objects. Everything an IterMut yields will be yielded at most once, so we don't actually ever yield multiple mutable references to the same piece of data.</p>
-<p>Perhaps surprisingly, mutable iterators don't require unsafe code to be implemented for many types!</p>
-<p>For instance here's a singly linked list:</p>
+<p>이 정의에 따르면, <code>Self::Item</code>은 <code>self</code>와 아무런 연결 고리가 없습니다. 이는 우리가 <code>next</code>를 여러 번 연속해서 호출하고, 모든 결과들을 <em>동시에</em> 들고 있을 수 있음을 의미합니다. 이는 정확히 이러한 의미론을 가진 값에 의한(by-value) 반복자에게는 완벽하게 괜찮습니다. 공유 참조의 경우에도 동일한 대상에 대해 임의의 개수만큼 참조를 허용하므로 괜찮습니다 (물론 반복자는 공유되는 대상과는 별개의 객체여야 합니다).</p>
+<p>하지만 가변 참조는 이를 엉망으로 만듭니다. 언뜻 보기에는 동일한 객체에 대해 여러 개의 가변 참조를 생성할 수 있으므로 이 API와 완전히 호환되지 않는 것처럼 보일 수 있습니다!</p>
+<p>하지만 반복자는 일회성(one-shot) 객체이기 때문에 실제로 <em>작동합니다</em>. <code>IterMut</code>가 생성하는 모든 것은 기껏해야 한 번만 생성되므로, 우리는 실제로 동일한 데이터 조각에 대해 여러 개의 가변 참조를 생성하지 않습니다.</p>
+<p>놀랍게도, 가변 반복자를 구현할 때 많은 타입들에 대해 unsafe 코드가 필요하지 않습니다!</p>
+<p>예를 들어, 여기 단일 연결 리스트(singly linked list)가 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {}
 </span>type Link&lt;T&gt; = Option&lt;Box&lt;Node&lt;T&gt;&gt;&gt;;
 
@@ -320,7 +320,7 @@ impl&lt;'a, T&gt; Iterator for IterMut&lt;'a, T&gt; {
         })
     }
 }</code></pre></pre>
-<p>Here's a mutable slice:</p>
+<p>여기 가변 슬라이스가 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {}
 </span>use std::mem;
 
@@ -350,7 +350,7 @@ impl&lt;'a, T&gt; DoubleEndedIterator for IterMut&lt;'a, T&gt; {
         r.get_mut(0)
     }
 }</code></pre></pre>
-<p>And here's a binary tree:</p>
+<p>그리고 여기 이진 트리(binary tree)가 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {}
 </span>use std::collections::VecDeque;
 
@@ -454,7 +454,7 @@ impl&lt;'a, T&gt; DoubleEndedIterator for IterMut&lt;'a, T&gt; {
         }
     }
 }</code></pre></pre>
-<p>All of these are completely safe and work on stable Rust! This ultimately falls out of the simple struct case we saw before: Rust understands that you can safely split a mutable reference into subfields. We can then encode permanently consuming a reference via Options (or in the case of slices, replacing with an empty slice).</p>
+<p>이 모든 것들은 완전히 안전하며 안정(stable) 버전 러스트에서 작동합니다! 이는 궁극적으로 이전에 보았던 간단한 구조체 사례에서 비롯됩니다. 러스트는 가변 참조를 하위 필드들로 안전하게 분할할 수 있음을 이해합니다. 우리는 <code>Option</code>을 통해 참조를 영구적으로 소비하도록 인코딩할 수 있습니다 (또는 슬라이스의 경우, 빈 슬라이스로 교체하는 방식을 사용할 수 있습니다).</p>
 
                     </main>
 

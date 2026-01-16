@@ -213,18 +213,18 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="data-races-and-race-conditions"><a class="header" href="#data-races-and-race-conditions">Data Races and Race Conditions</a></h1>
-<p>Safe Rust guarantees an absence of data races, which are defined as:</p>
+                        <h1 id="데이터-경쟁과-경쟁-조건"><a class="header" href="#데이터-경쟁과-경쟁-조건">데이터 경쟁과 경쟁 조건</a></h1>
+<p>안전한 러스트는 데이터 경쟁이 없음을 보장하며, 데이터 경쟁은 다음과 같이 정의됩니다:</p>
 <ul>
-<li>two or more threads concurrently accessing a location of memory</li>
-<li>one or more of them is a write</li>
-<li>one or more of them is unsynchronized</li>
+<li>둘 이상의 스레드가 동시에 메모리 위치에 접근함</li>
+<li>그중 하나 이상이 쓰기 작업임</li>
+<li>그중 하나 이상이 동기화되지 않음</li>
 </ul>
-<p>A data race has Undefined Behavior, and is therefore impossible to perform in Safe Rust. Data races are prevented <em>mostly</em> through Rust's ownership system alone: it's impossible to alias a mutable reference, so it's impossible to perform a data race. Interior mutability makes this more complicated, which is largely why we have the Send and Sync traits (see the next section for more on this).</p>
-<p><strong>However Rust does not prevent general race conditions.</strong></p>
-<p>This is mathematically impossible in situations where you do not control the scheduler, which is true for the normal OS environment. If you do control preemption, it <em>can be</em> possible to prevent general races - this technique is used by frameworks such as <a href="https://github.com/rtic-rs/rtic">RTIC</a>. However, actually having control over scheduling is a very uncommon case.</p>
-<p>For this reason, it is considered "safe" for Rust to get deadlocked or do something nonsensical with incorrect synchronization: this is known as a general race condition or resource race. Obviously such a program isn't very good, but Rust of course cannot prevent all logic errors.</p>
-<p>In any case, a race condition cannot violate memory safety in a Rust program on its own. Only in conjunction with some other unsafe code can a race condition actually violate memory safety. For instance, a correct program looks like this:</p>
+<p>데이터 경쟁은 정의되지 않은 동작을 유발하며, 따라서 안전한 러스트에서는 수행할 수 없습니다. 데이터 경쟁은 <em>주로</em> 러스트의 소유권 시스템만으로 방지됩니다. 가변 참조를 별칭(alias)하는 것이 불가능하므로 데이터 경쟁이 일어날 수 없습니다. 내부 가변성은 이를 더 복잡하게 만드는데, 이것이 바로 우리에게 <code>Send</code>와 <code>Sync</code> 트레잇이 있는 주된 이유입니다(자세한 내용은 다음 섹션을 참조하세요).</p>
+<p><strong>하지만 러스트는 일반적인 경쟁 조건(race conditions)을 방지하지는 않습니다.</strong></p>
+<p>스케줄러를 직접 통제하지 못하는 상황에서는 이를 방지하는 것이 수학적으로 불가능하며, 일반적인 OS 환경이 바로 그러합니다. 만약 선점(preemption)을 제어할 수 있다면 일반적인 경쟁을 방지하는 것이 <em>가능할 수도</em> 있습니다. 이러한 기법은 <a href="https://github.com/rtic-rs/rtic">RTIC</a>과 같은 프레임워크에서 사용됩니다. 하지만 실제로 스케줄링에 대한 제어권을 갖는 경우는 매우 드뭅니다.</p>
+<p>이러한 이유로, 러스트에서 교착 상태(deadlock)에 빠지거나 잘못된 동기화로 인해 무의미한 동작을 수행하는 것은 "안전한(safe)" 것으로 간주됩니다. 이는 일반적인 경쟁 조건 또는 자원 경쟁으로 알려져 있습니다. 분명히 그런 프로그램은 좋지 않지만, 러스트가 모든 논리적 에러를 방지할 수는 없습니다.</p>
+<p>어떠한 경우에도 경쟁 조건 자체가 러스트 프로그램에서 메모리 안전성을 위반할 수는 없습니다. 오직 다른 비안전한(unsafe) 코드와 결합될 때만 경쟁 조건이 실제로 메모리 안전성을 위반할 수 있습니다. 예를 들어, 올바른 프로그램은 다음과 같습니다:</p>
 <pre><pre class="playground"><code class="language-rust no_run edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::thread;
@@ -232,31 +232,28 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 let data = vec![1, 2, 3, 4];
-// Arc so that the memory the AtomicUsize is stored in still exists for
-// the other thread to increment, even if we completely finish executing
-// before it. Rust won't compile the program without it, because of the
-// lifetime requirements of thread::spawn!
+// Arc를 사용하여 AtomicUsize가 저장된 메모리가 다른 스레드에 의해 증가될 수 있도록
+// 계속 존재하게 합니다. 우리가 그보다 먼저 실행을 완전히 마쳐도 말이죠.
+// thread::spawn의 수명 요구 사항 때문에 Arc 없이는 프로그램이 컴파일되지 않습니다!
 let idx = Arc::new(AtomicUsize::new(0));
 let other_idx = idx.clone();
 
-// `move` captures other_idx by-value, moving it into this thread
+// `move`는 other_idx를 값으로 캡처하여 이 스레드로 이동시킵니다
 thread::spawn(move || {
-    // It's ok to mutate idx because this value
-    // is an atomic, so it can't cause a Data Race.
+    // idx를 변경하는 것은 괜찮습니다. 이 값은
+    // 아토믹(atomic)이므로 데이터 경쟁을 일으킬 수 없기 때문입니다.
     other_idx.fetch_add(10, Ordering::SeqCst);
 });
 
-// Index with the value loaded from the atomic. This is safe because we
-// read the atomic memory only once, and then pass a copy of that value
-// to the Vec's indexing implementation. This indexing will be correctly
-// bounds checked, and there's no chance of the value getting changed
-// in the middle. However our program may panic if the thread we spawned
-// managed to increment before this ran. A race condition because correct
-// program execution (panicking is rarely correct) depends on order of
-// thread execution.
+// 아토믹에서 로드한 값으로 인덱싱합니다. 이는 안전합니다. 아토믹 메모리를
+// 단 한 번만 읽고, 그 복사본을 Vec의 인덱싱 구현에 전달하기 때문입니다.
+// 이 인덱싱은 올바르게 범위를 체크하며, 중간에 값이 바뀔 염려가 없습니다.
+// 하지만 우리가 생성한 스레드가 이 코드가 실행되기 전에 인덱스를 증가시켰다면
+// 패닉이 발생할 수 있습니다. 프로그램의 올바른 실행(패닉이 발생하는 것은 대개 올바르지 않음)이
+// 스레드 실행 순서에 달려 있으므로, 이는 경쟁 조건(race condition)입니다.
 println!("{}", data[idx.load(Ordering::SeqCst)]);
 <span class="boring">}</span></code></pre></pre>
-<p>We can cause a race condition to violate memory safety if we instead do the bound check in advance, and then unsafely access the data with an unchecked value:</p>
+<p>만약 우리가 미리 범위 체크를 한 뒤, 체크되지 않은 값으로 데이터를 비안전하게 접근한다면 경쟁 조건이 메모리 안전성을 위반하게 만들 수 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust no_run edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::thread;
@@ -268,18 +265,18 @@ let data = vec![1, 2, 3, 4];
 let idx = Arc::new(AtomicUsize::new(0));
 let other_idx = idx.clone();
 
-// `move` captures other_idx by-value, moving it into this thread
+// `move`는 other_idx를 값으로 캡처하여 이 스레드로 이동시킵니다
 thread::spawn(move || {
-    // It's ok to mutate idx because this value
-    // is an atomic, so it can't cause a Data Race.
+    // idx를 변경하는 것은 괜찮습니다. 이 값은
+    // 아토믹(atomic)이므로 데이터 경쟁을 일으킬 수 없기 때문입니다.
     other_idx.fetch_add(10, Ordering::SeqCst);
 });
 
 if idx.load(Ordering::SeqCst) &lt; data.len() {
     unsafe {
-        // Incorrectly loading the idx after we did the bounds check.
-        // It could have changed. This is a race condition, *and dangerous*
-        // because we decided to do `get_unchecked`, which is `unsafe`.
+        // 범위 체크를 한 뒤에 idx를 잘못 로드하고 있습니다.
+        // 값이 변했을 수 있습니다. 이는 경쟁 조건이며, 우리가 `unsafe`한
+        // `get_unchecked`를 사용하기로 했기 때문에 *위험*합니다.
         println!("{}", data.get_unchecked(idx.load(Ordering::SeqCst)));
     }
 }

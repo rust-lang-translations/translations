@@ -214,47 +214,47 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="std-아래"><a class="header" href="#std-아래"><code>std</code> 아래</a></h1>
-<p>This section documents features that are normally provided by the <code>std</code> crate and that <code>#![no_std]</code> developers have to deal with (i.e. provide) to build <code>#![no_std]</code> binary crates.</p>
-<h2 id="using-libc"><a class="header" href="#using-libc">Using <code>libc</code></a></h2>
-<p>In order to build a <code>#[no_std]</code> executable we will need <code>libc</code> as a dependency. We can specify this using our <code>Cargo.toml</code> file:</p>
+<p>이 섹션은 보통 <code>std</code> 크레이트에서 제공하는 기능들 중 <code>#![no_std]</code> 개발자들이 <code>#![no_std]</code> 바이너리 크레이트를 빌드하기 위해 직접 다루어야(즉, 제공해야) 하는 기능들을 문서화합니다.</p>
+<h2 id="libc-사용하기"><a class="header" href="#libc-사용하기"><code>libc</code> 사용하기</a></h2>
+<p><code>#[no_std]</code> 실행 파일을 빌드하려면 <code>libc</code>가 의존성으로 필요합니다. <code>Cargo.toml</code> 파일에서 다음과 같이 지정할 수 있습니다:</p>
 <pre><code class="language-toml">[dependencies]
 libc = { version = "0.2.146", default-features = false }
 </code></pre>
-<p>Note that the default features have been disabled. This is a critical step - <strong>the default features of <code>libc</code> include the <code>std</code> crate and so must be disabled.</strong></p>
-<p>Alternatively, we can use the unstable <code>rustc_private</code> private feature together with an <code>extern crate libc;</code> declaration as shown in the examples below. Note that windows-msvc targets do not require a libc, and correspondingly there is no <code>libc</code> crate in their sysroot. We do not need the <code>extern crate libc;</code> below, and having it on a windows-msvc target would be a compile error.</p>
-<h2 id="writing-an-executable-without-std"><a class="header" href="#writing-an-executable-without-std">Writing an executable without <code>std</code></a></h2>
-<p>We will probably need a nightly version of the compiler to produce a <code>#![no_std]</code> executable because on many platforms, we have to provide the <code>eh_personality</code> <a href="https://doc.rust-lang.org/nightly/unstable-book/language-features/lang-items.html">lang item</a>, which is unstable.</p>
-<p>You will need to define a symbol for the entry point that is suitable for your target. For example, <code>main</code>, <code>_start</code>, <code>WinMain</code>, or whatever starting point is relevant for your target. Additionally, you need to use the <code>#![no_main]</code> attribute to prevent the compiler from attempting to generate an entry point itself.</p>
-<p>Additionally, it's required to define a <a href="panic-handler.html">panic handler function</a>.</p>
+<p>기본 기능(default features)이 비활성화되었음에 유의하십시오. 이는 매우 중요한 단계입니다. <strong><code>libc</code>의 기본 기능은 <code>std</code> 크레이트를 포함하므로 반드시 비활성화해야 합니다.</strong></p>
+<p>또는 아래 예제에 나와 있는 것처럼 <code>extern crate libc;</code> 선언과 함께 불안정한 <code>rustc_private</code> 기능을 사용할 수도 있습니다. windows-msvc 타겟은 libc를 필요로 하지 않으며, 이에 따라 그들의 sysroot에는 <code>libc</code> 크레이트가 없다는 점에 유의하십시오. 아래의 <code>extern crate libc;</code>는 필요하지 않으며, windows-msvc 타겟에서 이를 사용하는 것은 컴파일 에러가 될 것입니다.</p>
+<h2 id="std-없이-실행-파일-작성하기"><a class="header" href="#std-없이-실행-파일-작성하기"><code>std</code> 없이 실행 파일 작성하기</a></h2>
+<p><code>#![no_std]</code> 실행 파일을 생성하려면 아마도 나이틀리 버전의 컴파일러가 필요할 것입니다. 많은 플랫폼에서 불안정한 <a href="https://doc.rust-lang.org/nightly/unstable-book/language-features/lang-items.html">언어 항목(lang item)</a>인 <code>eh_personality</code>를 제공해야 하기 때문입니다.</p>
+<p>타겟에 적합한 진입점(entry point) 심볼을 정의해야 합니다. 예를 들어, 타겟과 관련된 <code>main</code>, <code>_start</code>, <code>WinMain</code> 또는 기타 시작점이 될 수 있습니다. 또한, 컴파일러가 진입점을 직접 생성하려고 시도하는 것을 방지하기 위해 <code>#![no_main]</code> 속성을 사용해야 합니다.</p>
+<p>추가로, <a href="panic-handler.html">패닉 핸들러 함수</a>를 정의해야 합니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2021">#![feature(lang_items, core_intrinsics, rustc_private)]
 #![allow(internal_features)]
 #![no_std]
 #![no_main]
 
-// Necessary for `panic = "unwind"` builds on cfg(unix) platforms.
+// cfg(unix) 플랫폼에서 `panic = "unwind"` 빌드에 필요합니다.
 #![feature(panic_unwind)]
 extern crate unwind;
 
-// Pull in the system libc library for what crt0.o likely requires.
+// crt0.o가 필요로 할 가능성이 높은 시스템 libc 라이브러리를 가져옵니다.
 #[cfg(not(windows))]
 extern crate libc;
 
 use core::ffi::{c_char, c_int};
 use core::panic::PanicInfo;
 
-// Entry point for this program.
-#[no_mangle] // ensure that this symbol is included in the output as `main`
+// 이 프로그램의 진입점입니다.
+#[no_mangle] // 이 심볼이 `main`으로 출력에 포함되도록 보장합니다.
 extern "C" fn main(_argc: c_int, _argv: *const *const c_char) -&gt; c_int {
     0
 }
 
-// These functions are used by the compiler, but not for an empty program like this.
-// They are normally provided by `std`.
+// 이 함수들은 컴파일러에 의해 사용되지만, 이런 빈 프로그램에는 사용되지 않습니다.
+// 이들은 보통 `std`에 의해 제공됩니다.
 #[lang = "eh_personality"]
 fn rust_eh_personality() {}
 #[panic_handler]
 fn panic_handler(_info: &amp;PanicInfo) -&gt; ! { core::intrinsics::abort() }</code></pre></pre>
-<p>If you are working with a target that doesn't have binary releases of the standard library available via rustup (this probably means you are building the <code>core</code> crate yourself) and need compiler-rt intrinsics (i.e. you are probably getting linker errors when building an executable: <code>undefined reference to `__aeabi_memcpy'</code>), you need to manually link to the <a href="https://crates.io/crates/compiler_builtins"><code>compiler_builtins</code> crate</a> to get those intrinsics and solve the linker errors.</p>
+<p>rustup을 통해 표준 라이브러리의 바이너리 릴리스를 사용할 수 없는 타겟으로 작업하고 (아마도 <code>core</code> 크레이트를 직접 빌드하고 있음을 의미함), compiler-rt 내장 함수가 필요한 경우(즉, 실행 파일을 빌드할 때 <code>undefined reference to `__aeabi_memcpy'</code>와 같은 링커 에러가 발생하는 경우), 해당 내장 함수를 얻고 링커 에러를 해결하기 위해 <a href="https://crates.io/crates/compiler_builtins"><code>compiler_builtins</code> 크레이트</a>에 수동으로 링크해야 합니다.</p>
 
                     </main>
 

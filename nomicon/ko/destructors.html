@@ -214,15 +214,15 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="소멸자"><a class="header" href="#소멸자">소멸자</a></h1>
-<p>What the language <em>does</em> provide is full-blown automatic destructors through the <code>Drop</code> trait, which provides the following method:</p>
+<p>언어가 제공하는 것은 <code>Drop</code> 트레잇을 통한 완전한 자동 소멸자입니다. 이 트레잇은 다음과 같은 메서드를 제공합니다:</p>
 <!-- ignore: function header -->
 <pre><code class="language-rust ignore">fn drop(&amp;mut self);</code></pre>
-<p>This method gives the type time to somehow finish what it was doing.</p>
-<p><strong>After <code>drop</code> is run, Rust will recursively try to drop all of the fields of <code>self</code>.</strong></p>
-<p>This is a convenience feature so that you don't have to write "destructor boilerplate" to drop children. If a struct has no special logic for being dropped other than dropping its children, then it means <code>Drop</code> doesn't need to be implemented at all!</p>
-<p><strong>There is no stable way to prevent this behavior in Rust 1.0.</strong></p>
-<p>Note that taking <code>&amp;mut self</code> means that even if you could suppress recursive Drop, Rust will prevent you from e.g. moving fields out of self. For most types, this is totally fine.</p>
-<p>For instance, a custom implementation of <code>Box</code> might write <code>Drop</code> like this:</p>
+<p>이 메서드는 해당 타입이 하던 일을 어떻게든 마무리할 수 있는 시간을 줍니다.</p>
+<p><strong><code>drop</code>이 실행된 후, 러스트는 재귀적으로 <code>self</code>의 모든 필드들을 드롭하려고 시도할 것입니다.</strong></p>
+<p>이는 자식 요소들을 드롭하기 위해 "소멸자 상용구(boilerplate)"를 작성하지 않아도 되게 해주는 편의 기능입니다. 만약 구조체가 자식 요소들을 드롭하는 것 외에 특별한 드롭 로직이 없다면, <code>Drop</code>을 구현할 필요가 전혀 없음을 의미합니다!</p>
+<p><strong>러스트 1.0에서는 이러한 동작을 방지할 수 있는 안정적인 방법이 없습니다.</strong></p>
+<p><code>&amp;mut self</code>를 받는다는 것은, 설령 재귀적 드롭을 억제할 수 있다 하더라도 러스트가 예를 들어 <code>self</code>에서 필드를 밖으로 이동시키는 행위 등을 방지할 것임을 의미합니다. 대부분의 타입에 대해서는 이것으로 충분히 괜찮습니다.</p>
+<p>예를 들어, <code>Box</code>의 커스텀 구현은 다음과 같이 <code>Drop</code>을 작성할 수 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021">#![feature(ptr_internals, allocator_api)]
 
 use std::alloc::{Allocator, Global, GlobalAlloc, Layout};
@@ -241,8 +241,8 @@ impl&lt;T&gt; Drop for Box&lt;T&gt; {
     }
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
-<p>and this works fine because when Rust goes to drop the <code>ptr</code> field it just sees a <a href="phantom-data.html">Unique</a> that has no actual <code>Drop</code> implementation. Similarly nothing can use-after-free the <code>ptr</code> because when drop exits, it becomes inaccessible.</p>
-<p>However this wouldn't work:</p>
+<p>그리고 이는 잘 작동합니다. 러스트가 <code>ptr</code> 필드를 드롭하러 갈 때, 실제 <code>Drop</code> 구현이 없는 <a href="phantom-data.html">Unique</a>만을 보게 되기 때문입니다. 마찬가지로 <code>drop</code>이 종료되면 <code>ptr</code>에 접근할 수 없게 되므로, 아무도 그것을 해제 후 사용(use-after-free)할 수 없습니다.</p>
+<p>하지만 다음과 같은 코드는 작동하지 않을 것입니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021">#![feature(allocator_api, ptr_internals)]
 
 use std::alloc::{Allocator, Global, GlobalAlloc, Layout};
@@ -266,16 +266,16 @@ struct SuperBox&lt;T&gt; { my_box: Box&lt;T&gt; }
 impl&lt;T&gt; Drop for SuperBox&lt;T&gt; {
     fn drop(&amp;mut self) {
         unsafe {
-            // Hyper-optimized: deallocate the box's contents for it
-            // without `drop`ing the contents
+            // 고도로 최적화됨: Box의 내용물을 드롭하지 않고
+            // 대신 메모리 해제만 수행합니다
             let c: NonNull&lt;T&gt; = self.my_box.ptr.into();
             Global.deallocate(c.cast::&lt;u8&gt;(), Layout::new::&lt;T&gt;());
         }
     }
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
-<p>After we deallocate the <code>box</code>'s ptr in SuperBox's destructor, Rust will happily proceed to tell the box to Drop itself and everything will blow up with use-after-frees and double-frees.</p>
-<p>Note that the recursive drop behavior applies to all structs and enums regardless of whether they implement Drop. Therefore something like</p>
+<p><code>SuperBox</code>의 소멸자에서 <code>box</code>의 포인터를 해제한 후에도, 러스트는 기꺼이 <code>box</code>에게 스스로를 <code>Drop</code>하라고 지시할 것입니다. 그러면 모든 것이 해제 후 사용(use-after-frees) 및 이중 해제(double-frees)로 인해 폭발할 것입니다.</p>
+<p>재귀적 드롭 동작은 <code>Drop</code> 구현 여부와 관계없이 모든 구조체와 열거형에 적용된다는 점에 유의하세요. 따라서 다음과 같은 경우</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Boxy&lt;T&gt; {
@@ -284,8 +284,8 @@ impl&lt;T&gt; Drop for SuperBox&lt;T&gt; {
     info: u32,
 }
 <span class="boring">}</span></code></pre></pre>
-<p>will have the destructors of its <code>data1</code> and <code>data2</code> fields called whenever it "would" be dropped, even though it itself doesn't implement Drop. We say that such a type <em>needs Drop</em>, even though it is not itself Drop.</p>
-<p>Similarly,</p>
+<p>자체적으로 <code>Drop</code>을 구현하지 않았더라도, 그것이 드롭될 "상황"이 되면 <code>data1</code>과 <code>data2</code> 필드의 소멸자가 호출될 것입니다. 우리는 이러한 타입을 스스로가 <code>Drop</code>은 아닐지라도 <em>드롭이 필요한(needs Drop)</em> 타입이라고 부릅니다.</p>
+<p>마찬가지로,</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>enum Link {
@@ -293,9 +293,9 @@ impl&lt;T&gt; Drop for SuperBox&lt;T&gt; {
     None,
 }
 <span class="boring">}</span></code></pre></pre>
-<p>will have its inner Box field dropped if and only if an instance stores the Next variant.</p>
-<p>In general this works really nicely because you don't need to worry about adding/removing drops when you refactor your data layout. Still there's certainly many valid use cases for needing to do trickier things with destructors.</p>
-<p>The classic safe solution to overriding recursive drop and allowing moving out of Self during <code>drop</code> is to use an Option:</p>
+<p>인스턴스가 <code>Next</code> 변형(variant)을 저장하고 있을 때만 내부의 <code>Box</code> 필드가 드롭될 것입니다.</p>
+<p>일반적으로 이는 데이터 레이아웃을 리팩토링할 때 드롭을 추가하거나 제거하는 것에 대해 걱정할 필요가 없게 해주므로 매우 훌륭하게 작동합니다. 하지만 소멸자를 사용해 더 까다로운 작업을 수행해야 하는 유효한 사용 사례들도 분명히 존재합니다.</p>
+<p>재귀적 드롭을 재정의하고 <code>drop</code> 중에 <code>Self</code>로부터 필드를 밖으로 이동시키는 것을 허용하는 전형적인 안전한 해결책은 <code>Option</code>을 사용하는 것입니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021">#![feature(allocator_api, ptr_internals)]
 
 use std::alloc::{Allocator, GlobalAlloc, Global, Layout};
@@ -319,9 +319,9 @@ struct SuperBox&lt;T&gt; { my_box: Option&lt;Box&lt;T&gt;&gt; }
 impl&lt;T&gt; Drop for SuperBox&lt;T&gt; {
     fn drop(&amp;mut self) {
         unsafe {
-            // Hyper-optimized: deallocate the box's contents for it
-            // without `drop`ing the contents. Need to set the `box`
-            // field as `None` to prevent Rust from trying to Drop it.
+            // 고도로 최적화됨: Box의 내용물을 드롭하지 않고
+            // 대신 메모리 해제만 수행합니다. 러스트가 이를 드롭하려고 시도하지 않도록
+            // `box` 필드를 `None`으로 설정해야 합니다.
             let my_box = self.my_box.take().unwrap();
             let c: NonNull&lt;T&gt; = my_box.ptr.into();
             Global.deallocate(c.cast(), Layout::new::&lt;T&gt;());
@@ -330,8 +330,8 @@ impl&lt;T&gt; Drop for SuperBox&lt;T&gt; {
     }
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
-<p>However this has fairly odd semantics: you are saying that a field that <em>should</em> always be Some <em>may</em> be None, just because of what happens in the destructor. Of course this conversely makes a lot of sense: you can call arbitrary methods on self during the destructor, and this should prevent you from ever doing so after deinitializing the field. Not that it will prevent you from producing any other arbitrarily invalid state in there.</p>
-<p>On balance this is an ok choice. Certainly what you should reach for by default. However, in the future we expect there to be a first-class way to announce that a field shouldn't be automatically dropped.</p>
+<p>하지만 이는 상당히 기묘한 의미론을 갖습니다. 항상 <code>Some</code>이어야 하는 필드가 단지 소멸자에서 발생하는 일 때문에 <code>None</code>이 될 수도 있다고 말하는 꼴이기 때문입니다. 물론 반대로 생각하면 이는 일리가 있습니다. 소멸자 중에 <code>self</code>에 대해 임의의 메서드를 호출할 수 있는데, 필드를 미초기화한 후에는 그렇게 하지 못하도록 막아야 하기 때문입니다. 물론 그것이 소멸자 내부에서 다른 임의의 유효하지 않은 상태를 만드는 것까지 막아주는 것은 아닙니다.</p>
+<p>전체적으로 봤을 때 이는 괜찮은 선택입니다. 분명히 기본적으로 선택해야 할 방법입니다. 하지만 미래에는 필드가 자동으로 드롭되지 않아야 함을 알리는 더 세련된(first-class) 방법이 도입될 것으로 기대합니다.</p>
 
                     </main>
 
