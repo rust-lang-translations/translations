@@ -1879,7 +1879,7 @@ use cortex_m::peripheral::syst::SystClkSource;
 use cortex_m_rt::{entry, exception};
 use cortex_m_semihosting::{
     debug,
-    hio::{self, HStdout},
+    hio::{self, HostStream},
 };
 
 #[entry]
@@ -1901,7 +1901,7 @@ fn main() -&gt; ! {
 #[exception]
 fn SysTick() {
     static mut COUNT: u32 = 0;
-    static mut STDOUT: Option&lt;HStdout&gt; = None;
+    static mut STDOUT: Option&lt;HostStream&gt; = None;
 
     *COUNT += 1;
 
@@ -2051,13 +2051,17 @@ this book, however it is a good idea to keep the following in mind:</p>
 <li>Set the desired priority of the interrupt handler in the interrupt controller</li>
 <li>Enable the interrupt handler in the interrupt controller</li>
 </ul>
-<p>Similarly to exceptions, the <code>cortex-m-rt</code> crate provides an <a href="https://docs.rs/cortex-m-rt-macros/0.1.5/cortex_m_rt_macros/attr.interrupt.html"><code>interrupt</code></a>
-attribute to declare interrupt handlers. The available interrupts (and
-their position in the interrupt handler table) are usually automatically
-generated via <code>svd2rust</code> from a SVD description.</p>
-<pre><code class="language-rust ignore">// Interrupt handler for the Timer2 interrupt
+<p>Similarly to exceptions, the cortex-m-rt crate exposes an <a href="https://docs.rs/cortex-m-rt-macros/0.1.5/cortex_m_rt_macros/attr.interrupt.html"><code>interrupt</code></a> attribute for declaring interrupt handlers. However, this
+attribute is only available when the device feature is enabled. That said, this attribute is not intended to be used directly—doing
+so will result in a compilation error.</p>
+<p>Instead, you should use the re-exported version of the interrupt attribute provided by the device crate (usually generated using svd2rust).
+This ensures that the compiler can verify that the interrupt actually exists on the target device. The list of available interrupts—and
+their position in the interrupt vector table—is typically auto-generated from an SVD file by svd2rust.</p>
+<pre><code class="language-rust ignore">use lm3s6965::interrupt; // Re-exported attribute from the device crate
+
+// Interrupt handler for the Timer2 interrupt
 #[interrupt]
-fn TIM2() {
+fn TIMER2A() {
     // ..
     // Clear reason for the generated interrupt request
 }</code></pre>
@@ -2069,7 +2073,7 @@ the interrupt handler.</p>
 <p>Similar to exception handlers it is also possible to declare <code>static mut</code>
 variables inside the interrupt handlers for <em>safe</em> state keeping.</p>
 <pre><code class="language-rust ignore">#[interrupt]
-fn TIM2() {
+fn TIMER2A() {
     static mut COUNT: u32 = 0;
 
     // `COUNT` has type `&amp;mut u32` and it's safe to use
@@ -2759,12 +2763,12 @@ let _ = size_of::&lt;GpioConfig&lt;Enabled, Input, PulledHigh&gt;&gt;(); // == 0
 <p><em>Wikipedia: <a href="https://en.wikipedia.org/wiki/Hardware_abstraction">Hardware Abstraction Layer</a></em></p>
 </blockquote>
 <p>Embedded systems are a bit special in this regard since we typically do not have operating systems and user installable software but firmware images which are compiled as a whole as well as a number of other constraints. So while the traditional approach as defined by Wikipedia could potentially work it is likely not the most productive approach to ensure portability.</p>
-<p>How do we do this in Rust? Enter <strong>embedded-hal</strong>...</p>
-<h2 id="what-is-embedded-hal"><a class="header" href="#what-is-embedded-hal">What is embedded-hal?</a></h2>
+<p>How do we do this in Rust? Enter <strong><a href="https://crates.io/crates/embedded-hal">embedded-hal</a></strong>...</p>
+<h2 id="what-is-embedded-hal"><a class="header" href="#what-is-embedded-hal">What is <a href="https://crates.io/crates/embedded-hal">embedded-hal</a>?</a></h2>
 <p>In a nutshell it is a set of traits which define implementation contracts between <strong>HAL implementations</strong>, <strong>drivers</strong> and <strong>applications (or firmwares)</strong>. Those contracts include both capabilities (i.e. if a trait is implemented for a certain type, the <strong>HAL implementation</strong> provides a certain capability) and methods (i.e. if you can construct a type implementing a trait it is guaranteed that you have the methods specified in the trait available).</p>
 <p>A typical layering might look like this:</p>
 <p><img src="portability/../assets/rust_layers.svg" alt="" /></p>
-<p>Some of the defined traits in <strong>embedded-hal</strong> are:</p>
+<p>Some of the defined traits in <strong><a href="https://crates.io/crates/embedded-hal">embedded-hal</a></strong> are:</p>
 <ul>
 <li>GPIO (input and output pins)</li>
 <li>Serial communication</li>
@@ -2773,15 +2777,15 @@ let _ = size_of::&lt;GpioConfig&lt;Enabled, Input, PulledHigh&gt;&gt;(); // == 0
 <li>Timers/Countdowns</li>
 <li>Analog Digital Conversion</li>
 </ul>
-<p>The main reason for having the <strong>embedded-hal</strong> traits and crates implementing and using them is to keep complexity in check. If you consider that an application might have to implement the use of the peripheral in the hardware as well as the application and potentially drivers for additional hardware components, then it should be easy to see that the re-usability is very limited. Expressed mathematically, if <strong>M</strong> is the number of peripheral HAL implementations and <strong>N</strong> the number of drivers then if we were to reinvent the wheel for every application then we would end up with <strong>M*N</strong> implementations while by using the <em>API</em> provided by the <strong>embedded-hal</strong> traits will make the implementation complexity approach <strong>M+N</strong>. Of course there're additional benefits to be had, such as less trial-and-error due to a well-defined and ready-to-use APIs.</p>
-<h2 id="users-of-the-embedded-hal"><a class="header" href="#users-of-the-embedded-hal">Users of the embedded-hal</a></h2>
+<p>The main reason for having the <strong>embedded-hal</strong> traits and crates implementing and using them is to keep complexity in check. If you consider that an application might have to implement the use of the peripheral in the hardware as well as the application and potentially drivers for additional hardware components, then it should be easy to see that the re-usability is very limited. Expressed mathematically, if <strong>M</strong> is the number of peripheral HAL implementations and <strong>N</strong> the number of drivers then if we were to reinvent the wheel for every application then we would end up with <strong>M*N</strong> implementations while by using the <em>API</em> provided by the <strong><a href="https://crates.io/crates/embedded-hal">embedded-hal</a></strong> traits will make the implementation complexity approach <strong>M+N</strong>. Of course there're additional benefits to be had, such as less trial-and-error due to a well-defined and ready-to-use APIs.</p>
+<h2 id="users-of-the-embedded-hal"><a class="header" href="#users-of-the-embedded-hal">Users of the <a href="https://crates.io/crates/embedded-hal">embedded-hal</a></a></h2>
 <p>As said above there are three main users of the HAL:</p>
 <h3 id="hal-implementation"><a class="header" href="#hal-implementation">HAL implementation</a></h3>
 <p>A HAL implementation provides the interfacing between the hardware and the users of the HAL traits. Typical implementations consist of three parts:</p>
 <ul>
 <li>One or more hardware specific types</li>
 <li>Functions to create and initialize such a type, often providing various configuration options (speed, operation mode, use pins, etc.)</li>
-<li>one or more <code>trait</code> <code>impl</code> of <strong>embedded-hal</strong> traits for that type</li>
+<li>one or more <code>trait</code> <code>impl</code> of <strong><a href="https://crates.io/crates/embedded-hal">embedded-hal</a></strong> traits for that type</li>
 </ul>
 <p>Such a <strong>HAL implementation</strong> can come in various flavours:</p>
 <ul>
@@ -2791,8 +2795,8 @@ let _ = size_of::&lt;GpioConfig&lt;Enabled, Input, PulledHigh&gt;&gt;(); // == 0
 <li>Via driver for hardware adapters, e.g. I2C multiplexer or GPIO expander</li>
 </ul>
 <h3 id="driver"><a class="header" href="#driver">Driver</a></h3>
-<p>A driver implements a set of custom functionality for an internal or external component, connected to a peripheral implementing the embedded-hal traits. Typical examples for such drivers include various sensors (temperature, magnetometer, accelerometer, light), display devices (LED arrays, LCD displays) and actuators (motors, transmitters).</p>
-<p>A driver has to be initialized with an instance of type that implements a certain <code>trait</code> of the embedded-hal which is ensured via trait bound and provides its own type instance with a custom set of methods allowing to interact with the driven device.</p>
+<p>A driver implements a set of custom functionality for an internal or external component, connected to a peripheral implementing the <a href="https://crates.io/crates/embedded-hal">embedded-hal</a> traits. Typical examples for such drivers include various sensors (temperature, magnetometer, accelerometer, light), display devices (LED arrays, LCD displays) and actuators (motors, transmitters).</p>
+<p>A driver has to be initialized with an instance of type that implements a certain <code>trait</code> of the <a href="https://crates.io/crates/embedded-hal">embedded-hal</a> which is ensured via trait bound and provides its own type instance with a custom set of methods allowing to interact with the driven device.</p>
 <h3 id="application"><a class="header" href="#application">Application</a></h3>
 <p>The application binds the various parts together and ensures that the desired functionality is achieved. When porting between different systems, this is the part which requires the most adaptation efforts, since the application needs to correctly initialize the real hardware via the HAL implementation and the initialisation of different hardware differs, sometimes drastically so. Also the user choice often plays a big role, since components can be physically connected to different terminals, hardware buses sometimes need external hardware to match the configuration or there are different trade-offs to be made in the use of internal peripherals (e.g. multiple timers with different capabilities are available or peripherals conflict with others).</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="concurrency"><a class="header" href="#concurrency">Concurrency</a></h1>

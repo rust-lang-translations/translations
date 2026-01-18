@@ -234,7 +234,7 @@ expected. You’ll put unit tests in the <em>src</em> directory in each file wit
 code that they’re testing. The convention is to create a module named <code>tests</code>
 in each file to contain the test functions and to annotate the module with
 <code>cfg(test)</code>.</p>
-<h4 id="the-tests-module-and-cfgtest"><a class="header" href="#the-tests-module-and-cfgtest">The Tests Module and <code>#[cfg(test)]</code></a></h4>
+<h4 id="the-tests-module-and-cfgtest"><a class="header" href="#the-tests-module-and-cfgtest">The <code>tests</code> Module and <code>#[cfg(test)]</code></a></h4>
 <p>The <code>#[cfg(test)]</code> annotation on the <code>tests</code> module tells Rust to compile and
 run the test code only when you run <code>cargo test</code>, not when you run <code>cargo build</code>. This saves compile time when you only want to build the library and
 saves space in the resultant compiled artifact because the tests are not
@@ -266,18 +266,20 @@ given a certain configuration option. In this case, the configuration option is
 <code>cfg</code> attribute, Cargo compiles our test code only if we actively run the tests
 with <code>cargo test</code>. This includes any helper functions that might be within this
 module, in addition to the functions annotated with <code>#[test]</code>.</p>
-<h4 id="testing-private-functions"><a class="header" href="#testing-private-functions">Testing Private Functions</a></h4>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="testing-private-functions"></a></p>
+<h4 id="private-function-tests"><a class="header" href="#private-function-tests">Private Function Tests</a></h4>
 <p>There’s debate within the testing community about whether or not private
 functions should be tested directly, and other languages make it difficult or
 impossible to test private functions. Regardless of which testing ideology you
 adhere to, Rust’s privacy rules do allow you to test private functions.
 Consider the code in Listing 11-12 with the private function <code>internal_adder</code>.</p>
 <Listing number="11-12" file-name="src/lib.rs" caption="Testing a private function">
-<pre><code class="language-rust noplayground">pub fn add_two(a: usize) -&gt; usize {
+<pre><code class="language-rust noplayground">pub fn add_two(a: u64) -&gt; u64 {
     internal_adder(a, 2)
 }
 
-fn internal_adder(left: usize, right: usize) -&gt; usize {
+fn internal_adder(left: u64, right: u64) -&gt; u64 {
     left + right
 }
 
@@ -296,9 +298,10 @@ mod tests {
 Rust code, and the <code>tests</code> module is just another module. As we discussed in
 <a href="ch07-03-paths-for-referring-to-an-item-in-the-module-tree.html">“Paths for Referring to an Item in the Module Tree”</a><!-- ignore -->,
 items in child modules can use the items in their ancestor modules. In this
-test, we bring all of the <code>tests</code> module’s parent’s items into scope with <code>use super::*</code>, and then the test can call <code>internal_adder</code>. If you don’t think
-private functions should be tested, there’s nothing in Rust that will compel you
-to do so.</p>
+test, we bring all of the items belonging to the <code>tests</code> module’s parent into
+scope with <code>use super::*</code>, and then the test can call <code>internal_adder</code>. If you
+don’t think private functions should be tested, there’s nothing in Rust that
+will compel you to do so.</p>
 <h3 id="integration-tests"><a class="header" href="#integration-tests">Integration Tests</a></h3>
 <p>In Rust, integration tests are entirely external to your library. They use your
 library in the same way any other code would, which means they can only call
@@ -334,7 +337,7 @@ fn it_adds_two() {
 }</code></pre>
 </Listing>
 <p>Each file in the <em>tests</em> directory is a separate crate, so we need to bring our
-library into each test crate’s scope. For that reason we add <code>use adder::add_two;</code> at the top of the code, which we didn’t need in the unit tests.</p>
+library into each test crate’s scope. For that reason, we add <code>use adder::add_two;</code> at the top of the code, which we didn’t need in the unit tests.</p>
 <p>We don’t need to annotate any code in <em>tests/integration_test.rs</em> with
 <code>#[cfg(test)]</code>. Cargo treats the <em>tests</em> directory specially and compiles files
 in this directory only when we run <code>cargo test</code>. Run <code>cargo test</code> now:</p>
@@ -365,7 +368,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 <p>The three sections of output include the unit tests, the integration test, and
 the doc tests. Note that if any test in a section fails, the following sections
 will not be run. For example, if a unit test fails, there won’t be any output
-for integration and doc tests because those tests will only be run if all unit
+for integration and doc tests, because those tests will only be run if all unit
 tests are passing.</p>
 <p>The first section for the unit tests is the same as we’ve been seeing: one line
 for each unit test (one named <code>internal</code> that we added in Listing 11-12) and
@@ -401,7 +404,7 @@ using your crate. However, this means files in the <em>tests</em> directory don�
 share the same behavior as files in <em>src</em> do, as you learned in Chapter 7
 regarding how to separate code into modules and files.</p>
 <p>The different behavior of <em>tests</em> directory files is most noticeable when you
-have a set of helper functions to use in multiple integration test files and
+have a set of helper functions to use in multiple integration test files, and
 you try to follow the steps in the <a href="ch07-05-separating-modules-into-different-files.html">“Separating Modules into Different
 Files”</a><!-- ignore --> section of Chapter 7 to
 extract them into a common module. For example, if we create <em>tests/common.rs</em>
@@ -497,8 +500,8 @@ important functionality works, the small amount of code in the <em>src/main.rs</
 file will work as well, and that small amount of code doesn’t need to be tested.</p>
 <h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
 <p>Rust’s testing features provide a way to specify how code should function to
-ensure it continues to work as you expect, even as you make changes. Unit tests
-exercise different parts of a library separately and can test private
+ensure that it continues to work as you expect, even as you make changes. Unit
+tests exercise different parts of a library separately and can test private
 implementation details. Integration tests check that many parts of the library
 work together correctly, and they use the library’s public API to test the code
 in the same way external code will use it. Even though Rust’s type system and

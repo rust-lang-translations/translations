@@ -216,15 +216,15 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="async를-위한-트레이트-자세히-살펴보기"><a class="header" href="#async를-위한-트레이트-자세히-살펴보기">Async를 위한 트레이트 자세히 살펴보기</a></h2>
-<!-- Old headings. Do not remove or links may break. -->
+                        <!-- Old headings. Do not remove or links may break. -->
 <p><a id="digging-into-the-traits-for-async"></a></p>
-<p>이 장 전체에서 우리는 <code>Future</code>, <code>Pin</code>, <code>Unpin</code>, <code>Stream</code>, 그리고 <code>StreamExt</code> 트레이트들을 다양한 방식으로 사용해 왔습니다. 하지만 지금까지는 그것들이 어떻게 작동하는지 또는 어떻게 서로 맞춰지는지에 대한 세부 사항에 너무 깊이 들어가는 것을 피해 왔는데, 이는 일상적인 러스트 작업에서는 대부분의 경우 괜찮습니다. 하지만 가끔은 이러한 세부 사항을 좀 더 이해해야 하는 상황에 맞닥뜨리게 될 것입니다. 이 섹션에서는 그러한 시나리오에서 도움이 될 만큼만 파헤쳐 볼 것이며, <em>정말</em> 깊은 탐구는 다른 문서를 위해 남겨두겠습니다.</p>
+<h2 id="async를-위한-트레이트-자세히-살펴보기"><a class="header" href="#async를-위한-트레이트-자세히-살펴보기">Async를 위한 트레이트 자세히 살펴보기</a></h2>
+<p>Throughout the chapter, we’ve used the <code>Future</code>, <code>Stream</code>, and <code>StreamExt</code> traits in various ways. So far, though, we’ve avoided getting too far into the details of how they work or how they fit together, which is fine most of the time for your day-to-day Rust work. Sometimes, though, you’ll encounter situations where you’ll need to understand a few more of these traits’ details, along with the <code>Pin</code> type and the <code>Unpin</code> trait. In this section, we’ll dig in just enough to help in those scenarios, still leaving the <em>really</em> deep dive for other documentation.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="future"></a></p>
 <h3 id="future-트레이트"><a class="header" href="#future-트레이트"><code>Future</code> 트레이트</a></h3>
 <p>먼저 <code>Future</code> 트레이트가 어떻게 작동하는지 자세히 살펴보는 것으로 시작해 봅시다. 러스트에서는 이를 다음과 같이 정의합니다.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::pin::Pin;
 use std::task::{Context, Poll};
@@ -236,17 +236,17 @@ pub trait Future {
 }
 <span class="boring">}</span></code></pre></pre>
 <p>그 트레이트 정의에는 수많은 새로운 타입들과 우리가 전에 본 적 없는 몇 가지 문법들이 포함되어 있으므로, 정의를 하나하나 살펴봅시다.</p>
-<p>첫째, <code>Future</code>의 연관 타입인 <code>Output</code>은 퓨처가 완료되었을 때 어떤 타입으로 해소되는지를 나타냅니다. 이는 <code>Iterator</code> 트레이트의 <code>Item</code> 연관 타입과 유사합니다. 둘째, <code>Future</code>는 <code>poll</code> 메서드도 가지고 있는데, 이 메서드는 <code>self</code> 매개변수로 특별한 <code>Pin</code> 참조를 받고 <code>Context</code> 타입에 대한 가변 참조를 받으며, <code>Poll&lt;Self::Output&gt;</code>을 반환합니다. <code>Pin</code>과 <code>Context</code>에 대해서는 잠시 후에 더 자세히 이야기하겠습니다. 지금은 메서드가 반환하는 타입인 <code>Poll</code> 타입에 집중해 봅시다.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<p>First, <code>Future</code>’s associated type <code>Output</code> says what the future resolves to. This is analogous to the <code>Item</code> associated type for the <code>Iterator</code> trait. Second, <code>Future</code> has the <code>poll</code> method, which takes a special <code>Pin</code> reference for its <code>self</code> parameter and a mutable reference to a <code>Context</code> type, and returns a <code>Poll&lt;Self::Output&gt;</code>. We’ll talk more about <code>Pin</code> and <code>Context</code> in a moment. For now, let’s focus on what the method returns, the <code>Poll</code> type:</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>enum Poll&lt;T&gt; {
+</span>pub enum Poll&lt;T&gt; {
     Ready(T),
     Pending,
 }
 <span class="boring">}</span></code></pre></pre>
-<p>이 <code>Poll</code> 타입은 <code>Option</code>과 비슷합니다. 값을 가지는 <code>Ready(T)</code> 변형과 값을 가지지 않는 <code>Pending</code> 변형이 있습니다. 하지만 <code>Poll</code>은 <code>Option</code>과는 꽤 다른 의미를 가집니다! <code>Pending</code> 변형은 퓨처가 아직 할 일이 남았음을 나타내며, 따라서 호출자는 나중에 다시 확인해야 합니다. <code>Ready</code> 변형은 퓨처가 작업을 마쳤으며 <code>T</code> 값을 사용할 수 있음을 나타냅니다.</p>
+<p>This <code>Poll</code> type is similar to an <code>Option</code>. It has one variant that has a value, <code>Ready(T)</code>, and one that does not, <code>Pending</code>. <code>Poll</code> means something quite different from <code>Option</code>, though! The <code>Pending</code> variant indicates that the future still has work to do, so the caller will need to check again later. The <code>Ready</code> variant indicates that the <code>Future</code> has finished its work and the <code>T</code> value is available.</p>
 <blockquote>
-<p>참고: 대부분의 퓨처에서 호출자는 퓨처가 <code>Ready</code>를 반환한 후에 다시 <code>poll</code>을 호출해서는 안 됩니다. 많은 퓨처들이 준비된 상태가 된 후 다시 폴링되면 패닉을 일으킵니다. 다시 폴링해도 안전한 퓨처들은 문서에 명시적으로 그렇게 기재되어 있을 것입니다. 이는 <code>Iterator::next</code>가 동작하는 방식과 비슷합니다.</p>
+<p>Note: It’s rare to need to call <code>poll</code> directly, but if you do need to, keep in mind that with most futures, the caller should not call <code>poll</code> again after the future has returned <code>Ready</code>. Many futures will panic if polled again after becoming ready. Futures that are safe to poll again will say so explicitly in their documentation. This is similar to how <code>Iterator::next</code> behaves.</p>
 </blockquote>
 <p><code>await</code>를 사용하는 코드를 보면, 러스트는 내부적으로 이를 <code>poll</code>을 호출하는 코드로 컴파일합니다. 단일 URL이 해소되었을 때 페이지 제목을 출력했던 목록 17-4를 다시 보면, 러스트는 이를 (정확히는 아니지만) 대략 다음과 같은 것으로 컴파일합니다.</p>
 <pre><code class="language-rust ignore">match page_title(url).poll() {
@@ -271,43 +271,96 @@ loop {
         }
     }
 }</code></pre>
-<p>하지만 러스트가 정확히 저 코드로 컴파일한다면, 모든 <code>await</code>는 블로킹될 것입니다—우리가 목표로 했던 것과는 정반대죠! 대신 러스트는 루프가 이 퓨처에 대한 작업을 일시 중단하고 다른 퓨처를 작업한 뒤 나중에 다시 이 퓨처를 확인할 수 있는 무언가에 제어권을 넘겨줄 수 있도록 보장합니다. 우리가 보았듯이, 그 무언가가 바로 비동기 런타임이며, 이러한 스케줄링과 조정 작업이 런타임의 주요 임무 중 하나입니다.</p>
-<p>이 장의 앞부분에서 우리는 <code>rx.recv</code>를 기다리는 것에 대해 설명했습니다. <code>recv</code> 호출은 퓨처를 반환하며, 퓨처를 기다리는 것은 그것을 폴링하는 것입니다. 우리는 런타임이 채널이 닫힐 때 <code>Some(message)</code> 또는 <code>None</code>으로 준비될 때까지 퓨처를 일시 중지할 것이라고 언급했습니다. <code>Future</code> 트레이트, 특히 <code>Future::poll</code>에 대한 더 깊은 이해를 통해 우리는 그것이 어떻게 작동하는지 볼 수 있습니다. 런타임은 <code>Poll::Pending</code>을 반환할 때 퓨처가 준비되지 않았음을 압니다. 반대로, <code>poll</code>이 <code>Poll::Ready(Some(message))</code> 또는 <code>Poll::Ready(None)</code>을 반환하면 런타임은 퓨처가 준비되었음을 알고 다음으로 진행합니다.</p>
+<p>If Rust compiled it to exactly that code, though, every <code>await</code> would be blocking—exactly the opposite of what we were going for! Instead, Rust ensures that the loop can hand off control to something that can pause work on this future to work on other futures and then check this one again later. As we’ve seen, that something is an async runtime, and this scheduling and coordination work is one of its main jobs.</p>
+<p>In the <a href="ch17-02-concurrency-with-async.html#sending-data-between-two-tasks-using-message-passing">“Sending Data Between Two Tasks Using Message Passing”</a><!-- ignore --> section, we described waiting on <code>rx.recv</code>. The <code>recv</code> call returns a future, and awaiting the future polls it. We noted that a runtime will pause the future until it’s ready with either <code>Some(message)</code> or <code>None</code> when the channel closes. With our deeper understanding of the <code>Future</code> trait, and specifically <code>Future::poll</code>, we can see how that works. The runtime knows the future isn’t ready when it returns <code>Poll::Pending</code>. Conversely, the runtime knows the future <em>is</em> ready and advances it when <code>poll</code> returns <code>Poll::Ready(Some(message))</code> or <code>Poll::Ready(None)</code>.</p>
 <p>런타임이 이를 어떻게 수행하는지에 대한 정확한 세부 사항은 이 책의 범위를 벗어나지만, 핵심은 퓨처의 기본적인 메커니즘을 이해하는 것입니다. 런타임은 자신이 책임지는 각 퓨처를 _폴링(poll)_하며, 아직 준비되지 않았을 때는 퓨처를 다시 잠들게 합니다.</p>
 <!-- Old headings. Do not remove or links may break. -->
-<p><a id="pinning-and-the-pin-and-unpin-traits"></a></p>
-<h3 id="pin과-unpin-트레이트"><a class="header" href="#pin과-unpin-트레이트"><code>Pin</code>과 <code>Unpin</code> 트레이트</a></h3>
-<p>목록 17-16에서 피닝(pinning)의 개념을 소개했을 때, 우리는 매우 까다로운 에러 메시지에 맞닥뜨렸습니다. 관련 부분만 다시 보겠습니다.</p>
+<p><a id="pinning-and-the-pin-and-unpin-traits"></a> <a id="the-pin-and-unpin-traits"></a></p>
+<h3 id="the-pin-type-and-the-unpin-trait"><a class="header" href="#the-pin-type-and-the-unpin-trait">The <code>Pin</code> Type and the <code>Unpin</code> Trait</a></h3>
+<p>Back in Listing 17-13, we used the <code>trpl::join!</code> macro to await three futures. However, it’s common to have a collection such as a vector containing some number futures that won’t be known until runtime. Let’s change Listing 17-13 to the code in Listing 17-23 that puts the three futures into a vector and calls the <code>trpl::join_all</code> function instead, which won’t compile yet.</p>
+<Listing number="17-23" caption="Awaiting futures in a collection"  file-name="src/main.rs">
+<pre><code class="language-rust ignore does_not_compile"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
+</span><span class="boring">
+</span><span class="boring">use std::time::Duration;
+</span><span class="boring">
+</span><span class="boring">fn main() {
+</span><span class="boring">    trpl::block_on(async {
+</span><span class="boring">        let (tx, mut rx) = trpl::channel();
+</span><span class="boring">
+</span><span class="boring">        let tx1 = tx.clone();
+</span><span class="boring">        let tx1_fut = async move {
+</span><span class="boring">            let vals = vec![
+</span><span class="boring">                String::from("안녕"),
+</span><span class="boring">                String::from("from"),
+</span><span class="boring">                String::from("the"),
+</span><span class="boring">                String::from("future"),
+</span><span class="boring">            ];
+</span><span class="boring">
+</span><span class="boring">            for val in vals {
+</span><span class="boring">                tx1.send(val).unwrap();
+</span><span class="boring">                trpl::sleep(Duration::from_secs(1)).await;
+</span><span class="boring">            }
+</span><span class="boring">        };
+</span><span class="boring">
+</span><span class="boring">        let rx_fut = async {
+</span><span class="boring">            while let Some(value) = rx.recv().await {
+</span><span class="boring">                println!("received '{value}'");
+</span><span class="boring">            }
+</span><span class="boring">        };
+</span><span class="boring">
+</span>        let tx_fut = async move {
+            // --생략--
+<span class="boring">            let vals = vec![
+</span><span class="boring">                String::from("more"),
+</span><span class="boring">                String::from("messages"),
+</span><span class="boring">                String::from("for"),
+</span><span class="boring">                String::from("you"),
+</span><span class="boring">            ];
+</span><span class="boring">
+</span><span class="boring">            for val in vals {
+</span><span class="boring">                tx.send(val).unwrap();
+</span><span class="boring">                trpl::sleep(Duration::from_secs(1)).await;
+</span><span class="boring">            }
+</span>        };
+
+        let futures: Vec&lt;Box&lt;dyn Future&lt;Output = ()&gt;&gt;&gt; =
+            vec![Box::new(tx1_fut), Box::new(rx_fut), Box::new(tx_fut)];
+
+        trpl::join_all(futures).await;
+<span class="boring">    });
+</span><span class="boring">}</span></code></pre>
+</Listing>
+<p>We put each future within a <code>Box</code> to make them into <em>trait objects</em>, just as we did in the “Returning Errors from <code>run</code>” section in Chapter 12. (We’ll cover trait objects in detail in Chapter 18.) Using trait objects lets us treat each of the anonymous futures produced by these types as the same type, because all of them implement the <code>Future</code> trait.</p>
+<p>This might be surprising. After all, none of the async blocks returns anything, so each one produces a <code>Future&lt;Output = ()&gt;</code>. Remember that <code>Future</code> is a trait, though, and that the compiler creates a unique enum for each async block, even when they have identical output types. Just as you can’t put two different handwritten structs in a <code>Vec</code>, you can’t mix compiler-generated enums.</p>
+<p>Then we pass the collection of futures to the <code>trpl::join_all</code> function and await the result. However, this doesn’t compile; here’s the relevant part of the error messages.</p>
 <!-- manual-regeneration
-cd listings/ch17-async-await/listing-17-16
+cd listings/ch17-async-await/listing-17-23
 cargo build
 copy *only* the final `error` block from the errors
 -->
-<p>29 |     F: Future, |        ^^^^^^ <code>JoinAll</code>의 이 바운드에 의해 요구됨</p>
-<pre><code class="language-text">error[E0277]: `{async block@src/main.rs:10:23: 10:33}`는 언피닝(unpinned)될 수 없습니다
+<pre><code class="language-text">error[E0277]: `dyn Future&lt;Output = ()&gt;` cannot be unpinned
   --&gt; src/main.rs:48:33
    |
 48 |         trpl::join_all(futures).await;
-   |                                 ^^^^^ `{async block@src/main.rs:10:23: 10:33}`에 대해 `Unpin` 트레이트가 구현되지 않았으며, 이는 `Box&lt;{async block@src/main.rs:10:23: 10:33}&gt;: Future`에 의해 요구됩니다
+   |                                 ^^^^^ the trait `Unpin` is not implemented for `dyn Future&lt;Output = ()&gt;`
    |
-   = note: `pin!` 매크로 사용을 고려해 보세요
-           현재 스코프 외부에서 피닝된 값에 접근해야 한다면 `Box::pin` 사용을 고려해 보세요
-   = note: `Box&lt;{async block@src/main.rs:10:23: 10:33}&gt;`가 `Future`를 구현하기 위해 필요합니다
-note: `futures_util::future::join_all::JoinAll`의 바운드에 의해 요구됩니다
-  --&gt; file:///home/.cargo/registry/src/index.crates.io-6f17d22bba15001f/futures-util-0.3.30/src/future/join_all.rs:29:8
+   = note: consider using the `pin!` macro
+           consider using `Box::pin` if you need to access the pinned value outside of the current scope
+   = note: required for `Box&lt;dyn Future&lt;Output = ()&gt;&gt;` to implement `Future`
+note: required by a bound in `futures_util::future::join_all::JoinAll`
+  --&gt; file:///home/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.30/src/future/join_all.rs:29:8
    |
 27 | pub struct JoinAll&lt;F&gt;
-   |            ------- 이 구조체의 바운드에 의해 요구됨
+   |            ------- required by a bound in this struct
 28 | where
 29 |     F: Future,
-   |        ^^^^^^ `JoinAll`의 이 바운드에 의해 요구됨
-```
+   |        ^^^^^^ required by this bound in `JoinAll`
 </code></pre>
-<p>This error message tells us not only that we need to pin the values but also why pinning is required. The <code>trpl::join_all</code> function returns a struct called <code>JoinAll</code>. That struct is generic over a type <code>F</code>, which is constrained to implement the <code>Future</code> trait. Directly awaiting a future with <code>await</code> pins the future implicitly. That’s why we don’t need to use <code>pin!</code> everywhere we want to await futures.</p>
-<p>하지만 여기서는 퓨처를 직접 기다리고 있지 않습니다. 대신 <code>join_all</code> 함수에 퓨처 컬렉션을 전달하여 새로운 퓨처인 <code>JoinAll</code>을 구성합니다. <code>join_all</code>의 시그니처는 컬렉션에 포함된 아이템들의 타입이 모두 <code>Future</code> 트레이트를 구현할 것을 요구하며, <code>Box&lt;T&gt;</code>는 그것이 감싸고 있는 <code>T</code>가 <code>Unpin</code> 트레이트를 구현하는 퓨처인 경우에만 <code>Future</code>를 구현합니다.</p>
-<p>소화해야 할 내용이 많네요! 이를 제대로 이해하기 위해, <code>Future</code> 트레이트가 실제로 어떻게 작동하는지, 특히 _피닝(pinning)_과 관련하여 좀 더 깊이 들어가 봅시다.</p>
-<p><code>Future</code> 트레이트의 정의를 다시 살펴보세요.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<p>The note in this error message tells us that we should use the <code>pin!</code> macro to <em>pin</em> the values, which means putting them inside the <code>Pin</code> type that guarantees the values won’t be moved in memory. The error message says pinning is required because <code>dyn Future&lt;Output = ()&gt;</code> needs to implement the <code>Unpin</code> trait and it currently does not.</p>
+<p>The <code>trpl::join_all</code> function returns a struct called <code>JoinAll</code>. That struct is generic over a type <code>F</code>, which is constrained to implement the <code>Future</code> trait. Directly awaiting a future with <code>await</code> pins the future implicitly. That’s why we don’t need to use <code>pin!</code> everywhere we want to await futures.</p>
+<p>However, we’re not directly awaiting a future here. Instead, we construct a new future, JoinAll, by passing a collection of futures to the <code>join_all</code> function. The signature for <code>join_all</code> requires that the types of the items in the collection all implement the <code>Future</code> trait, and <code>Box&lt;T&gt;</code> implements <code>Future</code> only if the <code>T</code> it wraps is a future that implements the <code>Unpin</code> trait.</p>
+<p>That’s a lot to absorb! To really understand it, let’s dive a little further into how the <code>Future</code> trait actually works, in particular around pinning. Look again at the definition of the <code>Future</code> trait:</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::pin::Pin;
 use std::task::{Context, Poll};
@@ -319,42 +372,38 @@ pub trait Future {
     fn poll(self: Pin&lt;&amp;mut Self&gt;, cx: &amp;mut Context&lt;'_&gt;) -&gt; Poll&lt;Self::Output&gt;;
 }
 <span class="boring">}</span></code></pre></pre>
-<p><code>cx</code> 매개변수와 그 <code>Context</code> 타입은 런타임이 지연(lazy) 상태를 유지하면서도 주어진 퓨처를 언제 확인해야 할지 실제로 아는 핵심 비결입니다. 다시 말하지만, 그것이 어떻게 작동하는지에 대한 세부 사항은 이 장의 범위를 벗어나며, 여러분은 일반적으로 커스텀 <code>Future</code> 구현을 작성할 때만 이를 생각하면 됩니다. 대신 우리는 <code>self</code>의 타입에 집중할 것입니다. 이는 우리가 <code>self</code>에 타입 어노테이션이 있는 메서드를 처음 보는 것이기 때문입니다. <code>self</code>에 대한 타입 어노테이션은 다른 함수 매개변수에 대한 타입 어노테이션과 비슷하게 작동하지만, 두 가지 주요 차이점이 있습니다.</p>
+<p>The <code>cx</code> parameter and its <code>Context</code> type are the key to how a runtime actually knows when to check any given future while still being lazy. Again, the details of how that works are beyond the scope of this chapter, and you generally only need to think about this when writing a custom <code>Future</code> implementation. We’ll focus instead on the type for <code>self</code>, as this is the first time we’ve seen a method where <code>self</code> has a type annotation. A type annotation for <code>self</code> works like type annotations for other function parameters but with two key differences:</p>
 <ul>
-<li>
-<p>메서드가 호출되기 위해 <code>self</code>가 어떤 타입이어야 하는지를 러스트에게 알려줍니다.</p>
-</li>
-<li>
-<p>단순히 아무 타입이나 될 수는 없습니다. 메서드가 구현된 타입, 그 타입에 대한 참조나 스마트 포인터, 또는 그 타입에 대한 참조를 감싸는 <code>Pin</code>으로 제한됩니다.</p>
-</li>
+<li>메서드가 호출되기 위해 <code>self</code>가 어떤 타입이어야 하는지를 러스트에게 알려줍니다.</li>
+<li>단순히 아무 타입이나 될 수는 없습니다. 메서드가 구현된 타입, 그 타입에 대한 참조나 스마트 포인터, 또는 그 타입에 대한 참조를 감싸는 <code>Pin</code>으로 제한됩니다.</li>
 </ul>
 <p>이 문법에 대해서는 <a href="ch18-00-oop.html">18장</a><!-- ignore -->에서 더 자세히 보게 될 것입니다. 지금은 퓨처가 <code>Pending</code>인지 <code>Ready(Output)</code>인지 확인하기 위해 폴링하고 싶다면, 해당 타입에 대한 <code>Pin</code>으로 감싸인 가변 참조가 필요하다는 것만 알면 충분합니다.</p>
-<p><code>Pin</code>은 <code>&amp;</code>, <code>&amp;mut</code>, <code>Box</code>, <code>Rc</code>와 같은 포인터 유사 타입들을 위한 래퍼입니다. (엄밀히 말하면 <code>Pin</code>은 <code>Deref</code>나 <code>DerefMut</code> 트레이트를 구현하는 타입들과 함께 작동하지만, 이는 사실상 포인터들하고만 작동하는 것과 같습니다.) <code>Pin</code>은 그 자체로 포인터가 아니며, 참조 카운팅을 하는 <code>Rc</code>나 <code>Arc</code>와 같은 고유한 동작을 가지고 있지도 않습니다. 그것은 순전히 컴파일러가 포인터 사용에 대한 제약 조건을 강제하기 위해 사용할 수 있는 도구일 뿐입니다.</p>
+<p><code>Pin</code> is a wrapper for pointer-like types such as <code>&amp;</code>, <code>&amp;mut</code>, <code>Box</code>, and <code>Rc</code>. (Technically, <code>Pin</code> works with types that implement the <code>Deref</code> or <code>DerefMut</code> traits, but this is effectively equivalent to working only with references and smart pointers.) <code>Pin</code> is not a pointer itself and doesn’t have any behavior of its own like <code>Rc</code> and <code>Arc</code> do with reference counting; it’s purely a tool the compiler can use to enforce constraints on pointer usage.</p>
 <p><code>await</code>가 <code>poll</code> 호출을 기반으로 구현된다는 점을 상기해 보면 아까 보았던 에러 메시지가 조금씩 이해되기 시작하지만, 그 에러는 <code>Pin</code>이 아니라 <code>Unpin</code>에 관한 것이었습니다. 그렇다면 정확히 <code>Pin</code>은 <code>Unpin</code>과 어떤 관계가 있으며, 왜 <code>Future</code>는 <code>poll</code>을 호출하기 위해 <code>self</code>가 <code>Pin</code> 타입 내에 있어야 할까요?</p>
-<p>이 장의 앞부분에서 퓨처 내의 일련의 await 지점들이 상태 머신으로 컴파일되며, 컴파일러는 그 상태 머신이 대여 및 소유권을 포함하여 러스트의 모든 일반적인 안전성 규칙을 따르도록 보장한다는 점을 기억하세요. 이를 위해 러스트는 한 await 지점과 다음 await 지점 사이, 또는 비동기 블록의 끝 사이에 어떤 데이터가 필요한지 살펴봅니다. 그런 다음 컴파일된 상태 머신에 그에 대응하는 변형(variant)을 만듭니다. 각 변형은 소스 코드의 해당 섹션에서 사용될 데이터에 대해, 데이터의 소유권을 가져오거나 가변 또는 불변 참조를 얻음으로써 필요한 접근 권한을 갖게 됩니다.</p>
+<p>Remember from earlier in this chapter that a series of await points in a future get compiled into a state machine, and the compiler makes sure that state machine follows all of Rust’s normal rules around safety, including borrowing and ownership. To make that work, Rust looks at what data is needed between one await point and either the next await point or the end of the async block. It then creates a corresponding variant in the compiled state machine. Each variant gets the access it needs to the data that will be used in that section of the source code, whether by taking ownership of that data or by getting a mutable or immutable reference to it.</p>
 <p>여기까지는 좋습니다. 주어진 비동기 블록 내의 소유권이나 참조에 잘못된 점이 있다면 대여 검사기가 알려줄 테니까요. 하지만 그 블록에 해당하는 퓨처를 이동시키고 싶을 때—예를 들어 <code>join_all</code>에 전달하기 위해 <code>Vec</code>에 넣는 경우—상황은 더 까다로워집니다.</p>
 <p>우리가 퓨처를 이동시킬 때—그것이 <code>join_all</code>에서 반복자로 사용하기 위해 데이터 구조에 밀어 넣는 것이든, 함수에서 반환하는 것이든—그것은 사실 러스트가 우리를 위해 만든 상태 머신을 이동시키는 것을 의미합니다. 그리고 러스트의 대부분의 다른 타입들과 달리, 비동기 블록을 위해 러스트가 만드는 퓨처들은 그림 17-4의 단순화된 삽화에서 보여주듯 주어진 변형의 필드에 자기 자신에 대한 참조를 가질 수 있게 됩니다.</p>
 <figure>
 <img alt="A single-column, three-row table representing a future, fut1, which has data values 0 and 1 in the first two rows and an arrow pointing from the third row back to the second row, representing an internal reference within the future." src="img/trpl17-04.svg" class="center" />
-<figcaption>Figure 17-4: A self-referential data type.</figcaption>
+<figcaption>Figure 17-4: A self-referential data type</figcaption>
 </figure>
 <p>하지만 기본적으로 자기 자신에 대한 참조를 가진 객체는 이동하기에 안전하지 않습니다. 참조는 항상 자신이 참조하는 대상의 실제 메모리 주소를 가리키기 때문입니다(그림 17-5 참조). 데이터 구조 자체를 이동시키면, 그 내부의 참조들은 예전 위치를 가리키는 채로 남게 됩니다. 하지만 그 메모리 위치는 이제 유효하지 않습니다. 우선 데이터 구조를 변경해도 그 값은 업데이트되지 않을 것입니다. 또한—더 중요한 것은—컴퓨터가 이제 그 메모리를 다른 용도로 자유롭게 재사용할 수 있다는 점입니다! 나중에 완전히 상관없는 데이터를 읽게 될 수도 있습니다.</p>
 <figure>
 <img alt="Two tables, depicting two futures, fut1 and fut2, each of which has one column and three rows, representing the result of having moved a future out of fut1 into fut2. The first, fut1, is grayed out, with a question mark in each index, representing unknown memory. The second, fut2, has 0 and 1 in the first and second rows and an arrow pointing from its third row back to the second row of fut1, representing a pointer that is referencing the old location in memory of the future before it was moved." src="img/trpl17-05.svg" class="center" />
 <figcaption>Figure 17-5: The unsafe result of moving a self-referential data type</figcaption>
 </figure>
-<p>이론적으로는 러스트 컴파일러가 객체가 이동할 때마다 그 객체에 대한 모든 참조를 업데이트하도록 시도할 수도 있겠지만, 이는 특히 수많은 참조가 얽혀 있는 경우 막대한 성능 오버헤드를 발생시킬 수 있습니다. 대신 문제가 되는 데이터 구조가 <em>메모리에서 이동하지 않도록</em> 보장할 수 있다면, 참조를 업데이트할 필요가 없을 것입니다. 이것이 바로 러스트의 대여 검사기가 요구하는 사항입니다. 안전한 코드에서 대여 검사기는 활성화된 참조가 있는 항목을 이동시키지 못하게 합니다.</p>
+<p>Theoretically, the Rust compiler could try to update every reference to an object whenever it gets moved, but that could add a lot of performance overhead, especially if a whole web of references needs updating. If we could instead make sure the data structure in question <em>doesn’t move in memory</em>, we wouldn’t have to update any references. This is exactly what Rust’s borrow checker is for: in safe code, it prevents you from moving any item with an active reference to it.</p>
 <p><code>Pin</code>은 이를 기반으로 우리에게 필요한 정확한 보장을 제공합니다. 어떤 값에 대한 포인터를 <code>Pin</code>으로 감싸서 그 값을 _피닝(pin)_하면, 그 값은 더 이상 이동할 수 없게 됩니다. 따라서 <code>Pin&lt;Box&lt;SomeType&gt;&gt;</code>을 가지고 있다면, 실제로는 <code>Box</code> 포인터가 아니라 <code>SomeType</code> 값을 피닝하는 것입니다. 그림 17-6이 이 과정을 보여줍니다.</p>
 <figure>
-<img alt="Three boxes laid out side by side. The first is labeled “Pin”, the second “b1”, and the third “pinned”. Within “pinned” is a table labeled “fut”, with a single column; it represents a future with cells for each part of the data structure. Its first cell has the value “0”, its second cell has an arrow coming out of it and pointing to the fourth and final cell, which has the value “1” in it, and the third cell has dashed lines and an ellipsis to indicate there may be other parts to the data structure. All together, the “fut” table represents a future which is self-referential. An arrow leaves the box labeled “Pin”, goes through the box labeled “b1” and has terminates inside the “pinned” box at the “fut” table." src="img/trpl17-06.svg" class="center" />
-<figcaption>Figure 17-6: Pinning a `Box` that points to a self-referential future type.</figcaption>
+<img alt="Three boxes laid out side by side. The first is labeled “Pin”, the second “b1”, and the third “pinned”. Within “pinned” is a table labeled “fut”, with a single column; it represents a future with cells for each part of the data structure. Its first cell has the value “0”, its second cell has an arrow coming out of it and pointing to the fourth and final cell, which has the value “1” in it, and the third cell has dashed lines and an ellipsis to indicate there may be other parts to the data structure. All together, the “fut” table represents a future which is self-referential. An arrow leaves the box labeled “Pin”, goes through the box labeled “b1” and terminates inside the “pinned” box at the “fut” table." src="img/trpl17-06.svg" class="center" />
+<figcaption>Figure 17-6: Pinning a `Box` that points to a self-referential future type</figcaption>
 </figure>
-<p>사실 <code>Box</code> 포인터 자체는 여전히 자유롭게 이동할 수 있습니다. 우리가 신경 쓰는 것은 궁극적으로 참조되는 데이터가 제자리에 머물도록 보장하는 것임을 기억하세요. 그림 17-7에서 보듯 포인터가 이동하더라도 <em>그것이 가리키는 데이터가 같은 위치에 있다면</em> 잠재적인 문제는 없습니다. (독자적인 연습 과제로, <code>std::pin</code> 모듈과 관련 타입들의 문서를 살펴보고 <code>Box</code>를 감싸는 <code>Pin</code>으로 이를 어떻게 수행할지 생각해 보세요.) 핵심은 자기 참조형 타입 자체가 여전히 피닝되어 있기 때문에 이동할 수 없다는 것입니다.</p>
+<p>In fact, the <code>Box</code> pointer can still move around freely. Remember: we care about making sure the data ultimately being referenced stays in place. If a pointer moves around, <em>but the data it points to</em> is in the same place, as in Figure 17-7, there’s no potential problem. (As an independent exercise, look at the docs for the types as well as the <code>std::pin</code> module and try to work out how you’d do this with a <code>Pin</code> wrapping a <code>Box</code>.) The key is that the self-referential type itself cannot move, because it is still pinned.</p>
 <figure>
 <img alt="Four boxes laid out in three rough columns, identical to the previous diagram with a change to the second column. Now there are two boxes in the second column, labeled “b1” and “b2”, “b1” is grayed out, and the arrow from “Pin” goes through “b2” instead of “b1”, indicating that the pointer has moved from “b1” to “b2”, but the data in “pinned” has not moved." src="img/trpl17-07.svg" class="center" />
-<figcaption>Figure 17-7: Moving a `Box` which points to a self-referential future type.</figcaption>
+<figcaption>Figure 17-7: Moving a `Box` which points to a self-referential future type</figcaption>
 </figure>
-<p>하지만 설령 <code>Pin</code> 포인터 뒤에 있더라도 대부분의 타입들은 이동시키는 것이 완벽하게 안전합니다. 우리는 항목이 내부 참조를 가지고 있을 때만 피닝을 생각하면 됩니다. 숫자나 불리언 같은 기본 타입의 값들은 당연히 내부 참조가 없으므로 확실히 안전합니다. 여러분이 보통 러스트에서 다루는 대부분의 타입들도 마찬가지입니다. 예를 들어 <code>Vec</code>은 걱정 없이 이동시킬 수 있습니다. 지금까지 본 내용만 고려한다면, <code>Pin&lt;Vec&lt;String&gt;&gt;</code>을 가지고 있을 때 비록 <code>Vec&lt;String&gt;</code>에 다른 참조가 없어서 항상 이동하기에 안전하더라도 <code>Pin</code>이 제공하는 안전하지만 제한적인 API를 통해서만 모든 작업을 해야 할 것입니다. 우리는 이런 경우에 항목을 이동시켜도 괜찮다고 컴파일러에게 알려줄 방법이 필요하며, 바로 여기서 <code>Unpin</code>이 등장합니다.</p>
+<p>However, most types are perfectly safe to move around, even if they happen to be behind a <code>Pin</code> pointer. We only need to think about pinning when items have internal references. Primitive values such as numbers and Booleans are safe because they obviously don’t have any internal references. Neither do most types you normally work with in Rust. You can move around a <code>Vec</code>, for example, without worrying. Given what we have seen so far, if you have a <code>Pin&lt;Vec&lt;String&gt;&gt;</code>, you’d have to do everything via the safe but restrictive APIs provided by <code>Pin</code>, even though a <code>Vec&lt;String&gt;</code> is always safe to move if there are no other references to it. We need a way to tell the compiler that it’s fine to move items around in cases like this—and that’s where <code>Unpin</code> comes into play.</p>
 <p><code>Unpin</code>은 16장에서 보았던 <code>Send</code>, <code>Sync</code> 트레이트와 유사한 마커 트레이트이며, 따라서 그 자체로는 아무런 기능이 없습니다. 마커 트레이트는 오직 특정 맥락에서 주어진 트레이트를 구현하는 타입을 사용하는 것이 안전하다고 컴파일러에게 알려주기 위해 존재합니다. <code>Unpin</code>은 주어진 타입이 해당 값이 안전하게 이동될 수 있는지에 대한 어떠한 보장도 유지할 필요가 없음을 컴파일러에게 알려줍니다.</p>
 <!--
   The inline `<code>` in the next block is to allow the inline `<em>` inside it,
@@ -365,25 +414,84 @@ pub trait Future {
 <p>다시 말해, <code>Pin</code>과 <code>Unpin</code>의 관계에 대해 두 가지를 명심해야 합니다. 첫째, <code>Unpin</code>이 "일반적인" 경우이고 <code>!Unpin</code>이 특별한 경우입니다. 둘째, 어떤 타입이 <code>Unpin</code>을 구현하는지 혹은 <code>!Unpin</code>을 구현하는지는 오직 여러분이 <code>Pin&lt;&amp;mut <em>SomeType</em>&gt;</code>과 같이 해당 타입에 대한 피닝된 포인터를 사용할 때만 중요합니다.</p>
 <p>이를 구체화하기 위해 <code>String</code>을 생각해 봅시다. <code>String</code>은 길이와 그것을 구성하는 유니코드 캐릭터들을 가지고 있습니다. 그림 17-8에서 보듯 <code>String</code>을 <code>Pin</code>으로 감쌀 수 있습니다. 하지만 <code>String</code>은 러스트의 대부분의 다른 타입들과 마찬가지로 자동으로 <code>Unpin</code>을 구현합니다.</p>
 <figure>
-<img alt="Concurrent work flow" src="img/trpl17-08.svg" class="center" />
-<figcaption>Figure 17-8: Pinning a `String`; the dotted line indicates that the `String` implements the `Unpin` trait, and thus is not pinned.</figcaption>
+<img alt="A box labeled “Pin” on the left with an arrow going from it to a box labeled “String” on the right. The “String” box contains the data 5usize, representing the length of the string, and the letters “h”, “e”, “l”, “l”, and “o” representing the characters of the string “hello” stored in this String instance. A dotted rectangle surrounds the “String” box and its label, but not the “Pin” box." src="img/trpl17-08.svg" class="center" />
+<figcaption>Figure 17-8: Pinning a `String`; the dotted line indicates that the `String` implements the `Unpin` trait and thus is not pinned</figcaption>
 </figure>
-<p>그 결과, 만약 <code>String</code>이 대신 <code>!Unpin</code>을 구현했다면 불법이었을 일들을 할 수 있습니다. 예를 들어 그림 17-9와 같이 메모리의 정확히 동일한 위치에서 하나의 문자열을 다른 문자열로 교체하는 것이 가능합니다. 이는 <code>Pin</code> 계약을 위반하지 않는데, <code>String</code>은 이동시키기에 안전하지 않게 만드는 내부 참조를 가지고 있지 않기 때문입니다! 그것이 바로 <code>String</code>이 <code>!Unpin</code>이 아닌 <code>Unpin</code>을 구현하는 정확한 이유입니다.</p>
+<p>As a result, we can do things that would be illegal if <code>String</code> implemented <code>!Unpin</code> instead, such as replacing one string with another at the exact same location in memory as in Figure 17-9. This doesn’t violate the <code>Pin</code> contract, because <code>String</code> has no internal references that make it unsafe to move around. That is precisely why it implements <code>Unpin</code> rather than <code>!Unpin</code>.</p>
 <figure>
-<img alt="Concurrent work flow" src="img/trpl17-09.svg" class="center" />
-<figcaption>Figure 17-9: Replacing the `String` with an entirely different `String` in memory.</figcaption>
+<img alt="The same “hello” string data from the previous example, now labeled “s1” and grayed out. The “Pin” box from the previous example now points to a different String instance, one that is labeled “s2”, is valid, has a length of 7usize, and contains the characters of the string “goodbye”. s2 is surrounded by a dotted rectangle because it, too, implements the Unpin trait." src="img/trpl17-09.svg" class="center" />
+<figcaption>Figure 17-9: Replacing the `String` with an entirely different `String` in memory</figcaption>
 </figure>
-<p>이제 우리는 목록 17-17에서 보았던 <code>join_all</code> 호출 시 보고된 에러들을 이해할 수 있을 만큼 충분히 알게 되었습니다. 원래 우리는 비동기 블록에 의해 생성된 퓨처들을 <code>Vec&lt;Box&lt;dyn Future&lt;Output = ()&gt;&gt;&gt;</code>로 옮기려 했지만, 우리가 보았듯이 그 퓨처들은 내부 참조를 가질 수 있어 <code>Unpin</code>을 구현하지 않습니다. 그것들은 피닝(pinned)될 필요가 있으며, 그렇게 함으로써 우리는 퓨처 내부의 데이터가 이동하지 않을 것이라는 확신을 가지고 <code>Pin</code> 타입을 <code>Vec</code>에 전달할 수 있습니다.</p>
+<p>Now we know enough to understand the errors reported for that <code>join_all</code> call from back in Listing 17-23. We originally tried to move the futures produced by async blocks into a <code>Vec&lt;Box&lt;dyn Future&lt;Output = ()&gt;&gt;&gt;</code>, but as we’ve seen, those futures may have internal references, so they don’t automatically implement <code>Unpin</code>. Once we pin them, we can pass the resulting <code>Pin</code> type into the <code>Vec</code>, confident that the underlying data in the futures will <em>not</em> be moved. Listing 17-24 shows how to fix the code by calling the <code>pin!</code> macro where each of the three futures are defined and adjusting the trait object type.</p>
+<Listing number="17-24" caption="Pinning the futures to enable moving them into the vector">
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
+</span><span class="boring">
+</span>use std::pin::{Pin, pin};
+
+// --생략--
+
+<span class="boring">use std::time::Duration;
+</span><span class="boring">
+</span><span class="boring">fn main() {
+</span><span class="boring">    trpl::block_on(async {
+</span><span class="boring">        let (tx, mut rx) = trpl::channel();
+</span><span class="boring">
+</span><span class="boring">        let tx1 = tx.clone();
+</span>        let tx1_fut = pin!(async move {
+            // --생략--
+<span class="boring">            let vals = vec![
+</span><span class="boring">                String::from("안녕"),
+</span><span class="boring">                String::from("from"),
+</span><span class="boring">                String::from("the"),
+</span><span class="boring">                String::from("future"),
+</span><span class="boring">            ];
+</span><span class="boring">
+</span><span class="boring">            for val in vals {
+</span><span class="boring">                tx1.send(val).unwrap();
+</span><span class="boring">                trpl::sleep(Duration::from_secs(1)).await;
+</span><span class="boring">            }
+</span>        });
+
+        let rx_fut = pin!(async {
+            // --생략--
+<span class="boring">            while let Some(value) = rx.recv().await {
+</span><span class="boring">                println!("received '{value}'");
+</span><span class="boring">            }
+</span>        });
+
+        let tx_fut = pin!(async move {
+            // --생략--
+<span class="boring">            let vals = vec![
+</span><span class="boring">                String::from("more"),
+</span><span class="boring">                String::from("messages"),
+</span><span class="boring">                String::from("for"),
+</span><span class="boring">                String::from("you"),
+</span><span class="boring">            ];
+</span><span class="boring">
+</span><span class="boring">            for val in vals {
+</span><span class="boring">                tx.send(val).unwrap();
+</span><span class="boring">                trpl::sleep(Duration::from_secs(1)).await;
+</span><span class="boring">            }
+</span>        });
+
+        let futures: Vec&lt;Pin&lt;&amp;mut dyn Future&lt;Output = ()&gt;&gt;&gt; =
+            vec![tx1_fut, rx_fut, tx_fut];
+<span class="boring">
+</span><span class="boring">        trpl::join_all(futures).await;
+</span><span class="boring">    });
+</span><span class="boring">}</span></code></pre></pre>
+</Listing>
+<p>This example now compiles and runs, and we could add or remove futures from the vector at runtime and join them all.</p>
 <p><code>Pin</code>과 <code>Unpin</code>은 일상적인 러스트 코드보다는 주로 저수준 라이브러리를 구축하거나 런타임 자체를 만들 때 중요합니다. 하지만 이제 에러 메시지에서 이러한 트레이트들을 보게 된다면, 코드를 어떻게 고쳐야 할지 더 잘 알게 되실 겁니다!</p>
 <blockquote>
 <p>참고: <code>Pin</code>과 <code>Unpin</code>의 조합은 자기 참조형(self-referential)이라서 구현하기 까다로웠을 일련의 복잡한 타입들을 러스트에서 안전하게 구현할 수 있게 해줍니다. 오늘날 비동기 러스트에서 <code>Pin</code>을 필요로 하는 타입들이 가장 흔히 나타나지만, 가끔씩 다른 맥락에서도 이들을 볼 수 있습니다.</p>
 <p><code>Pin</code>과 <code>Unpin</code>이 어떻게 작동하는지, 그리고 이들이 지켜야 하는 규칙들에 대해서는 <code>std::pin</code>의 API 문서에서 광범위하게 다루고 있습니다. 더 자세히 알고 싶다면 그곳이 좋은 출발점이 될 것입니다.</p>
-<p>내부적으로 어떻게 작동하는지 더 자세히 알고 싶다면, <a href="https://rust-lang.github.io/async-book/"><em>Asynchronous Programming in Rust</em></a>의 <a href="https://rust-lang.github.io/async-book/02_execution/01_chapter.html">2장</a>과 <a href="https://rust-lang.github.io/async-book/04_pinning/01_chapter.html">4장</a>을 참조하세요.</p>
+<p>If you want to understand how things work under the hood in even more detail, see Chapters <a href="https://rust-lang.github.io/async-book/02_execution/01_chapter.html">2</a><!-- ignore --> and <a href="https://rust-lang.github.io/async-book/04_pinning/01_chapter.html">4</a><!-- ignore --> of <a href="https://rust-lang.github.io/async-book/"><em>Asynchronous Programming in Rust</em></a>.</p>
 </blockquote>
 <h3 id="stream-트레이트"><a class="header" href="#stream-트레이트"><code>Stream</code> 트레이트</a></h3>
 <p>이제 <code>Future</code>, <code>Pin</code>, <code>Unpin</code> 트레이트에 대해 더 깊이 이해했으니, <code>Stream</code> 트레이트로 관심을 돌려봅시다. 이 장의 앞부분에서 배웠듯이, 스트림은 비동기 반복자와 비슷합니다. 하지만 <code>Iterator</code>나 <code>Future</code>와 달리, 이 글을 쓰는 시점에 <code>Stream</code>은 표준 라이브러리에 정의되어 있지 않습니다. 대신 생태계 전반에서 사용되는 <code>futures</code> 크레이트의 매우 공통적인 정의가 존재합니다.</p>
 <p><code>Stream</code> 트레이트가 이들을 어떻게 병합하는지 살펴보기 전에, <code>Iterator</code>와 <code>Future</code> 트레이트의 정의를 복습해 봅시다. <code>Iterator</code>로부터는 순차열(sequence)의 개념을 얻습니다. 그것의 <code>next</code> 메서드는 <code>Option&lt;Self::Item&gt;</code>을 제공하죠. <code>Future</code>로부터는 시간에 따른 준비성(readiness)의 개념을 얻습니다. 그것의 <code>poll</code> 메서드는 <code>Poll&lt;Self::Output&gt;</code>을 제공합니다. 시간이 지남에 따라 준비되는 일련의 항목들을 표현하기 위해, 우리는 이 기능들을 하나로 합친 <code>Stream</code> 트레이트를 정의합니다.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::pin::Pin;
 use std::task::{Context, Poll};
@@ -400,8 +508,9 @@ trait Stream {
 <p><code>Stream</code> 트레이트는 스트림에 의해 생성되는 항목들의 타입을 위해 <code>Item</code>이라는 연관 타입을 정의합니다. 이는 0개에서 여러 개의 항목이 있을 수 있는 <code>Iterator</code>와 비슷하며, 항상 단일 <code>Output</code>(설령 그것이 유닛 타입 <code>()</code>일지라도)을 가지는 <code>Future</code>와는 다릅니다.</p>
 <p><code>Stream</code>은 또한 그 항목들을 가져오기 위한 메서드를 정의합니다. 우리는 이를 <code>poll_next</code>라고 부르는데, 이는 <code>Future::poll</code>과 같은 방식으로 폴링하고 <code>Iterator::next</code>와 같은 방식으로 일련의 항목을 생성한다는 것을 명확히 하기 위해서입니다. 그것의 반환 타입은 <code>Poll</code>과 <code>Option</code>을 결합한 것입니다. 퓨처와 마찬가지로 준비 상태를 확인해야 하므로 바깥쪽 타입은 <code>Poll</code>입니다. 안쪽 타입은 반복자와 마찬가지로 더 이상의 메시지가 있는지 알려주어야 하므로 <code>Option</code>입니다.</p>
 <p>이 정의와 매우 유사한 것이 조만간 러스트 표준 라이브러리의 일부가 될 가능성이 높습니다. 그 전까지는 대부분의 런타임이 제공하는 도구의 일부이므로 안심하고 사용하셔도 되며, 우리가 다음에 다룰 모든 내용은 일반적으로 동일하게 적용될 것입니다!</p>
-<p>하지만 스트리밍 섹션에서 보았던 예제에서는 <code>poll_next</code>나 <code>Stream</code>을 직접 사용하지 않고, 대신 <code>next</code>와 <code>StreamExt</code>를 사용했습니다. 물론 우리가 직접 <code>Stream</code> 상태 머신을 손으로 작성하여 <code>poll_next</code> API를 직접 다룰 수도 있습니다. 마치 <code>poll</code> 메서드를 통해 퓨처를 직접 다룰 수 있는 것과 마찬가지죠. 하지만 <code>await</code>를 사용하는 것이 훨씬 더 깔끔하며, <code>StreamExt</code> 트레이트가 <code>next</code> 메서드를 제공하므로 우리는 그렇게 할 수 있습니다.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<p>In the examples we saw in the <a href="ch17-04-streams.html">“Streams: Futures in Sequence”</a><!--
+ignore --> section, though, we didn’t use <code>poll_next</code> <em>or</em> <code>Stream</code>, but instead used <code>next</code> and <code>StreamExt</code>. We <em>could</em> work directly in terms of the <code>poll_next</code> API by hand-writing our own <code>Stream</code> state machines, of course, just as we <em>could</em> work with futures directly via their <code>poll</code> method. Using <code>await</code> is much nicer, though, and the <code>StreamExt</code> trait supplies the <code>next</code> method so we can do just that:</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use std::pin::Pin;
 </span><span class="boring">use std::task::{Context, Poll};

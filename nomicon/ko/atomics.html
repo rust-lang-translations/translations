@@ -214,7 +214,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="아토믹"><a class="header" href="#아토믹">아토믹</a></h1>
-<p>러스트는 C++20의 아토믹 메모리 모델을 아주 노골적으로 그대로 상속받습니다. 이는 이 모델이 특별히 훌륭하거나 이해하기 쉬워서가 아닙니다. 실제로 이 모델은 꽤 복잡하며 <a href="http://plv.mpi-sws.org/c11comp/popl15.pdf">여러 결함</a>이 있는 것으로 알려져 있습니다. 오히려, 이는 _모든 사람_이 아토믹을 모델링하는 데 꽤 서툴다는 사실에 대한 실용적인 양보입니다. 적어도 우리는 C/C++ 메모리 모델을 둘러싼 기존 도구와 연구의 혜택을 누릴 수 있습니다. (이 모델은 종종 "C/C++11" 또는 그냥 "C11"이라고 불립니다. C는 C++ 메모리 모델을 그대로 복사하며, C++11은 이 모델의 첫 번째 버전이었으나 그 이후로 몇 가지 버그 수정이 있었습니다.)</p>
+<p>Rust pretty blatantly just inherits the memory model for atomics from C++20. This is not due to this model being particularly excellent or easy to understand. Indeed, this model is quite complex and known to have <a href="http://plv.mpi-sws.org/c11comp/popl15.pdf">several flaws</a>. Rather, it is a pragmatic concession to the fact that <em>everyone</em> is pretty bad at modeling atomics. At the very least, we can benefit from existing tooling and research around the C/C++ memory model. (You'll often see this model referred to as "C/C++11" or just "C11". C just copies the C++ memory model; and C++11 was the first version of the model but it has received some bugfixes since then.)</p>
 <p>이 책에서 모델을 완전히 설명하려고 하는 것은 거의 가망이 없습니다. 이는 실질적으로 제대로 이해하려면 책 한 권이 필요한, 광기를 유발하는 인과 관계 그래프로 정의되어 있습니다. 아주 상세한 내용을 원한다면 <a href="https://en.cppreference.com/w/cpp/atomic/memory_order">C++ 사양</a>을 확인해야 합니다. 그래도 우리는 기본 사항과 러스트 개발자가 직면하는 몇 가지 문제를 다루려고 노력할 것입니다.</p>
 <p>C++ 메모리 모델은 근본적으로 우리가 원하는 의미론, 컴파일러가 원하는 최적화, 그리고 하드웨어가 원하는 일관성 없는 혼돈 사이의 간극을 메우려는 시도입니다. _우리_는 그저 프로그램을 작성하고 우리가 말한 그대로 실행되기를 원합니다. 하지만, 알다시피, 빠르게 말이죠. 정말 좋지 않을까요?</p>
 <h2 id="컴파일러-재배치-compiler-reordering"><a class="header" href="#컴파일러-재배치-compiler-reordering">컴파일러 재배치 (Compiler Reordering)</a></h2>
@@ -279,7 +279,7 @@ x = 1;              y *= 2;
 <p>직관적으로, 어콰이어 접근은 그 이후의 모든 접근이 그 이후에 머무르도록 보장합니다. 하지만 어콰이어 이전에 발생하는 작업은 자유롭게 재배치되어 그 이후에 발생할 수 있습니다. 마찬가지로, 릴리스 접근은 그 이전의 모든 접근이 그 이전에 머무르도록 보장합니다. 하지만 릴리스 이후에 발생하는 작업은 자유롭게 재배치되어 그 이전에 발생할 수 있습니다.</p>
 <p>스레드 A가 메모리의 한 위치를 릴리스하고, 그 후 스레드 B가 메모리의 <em>동일한</em> 위치를 어콰이어하면, 인과 관계가 성립됩니다. A의 릴리스 이전에 발생한 모든 쓰기(비원자적 및 릴랙스드 아토믹 쓰기 포함)는 B가 어콰이어한 후에 관찰됩니다. 하지만 다른 어떤 스레드와도 인과 관계가 성립하지 않습니다. 마찬가지로, A와 B가 메모리의 <em>서로 다른</em> 위치에 접근한다면 인과 관계는 성립하지 않습니다.</p>
 <p>따라서 릴리스-어콰이어의 기본적인 사용법은 간단합니다. 임계 영역을 시작하기 위해 메모리 위치를 어콰이어하고, 끝내기 위해 해당 위치를 릴리스합니다. 예를 들어, 간단한 스핀락은 다음과 같을 수 있습니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">use std::sync::Arc;
+<pre><pre class="playground"><code class="language-rust edition2024">use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 

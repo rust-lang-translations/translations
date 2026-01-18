@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Comparing Performance: Loops vs. Iterators - The Rust Programming Language</title>
+        <title>Performance in Loops vs. Iterators - The Rust Programming Language</title>
 
 
         <!-- Custom HTML head -->
@@ -216,7 +216,9 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="comparing-performance-loops-vs-iterators"><a class="header" href="#comparing-performance-loops-vs-iterators">Comparing Performance: Loops vs. Iterators</a></h2>
+                        <!-- Old headings. Do not remove or links may break. -->
+<p><a id="comparing-performance-loops-vs-iterators"></a></p>
+<h2 id="performance-in-loops-vs-iterators"><a class="header" href="#performance-in-loops-vs-iterators">Performance in Loops vs. Iterators</a></h2>
 <p>To determine whether to use loops or iterators, you need to know which
 implementation is faster: the version of the <code>search</code> function with an explicit
 <code>for</code> loop or the version with iterators.</p>
@@ -228,64 +230,29 @@ version of <code>search</code> using the <code>for</code> loop and the version u
 test bench_search_iter ... bench:  19,234,900 ns/iter (+/- 657,200)
 </code></pre>
 <p>The two implementations have similar performance! We won’t explain the
-benchmark code here, because the point is not to prove that the two versions
+benchmark code here because the point is not to prove that the two versions
 are equivalent but to get a general sense of how these two implementations
 compare performance-wise.</p>
 <p>For a more comprehensive benchmark, you should check using various texts of
 various sizes as the <code>contents</code>, different words and words of different lengths
 as the <code>query</code>, and all kinds of other variations. The point is this:
-iterators, although a high-level abstraction, get compiled down to roughly the
+Iterators, although a high-level abstraction, get compiled down to roughly the
 same code as if you’d written the lower-level code yourself. Iterators are one
-of Rust’s <em>zero-cost abstractions</em>, by which we mean using the abstraction
+of Rust’s <em>zero-cost abstractions</em>, by which we mean that using the abstraction
 imposes no additional runtime overhead. This is analogous to how Bjarne
 Stroustrup, the original designer and implementor of C++, defines
-<em>zero-overhead</em> in “Foundations of C++” (2012):</p>
+zero-overhead in his 2012 ETAPS keynote presentation “Foundations of C++”:</p>
 <blockquote>
 <p>In general, C++ implementations obey the zero-overhead principle: What you
 don’t use, you don’t pay for. And further: What you do use, you couldn’t hand
 code any better.</p>
 </blockquote>
-<p>As another example, the following code is taken from an audio decoder. The
-decoding algorithm uses the linear prediction mathematical operation to
-estimate future values based on a linear function of the previous samples. This
-code uses an iterator chain to do some math on three variables in scope: a
-<code>buffer</code> slice of data, an array of 12 <code>coefficients</code>, and an amount by which
-to shift data in <code>qlp_shift</code>. We’ve declared the variables within this example
-but not given them any values; although this code doesn’t have much meaning
-outside of its context, it’s still a concise, real-world example of how Rust
-translates high-level ideas to low-level code.</p>
-<pre><code class="language-rust ignore">let buffer: &amp;mut [i32];
-let coefficients: [i64; 12];
-let qlp_shift: i16;
-
-for i in 12..buffer.len() {
-    let prediction = coefficients.iter()
-                                 .zip(&amp;buffer[i - 12..i])
-                                 .map(|(&amp;c, &amp;s)| c * s as i64)
-                                 .sum::&lt;i64&gt;() &gt;&gt; qlp_shift;
-    let delta = buffer[i];
-    buffer[i] = prediction as i32 + delta;
-}</code></pre>
-<p>To calculate the value of <code>prediction</code>, this code iterates through each of the
-12 values in <code>coefficients</code> and uses the <code>zip</code> method to pair the coefficient
-values with the previous 12 values in <code>buffer</code>. Then, for each pair, we
-multiply the values together, sum all the results, and shift the bits in the
-sum <code>qlp_shift</code> bits to the right.</p>
-<p>Calculations in applications like audio decoders often prioritize performance
-most highly. Here, we’re creating an iterator, using two adapters, and then
-consuming the value. What assembly code would this Rust code compile to? Well,
-as of this writing, it compiles down to the same assembly you’d write by hand.
-There’s no loop at all corresponding to the iteration over the values in
-<code>coefficients</code>: Rust knows that there are 12 iterations, so it “unrolls” the
-loop. <em>Unrolling</em> is an optimization that removes the overhead of the loop
-controlling code and instead generates repetitive code for each iteration of
-the loop.</p>
-<p>All of the coefficients get stored in registers, which means accessing the
-values is very fast. There are no bounds checks on the array access at runtime.
-All these optimizations that Rust is able to apply make the resulting code
-extremely efficient. Now that you know this, you can use iterators and closures
-without fear! They make code seem like it’s higher level but don’t impose a
-runtime performance penalty for doing so.</p>
+<p>In many cases, Rust code using iterators compiles to the same assembly you’d
+write by hand. Optimizations such as loop unrolling and eliminating bounds
+checking on array access apply and make the resultant code extremely efficient.
+Now that you know this, you can use iterators and closures without fear! They
+make code seem like it’s higher level but don’t impose a runtime performance
+penalty for doing so.</p>
 <h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
 <p>Closures and iterators are Rust features inspired by functional programming
 language ideas. They contribute to Rust’s capability to clearly express

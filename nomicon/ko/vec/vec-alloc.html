@@ -267,20 +267,17 @@ else:
 impl&lt;T&gt; Vec&lt;T&gt; {
     fn grow(&amp;mut self) {
         let (new_cap, new_layout) = if self.cap == 0 {
-            (1, Layout::array::&lt;T&gt;(1).unwrap())
+            (1, Layout::array::&lt;T&gt;(1))
         } else {
             // self.cap &lt;= isize::MAX이므로 이는 오버플로할 수 없습니다.
             let new_cap = 2 * self.cap;
-
-            // `Layout::array`는 바이트 수가 usize::MAX 이하인지 확인하지만,
-            // old_layout.size() &lt;= isize::MAX이므로 이는 중복 확인입니다.
-            // 따라서 `unwrap`은 절대 실패하지 않아야 합니다.
-            let new_layout = Layout::array::&lt;T&gt;(new_cap).unwrap();
-            (new_cap, new_layout)
+            (new_cap, Layout::array::&lt;T&gt;(new_cap))
         };
 
-        // 새로운 할당이 `isize::MAX` 바이트를 초과하지 않도록 보장합니다.
-        assert!(new_layout.size() &lt;= isize::MAX as usize, "할당이 너무 큼");
+        // `Layout::array` checks that the number of bytes allocated is
+        // in 1..=isize::MAX and will error otherwise.  An allocation of
+        // 0 bytes isn't possible thanks to the above condition.
+        let new_layout = new_layout.expect("할당이 너무 큼");
 
         let new_ptr = if self.cap == 0 {
             unsafe { alloc::alloc(new_layout) }

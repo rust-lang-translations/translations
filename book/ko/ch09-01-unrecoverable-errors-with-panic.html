@@ -220,7 +220,7 @@
 <p>때로는 코드에서 나쁜 일이 발생하고, 그것에 대해 할 수 있는 일이 아무것도 없을 때가 있습니다. 이런 경우를 위해 러스트에는 <code>panic!</code> 매크로가 있습니다. 실제로 패닉을 일으키는 방법은 두 가지가 있습니다: 코드가 패닉을 일으키는 동작을 취하거나(배열 끝을 넘어 접근하는 등) 명시적으로 <code>panic!</code> 매크로를 호출하는 것입니다. 두 경우 모두 프로그램에서 패닉을 일으킵니다. 기본적으로 이러한 패닉은 실패 메시지를 출력하고, 되감고(unwind), 스택을 정리하고, 종료합니다. 환경 변수를 통해 패닉이 발생했을 때 호출 스택을 표시하게 하여 패닉의 원인을 더 쉽게 추적할 수도 있습니다.</p>
 <blockquote>
 <h3 id="패닉에-대한-응답으로-스택-되감기-또는-중단하기"><a class="header" href="#패닉에-대한-응답으로-스택-되감기-또는-중단하기">패닉에 대한 응답으로 스택 되감기 또는 중단하기</a></h3>
-<p>기본적으로 패닉이 발생하면 프로그램은 <em>되감기(unwinding)</em> 를 시작합니다. 이는 러스트가 스택을 거슬러 올라가면서 만나는 각 함수에서 데이터를 정리한다는 의미입니다. 그러나 거슬러 올라가서 정리하는 것은 많은 작업입니다. 따라서 러스트는 즉시 <em>중단(aborting)</em> 하는 대안을 선택할 수 있도록 허용하며, 이는 정리 작업 없이 프로그램을 종료합니다.</p>
+<p>By default, when a panic occurs, the program starts <em>unwinding</em>, which means Rust walks back up the stack and cleans up the data from each function it encounters. However, walking back and cleaning up is a lot of work. Rust therefore allows you to choose the alternative of immediately <em>aborting</em>, which ends the program without cleaning up.</p>
 <p>결과 바이너리를 가능한 한 작게 만들어야 한다면, <em>Cargo.toml</em> 파일의 적절한 <code>[profile]</code> 섹션에 <code>panic = 'abort'</code>를 추가하여 패닉 시 되감기(unwinding) 대신 중단(aborting)으로 전환할 수 있습니다. 예를 들어 릴리스 모드에서 패닉 시 중단하려면 다음을 추가하세요:</p>
 <pre><code class="language-toml">[profile.release]
 panic = 'abort'
@@ -228,7 +228,7 @@ panic = 'abort'
 </blockquote>
 <p>간단한 프로그램에서 <code>panic!</code>을 호출해 봅시다:</p>
 <Listing file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust should_panic panics edition2021">fn main() {
+<pre><pre class="playground"><code class="language-rust should_panic panics edition2024">fn main() {
     panic!("충돌 및 소실");
 }</code></pre></pre>
 </Listing>
@@ -237,17 +237,18 @@ panic = 'abort'
    Compiling panic v0.1.0 (file:///projects/panic)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.25s
      Running `target/debug/panic`
+
 thread 'main' panicked at src/main.rs:2:5:
 crash and burn
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 </code></pre>
 <p><code>panic!</code> 호출은 마지막 두 줄에 포함된 에러 메시지를 발생시킵니다. 첫 번째 줄은 패닉 메시지와 소스 코드에서 패닉이 발생한 위치를 보여줍니다. _src/main.rs:2:5_는 <em>src/main.rs</em> 파일의 두 번째 줄, 다섯 번째 문자를 나타냅니다.</p>
 <p>이 경우, 표시된 줄은 우리 코드의 일부이며, 해당 줄로 가면 <code>panic!</code> 매크로 호출을 볼 수 있습니다. 다른 경우에는 <code>panic!</code> 호출이 우리 코드가 호출하는 코드에 있을 수 있으며, 에러 메시지에 보고된 파일 이름과 줄 번호는 결국 <code>panic!</code> 호출로 이어진 우리 코드의 줄이 아니라 <code>panic!</code> 매크로가 호출된 다른 사람의 코드일 수 있습니다.</p>
-<!-- Old heading. Do not remove or links may break. -->
+<!-- Old headings. Do not remove or links may break. -->
 <p><a id="using-a-panic-backtrace"></a></p>
 <p><code>panic!</code> 호출이 발생한 함수의 백트레이스(backtrace)를 사용하여 문제의 원인이 되는 코드 부분을 파악할 수 있습니다. <code>panic!</code> 백트레이스를 사용하는 방법을 이해하기 위해, 다른 예제를 통해 우리 코드가 매크로를 직접 호출하는 대신 우리 코드의 버그로 인해 라이브러리에서 <code>panic!</code> 호출이 발생할 때 어떤 모습인지 살펴보겠습니다. 목록 9-1에는 유효한 인덱스 범위를 벗어난 벡터의 인덱스에 접근하려는 코드가 있습니다.</p>
 <Listing number="9-1" file-name="src/main.rs" caption="Attempting to access an element beyond the end of a vector, which will cause a call to `panic!`">
-<pre><pre class="playground"><code class="language-rust should_panic panics edition2021">fn main() {
+<pre><pre class="playground"><code class="language-rust should_panic panics edition2024">fn main() {
     let v = vec![1, 2, 3];
 
     v[99];
@@ -260,12 +261,13 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
    Compiling panic v0.1.0 (file:///projects/panic)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.27s
      Running `target/debug/panic`
+
 thread 'main' panicked at src/main.rs:4:6:
 index out of bounds: the len is 3 but the index is 99
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 </code></pre>
-<p>이 에러는 우리가 <code>v</code> 벡터의 인덱스 <code>99</code>에 접근하려고 시도하는 _main.rs_의 4번째 줄을 가리킵니다.</p>
-<p><code>note:</code> 줄은 <code>RUST_BACKTRACE</code> 환경 변수를 설정하여 에러를 일으킨 원인이 정확히 무엇인지에 대한 백트레이스를 얻을 수 있다고 알려줍니다. _백트레이스_는 이 지점에 도달하기 위해 호출된 모든 함수의 목록입니다. 러스트의 백트레이스는 다른 언어에서와 마찬가지로 작동합니다. 백트레이스를 읽는 핵심은 맨 위에서부터 시작하여 여러분이 작성한 파일을 볼 때까지 읽는 것입니다. 그 지점이 문제가 시작된 곳입니다. 그 지점 위의 줄은 여러분의 코드가 호출한 코드이고, 아래 줄은 여러분의 코드를 호출한 코드입니다. 이러한 전후 라인에는 핵심 러스트 코드, 표준 라이브러리 코드 또는 사용 중인 크레이트가 포함될 수 있습니다. <code>RUST_BACKTRACE</code> 환경 변수를 <code>0</code>이 아닌 값으로 설정하여 백트레이스를 얻어 봅시다. 목록 9-2는 여러분이 보게 될 것과 유사한 출력을 보여줍니다.</p>
+<p>This error points at line 4 of our <em>main.rs</em> where we attempt to access index 99 of the vector in <code>v</code>.</p>
+<p>The <code>note:</code> line tells us that we can set the <code>RUST_BACKTRACE</code> environment variable to get a backtrace of exactly what happened to cause the error. A <em>backtrace</em> is a list of all the functions that have been called to get to this point. Backtraces in Rust work as they do in other languages: The key to reading the backtrace is to start from the top and read until you see files you wrote. That’s the spot where the problem originated. The lines above that spot are code that your code has called; the lines below are code that called your code. These before-and-after lines might include core Rust code, standard library code, or crates that you’re using. Let’s try to get a backtrace by setting the <code>RUST_BACKTRACE</code> environment variable to any value except <code>0</code>. Listing 9-2 shows output similar to what you’ll see.</p>
 <!-- manual-regeneration
 cd listings/ch09-error-handling/listing-09-01
 RUST_BACKTRACE=1 cargo run
@@ -278,21 +280,21 @@ thread 'main' panicked at src/main.rs:4:6:
 index out of bounds: the len is 3 but the index is 99
 stack backtrace:
    0: rust_begin_unwind
-             at /rustc/f6e511eec7342f59a25f7c0534f1dbea00d01b14/library/std/src/panicking.rs:662:5
+             at /rustc/4d91de4e48198da2e33413efdcd9cd2cc0c46688/library/std/src/panicking.rs:692:5
    1: core::panicking::panic_fmt
-             at /rustc/f6e511eec7342f59a25f7c0534f1dbea00d01b14/library/core/src/panicking.rs:74:14
+             at /rustc/4d91de4e48198da2e33413efdcd9cd2cc0c46688/library/core/src/panicking.rs:75:14
    2: core::panicking::panic_bounds_check
-             at /rustc/f6e511eec7342f59a25f7c0534f1dbea00d01b14/library/core/src/panicking.rs:276:5
+             at /rustc/4d91de4e48198da2e33413efdcd9cd2cc0c46688/library/core/src/panicking.rs:273:5
    3: &lt;usize as core::slice::index::SliceIndex&lt;[T]&gt;&gt;::index
-             at /rustc/f6e511eec7342f59a25f7c0534f1dbea00d01b14/library/core/src/slice/index.rs:302:10
+             at file:///home/.rustup/toolchains/1.85/lib/rustlib/src/rust/library/core/src/slice/index.rs:274:10
    4: core::slice::index::&lt;impl core::ops::index::Index&lt;I&gt; for [T]&gt;::index
-             at /rustc/f6e511eec7342f59a25f7c0534f1dbea00d01b14/library/core/src/slice/index.rs:16:9
+             at file:///home/.rustup/toolchains/1.85/lib/rustlib/src/rust/library/core/src/slice/index.rs:16:9
    5: &lt;alloc::vec::Vec&lt;T,A&gt; as core::ops::index::Index&lt;I&gt;&gt;::index
-             at /rustc/f6e511eec7342f59a25f7c0534f1dbea00d01b14/library/alloc/src/vec/mod.rs:2920:9
+             at file:///home/.rustup/toolchains/1.85/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3361:9
    6: panic::main
              at ./src/main.rs:4:6
    7: core::ops::function::FnOnce::call_once
-             at /rustc/f6e511eec7342f59a25f7c0534f1dbea00d01b14/library/core/src/ops/function.rs:250:5
+             at file:///home/.rustup/toolchains/1.85/lib/rustlib/src/rust/library/core/src/ops/function.rs:250:5
 note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
 </code></pre>
 </Listing>

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Traits: Defining Shared Behavior - The Rust Programming Language</title>
+        <title>Defining Shared Behavior with Traits - The Rust Programming Language</title>
 
 
         <!-- Custom HTML head -->
@@ -216,7 +216,9 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="traits-defining-shared-behavior"><a class="header" href="#traits-defining-shared-behavior">Traits: Defining Shared Behavior</a></h2>
+                        <!-- Old headings. Do not remove or links may break. -->
+<p><a id="traits-defining-shared-behavior"></a></p>
+<h2 id="defining-shared-behavior-with-traits"><a class="header" href="#defining-shared-behavior-with-traits">Defining Shared Behavior with Traits</a></h2>
 <p>A <em>trait</em> defines the functionality a particular type has and can share with
 other types. We can use traits to define shared behavior in an abstract way. We
 can use <em>trait bounds</em> to specify that a generic type can be any type that has
@@ -232,14 +234,15 @@ types. Trait definitions are a way to group method signatures together to
 define a set of behaviors necessary to accomplish some purpose.</p>
 <p>For example, let’s say we have multiple structs that hold various kinds and
 amounts of text: a <code>NewsArticle</code> struct that holds a news story filed in a
-particular location and a <code>Tweet</code> that can have, at most, 280 characters along
-with metadata that indicates whether it was a new tweet, a retweet, or a reply
-to another tweet.</p>
+particular location and a <code>SocialPost</code> that can have, at most, 280 characters
+along with metadata that indicates whether it was a new post, a repost, or a
+reply to another post.</p>
 <p>We want to make a media aggregator library crate named <code>aggregator</code> that can
-display summaries of data that might be stored in a <code>NewsArticle</code> or <code>Tweet</code>
-instance. To do this, we need a summary from each type, and we’ll request that
-summary by calling a <code>summarize</code> method on an instance. Listing 10-12 shows the
-definition of a public <code>Summary</code> trait that expresses this behavior.</p>
+display summaries of data that might be stored in a <code>NewsArticle</code> or
+<code>SocialPost</code> instance. To do this, we need a summary from each type, and we’ll
+request that summary by calling a <code>summarize</code> method on an instance. Listing
+10-12 shows the definition of a public <code>Summary</code> trait that expresses this
+behavior.</p>
 <Listing number="10-12" file-name="src/lib.rs" caption="A `Summary` trait that consists of the behavior provided by a `summarize` method">
 <pre><code class="language-rust noplayground">pub trait Summary {
     fn summarize(&amp;self) -&gt; String;
@@ -256,17 +259,17 @@ brackets, we use a semicolon. Each type implementing this trait must provide
 its own custom behavior for the body of the method. The compiler will enforce
 that any type that has the <code>Summary</code> trait will have the method <code>summarize</code>
 defined with this signature exactly.</p>
-<p>A trait can have multiple methods in its body: the method signatures are listed
+<p>A trait can have multiple methods in its body: The method signatures are listed
 one per line, and each line ends in a semicolon.</p>
 <h3 id="implementing-a-trait-on-a-type"><a class="header" href="#implementing-a-trait-on-a-type">Implementing a Trait on a Type</a></h3>
 <p>Now that we’ve defined the desired signatures of the <code>Summary</code> trait’s methods,
 we can implement it on the types in our media aggregator. Listing 10-13 shows
 an implementation of the <code>Summary</code> trait on the <code>NewsArticle</code> struct that uses
 the headline, the author, and the location to create the return value of
-<code>summarize</code>. For the <code>Tweet</code> struct, we define <code>summarize</code> as the username
-followed by the entire text of the tweet, assuming that the tweet content is
+<code>summarize</code>. For the <code>SocialPost</code> struct, we define <code>summarize</code> as the username
+followed by the entire text of the post, assuming that the post content is
 already limited to 280 characters.</p>
-<Listing number="10-13" file-name="src/lib.rs" caption="Implementing the `Summary` trait on the `NewsArticle` and `Tweet` types">
+<Listing number="10-13" file-name="src/lib.rs" caption="Implementing the `Summary` trait on the `NewsArticle` and `SocialPost` types">
 <pre><code class="language-rust noplayground"><span class="boring">pub trait Summary {
 </span><span class="boring">    fn summarize(&amp;self) -&gt; String;
 </span><span class="boring">}
@@ -284,14 +287,14 @@ impl Summary for NewsArticle {
     }
 }
 
-pub struct Tweet {
+pub struct SocialPost {
     pub username: String,
     pub content: String,
     pub reply: bool,
-    pub retweet: bool,
+    pub repost: bool,
 }
 
-impl Summary for Tweet {
+impl Summary for SocialPost {
     fn summarize(&amp;self) -&gt; String {
         format!("{}: {}", self.username, self.content)
     }
@@ -305,45 +308,47 @@ that the trait definition has defined. Instead of adding a semicolon after each
 signature, we use curly brackets and fill in the method body with the specific
 behavior that we want the methods of the trait to have for the particular type.</p>
 <p>Now that the library has implemented the <code>Summary</code> trait on <code>NewsArticle</code> and
-<code>Tweet</code>, users of the crate can call the trait methods on instances of
-<code>NewsArticle</code> and <code>Tweet</code> in the same way we call regular methods. The only
+<code>SocialPost</code>, users of the crate can call the trait methods on instances of
+<code>NewsArticle</code> and <code>SocialPost</code> in the same way we call regular methods. The only
 difference is that the user must bring the trait into scope as well as the
 types. Here’s an example of how a binary crate could use our <code>aggregator</code>
 library crate:</p>
-<pre><code class="language-rust ignore">use aggregator::{Summary, Tweet};
+<pre><code class="language-rust ignore">use aggregator::{SocialPost, Summary};
 
 fn main() {
-    let tweet = Tweet {
+    let post = SocialPost {
         username: String::from("horse_ebooks"),
         content: String::from(
             "of course, as you probably already know, people",
         ),
         reply: false,
-        retweet: false,
+        repost: false,
     };
 
-    println!("1 new tweet: {}", tweet.summarize());
+    println!("1 new post: {}", post.summarize());
 }</code></pre>
-<p>This code prints <code>1 new tweet: horse_ebooks: of course, as you probably already know, people</code>.</p>
+<p>This code prints <code>1 new post: horse_ebooks: of course, as you probably already know, people</code>.</p>
 <p>Other crates that depend on the <code>aggregator</code> crate can also bring the <code>Summary</code>
 trait into scope to implement <code>Summary</code> on their own types. One restriction to
 note is that we can implement a trait on a type only if either the trait or the
 type, or both, are local to our crate. For example, we can implement standard
-library traits like <code>Display</code> on a custom type like <code>Tweet</code> as part of our
-<code>aggregator</code> crate functionality because the type <code>Tweet</code> is local to our
+library traits like <code>Display</code> on a custom type like <code>SocialPost</code> as part of our
+<code>aggregator</code> crate functionality because the type <code>SocialPost</code> is local to our
 <code>aggregator</code> crate. We can also implement <code>Summary</code> on <code>Vec&lt;T&gt;</code> in our
 <code>aggregator</code> crate because the trait <code>Summary</code> is local to our <code>aggregator</code>
 crate.</p>
 <p>But we can’t implement external traits on external types. For example, we can’t
-implement the <code>Display</code> trait on <code>Vec&lt;T&gt;</code> within our <code>aggregator</code> crate because
-<code>Display</code> and <code>Vec&lt;T&gt;</code> are both defined in the standard library and aren’t
-local to our <code>aggregator</code> crate. This restriction is part of a property called
-<em>coherence</em>, and more specifically the <em>orphan rule</em>, so named because the
-parent type is not present. This rule ensures that other people’s code can’t
-break your code and vice versa. Without the rule, two crates could implement
-the same trait for the same type, and Rust wouldn’t know which implementation
-to use.</p>
-<h3 id="default-implementations"><a class="header" href="#default-implementations">Default Implementations</a></h3>
+implement the <code>Display</code> trait on <code>Vec&lt;T&gt;</code> within our <code>aggregator</code> crate,
+because <code>Display</code> and <code>Vec&lt;T&gt;</code> are both defined in the standard library and
+aren’t local to our <code>aggregator</code> crate. This restriction is part of a property
+called <em>coherence</em>, and more specifically the <em>orphan rule</em>, so named because
+the parent type is not present. This rule ensures that other people’s code
+can’t break your code and vice versa. Without the rule, two crates could
+implement the same trait for the same type, and Rust wouldn’t know which
+implementation to use.</p>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="default-implementations"></a></p>
+<h3 id="using-default-implementations"><a class="header" href="#using-default-implementations">Using Default Implementations</a></h3>
 <p>Sometimes it’s useful to have default behavior for some or all of the methods
 in a trait instead of requiring implementations for all methods on every type.
 Then, as we implement the trait on a particular type, we can keep or override
@@ -367,14 +372,14 @@ Listing 10-12.</p>
 </span><span class="boring">
 </span><span class="boring">impl Summary for NewsArticle {}
 </span><span class="boring">
-</span><span class="boring">pub struct Tweet {
+</span><span class="boring">pub struct SocialPost {
 </span><span class="boring">    pub username: String,
 </span><span class="boring">    pub content: String,
 </span><span class="boring">    pub reply: bool,
-</span><span class="boring">    pub retweet: bool,
+</span><span class="boring">    pub repost: bool,
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">impl Summary for Tweet {
+</span><span class="boring">impl Summary for SocialPost {
 </span><span class="boring">    fn summarize(&amp;self) -&gt; String {
 </span><span class="boring">        format!("{}: {}", self.username, self.content)
 </span><span class="boring">    }
@@ -403,9 +408,10 @@ the <code>summarize</code> method on an instance of <code>NewsArticle</code>, li
 <span class="boring">}</span></code></pre>
 <p>This code prints <code>New article available! (Read more...)</code>.</p>
 <p>Creating a default implementation doesn’t require us to change anything about
-the implementation of <code>Summary</code> on <code>Tweet</code> in Listing 10-13. The reason is that
-the syntax for overriding a default implementation is the same as the syntax
-for implementing a trait method that doesn’t have a default implementation.</p>
+the implementation of <code>Summary</code> on <code>SocialPost</code> in Listing 10-13. The reason is
+that the syntax for overriding a default implementation is the same as the
+syntax for implementing a trait method that doesn’t have a default
+implementation.</p>
 <p>Default implementations can call other methods in the same trait, even if those
 other methods don’t have a default implementation. In this way, a trait can
 provide a lot of useful functionality and only require implementors to specify
@@ -421,14 +427,14 @@ a small part of it. For example, we could define the <code>Summary</code> trait 
     }
 }
 <span class="boring">
-</span><span class="boring">pub struct Tweet {
+</span><span class="boring">pub struct SocialPost {
 </span><span class="boring">    pub username: String,
 </span><span class="boring">    pub content: String,
 </span><span class="boring">    pub reply: bool,
-</span><span class="boring">    pub retweet: bool,
+</span><span class="boring">    pub repost: bool,
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">impl Summary for Tweet {
+</span><span class="boring">impl Summary for SocialPost {
 </span><span class="boring">    fn summarize_author(&amp;self) -&gt; String {
 </span><span class="boring">        format!("@{}", self.username)
 </span><span class="boring">    }
@@ -443,45 +449,47 @@ when we implement the trait on a type:</p>
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">pub struct Tweet {
+</span><span class="boring">pub struct SocialPost {
 </span><span class="boring">    pub username: String,
 </span><span class="boring">    pub content: String,
 </span><span class="boring">    pub reply: bool,
-</span><span class="boring">    pub retweet: bool,
+</span><span class="boring">    pub repost: bool,
 </span><span class="boring">}
 </span><span class="boring">
-</span>impl Summary for Tweet {
+</span>impl Summary for SocialPost {
     fn summarize_author(&amp;self) -&gt; String {
         format!("@{}", self.username)
     }
 }</code></pre>
 <p>After we define <code>summarize_author</code>, we can call <code>summarize</code> on instances of the
-<code>Tweet</code> struct, and the default implementation of <code>summarize</code> will call the
+<code>SocialPost</code> struct, and the default implementation of <code>summarize</code> will call the
 definition of <code>summarize_author</code> that we’ve provided. Because we’ve implemented
 <code>summarize_author</code>, the <code>Summary</code> trait has given us the behavior of the
 <code>summarize</code> method without requiring us to write any more code. Here’s what
 that looks like:</p>
-<pre><code class="language-rust ignore"><span class="boring">use aggregator::{self, Summary, Tweet};
+<pre><code class="language-rust ignore"><span class="boring">use aggregator::{self, SocialPost, Summary};
 </span><span class="boring">
 </span><span class="boring">fn main() {
-</span>    let tweet = Tweet {
+</span>    let post = SocialPost {
         username: String::from("horse_ebooks"),
         content: String::from(
             "of course, as you probably already know, people",
         ),
         reply: false,
-        retweet: false,
+        repost: false,
     };
 
-    println!("1 new tweet: {}", tweet.summarize());
+    println!("1 new post: {}", post.summarize());
 <span class="boring">}</span></code></pre>
-<p>This code prints <code>1 new tweet: (Read more from @horse_ebooks...)</code>.</p>
+<p>This code prints <code>1 new post: (Read more from @horse_ebooks...)</code>.</p>
 <p>Note that it isn’t possible to call the default implementation from an
 overriding implementation of that same method.</p>
-<h3 id="traits-as-parameters"><a class="header" href="#traits-as-parameters">Traits as Parameters</a></h3>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="traits-as-parameters"></a></p>
+<h3 id="using-traits-as-parameters"><a class="header" href="#using-traits-as-parameters">Using Traits as Parameters</a></h3>
 <p>Now that you know how to define and implement traits, we can explore how to use
 traits to define functions that accept many different types. We’ll use the
-<code>Summary</code> trait we implemented on the <code>NewsArticle</code> and <code>Tweet</code> types in
+<code>Summary</code> trait we implemented on the <code>NewsArticle</code> and <code>SocialPost</code> types in
 Listing 10-13 to define a <code>notify</code> function that calls the <code>summarize</code> method
 on its <code>item</code> parameter, which is of some type that implements the <code>Summary</code>
 trait. To do this, we use the <code>impl Trait</code> syntax, like this:</p>
@@ -502,14 +510,14 @@ trait. To do this, we use the <code>impl Trait</code> syntax, like this:</p>
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">pub struct Tweet {
+</span><span class="boring">pub struct SocialPost {
 </span><span class="boring">    pub username: String,
 </span><span class="boring">    pub content: String,
 </span><span class="boring">    pub reply: bool,
-</span><span class="boring">    pub retweet: bool,
+</span><span class="boring">    pub repost: bool,
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">impl Summary for Tweet {
+</span><span class="boring">impl Summary for SocialPost {
 </span><span class="boring">    fn summarize(&amp;self) -&gt; String {
 </span><span class="boring">        format!("{}: {}", self.username, self.content)
 </span><span class="boring">    }
@@ -522,8 +530,8 @@ trait. To do this, we use the <code>impl Trait</code> syntax, like this:</p>
 keyword and the trait name. This parameter accepts any type that implements the
 specified trait. In the body of <code>notify</code>, we can call any methods on <code>item</code>
 that come from the <code>Summary</code> trait, such as <code>summarize</code>. We can call <code>notify</code>
-and pass in any instance of <code>NewsArticle</code> or <code>Tweet</code>. Code that calls the
-function with any other type, such as a <code>String</code> or an <code>i32</code>, won’t compile
+and pass in any instance of <code>NewsArticle</code> or <code>SocialPost</code>. Code that calls the
+function with any other type, such as a <code>String</code> or an <code>i32</code>, won’t compile,
 because those types don’t implement <code>Summary</code>.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="fixing-the-largest-function-with-trait-bounds"></a></p>
@@ -549,9 +557,11 @@ trait bound, like this:</p>
 <p>The generic type <code>T</code> specified as the type of the <code>item1</code> and <code>item2</code>
 parameters constrains the function such that the concrete type of the value
 passed as an argument for <code>item1</code> and <code>item2</code> must be the same.</p>
-<h4 id="specifying-multiple-trait-bounds-with-the--syntax"><a class="header" href="#specifying-multiple-trait-bounds-with-the--syntax">Specifying Multiple Trait Bounds with the <code>+</code> Syntax</a></h4>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="specifying-multiple-trait-bounds-with-the--syntax"></a></p>
+<h4 id="multiple-trait-bounds-with-the--syntax"><a class="header" href="#multiple-trait-bounds-with-the--syntax">Multiple Trait Bounds with the <code>+</code> Syntax</a></h4>
 <p>We can also specify more than one trait bound. Say we wanted <code>notify</code> to use
-display formatting as well as <code>summarize</code> on <code>item</code>: we specify in the <code>notify</code>
+display formatting as well as <code>summarize</code> on <code>item</code>: We specify in the <code>notify</code>
 definition that <code>item</code> must implement both <code>Display</code> and <code>Summary</code>. We can do
 so using the <code>+</code> syntax:</p>
 <pre><code class="language-rust ignore">pub fn notify(item: &amp;(impl Summary + Display)) {</code></pre>
@@ -575,7 +585,7 @@ where
 {
 <span class="boring">    unimplemented!()
 </span><span class="boring">}</span></code></pre>
-<p>This function’s signature is less cluttered: the function name, parameter list,
+<p>This function’s signature is less cluttered: The function name, parameter list,
 and return type are close together, similar to a function without lots of trait
 bounds.</p>
 <h3 id="returning-types-that-implement-traits"><a class="header" href="#returning-types-that-implement-traits">Returning Types That Implement Traits</a></h3>
@@ -598,33 +608,34 @@ value of some type that implements a trait, as shown here:</p>
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">pub struct Tweet {
+</span><span class="boring">pub struct SocialPost {
 </span><span class="boring">    pub username: String,
 </span><span class="boring">    pub content: String,
 </span><span class="boring">    pub reply: bool,
-</span><span class="boring">    pub retweet: bool,
+</span><span class="boring">    pub repost: bool,
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">impl Summary for Tweet {
+</span><span class="boring">impl Summary for SocialPost {
 </span><span class="boring">    fn summarize(&amp;self) -&gt; String {
 </span><span class="boring">        format!("{}: {}", self.username, self.content)
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
 </span>fn returns_summarizable() -&gt; impl Summary {
-    Tweet {
+    SocialPost {
         username: String::from("horse_ebooks"),
         content: String::from(
             "of course, as you probably already know, people",
         ),
         reply: false,
-        retweet: false,
+        repost: false,
     }
 }</code></pre>
 <p>By using <code>impl Summary</code> for the return type, we specify that the
 <code>returns_summarizable</code> function returns some type that implements the <code>Summary</code>
 trait without naming the concrete type. In this case, <code>returns_summarizable</code>
-returns a <code>Tweet</code>, but the code calling this function doesn’t need to know that.</p>
+returns a <code>SocialPost</code>, but the code calling this function doesn’t need to know
+that.</p>
 <p>The ability to specify a return type only by the trait it implements is
 especially useful in the context of closures and iterators, which we cover in
 Chapter 13. Closures and iterators create types that only the compiler knows or
@@ -632,8 +643,8 @@ types that are very long to specify. The <code>impl Trait</code> syntax lets you
 specify that a function returns some type that implements the <code>Iterator</code> trait
 without needing to write out a very long type.</p>
 <p>However, you can only use <code>impl Trait</code> if you’re returning a single type. For
-example, this code that returns either a <code>NewsArticle</code> or a <code>Tweet</code> with the
-return type specified as <code>impl Summary</code> wouldn’t work:</p>
+example, this code that returns either a <code>NewsArticle</code> or a <code>SocialPost</code> with
+the return type specified as <code>impl Summary</code> wouldn’t work:</p>
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">pub trait Summary {
 </span><span class="boring">    fn summarize(&amp;self) -&gt; String;
 </span><span class="boring">}
@@ -651,14 +662,14 @@ return type specified as <code>impl Summary</code> wouldn’t work:</p>
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">pub struct Tweet {
+</span><span class="boring">pub struct SocialPost {
 </span><span class="boring">    pub username: String,
 </span><span class="boring">    pub content: String,
 </span><span class="boring">    pub reply: bool,
-</span><span class="boring">    pub retweet: bool,
+</span><span class="boring">    pub repost: bool,
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">impl Summary for Tweet {
+</span><span class="boring">impl Summary for SocialPost {
 </span><span class="boring">    fn summarize(&amp;self) -&gt; String {
 </span><span class="boring">        format!("{}: {}", self.username, self.content)
 </span><span class="boring">    }
@@ -678,32 +689,31 @@ return type specified as <code>impl Summary</code> wouldn’t work:</p>
             ),
         }
     } else {
-        Tweet {
+        SocialPost {
             username: String::from("horse_ebooks"),
             content: String::from(
                 "of course, as you probably already know, people",
             ),
             reply: false,
-            retweet: false,
+            repost: false,
         }
     }
 }</code></pre>
-<p>Returning either a <code>NewsArticle</code> or a <code>Tweet</code> isn’t allowed due to restrictions
-around how the <code>impl Trait</code> syntax is implemented in the compiler. We’ll cover
-how to write a function with this behavior in the <a href="ch18-02-trait-objects.html#using-trait-objects-that-allow-for-values-of-different-types">“Using Trait Objects That
-Allow for Values of Different
-Types”</a><!--
-ignore --> section of Chapter 18.</p>
+<p>Returning either a <code>NewsArticle</code> or a <code>SocialPost</code> isn’t allowed due to
+restrictions around how the <code>impl Trait</code> syntax is implemented in the compiler.
+We’ll cover how to write a function with this behavior in the <a href="ch18-02-trait-objects.html#using-trait-objects-to-abstract-over-shared-behavior">“Using Trait
+Objects to Abstract over Shared Behavior”</a><!-- ignore -->
+section of Chapter 18.</p>
 <h3 id="using-trait-bounds-to-conditionally-implement-methods"><a class="header" href="#using-trait-bounds-to-conditionally-implement-methods">Using Trait Bounds to Conditionally Implement Methods</a></h3>
 <p>By using a trait bound with an <code>impl</code> block that uses generic type parameters,
 we can implement methods conditionally for types that implement the specified
 traits. For example, the type <code>Pair&lt;T&gt;</code> in Listing 10-15 always implements the
-<code>new</code> function to return a new instance of <code>Pair&lt;T&gt;</code> (recall from the
-<a href="ch05-03-method-syntax.html#defining-methods">“Defining Methods”</a><!-- ignore --> section of Chapter 5 that <code>Self</code>
-is a type alias for the type of the <code>impl</code> block, which in this case is
-<code>Pair&lt;T&gt;</code>). But in the next <code>impl</code> block, <code>Pair&lt;T&gt;</code> only implements the
-<code>cmp_display</code> method if its inner type <code>T</code> implements the <code>PartialOrd</code> trait
-that enables comparison <em>and</em> the <code>Display</code> trait that enables printing.</p>
+<code>new</code> function to return a new instance of <code>Pair&lt;T&gt;</code> (recall from the <a href="ch05-03-method-syntax.html#method-syntax">“Method
+Syntax”</a><!-- ignore --> section of Chapter 5 that <code>Self</code> is a type
+alias for the type of the <code>impl</code> block, which in this case is <code>Pair&lt;T&gt;</code>). But
+in the next <code>impl</code> block, <code>Pair&lt;T&gt;</code> only implements the <code>cmp_display</code> method if
+its inner type <code>T</code> implements the <code>PartialOrd</code> trait that enables comparison
+<em>and</em> the <code>Display</code> trait that enables printing.</p>
 <Listing number="10-15" file-name="src/lib.rs" caption="Conditionally implementing methods on a generic type depending on trait bounds">
 <pre><code class="language-rust noplayground">use std::fmt::Display;
 
@@ -741,7 +751,7 @@ block in the standard library looks similar to this code:</p>
 <code>to_string</code> method defined by the <code>ToString</code> trait on any type that implements
 the <code>Display</code> trait. For example, we can turn integers into their corresponding
 <code>String</code> values like this because integers implement <code>Display</code>:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let s = 3.to_string();
 <span class="boring">}</span></code></pre></pre>
@@ -752,10 +762,10 @@ reduce duplication but also specify to the compiler that we want the generic
 type to have particular behavior. The compiler can then use the trait bound
 information to check that all the concrete types used with our code provide the
 correct behavior. In dynamically typed languages, we would get an error at
-runtime if we called a method on a type which didn’t define the method. But
-Rust moves these errors to compile time so we’re forced to fix the problems
+runtime if we called a method on a type that didn’t define the method. But Rust
+moves these errors to compile time so that we’re forced to fix the problems
 before our code is even able to run. Additionally, we don’t have to write code
-that checks for behavior at runtime because we’ve already checked at compile
+that checks for behavior at runtime, because we’ve already checked at compile
 time. Doing so improves performance without having to give up the flexibility
 of generics.</p>
 

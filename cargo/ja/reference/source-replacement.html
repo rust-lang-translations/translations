@@ -89,6 +89,7 @@
         <link rel="stylesheet" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/cargo.css">
         <link rel="stylesheet" href="../theme/language-picker.css">
 
 
@@ -220,7 +221,8 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="source-replacement"><a class="header" href="#source-replacement">Source Replacement</a></h1>
-<p>This document is about replacing the crate index. You can read about overriding dependencies in the <a href="overriding-dependencies.html">overriding dependencies</a> section of this documentation.</p>
+<p>This document is about redirecting communication with <a href="registries.html">registries</a> or repositories of <a href="specifying-dependencies.html#specifying-dependencies-from-git-repositories">git-based dependencies</a> to another data source, such as a server mirroring the original registry or an exact local copy.</p>
+<p>If you want to patch individual dependencies, see <a href="overriding-dependencies.html">overriding dependencies</a> section of this documentation. If you want to control how Cargo makes network requests, see <a href="config.html#http"><code>[http]</code></a> and <a href="config.html#net"><code>[net]</code></a> configuration.</p>
 <p>A <em>source</em> is a provider that contains crates that may be included as dependencies for a package. Cargo supports the ability to <strong>replace one source with another</strong> to express strategies such as:</p>
 <ul>
 <li>
@@ -232,7 +234,10 @@
 </ul>
 <p>Cargo has a core assumption about source replacement that the source code is exactly the same from both sources. Note that this also means that a replacement source is not allowed to have crates which are not present in the original source.</p>
 <p>As a consequence, source replacement is not appropriate for situations such as patching a dependency or a private registry. Cargo supports patching dependencies through the usage of <a href="overriding-dependencies.html">the <code>[patch]</code> key</a>, and private registry support is described in <a href="registries.html">the Registries chapter</a>.</p>
-<p>When using source replacement, running commands like <code>cargo publish</code> that need to contact the registry require passing the <code>--registry</code> option. This helps avoid any ambiguity about which registry to contact, and will use the authentication token for the specified registry.</p>
+<p>When using source replacement, running commands that need to contact the registry directly<sup class="footnote-reference"><a href="#1">1</a></sup> requires passing the <code>--registry</code> option. This helps avoid any ambiguity about which registry to contact, and will use the authentication token for the specified registry.</p>
+<div class="footnote-definition" id="1"><sup class="footnote-definition-label">1</sup>
+<p>Examples of such commands are in <a href="../commands/publishing-commands.html">Publishing Commands</a>.</p>
+</div>
 <h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
 <p>Configuration of replacement sources is done through <a href="config.html"><code>.cargo/config.toml</code></a> and the full set of available keys are:</p>
 <pre><code class="language-toml"># The `source` table is where all keys related to source-replacement
@@ -275,8 +280,17 @@ git = "https://example.com/path/to/repo"
 # rev = "313f44e8"
 </code></pre>
 <h2 id="registry-sources"><a class="header" href="#registry-sources">Registry Sources</a></h2>
-<p>A “registry source” is one that is the same as crates.io itself. That is, it has an index served in a git repository which matches the format of the <a href="https://github.com/rust-lang/crates.io-index">crates.io index</a>. That repository then has configuration indicating where to download crates from.</p>
-<p>Currently there is not an already-available project for setting up a mirror of crates.io. Stay tuned though!</p>
+<p>A “registry source” is one that works like crates.io itself. It’s an index that conforms to the specification at https://doc.rust-lang.org/cargo/reference/registry-index.html with a configuration file indicating where to download crates from.</p>
+<p>Registry sources can use <a href="registries.html#registry-protocols">either git or sparse HTTP protocol</a>:</p>
+<pre><code class="language-toml"># Git protocol
+registry = "ssh://git@example.com/path/to/index.git"
+
+# Sparse HTTP protocol  
+registry = "sparse+https://example.com/path/to/index"
+
+# HTTPS git protocol
+registry = "https://example.com/path/to/index"
+</code></pre>
 <h2 id="local-registry-sources"><a class="header" href="#local-registry-sources">Local Registry Sources</a></h2>
 <p>A “local registry source” is intended to be a subset of another registry source, but available on the local filesystem (aka vendoring). Local registries are downloaded ahead of time, typically sync’d with a <code>Cargo.lock</code>, and are made up of a set of <code>*.crate</code> files and an index like the normal registry is.</p>
 <p>The primary way to manage and create local registry sources is through the <a href="https://crates.io/crates/cargo-local-registry"><code>cargo-local-registry</code></a> subcommand, <a href="https://crates.io/crates/cargo-local-registry">available on crates.io</a> and can be installed with <code>cargo install cargo-local-registry</code>.</p>
@@ -285,6 +299,9 @@ git = "https://example.com/path/to/repo"
 <p>A “directory source” is similar to a local registry source where it contains a number of crates available on the local filesystem, suitable for vendoring dependencies. Directory sources are primarily managed by the <code>cargo vendor</code> subcommand.</p>
 <p>Directory sources are distinct from local registries though in that they contain the unpacked version of <code>*.crate</code> files, making it more suitable in some situations to check everything into source control. A directory source is just a directory containing a number of other directories which contain the source code for crates (the unpacked version of <code>*.crate</code> files). Currently no restriction is placed on the name of each directory.</p>
 <p>Each crate in a directory source also has an associated metadata file indicating the checksum of each file in the crate to protect against accidental modifications.</p>
+<h2 id="git-sources"><a class="header" href="#git-sources">Git sources</a></h2>
+<p>Git sources represent repositories used by <a href="specifying-dependencies.html#specifying-dependencies-from-git-repositories">git-based dependencies</a>. They’re used to specify which git-based dependencies should be replaced with alternative sources.</p>
+<p>Git sources are <em>not</em> related to the <a href="registries.html#registry-protocols">git registries</a>, and can’t be used to replace registry sources.</p>
 
                     </main>
 

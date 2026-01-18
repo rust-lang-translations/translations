@@ -217,13 +217,16 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="Срезы"><a class="header" href="#Срезы">Срезы</a></h2>
-<p><em>Срез</em> позволяет избирательно ссылаться на последовательность элементов в <a href="ch08-00-common-collections.html">коллекции</a>. Срез является своего рода ссылкой, поэтому он не владеет значениями.</p>
-<p>Вот небольшая программистская задачка: напишите функцию, которая принимает строку слов, разделённых пробелами, и возвращает первое слово в этой строке. Если функция не находит пробела в строке, то вся строка состоит из одного слова, а потому должна быть возвращена вся строка целиком.</p>
+<p><em>Slices</em> let you reference a contiguous sequence of elements in a <a href="ch08-00-common-collections.html">collection</a><!-- ignore -->. A slice is a kind of reference, so it does not have ownership.</p>
+<p>Here’s a small programming problem: Write a function that takes a string of words separated by spaces and returns the first word it finds in that string. If the function doesn’t find a space in the string, the whole string must be one word, so the entire string should be returned.</p>
+<blockquote>
+<p>Note: For the purposes of introducing slices, we are assuming ASCII only in this section; a more thorough discussion of UTF-8 handling is in the <a href="ch08-02-strings.html#storing-utf-8-encoded-text-with-strings">“Storing UTF-8 Encoded Text with Strings”</a><!-- ignore --> section of Chapter 8.</p>
+</blockquote>
 <p>Давайте посмотрим, как бы мы написали сигнатуру этой функции без использования срезов, чтобы понять их смысл:</p>
 <pre><code class="language-rust ignore">fn first_word(s: &amp;String) -&gt; ?</code></pre>
-<p>The <code>first_word</code> function has a <code>&amp;String</code> as a parameter. We don’t need ownership, so this is fine. (In idiomatic Rust, functions do not take ownership of their arguments unless they need to, and the reasons for that will become clear as we keep going!) But what should we return? We don’t really have a way to talk about part of a string. However, we could return the index of the end of the word, indicated by a space. Let’s try that, as shown in Listing 4-7.</p>
+<p>The <code>first_word</code> function has a parameter of type <code>&amp;String</code>. We don’t need ownership, so this is fine. (In idiomatic Rust, functions do not take ownership of their arguments unless they need to, and the reasons for that will become clear as we keep going.) But what should we return? We don’t really have a way to talk about <em>part</em> of a string. However, we could return the index of the end of the word, indicated by a space. Let’s try that, as shown in Listing 4-7.</p>
 <Listing number="4-7" file-name="src/main.rs" caption="The `first_word` function that returns a byte index value into the `String` parameter">
-<pre><pre class="playground"><code class="language-rust edition2021">fn first_word(s: &amp;String) -&gt; usize {
+<pre><pre class="playground"><code class="language-rust edition2024">fn first_word(s: &amp;String) -&gt; usize {
     let bytes = s.as_bytes();
 
     for (i, &amp;item) in bytes.iter().enumerate() {
@@ -283,7 +286,7 @@
 </span><span class="boring">fn main() {}</span></code></pre>
 <p>Теперь у нас есть способ узнать индекс байта, указывающего на конец первого слова в строке; но есть проблема. Мы возвращаем лишь <code>usize</code>, но это число имеет смысл только в свя́зи со <code>&amp;String</code>. Другими словами, поскольку это значение отделено от <code>String</code>, то нет гарантии, что оно будет действительным в будущем. Рассмотрим программу из Листинга 4-8, которая использует функцию <code>first_word</code> из Листинга 4-7.</p>
 <Listing number="4-8" file-name="src/main.rs" caption="Storing the result from calling the `first_word` function and then changing the `String` contents">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn first_word(s: &amp;String) -&gt; usize {
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn first_word(s: &amp;String) -&gt; usize {
 </span><span class="boring">    let bytes = s.as_bytes();
 </span><span class="boring">
 </span><span class="boring">    for (i, &amp;item) in bytes.iter().enumerate() {
@@ -302,34 +305,33 @@
 
     s.clear(); // здесь String очищается и становится равным ""
 
-    // `word` здесь всё ещё имеет значение `5` но `s` теперь пуста, а значение
-    // `5` не имеет с ней никакого смысла, так что `word` теперь
-    // полностью бессмысленна!
+    // word still has the value 5 here, but s no longer has any content that we
+    // could meaningfully use with the value 5, so word is now totally invalid!
 }</code></pre></pre>
 </Listing>
 <p>Данная программа компилируется без ошибок и будет успешно работать даже после того как мы воспользуемся переменной <code>word</code> после вызова <code>s.clear()</code>. Поскольку значение <code>word</code> совсем не связано с переменной <code>s</code>, то <code>word</code> сохраняет своё значение <code>5</code>. Мы бы могли воспользоваться значением <code>5</code>, чтобы получить первое слово из переменной <code>s</code>, но это приведёт к ошибке, потому что содержимое <code>s</code> изменилось с того момента, как мы сохраняли <code>5</code> в переменной <code>word</code> (<code>s</code> стала пустой строкой после вызова <code>s.clear()</code>).</p>
-<p>Необходимость беспокоиться о том, что индекс в переменной <code>word</code> не синхронизируется с содержимым переменным <code>s</code> — это утомительно и потенциально опасно! Управление этими индексами становится ещё более хрупким в функциях вроде <code>second_word</code>. Её сигнатура могла бы выглядеть так:</p>
+<p>Having to worry about the index in <code>word</code> getting out of sync with the data in <code>s</code> is tedious and error-prone! Managing these indices is even more brittle if we write a <code>second_word</code> function. Its signature would have to look like this:</p>
 <pre><code class="language-rust ignore">fn second_word(s: &amp;String) -&gt; (usize, usize) {</code></pre>
 <p>Теперь мы отслеживаем как начальный, так и конечный индекс. Теперь у нас есть ещё больше информации, вычислительно связанной с некоторыми данными, но фактически никак не реагирующими на их изменение. У нас есть три отдельные переменные, и все их необходимо держать действительными.</p>
 <p>К счастью, в Rust есть решение данной проблемы: строковые срезы.</p>
 <h3 id="Строковые-срезы"><a class="header" href="#Строковые-срезы">Строковые срезы</a></h3>
-<p>Строковый срез — это ссылка на часть строки <code>String</code>. Он выглядит вот так:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+<p>A <em>string slice</em> is a reference to a contiguous sequence of the elements of a <code>String</code>, and it looks like this:</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span>    let s = String::from("hello world");
 
     let hello = &amp;s[0..5];
     let world = &amp;s[6..11];
 <span class="boring">}</span></code></pre></pre>
-<p>Вместо того, чтобы ссылаться на всю <code>String</code>, <code>hello</code> ссылается лишь на часть <code>String</code>, определяемую приписанным справа промежутком <code>[0..5]</code>. Срезы создаются указанием диапазона в квадратных скобках: <code>[starting_index..ending_index]</code>, где <em><code>starting_index</code></em> — это первая позиция в срезе, а <em><code>ending_index</code></em> — это на единицу больше, чем последняя позиция в срезе. Внутри себя срез хранит начальную позицию и длину среза, что соответствует <em><code>ending_index</code></em> минус <em><code>starting_index</code></em>. Итак, в строчке <code>let world = &amp;s[6..11];</code>, <code>world</code> будет срезом, содержащим указатель на байт строки <code>s</code> по индексу <code>6</code>, и значение <code>5</code> длины среза.</p>
+<p>Rather than a reference to the entire <code>String</code>, <code>hello</code> is a reference to a portion of the <code>String</code>, specified in the extra <code>[0..5]</code> bit. We create slices using a range within square brackets by specifying <code>[starting_index..ending_index]</code>, where <em><code>starting_index</code></em> is the first position in the slice and <em><code>ending_index</code></em> is one more than the last position in the slice. Internally, the slice data structure stores the starting position and the length of the slice, which corresponds to <em><code>ending_index</code></em> minus <em><code>starting_index</code></em>. So, in the case of <code>let world = &amp;s[6..11];</code>, <code>world</code> would be a slice that contains a pointer to the byte at index 6 of <code>s</code> with a length value of <code>5</code>.</p>
 <p>Рисунок 4-7 показывает это.</p>
-<p><img alt="Три таблицы: таблица, представляющая данные s на стеке, которая указывает
-на байт по индексу 0 в таблице с текстом &quot;hello world&quot; в
-куче. Третья таблица пред-ставляет данные среза world на стеке, которые
-включают в себя его длину 5 и указание на байт по индексу 6 в таблице данных в куче."
+<p><img alt="Three tables: a table representing the stack data of s, which points
+to the byte at index 0 in a table of the string data &quot;hello world&quot; on
+the heap. The third table represents the stack data of the slice world, which
+has a length value of 5 and points to byte 6 of the heap data table."
 src="img/trpl04-07.svg" class="center" style="width: 50%;" /></p>
-<p><span class="caption">Рисунок 4-7: Строковый срез ссылается на часть <code>String</code></span></p>
+<p><span class="caption">Figure 4-7: A string slice referring to part of a <code>String</code></span></p>
 <p>Синтаксис <code>..</code> позволяет вам опустить первое число, если вы хотите взять промежуток, начиная с индекса <code>0</code>. Другими словами, эти две записи равны:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let s = String::from("hello");
 
@@ -337,7 +339,7 @@ let slice = &amp;s[0..2];
 let slice = &amp;s[..2];
 <span class="boring">}</span></code></pre></pre>
 <p>Таким же образом, если ваш срез включает последний байт <code>String</code>, вы можете опустить второе число. Эти две записи тоже равны:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let s = String::from("hello");
 
@@ -346,8 +348,8 @@ let len = s.len();
 let slice = &amp;s[3..len];
 let slice = &amp;s[3..];
 <span class="boring">}</span></code></pre></pre>
-<p>Вы также можете опустить оба числа, чтобы получить срез из всей строки. Эти две записи тоже будут равны между собой:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<p>You can also drop both values to take a slice of the entire string. So, these are equal:</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let s = String::from("hello");
 
@@ -357,11 +359,11 @@ let slice = &amp;s[0..len];
 let slice = &amp;s[..];
 <span class="boring">}</span></code></pre></pre>
 <blockquote>
-<p>Примечание: Индексы диапазона среза строки должны соблюдать байтовое членение символов в кодировке UTF-8. Если вы попытаетесь создать срез строки, в котором начало или конец будет указывать на кусок символа, программа завершится с ошибкой. В целях объяснения работы срезов строк мы предполагаем, что в этом разделе используется только кодировка ASCII; более подробное обработка текста в UTF-8 обсуждается в разделе Главы 8 <a href="ch08-02-strings.html#%D0%A5%D1%80%D0%B0%D0%BD%D0%B5%D0%BD%D0%B8%D0%B5-%D1%82%D0%B5%D0%BA%D1%81%D1%82%D0%B0-%D0%B2-%D0%BA%D0%BE%D0%B4%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B5-utf-8-%D1%81-%D0%BF%D0%BE%D0%BC%D0%BE%D1%89%D1%8C%D1%8E-%D1%81%D1%82%D1%80%D0%BE%D0%BA">"Хранение текста в кодировке UTF-8 с помощью строк"</a><!-- ignore -->.</p>
+<p>Note: String slice range indices must occur at valid UTF-8 character boundaries. If you attempt to create a string slice in the middle of a multibyte character, your program will exit with an error.</p>
 </blockquote>
 <p>Давайте используем полученную информацию и перепишем <code>first_word</code> так, чтобы она возвращала срез. Тип "срез строки" обозначается как <code>&amp;str</code>:</p>
 <Listing file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021">fn first_word(s: &amp;String) -&gt; &amp;str {
+<pre><pre class="playground"><code class="language-rust edition2024">fn first_word(s: &amp;String) -&gt; &amp;str {
     let bytes = s.as_bytes();
 
     for (i, &amp;item) in bytes.iter().enumerate() {
@@ -379,7 +381,7 @@ let slice = &amp;s[..];
 <p>Теперь, когда мы вызываем <code>first_word</code>, мы возвращаем единственное значение, привязанное к обрабатываемым данным. Значение состоит из ссылки на первый символ строки, с которого начинается срез, и количества элементов в срезе.</p>
 <p>Аналогичным образом можно переписать и функцмю <code>second_word</code>:</p>
 <pre><code class="language-rust ignore">fn second_word(s: &amp;String) -&gt; &amp;str {</code></pre>
-<p>Теперь у нас есть простой API, который гораздо сложнее испортить, поскольку что компилятор гарантирует, что ссылки на <code>String</code> останутся действительными. Помните ошибку в программе Листинга 4-8, когда мы получили индекс конца первого слова, но затем очистили строку, так что наш индекс стал недействительным? Этот код был неправильным логически, но не формально. Его проблемы могли проявиться позже, если бы мы попытались использовать индекс первого слова с пустой строкой. Срезы делают эту ошибку невозможной и сообщают нам о проблеме с нашим кодом гораздо раньше. Например, код ниже не скомпилируется:</p>
+<p>We now have a straightforward API that’s much harder to mess up because the compiler will ensure that the references into the <code>String</code> remain valid. Remember the bug in the program in Listing 4-8, when we got the index to the end of the first word but then cleared the string so our index was invalid? That code was logically incorrect but didn’t show any immediate errors. The problems would show up later if we kept trying to use the first word index with an emptied string. Slices make this bug impossible and let us know much sooner that we have a problem with our code. Using the slice version of <code>first_word</code> will throw a compile-time error:</p>
 <Listing file-name="src/main.rs">
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">fn first_word(s: &amp;String) -&gt; &amp;str {
 </span><span class="boring">    let bytes = s.as_bytes();
@@ -412,25 +414,25 @@ error[E0502]: cannot borrow `s` as mutable because it is also borrowed as immuta
 16 |     let word = first_word(&amp;s);
    |                           -- immutable borrow occurs here
 17 |
-18 |     s.clear(); // ошибка!
+18 |     s.clear(); // error!
    |     ^^^^^^^^^ mutable borrow occurs here
 19 |
-20 |     println!("первое слово: {word}");
-   |                                  ------ immutable borrow later used here
+20 |     println!("the first word is: {word}");
+   |                                   ---- immutable borrow later used here
 
 For more information about this error, try `rustc --explain E0502`.
 error: could not compile `ownership` (bin "ownership") due to 1 previous error
 </code></pre>
 <p>Напомним из правил заимствования, что если у нас есть неизменяемая ссылка на что-то, мы не можем также взять изменяемую ссылку. Поскольку методу <code>clear</code> необходимо очистить <code>String</code>, необходимо получить изменяемую ссылку на неё. Макрос <code>println!</code> (после вызова <code>clear</code>) использует ссылку, сохранённую в <code>word</code>, а потому неизменяемая ссылка в этот момент всё ещё должна быть действительной. Rust запрещает одновременное существование изменяемой ссылки в <code>clear</code> и неизменяемой ссылки в <code>word</code>, и компиляция завершается ошибкой. Rust не только упростил использование нашего API, но и устранил целый класс ошибок сразу на этапе компиляции!</p>
-<!-- Old heading. Do not remove or links may break. -->
+<!-- Old headings. Do not remove or links may break. -->
 <p><a id="string-literals-are-slices"></a></p>
 <h4 id="Строковые-литералы-как-срезы"><a class="header" href="#Строковые-литералы-как-срезы">Строковые литералы как срезы</a></h4>
 <p>Напомним: мы когда-то говорили о строковых литералах, записанных напрямую в файлах. Теперь, когда мы знаем чем являются срезы, мы можем правильно понять, что такое строковые литералы:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let s = "Hello, world!";
 <span class="boring">}</span></code></pre></pre>
-<p>Тип переменной <code>s</code> — это <code>&amp;str</code>, то есть срез, указывающий на конкретную точку бинарного файла. Вот почему строковые литералы неизменяемы; почему <code>&amp;str</code> — ссылка именно неизменяемая.</p>
+<p>The type of <code>s</code> here is <code>&amp;str</code>: It’s a slice pointing to that specific point of the binary. This is also why string literals are immutable; <code>&amp;str</code> is an immutable reference.</p>
 <h4 id="Строковые-срезы-как-параметры"><a class="header" href="#Строковые-срезы-как-параметры">Строковые срезы как параметры</a></h4>
 <p>Зная, что мы можем брать срезы литералов и значений типа <code>String</code>, мы можем прийти к ещё одному улучшению <code>first_word</code>. Вот её сигнатура:</p>
 <pre><code class="language-rust ignore">fn first_word(s: &amp;String) -&gt; &amp;str {</code></pre>
@@ -470,10 +472,11 @@ error: could not compile `ownership` (bin "ownership") due to 1 previous error
 </span><span class="boring">    let word = first_word(my_string_literal);
 </span><span class="boring">}</span></code></pre>
 </Listing>
-<p>Если у нас есть срез строки, мы можем передать его напрямую. Если у нас есть <code>String</code>, мы можем передать часть <code>String</code> или ссылку на <code>String</code>. Эта гибкость работает за счёт функциональности <em>приведения ссылок при разыменовывании</em>, что мы рассмотрим в разделе <a href="ch15-02-deref.html#%D0%9D%D0%B5%D1%8F%D0%B2%D0%BD%D0%BE%D0%B5-%D0%BF%D1%80%D0%B8%D0%B2%D0%B5%D0%B4%D0%B5%D0%BD%D0%B8%D0%B5-%D0%BF%D1%80%D0%B8-%D1%80%D0%B0%D0%B7%D1%8B%D0%BC%D0%B5%D0%BD%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B8-%D1%81-%D1%84%D1%83%D0%BD%D0%BA%D1%86%D0%B8%D1%8F%D0%BC%D0%B8-%D0%B8-%D0%BC%D0%B5%D1%82%D0%BE%D0%B4%D0%B0%D0%BC%D0%B8">"Неявное приведение при разыменовании с функциями и методами"</a><!--ignore--> Главы 15.</p>
+<p>If we have a string slice, we can pass that directly. If we have a <code>String</code>, we can pass a slice of the <code>String</code> or a reference to the <code>String</code>. This flexibility takes advantage of deref coercions, a feature we will cover in the <a href="ch15-02-deref.html#using-deref-coercions-in-functions-and-methods">“Using Deref Coercions in Functions and Methods”</a><!--
+ignore --> section of Chapter 15.</p>
 <p>Определение функции на срезе строки, а не на ссылке на <code>String</code>, делает наш API более общим и шире применимым без потери какой-либо функциональности:</p>
 <Listing file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn first_word(s: &amp;str) -&gt; &amp;str {
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn first_word(s: &amp;str) -&gt; &amp;str {
 </span><span class="boring">    let bytes = s.as_bytes();
 </span><span class="boring">
 </span><span class="boring">    for (i, &amp;item) in bytes.iter().enumerate() {
@@ -509,12 +512,12 @@ error: could not compile `ownership` (bin "ownership") due to 1 previous error
 </Listing>
 <h3 id="Другие-срезы"><a class="header" href="#Другие-срезы">Другие срезы</a></h3>
 <p>Срезы строк, как вы можете понять, работают именно со строками. Но есть и более общий тип среза. Рассмотрим вот этот массив:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let a = [1, 2, 3, 4, 5];
 <span class="boring">}</span></code></pre></pre>
 <p>Точно так же, как мы можем захотеть сослаться на часть строки, мы можем захотеть сослаться на часть массива. Мы можем сделать это так:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let a = [1, 2, 3, 4, 5];
 
@@ -524,7 +527,7 @@ assert_eq!(slice, &amp;[2, 3]);
 <span class="boring">}</span></code></pre></pre>
 <p>Этот срез имеет тип <code>&amp;[i32]</code>. Он работает так же, как и срезы строк: сохраняет ссылку на первый элемент и его длину. Вам понадобится этот вид среза для всех видов других коллекций. Мы подробно обсудим различные коллекции, когда будем говорить о векторах в Главе 8.</p>
 <h2 id="Подведём-итоги"><a class="header" href="#Подведём-итоги">Подведём итоги</a></h2>
-<p>Концепции владения, заимствования и срезов обеспечивают безопасность памяти в программах на Rust без их замедления — все необходимые проверки происходят на этапе компиляции. Язык Rust даёт вам контроль над использованием памяти так же, как и другие языки системного программирования, но то, что владелец данных автоматически очищает эти данные, когда выходит из области видимости, означает, что вам не нужно писать и отлаживать дополнительный код, чтобы делать это вручную.</p>
+<p>The concepts of ownership, borrowing, and slices ensure memory safety in Rust programs at compile time. The Rust language gives you control over your memory usage in the same way as other systems programming languages. But having the owner of data automatically clean up that data when the owner goes out of scope means you don’t have to write and debug extra code to get this control.</p>
 <p>Владение влияет на множество других аспектов Rust. Мы будем говорить об этих концепциях на протяжении оставшихся частей книги. Давайте перейдём к Главе 5 и рассмотрим группировку данных в структуры.</p>
 
                     </main>

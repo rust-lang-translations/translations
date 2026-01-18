@@ -216,56 +216,145 @@
 
                 <div id="content" class="content">
                     <main>
-                        <div class="rule" id="r-attributes.codegen"><a class="rule-link" href="#r-attributes.codegen" title="attributes.codegen"><span>[attributes<wbr>.codegen]<span/></a></div>
+                        <p>r[attributes.codegen]</p>
 <h1 id="코드-생성-속성"><a class="header" href="#코드-생성-속성">코드 생성 속성</a></h1>
 <p>다음 <a href="../attributes.html">속성들</a>은 코드 생성을 제어하는 데 사용됩니다.</p>
-<div class="rule" id="r-attributes.codegen.hint"><a class="rule-link" href="#r-attributes.codegen.hint" title="attributes.codegen.hint"><span>[attributes<wbr>.codegen<wbr>.hint]<span/></a></div>
-<h2 id="최적화-힌트"><a class="header" href="#최적화-힌트">최적화 힌트</a></h2>
-<div class="rule" id="r-attributes.codegen.hint.cold-inline"><a class="rule-link" href="#r-attributes.codegen.hint.cold-inline" title="attributes.codegen.hint.cold-inline"><span>[attributes<wbr>.codegen<wbr>.hint<wbr>.cold-inline]<span/></a></div>
-<p><code>cold</code>와 <code>inline</code> <a href="../attributes.html">속성들</a>은 힌트가 없을 때보다 더 빠를 수 있는 방식으로 코드를 생성하도록 제안을 줍니다. 이러한 속성들은 단지 힌트일 뿐이며 무시될 수 있습니다.</p>
-<div class="rule" id="r-attributes.codegen.hint.usage"><a class="rule-link" href="#r-attributes.codegen.hint.usage" title="attributes.codegen.hint.usage"><span>[attributes<wbr>.codegen<wbr>.hint<wbr>.usage]<span/></a></div>
-<p>두 속성 모두 <a href="../items/functions.html">함수</a>에 사용될 수 있습니다. <a href="../items/traits.html">트레잇</a> 내의 함수에 적용될 때, 이들은 트레잇 구현의 기본 함수로 사용될 때만 해당 함수에 적용되며 모든 트레잇 구현에 적용되지는 않습니다. 본문이 없는 트레잇 함수에는 이 속성들이 아무런 영향을 주지 않습니다.</p>
-<div class="rule" id="r-attributes.codegen.inline"><a class="rule-link" href="#r-attributes.codegen.inline" title="attributes.codegen.inline"><span>[attributes<wbr>.codegen<wbr>.inline]<span/></a></div>
+<!-- template:attributes -->
+<p>r[attributes.codegen.inline]</p>
 <h3 id="inline-속성"><a class="header" href="#inline-속성"><code>inline</code> 속성</a></h3>
-<div class="rule" id="r-attributes.codegen.inline.intro"><a class="rule-link" href="#r-attributes.codegen.inline.intro" title="attributes.codegen.inline.intro"><span>[attributes<wbr>.codegen<wbr>.inline<wbr>.intro]<span/></a></div>
-<p>_<code>inline</code> <a href="../attributes.html">속성</a>_은 해당 함수가 정의된 곳에서 함수를 호출하는 코드를 생성하는 대신, 호출자 내부에 해당 함수의 복사본을 배치하도록 제안합니다.</p>
+<p>r[attributes.codegen.inline.intro] The <em><code>inline</code> <a href="../attributes.html">attribute</a></em> suggests whether a copy of the attributed function’s code should be placed in the caller rather than generating a call to the function.</p>
 <blockquote>
-<p><em><strong>참고</strong></em>: <code>rustc</code> 컴파일러는 내부 휴리스틱에 기반하여 함수를 자동으로 인라인화합니다. 잘못된 인라인화는 프로그램을 더 느리게 만들 수 있으므로, 이 속성은 주의해서 사용해야 합니다.</p>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[inline]
+pub fn example1() {}
+
+#[inline(always)]
+pub fn example2() {}
+
+#[inline(never)]
+pub fn example3() {}
+<span class="boring">}</span></code></pre></pre>
 </blockquote>
-<div class="rule" id="r-attributes.codegen.inline.modes"><a class="rule-link" href="#r-attributes.codegen.inline.modes" title="attributes.codegen.inline.modes"><span>[attributes<wbr>.codegen<wbr>.inline<wbr>.modes]<span/></a></div>
-<p>inline 속성을 사용하는 세 가지 방법이 있습니다:</p>
+<blockquote>
+<p>[!NOTE] <code>rustc</code> automatically inlines functions when doing so seems worthwhile. Use this attribute carefully as poor decisions about what to inline can slow down programs.</p>
+</blockquote>
+<p>r[attributes.codegen.inline.syntax] The syntax for the <code>inline</code> attribute is:</p>
+<pre><code class="language-grammar attributes">@root InlineAttribute -&gt;
+      `inline` `(` `always` `)`
+    | `inline` `(` `never` `)`
+    | `inline`
+</code></pre>
+<p>r[attributes.codegen.inline.allowed-positions] The <code>inline</code> attribute may only be applied to functions with <a href="items.fn.body">bodies</a> — <a href="expr.closure">closures</a>, <a href="expr.block.async">async blocks</a>, <a href="items.fn">free functions</a>, <a href="items.associated.fn">associated functions</a> in an <a href="items.impl.inherent">inherent impl</a> or <a href="items.impl.trait">trait impl</a>, and associated functions in a <a href="items.traits">trait definition</a> when those functions have a <a href="items.traits.associated-item-decls">default definition</a> .</p>
+<blockquote>
+<p>[!NOTE] <code>rustc</code> ignores use in other positions but lints against it. This may become an error in the future.</p>
+</blockquote>
+<blockquote>
+<p>[!NOTE] Though the attribute can be applied to <a href="expr.closure">closures</a> and <a href="expr.block.async">async blocks</a>, the usefulness of this is limited as we do not yet support attributes on expressions.</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// We allow attributes on statements.
+#[inline] || (); // OK
+#[inline] async {}; // OK
+<span class="boring">}</span></code></pre></pre>
+<pre><pre class="playground"><code class="language-rust compile_fail E0658 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// We don't yet allow attributes on expressions.
+let f = #[inline] || (); // 오류
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
+<p>r[attributes.codegen.inline.duplicates] Only the first use of <code>inline</code> on a function has effect.</p>
+<blockquote>
+<p>[!NOTE] <code>rustc</code> lints against any use following the first. This may become an error in the future.</p>
+</blockquote>
+<p>r[attributes.codegen.inline.modes] The <code>inline</code> attribute supports these modes:</p>
 <ul>
-<li><code>#[inline]</code>은 인라인 확장을 수행할 것을 _제안_합니다.</li>
-<li><code>#[inline(always)]</code>는 항상 인라인 확장이 수행되어야 함을 _제안_합니다.</li>
-<li><code>#[inline(never)]</code>는 인라인 확장이 절대 수행되지 않아야 함을 _제안_합니다.</li>
+<li><code>#[inline]</code> <em>suggests</em> performing inline expansion.</li>
+<li><code>#[inline(always)]</code> <em>suggests</em> that inline expansion should always be performed.</li>
+<li><code>#[inline(never)]</code> <em>suggests</em> that inline expansion should never be performed.</li>
 </ul>
 <blockquote>
-<p><em><strong>참고</strong></em>: 모든 형식의 <code>#[inline]</code>은 힌트일 뿐이며, 언어 사양상 호출자 내부에 해당 함수의 복사본을 배치해야 한다는 _요구 사항_은 없습니다.</p>
+<p>[!NOTE] In every form the attribute is a hint. The compiler may ignore it.</p>
 </blockquote>
-<div class="rule" id="r-attributes.codegen.cold"><a class="rule-link" href="#r-attributes.codegen.cold" title="attributes.codegen.cold"><span>[attributes<wbr>.codegen<wbr>.cold]<span/></a></div>
+<p>r[attributes.codegen.inline.trait] When <code>inline</code> is applied to a function in a <a href="items.traits">trait</a>, it applies only to the code of the <a href="items.traits.associated-item-decls">default definition</a>.</p>
+<p>r[attributes.codegen.inline.async] When <code>inline</code> is applied to an <a href="items.fn.async">async function</a> or <a href="expr.closure.async">async closure</a>, it applies only to the code of the generated <code>poll</code> function.</p>
+<blockquote>
+<p>[!NOTE] For more details, see <a href="https://github.com/rust-lang/rust/issues/129347">Rust issue #129347</a>.</p>
+</blockquote>
+<p>r[attributes.codegen.inline.externally-exported] The <code>inline</code> attribute is ignored if the function is externally exported with <a href="abi.no_mangle"><code>no_mangle</code></a> or <a href="abi.export_name"><code>export_name</code></a>.</p>
+<!-- template:attributes -->
+<p>r[attributes.codegen.cold]</p>
 <h3 id="cold-속성"><a class="header" href="#cold-속성"><code>cold</code> 속성</a></h3>
-<p>_<code>cold</code> <a href="../attributes.html">속성</a>_은 해당 함수가 호출될 가능성이 낮음을 제안합니다.</p>
-<div class="rule" id="r-attributes.codegen.no_builtins"><a class="rule-link" href="#r-attributes.codegen.no_builtins" title="attributes.codegen.no_builtins"><span>[attributes<wbr>.codegen<wbr>.no_builtins]<span/></a></div>
+<p>r[attributes.codegen.cold.intro] The <em><code>cold</code> <a href="../attributes.html">attribute</a></em> suggests that the attributed function is unlikely to be called which may help the compiler produce better code.</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cold]
+pub fn example() {}
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
+<p>r[attributes.codegen.cold.syntax] The <code>cold</code> attribute uses the [MetaWord] syntax.</p>
+<p>r[attributes.codegen.cold.allowed-positions] The <code>cold</code> attribute may only be applied to functions with <a href="items.fn.body">bodies</a> — <a href="expr.closure">closures</a>, <a href="expr.block.async">async blocks</a>, <a href="items.fn">free functions</a>, <a href="items.associated.fn">associated functions</a> in an <a href="items.impl.inherent">inherent impl</a> or <a href="items.impl.trait">trait impl</a>, and associated functions in a <a href="items.traits">trait definition</a> when those functions have a <a href="items.traits.associated-item-decls">default definition</a> .</p>
+<blockquote>
+<p>[!NOTE] <code>rustc</code> ignores use in other positions but lints against it. This may become an error in the future.</p>
+</blockquote>
+<blockquote>
+<p>[!NOTE] Though the attribute can be applied to <a href="expr.closure">closures</a> and <a href="expr.block.async">async blocks</a>, the usefulness of this is limited as we do not yet support attributes on expressions.</p>
+</blockquote>
+<!-- TODO: rustc currently seems to allow cold on a trait function without a body, but it appears to be ignored. I think that may be a bug, and it should at least warn if not reject (like inline does). -->
+<p>r[attributes.codegen.cold.duplicates] Only the first use of <code>cold</code> on a function has effect.</p>
+<blockquote>
+<p>[!NOTE] <code>rustc</code> lints against any use following the first. This may become an error in the future.</p>
+</blockquote>
+<p>r[attributes.codegen.cold.trait] When <code>cold</code> is applied to a function in a <a href="items.traits">trait</a>, it applies only to the code of the <a href="items.traits.associated-item-decls">default definition</a>.</p>
+<p>r[attributes.codegen.naked]</p>
+<h2 id="the-naked-attribute"><a class="header" href="#the-naked-attribute">The <code>naked</code> attribute</a></h2>
+<p>r[attributes.codegen.naked.intro] The <em><code>naked</code> <a href="../attributes.html">attribute</a></em> prevents the compiler from emitting a function prologue and epilogue for the attributed function.</p>
+<p>r[attributes.codegen.naked.body] The <a href="../items/functions.html#function-body">function body</a> must consist of exactly one <a href="../inline-assembly.html"><code>naked_asm!</code></a> macro invocation.</p>
+<p>r[attributes.codegen.naked.prologue-epilogue] No function prologue or epilogue is generated for the attributed function. The assembly code in the <code>naked_asm!</code> block constitutes the full body of a naked function.</p>
+<p>r[attributes.codegen.naked.unsafe-attribute] The <code>naked</code> attribute is an <a href="../attributes.html#r-attributes.safety">unsafe attribute</a>. Annotating a function with <code>#[unsafe(naked)]</code> comes with the safety obligation that the body must respect the function’s calling convention, uphold its signature, and either return or diverge (i.e., not fall through past the end of the assembly code).</p>
+<p>r[attributes.codegen.naked.call-stack] The assembly code may assume that the call stack and register state are valid on entry as per the signature and calling convention of the function.</p>
+<p>r[attributes.codegen.naked.no-duplication] The assembly code may not be duplicated by the compiler except when monomorphizing polymorphic functions.</p>
+<blockquote>
+<p>[!NOTE] Guaranteeing when the assembly code may or may not be duplicated is important for naked functions that define symbols.</p>
+</blockquote>
+<p>r[attributes.codegen.naked.unused-variables] The <a href="../../rustc/lints/listing/warn-by-default.html#unused-variables"><code>unused_variables</code></a> lint is suppressed within naked functions.</p>
+<p>r[attributes.codegen.naked.inline] The <a href="#the-inline-attribute"><code>inline</code></a> attribute cannot by applied to a naked function.</p>
+<p>r[attributes.codegen.naked.track_caller] The <a href="#the-track_caller-attribute"><code>track_caller</code></a> attribute cannot be applied to a naked function.</p>
+<p>r[attributes.codegen.naked.testing] The <a href="testing.html">testing attributes</a> cannot be applied to a naked function.</p>
+<!-- template:attributes -->
+<p>r[attributes.codegen.no_builtins]</p>
 <h2 id="no_builtins-속성"><a class="header" href="#no_builtins-속성"><code>no_builtins</code> 속성</a></h2>
-<p>_<code>no_builtins</code> <a href="../attributes.html">속성</a>_은 특정 코드 패턴을 존재한다고 가정되는 라이브러리 함수의 호출로 최적화하는 것을 비활성화하기 위해 크레이트 레벨에 적용될 수 있습니다.</p>
-<div class="rule" id="r-attributes.codegen.target_feature"><a class="rule-link" href="#r-attributes.codegen.target_feature" title="attributes.codegen.target_feature"><span>[attributes<wbr>.codegen<wbr>.target_feature]<span/></a></div>
+<p>r[attributes.codegen.no_builtins.intro] The <em><code>no_builtins</code> <a href="../attributes.html">attribute</a></em> disables optimization of certain code patterns related to calls to library functions that are assumed to exist.</p>
+<!-- TODO: This needs expanding, see <https://github.com/rust-lang/reference/issues/542>. -->
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span>#![no_builtins]
+<span class="boring">fn main() {
+</span><span class="boring">}</span></code></pre></pre>
+</blockquote>
+<p>r[attributes.codegen.no_builtins.syntax] The <code>no_builtins</code> attribute uses the [MetaWord] syntax.</p>
+<p>r[attributes.codegen.no_builtins.allowed-positions] The <code>no_builtins</code> attribute can only be applied to the crate root.</p>
+<p>r[attributes.codegen.no_builtins.duplicates] Only the first use of the <code>no_builtins</code> attribute has effect.</p>
+<blockquote>
+<p>[!NOTE] <code>rustc</code> lints against any use following the first.</p>
+</blockquote>
+<p>r[attributes.codegen.target_feature]</p>
 <h2 id="target_feature-속성"><a class="header" href="#target_feature-속성"><code>target_feature</code> 속성</a></h2>
-<div class="rule" id="r-attributes.codegen.target_feature.intro"><a class="rule-link" href="#r-attributes.codegen.target_feature.intro" title="attributes.codegen.target_feature.intro"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.intro]<span/></a></div>
-<p>_<code>target_feature</code> <a href="../attributes.html">속성</a>_은 특정 플랫폼 아키텍처 기능을 위한 함수 코드 생성을 활성화하기 위해 함수에 적용될 수 있습니다. 활성화할 기능 이름들을 쉼표로 구분한 문자열을 값으로 가지는 단일 키 <code>enable</code>과 함께 <a href="../attributes.html#meta-item-attribute-syntax"><em>MetaListNameValueStr</em></a> 구문을 사용합니다.</p>
+<p>r[attributes.codegen.target_feature.intro] The <em><code>target_feature</code> <a href="../attributes.html">attribute</a></em> may be applied to a function to enable code generation of that function for specific platform architecture features. It uses the [MetaListNameValueStr] syntax with a single key of <code>enable</code> whose value is a string of comma-separated feature names to enable.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">#[cfg(target_feature = "avx2")]
 </span>#[target_feature(enable = "avx2")]
 fn foo_avx2() {}
 <span class="boring">}</span></code></pre></pre>
-<div class="rule" id="r-attributes.codegen.target_feature.arch"><a class="rule-link" href="#r-attributes.codegen.target_feature.arch" title="attributes.codegen.target_feature.arch"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.arch]<span/></a></div>
-<p>각 <a href="../conditional-compilation.html#target_arch">타겟 아키텍처</a>는 활성화할 수 있는 일련의 기능들을 가지고 있습니다. 크레이트가 컴파일되지 않는 타겟 아키텍처에 대한 기능을 지정하는 것은 에러입니다.</p>
-<div class="rule" id="r-attributes.codegen.target_feature.closures"><a class="rule-link" href="#r-attributes.codegen.target_feature.closures" title="attributes.codegen.target_feature.closures"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.closures]<span/></a></div>
-<p><code>target_feature</code>가 주석 처리된 함수 내에 정의된 클로저는 둘러싼 함수의 속성을 상속받습니다.</p>
-<div class="rule" id="r-attributes.codegen.target_feature.target-ub"><a class="rule-link" href="#r-attributes.codegen.target_feature.target-ub" title="attributes.codegen.target_feature.target-ub"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.target-ub]<span/></a></div>
-<p>코드가 실행 중인 현재 플랫폼에서 지원하지 않는 기능으로 컴파일된 함수를 호출하는 것은 <a href="../behavior-considered-undefined.html">정의되지 않은 동작(undefined behavior)</a>입니다. 단, 플랫폼에서 이를 안전하다고 명시적으로 문서화한 경우는 예외입니다.</p>
-<div class="rule" id="r-attributes.codegen.target_feature.safety-restrictions"><a class="rule-link" href="#r-attributes.codegen.target_feature.safety-restrictions" title="attributes.codegen.target_feature.safety-restrictions"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.safety-restrictions]<span/></a></div>
-<p>아래 플랫폼 규칙에서 달리 명시하지 않는 한 다음 제약 사항이 적용됩니다.</p>
+<p>r[attributes.codegen.target_feature.arch] Each <a href="../conditional-compilation.html#target_arch">target architecture</a> has a set of features that may be enabled. It is an error to specify a feature for a target architecture that the crate is not being compiled for.</p>
+<p>r[attributes.codegen.target_feature.closures] Closures defined within a <code>target_feature</code>-annotated function inherit the attribute from the enclosing function.</p>
+<p>r[attributes.codegen.target_feature.target-ub] It is <a href="../behavior-considered-undefined.html">undefined behavior</a> to call a function that is compiled with a feature that is not supported on the current platform the code is running on, <em>except</em> if the platform explicitly documents this to be safe.</p>
+<p>r[attributes.codegen.target_feature.safety-restrictions] The following restrictions apply unless otherwise specified by the platform rules below:</p>
 <ul>
 <li>안전한(safe) <code>#[target_feature]</code> 함수(및 속성을 상속받은 클로저)는 호출자가 피호출자가 활성화한 모든 <code>target_feature</code>를 활성화한 경우에만 안전하게 호출될 수 있습니다. 이 제약 사항은 <code>unsafe</code> 컨텍스트에서는 적용되지 않습니다.</li>
 <li>안전한 <code>#[target_feature]</code> 함수(및 속성을 상속받은 클로저)는 강제 변환되는 위치가 피강제변환자가 활성화한 모든 <code>target_feature</code>를 활성화한 컨텍스트인 경우에만 <em>안전한</em> 함수 포인터로 강제 변환될 수 있습니다. 이 제약 사항은 <code>unsafe</code> 함수 포인터에는 적용되지 않습니다.</li>
@@ -300,35 +389,53 @@ fn bar_sse2() {
 }
 <span class="boring">}
 </span><span class="boring">}</span></code></pre></pre>
-<div class="rule" id="r-attributes.codegen.target_feature.fn-traits"><a class="rule-link" href="#r-attributes.codegen.target_feature.fn-traits" title="attributes.codegen.target_feature.fn-traits"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.fn-traits]<span/></a></div>
-<p><code>#[target_feature]</code> 속성이 있는 함수는 <em>절대</em> <code>Fn</code> 계열 트레잇을 구현하지 않습니다. 단, 둘러싼 함수로부터 기능을 상속받은 클로저는 예외입니다.</p>
-<div class="rule" id="r-attributes.codegen.target_feature.allowed-positions"><a class="rule-link" href="#r-attributes.codegen.target_feature.allowed-positions" title="attributes.codegen.target_feature.allowed-positions"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.allowed-positions]<span/></a></div>
-<p><code>#[target_feature]</code> 속성은 다음 위치에서 허용되지 않습니다:</p>
+<p>r[attributes.codegen.target_feature.fn-traits] A function with a <code>#[target_feature]</code> attribute <em>never</em> implements the <code>Fn</code> family of traits, although closures inheriting features from the enclosing function do.</p>
+<p>r[attributes.codegen.target_feature.allowed-positions] The <code>#[target_feature]</code> attribute is not allowed on the following places:</p>
 <ul>
-<li><a href="../crates-and-source-files.html#r-crate.main"><code>main</code> 함수</a></li>
-<li><a href="../runtime.html#r-runtime.panic_handler"><code>panic_handler</code> 함수</a></li>
+<li>[the <code>main</code> function][crate.main]</li>
+<li>a [<code>panic_handler</code> function][panic.panic_handler]</li>
 <li>안전한 트레잇 메서드</li>
 <li>트레잇의 안전한 기본 함수</li>
 </ul>
-<div class="rule" id="r-attributes.codegen.target_feature.inline"><a class="rule-link" href="#r-attributes.codegen.target_feature.inline" title="attributes.codegen.target_feature.inline"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.inline]<span/></a></div>
-<p><code>target_feature</code>가 표시된 함수는 주어진 기능을 지원하지 않는 컨텍스트로 인라인화되지 않습니다. <code>#[inline(always)]</code> 속성은 <code>target_feature</code> 속성과 함께 사용될 수 없습니다.</p>
-<div class="rule" id="r-attributes.codegen.target_feature.availability"><a class="rule-link" href="#r-attributes.codegen.target_feature.availability" title="attributes.codegen.target_feature.availability"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.availability]<span/></a></div>
+<p>r[attributes.codegen.target_feature.inline] Functions marked with <code>target_feature</code> are not inlined into a context that does not support the given features. The <code>#[inline(always)]</code> attribute may not be used with a <code>target_feature</code> attribute.</p>
+<p>r[attributes.codegen.target_feature.availability]</p>
 <h3 id="사용-가능한-기능"><a class="header" href="#사용-가능한-기능">사용 가능한 기능</a></h3>
 <p>다음은 사용 가능한 기능 이름의 목록입니다.</p>
-<div class="rule" id="r-attributes.codegen.target_feature.x86"><a class="rule-link" href="#r-attributes.codegen.target_feature.x86" title="attributes.codegen.target_feature.x86"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.x86]<span/></a></div>
+<p>r[attributes.codegen.target_feature.x86]</p>
 <h4 id="x86-또는-x86_64"><a class="header" href="#x86-또는-x86_64"><code>x86</code> 또는 <code>x86_64</code></a></h4>
-<p>지원하지 않는 기능으로 코드를 실행하는 것은 이 플랫폼에서 정의되지 않은 동작입니다. 따라서 이 플랫폼에서 <code>#[target_feature]</code> 함수의 사용은 <a href="codegen.html#r-attributes.codegen.target_feature.safety-restrictions">위의 제약 사항</a>을 따릅니다.</p>
+<p>Executing code with unsupported features is undefined behavior on this platform. Hence on this platform usage of <code>#[target_feature]</code> functions follows the [above restrictions][attributes.codegen.target_feature.safety-restrictions].</p>
 <div class="table-wrapper"><table><thead><tr><th>기능(Feature)</th><th>암시적으로 활성화함</th><th>설명</th></tr></thead><tbody>
 <tr><td><code>adx</code></td><td></td><td><a href="https://en.wikipedia.org/wiki/Intel_ADX">ADX</a> — 다중 정밀도 덧셈-올림수(Multi-Precision Add-Carry) 명령어 확장</td></tr>
 <tr><td><code>aes</code></td><td><code>sse2</code></td><td><a href="https://en.wikipedia.org/wiki/AES_instruction_set">AES</a> — 고급 암호화 표준(Advanced Encryption Standard)</td></tr>
 <tr><td><code>avx</code></td><td><code>sse4.2</code></td><td><a href="https://en.wikipedia.org/wiki/Advanced_Vector_Extensions">AVX</a> — 고급 벡터 확장(Advanced Vector Extensions)</td></tr>
 <tr><td><code>avx2</code></td><td><code>avx</code></td><td><a href="https://en.wikipedia.org/wiki/Advanced_Vector_Extensions#AVX2">AVX2</a> — 고급 벡터 확장 2(Advanced Vector Extensions 2)</td></tr>
+<tr><td><code>avx512bf16</code></td><td><code>avx512bw</code></td><td><a href="https://en.wikipedia.org/wiki/AVX-512#BF16">AVX512-BF16</a> — Advanced Vector Extensions 512-bit - Bfloat16 Extensions</td></tr>
+<tr><td><code>avx512bitalg</code></td><td><code>avx512bw</code></td><td><a href="https://en.wikipedia.org/wiki/AVX-512#VPOPCNTDQ_and_BITALG">AVX512-BITALG</a> — Advanced Vector Extensions 512-bit - Bit Algorithms</td></tr>
+<tr><td><code>avx512bw</code></td><td><code>avx512f</code></td><td><a href="https://en.wikipedia.org/wiki/AVX-512#BW,_DQ_and_VBMI">AVX512-BW</a> — Advanced Vector Extensions 512-bit - Byte and Word Instructions</td></tr>
+<tr><td><code>avx512cd</code></td><td><code>avx512f</code></td><td><a href="https://en.wikipedia.org/wiki/AVX-512#Conflict_detection">AVX512-CD</a> — Advanced Vector Extensions 512-bit - Conflict Detection Instructions</td></tr>
+<tr><td><code>avx512dq</code></td><td><code>avx512f</code></td><td><a href="https://en.wikipedia.org/wiki/AVX-512#BW,_DQ_and_VBMI">AVX512-DQ</a> — Advanced Vector Extensions 512-bit - Doubleword and Quadword Instructions</td></tr>
+<tr><td><code>avx512f</code></td><td><code>avx2</code>, <code>fma</code>, <code>f16c</code></td><td><a href="https://en.wikipedia.org/wiki/AVX-512">AVX512-F</a> — Advanced Vector Extensions 512-bit - Foundation</td></tr>
+<tr><td><code>avx512fp16</code></td><td><code>avx512bw</code></td><td><a href="https://en.wikipedia.org/wiki/AVX-512#FP16">AVX512-FP16</a> — Advanced Vector Extensions 512-bit - Float16 Extensions</td></tr>
+<tr><td><code>avx512ifma</code></td><td><code>avx512f</code></td><td><a href="https://en.wikipedia.org/wiki/AVX-512#IFMA">AVX512-IFMA</a> — Advanced Vector Extensions 512-bit - Integer Fused Multiply Add</td></tr>
+<tr><td><code>avx512vbmi</code></td><td><code>avx512bw</code></td><td><a href="https://en.wikipedia.org/wiki/AVX-512#BW,_DQ_and_VBMI">AVX512-VBMI</a> — Advanced Vector Extensions 512-bit - Vector Byte Manipulation Instructions</td></tr>
+<tr><td><code>avx512vbmi2</code></td><td><code>avx512bw</code></td><td><a href="https://en.wikipedia.org/wiki/AVX-512#VBMI2">AVX512-VBMI2</a> — Advanced Vector Extensions 512-bit - Vector Byte Manipulation Instructions 2</td></tr>
+<tr><td><code>avx512vl</code></td><td><code>avx512f</code></td><td><a href="https://en.wikipedia.org/wiki/AVX-512">AVX512-VL</a> — Advanced Vector Extensions 512-bit - Vector Length Extensions</td></tr>
+<tr><td><code>avx512vnni</code></td><td><code>avx512f</code></td><td><a href="https://en.wikipedia.org/wiki/AVX-512#VNNI">AVX512-VNNI</a> — Advanced Vector Extensions 512-bit - Vector Neural Network Instructions</td></tr>
+<tr><td><code>avx512vp2intersect</code></td><td><code>avx512f</code></td><td><a href="https://en.wikipedia.org/wiki/AVX-512#VP2INTERSECT">AVX512-VP2INTERSECT</a> — Advanced Vector Extensions 512-bit - Vector Pair Intersection to a Pair of Mask Registers</td></tr>
+<tr><td><code>avx512vpopcntdq</code></td><td><code>avx512f</code></td><td><a href="https://en.wikipedia.org/wiki/AVX-512#VPOPCNTDQ_and_BITALG">AVX512-VPOPCNTDQ</a> — Advanced Vector Extensions 512-bit - Vector Population Count Instruction</td></tr>
+<tr><td><code>avxifma</code></td><td><code>avx2</code></td><td><a href="https://en.wikipedia.org/wiki/Advanced_Vector_Extensions#AVX-VNNI,_AVX-IFMA">AVX-IFMA</a> — Advanced Vector Extensions - Integer Fused Multiply Add</td></tr>
+<tr><td><code>avxneconvert</code></td><td><code>avx2</code></td><td><a href="https://en.wikipedia.org/wiki/Advanced_Vector_Extensions#AVX-VNNI,_AVX-IFMA">AVX-NE-CONVERT</a> — Advanced Vector Extensions - No-Exception Floating-Point conversion Instructions</td></tr>
+<tr><td><code>avxvnni</code></td><td><code>avx2</code></td><td><a href="https://en.wikipedia.org/wiki/Advanced_Vector_Extensions#AVX-VNNI,_AVX-IFMA">AVX-VNNI</a> — Advanced Vector Extensions - Vector Neural Network Instructions</td></tr>
+<tr><td><code>avxvnniint16</code></td><td><code>avx2</code></td><td><a href="https://en.wikipedia.org/wiki/Advanced_Vector_Extensions#AVX-VNNI,_AVX-IFMA">AVX-VNNI-INT16</a> — Advanced Vector Extensions - Vector Neural Network Instructions with 16-bit Integers</td></tr>
+<tr><td><code>avxvnniint8</code></td><td><code>avx2</code></td><td><a href="https://en.wikipedia.org/wiki/Advanced_Vector_Extensions#AVX-VNNI,_AVX-IFMA">AVX-VNNI-INT8</a> — Advanced Vector Extensions - Vector Neural Network Instructions with 8-bit Integers</td></tr>
 <tr><td><code>bmi1</code></td><td></td><td><a href="https://en.wikipedia.org/wiki/Bit_Manipulation_Instruction_Sets">BMI1</a> — 비트 조작 명령어 집합(Bit Manipulation Instruction Sets)</td></tr>
 <tr><td><code>bmi2</code></td><td></td><td><a href="https://en.wikipedia.org/wiki/Bit_Manipulation_Instruction_Sets#BMI2">BMI2</a> — 비트 조작 명령어 집합 2(Bit Manipulation Instruction Sets 2)</td></tr>
 <tr><td><code>cmpxchg16b</code></td><td></td><td><a href="https://www.felixcloutier.com/x86/cmpxchg8b:cmpxchg16b"><code>cmpxchg16b</code></a> — 16바이트(128비트) 데이터를 원자적으로 비교 및 교환</td></tr>
 <tr><td><code>f16c</code></td><td><code>avx</code></td><td><a href="https://en.wikipedia.org/wiki/F16C">F16C</a> — 16비트 부동 소수점 변환 명령어</td></tr>
 <tr><td><code>fma</code></td><td><code>avx</code></td><td><a href="https://en.wikipedia.org/wiki/FMA_instruction_set">FMA3</a> — 3-피연산자 융합 곱셈-더하기(Three-operand fused multiply-add)</td></tr>
 <tr><td><code>fxsr</code></td><td></td><td><a href="https://www.felixcloutier.com/x86/fxsave"><code>fxsave</code></a> 및 <a href="https://www.felixcloutier.com/x86/fxrstor"><code>fxrstor</code></a> — x87 FPU, MMX 기술 및 SSE 상태 저장 및 복원</td></tr>
+<tr><td><code>gfni</code></td><td><code>sse2</code></td><td><a href="https://en.wikipedia.org/wiki/AVX-512#GFNI">GFNI</a> — Galois Field New Instructions</td></tr>
+<tr><td><code>kl</code></td><td><code>sse2</code></td><td><a href="https://en.wikipedia.org/wiki/List_of_x86_cryptographic_instructions#Intel_Key_Locker_instructions">KEYLOCKER</a> — Intel Key Locker Instructions</td></tr>
 <tr><td><code>lzcnt</code></td><td></td><td><a href="https://www.felixcloutier.com/x86/lzcnt"><code>lzcnt</code></a> — 선행 제로 카운트(Leading zeros count)</td></tr>
 <tr><td><code>movbe</code></td><td></td><td><a href="https://www.felixcloutier.com/x86/movbe"><code>movbe</code></a> — 바이트 스왑 후 데이터 이동</td></tr>
 <tr><td><code>pclmulqdq</code></td><td><code>sse2</code></td><td><a href="https://www.felixcloutier.com/x86/pclmulqdq"><code>pclmulqdq</code></a> — 팩형 올림수 없는 곱셈 쿼드워드(Packed carry-less multiplication quadword)</td></tr>
@@ -336,24 +443,32 @@ fn bar_sse2() {
 <tr><td><code>rdrand</code></td><td></td><td><a href="https://en.wikipedia.org/wiki/RdRand"><code>rdrand</code></a> — 난수 읽기</td></tr>
 <tr><td><code>rdseed</code></td><td></td><td><a href="https://en.wikipedia.org/wiki/RdRand"><code>rdseed</code></a> — 난수 시드 읽기</td></tr>
 <tr><td><code>sha</code></td><td><code>sse2</code></td><td><a href="https://en.wikipedia.org/wiki/Intel_SHA_extensions">SHA</a> — 안전한 해시 알고리즘(Secure Hash Algorithm)</td></tr>
+<tr><td><code>sha512</code></td><td><code>avx2</code></td><td><a href="https://en.wikipedia.org/wiki/Intel_SHA_extensions">SHA512</a> — Secure Hash Algorithm with 512-bit digest</td></tr>
+<tr><td><code>sm3</code></td><td><code>avx</code></td><td><a href="https://en.wikipedia.org/wiki/List_of_x86_cryptographic_instructions#Intel_SHA_and_SM3_instructions">SM3</a> — ShangMi 3 Hash Algorithm</td></tr>
+<tr><td><code>sm4</code></td><td><code>avx2</code></td><td><a href="https://en.wikipedia.org/wiki/List_of_x86_cryptographic_instructions#Intel_SHA_and_SM3_instructions">SM4</a> — ShangMi 4 Cipher Algorithm</td></tr>
 <tr><td><code>sse</code></td><td></td><td><a href="https://en.wikipedia.org/wiki/Streaming_SIMD_Extensions">SSE</a> — 스트리밍 <abbr title="Single Instruction Multiple Data">SIMD</abbr> 확장</td></tr>
 <tr><td><code>sse2</code></td><td><code>sse</code></td><td><a href="https://en.wikipedia.org/wiki/SSE2">SSE2</a> — 스트리밍 SIMD 확장 2</td></tr>
 <tr><td><code>sse3</code></td><td><code>sse2</code></td><td><a href="https://en.wikipedia.org/wiki/SSE3">SSE3</a> — 스트리밍 SIMD 확장 3</td></tr>
 <tr><td><code>sse4.1</code></td><td><code>ssse3</code></td><td><a href="https://en.wikipedia.org/wiki/SSE4#SSE4.1">SSE4.1</a> — 스트리밍 SIMD 확장 4.1</td></tr>
 <tr><td><code>sse4.2</code></td><td><code>sse4.1</code></td><td><a href="https://en.wikipedia.org/wiki/SSE4#SSE4.2">SSE4.2</a> — 스트리밍 SIMD 확장 4.2</td></tr>
+<tr><td><code>sse4a</code></td><td><code>sse3</code></td><td><a href="https://en.wikipedia.org/wiki/SSE4#SSE4a">SSE4a</a> — Streaming SIMD Extensions 4a</td></tr>
 <tr><td><code>ssse3</code></td><td><code>sse3</code></td><td><a href="https://en.wikipedia.org/wiki/SSSE3">SSSE3</a> — Supplemental Streaming SIMD Extensions 3</td></tr>
+<tr><td><code>tbm</code></td><td></td><td><a href="https://en.wikipedia.org/wiki/X86_Bit_manipulation_instruction_set#TBM_(Trailing_Bit_Manipulation)">TBM</a> — Trailing Bit Manipulation</td></tr>
+<tr><td><code>vaes</code></td><td><code>avx2</code>, <code>aes</code></td><td><a href="https://en.wikipedia.org/wiki/AVX-512#VAES">VAES</a> — Vector AES Instructions</td></tr>
+<tr><td><code>vpclmulqdq</code></td><td><code>avx</code>, <code>pclmulqdq</code></td><td><a href="https://en.wikipedia.org/wiki/AVX-512#VPCLMULQDQ">VPCLMULQDQ</a> — Vector Carry-less multiplication of Quadwords</td></tr>
+<tr><td><code>widekl</code></td><td><code>kl</code></td><td><a href="https://en.wikipedia.org/wiki/List_of_x86_cryptographic_instructions#Intel_Key_Locker_instructions">KEYLOCKER_WIDE</a> — Intel Wide Keylocker Instructions</td></tr>
 <tr><td><code>xsave</code></td><td></td><td><a href="https://www.felixcloutier.com/x86/xsave"><code>xsave</code></a> — 프로세서 확장 상태 저장</td></tr>
 <tr><td><code>xsavec</code></td><td></td><td><a href="https://www.felixcloutier.com/x86/xsavec"><code>xsavec</code></a> — 압축을 사용한 프로세서 확장 상태 저장</td></tr>
 <tr><td><code>xsaveopt</code></td><td></td><td><a href="https://www.felixcloutier.com/x86/xsaveopt"><code>xsaveopt</code></a> — 최적화된 프로세서 확장 상태 저장</td></tr>
 <tr><td><code>xsaves</code></td><td></td><td><a href="https://www.felixcloutier.com/x86/xsaves"><code>xsaves</code></a> — 관리자용 프로세서 확장 상태 저장</td></tr>
 </tbody></table>
 </div><!-- Keep links near each table to make it easier to move and update. -->
-<div class="rule" id="r-attributes.codegen.target_feature.aarch64"><a class="rule-link" href="#r-attributes.codegen.target_feature.aarch64" title="attributes.codegen.target_feature.aarch64"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.aarch64]<span/></a></div>
+<p>r[attributes.codegen.target_feature.aarch64]</p>
 <h4 id="aarch64"><a class="header" href="#aarch64"><code>aarch64</code></a></h4>
-<p>이 플랫폼에서 <code>#[target_feature]</code> 함수의 사용은 <a href="codegen.html#r-attributes.codegen.target_feature.safety-restrictions">위의 제약 사항</a>을 따릅니다.</p>
+<p>On this platform the usage of <code>#[target_feature]</code> functions follows the [above restrictions][attributes.codegen.target_feature.safety-restrictions].</p>
 <p>이러한 기능들에 대한 추가 문서는 <a href="https://developer.arm.com/documentation/ddi0487/latest">ARM 아키텍처 참조 매뉴얼</a> 또는 <a href="https://developer.arm.com">developer.arm.com</a>에서 찾을 수 있습니다.</p>
 <blockquote>
-<p><em><strong>참고</strong></em>: 다음 기능 쌍들은 사용 시 둘 다 활성화되거나 비활성화되도록 표시되어야 합니다:</p>
+<p>[!NOTE] The following pairs of features should both be marked as enabled or disabled together if used:</p>
 <ul>
 <li><code>paca</code> 및 <code>pacg</code> (LLVM은 현재 이를 하나의 기능으로 구현함).</li>
 </ul>
@@ -363,76 +478,118 @@ fn bar_sse2() {
 <tr><td><code>bf16</code></td><td></td><td>FEAT_BF16 — BFloat16 명령어</td></tr>
 <tr><td><code>bti</code></td><td></td><td>FEAT_BTI — 분기 타겟 식별(Branch Target Identification)</td></tr>
 <tr><td><code>crc</code></td><td></td><td>FEAT_CRC — CRC32 체크섬 명령어</td></tr>
-<tr><td><code>dit</code></td><td></td><td>FEAT_DIT — 데이터 독립 타이밍(Data Independent Timing) 명령어</td></tr>
-<tr><td><code>dotprod</code></td><td></td><td>FEAT_DotProd — 고급 SIMD Int8 내적(dot product) 명령어</td></tr>
+<tr><td><code>dit</code></td><td></td><td>FEAT_DIT  — Data Independent Timing instructions</td></tr>
+<tr><td><code>dotprod</code></td><td><code>neon</code></td><td>FEAT_DotProd — 고급 SIMD Int8 내적(dot product) 명령어</td></tr>
 <tr><td><code>dpb</code></td><td></td><td>FEAT_DPB — 영속성 지점까지의 데이터 캐시 클린(Data cache clean to point of persistence)</td></tr>
-<tr><td><code>dpb2</code></td><td></td><td>FEAT_DPB2 — 깊은 영속성 지점까지의 데이터 캐시 클린(Data cache clean to point of deep persistence)</td></tr>
+<tr><td><code>dpb2</code></td><td><code>dpb</code></td><td>FEAT_DPB2 — 깊은 영속성 지점까지의 데이터 캐시 클린(Data cache clean to point of deep persistence)</td></tr>
 <tr><td><code>f32mm</code></td><td><code>sve</code></td><td>FEAT_F32MM — SVE 단정밀도 부동 소수점 행렬 곱셈 명령어</td></tr>
 <tr><td><code>f64mm</code></td><td><code>sve</code></td><td>FEAT_F64MM — SVE 배정밀도 부동 소수점 행렬 곱셈 명령어</td></tr>
 <tr><td><code>fcma</code></td><td><code>neon</code></td><td>FEAT_FCMA — 부동 소수점 복소수 지원</td></tr>
 <tr><td><code>fhm</code></td><td><code>fp16</code></td><td>FEAT_FHM — 반정밀도 부동 소수점 FMLAL 명령어</td></tr>
-<tr><td><code>flagm</code></td><td></td><td>FEAT_FlagM — 조건부 플래그 조작</td></tr>
+<tr><td><code>flagm</code></td><td></td><td>FEAT_FLAGM — Conditional flag manipulation</td></tr>
 <tr><td><code>fp16</code></td><td><code>neon</code></td><td>FEAT_FP16 — 반정밀도 부동 소수점 데이터 처리</td></tr>
 <tr><td><code>frintts</code></td><td></td><td>FEAT_FRINTTS — 부동 소수점에서 정수로의 변환 도우미 명령어</td></tr>
 <tr><td><code>i8mm</code></td><td></td><td>FEAT_I8MM — Int8 행렬 곱셈</td></tr>
 <tr><td><code>jsconv</code></td><td><code>neon</code></td><td>FEAT_JSCVT — 자바스크립트 변환 명령어</td></tr>
-<tr><td><code>lse</code></td><td></td><td>FEAT_LSE — 대규모 시스템 확장(Large System Extension)</td></tr>
 <tr><td><code>lor</code></td><td></td><td>FEAT_LOR — 제한된 순서 영역(Limited Ordering Regions) 확장</td></tr>
+<tr><td><code>lse</code></td><td></td><td>FEAT_LSE — Large System Extensions</td></tr>
 <tr><td><code>mte</code></td><td></td><td>FEAT_MTE &amp; FEAT_MTE2 — 메모리 태깅 확장(Memory Tagging Extension)</td></tr>
-<tr><td><code>neon</code></td><td></td><td>FEAT_FP &amp; FEAT_AdvSIMD — 부동 소수점 및 고급 SIMD 확장</td></tr>
+<tr><td><code>neon</code></td><td></td><td>FEAT_AdvSimd &amp; FEAT_FP — Floating Point and Advanced SIMD extension</td></tr>
+<tr><td><code>paca</code></td><td></td><td>FEAT_PAUTH — Pointer Authentication (address authentication)</td></tr>
+<tr><td><code>pacg</code></td><td></td><td>FEAT_PAUTH — Pointer Authentication (generic authentication)</td></tr>
 <tr><td><code>pan</code></td><td></td><td>FEAT_PAN — 특권층 액세스 금지(Privileged Access-Never) 확장</td></tr>
-<tr><td><code>paca</code></td><td></td><td>FEAT_PAuth — 포인터 인증 (주소 인증)</td></tr>
-<tr><td><code>pacg</code></td><td></td><td>FEAT_PAuth — 포인터 인증 (일반 인증)</td></tr>
 <tr><td><code>pmuv3</code></td><td></td><td>FEAT_PMUv3 — 성능 모니터 확장 (v3)</td></tr>
 <tr><td><code>rand</code></td><td></td><td>FEAT_RNG — 난수 생성기(Random Number Generator)</td></tr>
 <tr><td><code>ras</code></td><td></td><td>FEAT_RAS &amp; FEAT_RASv1p1 — 신뢰성, 가용성 및 서비스성(Reliability, Availability and Serviceability) 확장</td></tr>
 <tr><td><code>rcpc</code></td><td></td><td>FEAT_LRCPC — 릴리스 일관성 프로세서 일관성(Release consistent Processor Consistent)</td></tr>
 <tr><td><code>rcpc2</code></td><td><code>rcpc</code></td><td>FEAT_LRCPC2 — 즉시 오프셋을 포함한 RcPc</td></tr>
-<tr><td><code>rdm</code></td><td></td><td>FEAT_RDM — 반올림 이중 곱셈 누산(Rounding Double Multiply accumulate)</td></tr>
+<tr><td><code>rdm</code></td><td><code>neon</code></td><td>FEAT_RDM — 반올림 이중 곱셈 누산(Rounding Double Multiply accumulate)</td></tr>
 <tr><td><code>sb</code></td><td></td><td>FEAT_SB — 투기적 실행 배리어(Speculation Barrier)</td></tr>
 <tr><td><code>sha2</code></td><td><code>neon</code></td><td>FEAT_SHA1 &amp; FEAT_SHA256 — 고급 SIMD SHA 명령어</td></tr>
 <tr><td><code>sha3</code></td><td><code>sha2</code></td><td>FEAT_SHA512 &amp; FEAT_SHA3 — 고급 SIMD SHA 명령어</td></tr>
 <tr><td><code>sm4</code></td><td><code>neon</code></td><td>FEAT_SM3 &amp; FEAT_SM4 — 고급 SIMD SM3/4 명령어</td></tr>
 <tr><td><code>spe</code></td><td></td><td>FEAT_SPE — 통계적 프로파일링 확장(Statistical Profiling Extension)</td></tr>
 <tr><td><code>ssbs</code></td><td></td><td>FEAT_SSBS &amp; FEAT_SSBS2 — 투기적 저장소 우회 안전(Speculative Store Bypass Safe)</td></tr>
-<tr><td><code>sve</code></td><td><code>fp16</code></td><td>FEAT_SVE — 가변 벡터 확장(Scalable Vector Extension)</td></tr>
+<tr><td><code>sve</code></td><td><code>neon</code></td><td>FEAT_SVE — 가변 벡터 확장(Scalable Vector Extension)</td></tr>
 <tr><td><code>sve2</code></td><td><code>sve</code></td><td>FEAT_SVE2 — 가변 벡터 확장 2</td></tr>
-<tr><td><code>sve2-aes</code></td><td><code>sve2</code>, <code>aes</code></td><td>FEAT_SVE_AES — SVE AES 명령어</td></tr>
-<tr><td><code>sve2-sm4</code></td><td><code>sve2</code>, <code>sm4</code></td><td>FEAT_SVE_SM4 — SVE SM4 명령어</td></tr>
-<tr><td><code>sve2-sha3</code></td><td><code>sve2</code>, <code>sha3</code></td><td>FEAT_SVE_SHA3 — SVE SHA3 명령어</td></tr>
-<tr><td><code>sve2-bitperm</code></td><td><code>sve2</code></td><td>FEAT_SVE_BitPerm — SVE 비트 치환(Bit Permute)</td></tr>
+<tr><td><code>sve2-aes</code></td><td><code>sve2</code>, <code>aes</code></td><td>FEAT_SVE_AES &amp; FEAT_SVE_PMULL128 — SVE AES instructions</td></tr>
+<tr><td><code>sve2-bitperm</code></td><td><code>sve2</code></td><td>FEAT_SVE2_BitPerm — SVE Bit Permute</td></tr>
+<tr><td><code>sve2-sha3</code></td><td><code>sve2</code>, <code>sha3</code></td><td>FEAT_SVE2_SHA3 — SVE SHA3 instructions</td></tr>
+<tr><td><code>sve2-sm4</code></td><td><code>sve2</code>, <code>sm4</code></td><td>FEAT_SVE2_SM4 — SVE SM4 instructions</td></tr>
 <tr><td><code>tme</code></td><td></td><td>FEAT_TME — 트랜잭셔널 메모리 확장(Transactional Memory Extension)</td></tr>
 <tr><td><code>vh</code></td><td></td><td>FEAT_VHE — 가상화 호스트 확장(Virtualization Host Extensions)</td></tr>
 </tbody></table>
-</div><div class="rule" id="r-attributes.codegen.target_feature.riscv"><a class="rule-link" href="#r-attributes.codegen.target_feature.riscv" title="attributes.codegen.target_feature.riscv"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.riscv]<span/></a></div>
-<h4 id="riscv32-또는-riscv64"><a class="header" href="#riscv32-또는-riscv64"><code>riscv32</code> 또는 <code>riscv64</code></a></h4>
-<p>이 플랫폼에서 <code>#[target_feature]</code> 함수의 사용은 <a href="codegen.html#r-attributes.codegen.target_feature.safety-restrictions">위의 제약 사항</a>을 따릅니다.</p>
-<p>이러한 기능들에 대한 추가 문서는 각각의 명세서에서 찾을 수 있습니다. 많은 명세들이 <a href="https://github.com/riscv/riscv-isa-manual">RISC-V ISA 매뉴얼</a>이나 <a href="https://github.com/riscv">RISC-V GitHub 계정</a>에서 호스팅되는 다른 매뉴얼들에 설명되어 있습니다.</p>
+</div>
+<p>r[attributes.codegen.target_feature.loongarch]</p>
+<h4 id="loongarch"><a class="header" href="#loongarch"><code>loongarch</code></a></h4>
+<p>On this platform the usage of <code>#[target_feature]</code> functions follows the [above restrictions][attributes.codegen.target_feature.safety-restrictions].</p>
 <div class="table-wrapper"><table><thead><tr><th>기능(Feature)</th><th>암시적으로 활성화함</th><th>설명</th></tr></thead><tbody>
-<tr><td><code>a</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/de46343a245c6ee1f7b1a40c92fe1a86bd4f4978/src/a-st-ext.adoc">A</a> — 원자적(Atomic) 명령어</td></tr>
-<tr><td><code>c</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/de46343a245c6ee1f7b1a40c92fe1a86bd4f4978/src/c-st-ext.adoc">C</a> — 압축(Compressed) 명령어</td></tr>
-<tr><td><code>m</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/de46343a245c6ee1f7b1a40c92fe1a86bd4f4978/src/m-st-ext.adoc">M</a> — 정수 곱셈 및 나눗셈 명령어</td></tr>
-<tr><td><code>zb</code></td><td><code>zba</code>, <code>zbc</code>, <code>zbs</code></td><td><a href="https://github.com/riscv/riscv-bitmanip">Zb</a> — 비트 조작 명령어</td></tr>
-<tr><td><code>zba</code></td><td></td><td><a href="https://github.com/riscv/riscv-bitmanip/blob/main/bitmanip/zba.adoc">Zba</a> — 주소 생성 명령어</td></tr>
-<tr><td><code>zbb</code></td><td></td><td><a href="https://github.com/riscv/riscv-bitmanip/blob/main/bitmanip/zbb.adoc">Zbb</a> — 기본 비트 조작</td></tr>
-<tr><td><code>zbc</code></td><td></td><td><a href="https://github.com/riscv/riscv-bitmanip/blob/main/bitmanip/zbc.adoc">Zbc</a> — 올림수 없는 곱셈(Carry-less multiplication)</td></tr>
-<tr><td><code>zbkb</code></td><td></td><td><a href="https://github.com/riscv/riscv-bitmanip/blob/main/bitmanip/zbkb.adoc">Zbkb</a> — 암호화용 비트 조작 명령어</td></tr>
-<tr><td><code>zbkc</code></td><td></td><td><a href="https://github.com/riscv/riscv-bitmanip/blob/main/bitmanip/zbc.adoc">Zbkc</a> — 암호화용 올림수 없는 곱셈</td></tr>
-<tr><td><code>zbkx</code></td><td></td><td><a href="https://github.com/riscv/riscv-bitmanip/blob/main/bitmanip/zbkx.adoc">Zbkx</a> — 크로스바 치환(Crossbar permutations)</td></tr>
-<tr><td><code>zbs</code></td><td></td><td><a href="https://github.com/riscv/riscv-bitmanip/blob/main/bitmanip/zbs.adoc">Zbs</a> — 단일 비트 명령어</td></tr>
-<tr><td><code>zk</code></td><td><code>zkn</code>, <code>zkr</code>, <code>zks</code>, <code>zkt</code>, <code>zbkb</code>, <code>zbkc</code>, <code>zkbx</code></td><td><a href="https://github.com/riscv/riscv-crypto/blob/e2dd7d98b7f34d477e38cb5fd7a3af4379525189/doc/scalar/riscv-crypto-scalar-zk.adoc">Zk</a> — 스칼라 암호화(Scalar Cryptography)</td></tr>
-<tr><td><code>zkn</code></td><td><code>zknd</code>, <code>zkne</code>, <code>zknh</code>, <code>zbkb</code>, <code>zbkc</code>, <code>zkbx</code></td><td><a href="https://github.com/riscv/riscv-crypto/blob/e2dd7d98b7f34d477e38cb5fd7a3af4379525189/doc/scalar/riscv-crypto-scalar-zkn.adoc">Zkn</a> — NIST 알고리즘 스위트 확장</td></tr>
-<tr><td><code>zknd</code></td><td></td><td><a href="https://github.com/riscv/riscv-crypto/blob/e2dd7d98b7f34d477e38cb5fd7a3af4379525189/doc/scalar/riscv-crypto-scalar-zknd.adoc">Zknd</a> — NIST 스위트: AES 복호화</td></tr>
-<tr><td><code>zkne</code></td><td></td><td><a href="https://github.com/riscv/riscv-crypto/blob/e2dd7d98b7f34d477e38cb5fd7a3af4379525189/doc/scalar/riscv-crypto-scalar-zkne.adoc">Zkne</a> — NIST 스위트: AES 암호화</td></tr>
-<tr><td><code>zknh</code></td><td></td><td><a href="https://github.com/riscv/riscv-crypto/blob/e2dd7d98b7f34d477e38cb5fd7a3af4379525189/doc/scalar/riscv-crypto-scalar-zknh.adoc">Zknh</a> — NIST 스위트: 해시 함수 명령어</td></tr>
-<tr><td><code>zkr</code></td><td></td><td><a href="https://github.com/riscv/riscv-crypto/blob/e2dd7d98b7f34d477e38cb5fd7a3af4379525189/doc/scalar/riscv-crypto-scalar-zkr.adoc">Zkr</a> — 엔트로피 소스 확장</td></tr>
-<tr><td><code>zks</code></td><td><code>zksed</code>, <code>zksh</code>, <code>zbkb</code>, <code>zbkc</code>, <code>zkbx</code></td><td><a href="https://github.com/riscv/riscv-crypto/blob/e2dd7d98b7f34d477e38cb5fd7a3af4379525189/doc/scalar/riscv-crypto-scalar-zks.adoc">Zks</a> — ShangMi 알고리즘 스위트</td></tr>
-<tr><td><code>zksed</code></td><td></td><td><a href="https://github.com/riscv/riscv-crypto/blob/e2dd7d98b7f34d477e38cb5fd7a3af4379525189/doc/scalar/riscv-crypto-scalar-zksed.adoc">Zksed</a> — ShangMi 스위트: SM4 블록 암호 명령어</td></tr>
-<tr><td><code>zksh</code></td><td></td><td><a href="https://github.com/riscv/riscv-crypto/blob/e2dd7d98b7f34d477e38cb5fd7a3af4379525189/doc/scalar/riscv-crypto-scalar-zksh.adoc">Zksh</a> — ShangMi 스위트: SM3 해시 함수 명령어</td></tr>
-<tr><td><code>zkt</code></td><td></td><td><a href="https://github.com/riscv/riscv-crypto/blob/e2dd7d98b7f34d477e38cb5fd7a3af4379525189/doc/scalar/riscv-crypto-scalar-zkt.adoc">Zkt</a> — 데이터 독립적 실행 지연 시간(Data Independent Execution Latency) 서브셋</td></tr>
+<tr><td><code>f</code></td><td></td><td><a href="https://loongson.github.io/LoongArch-Documentation/LoongArch-Vol1-EN.html#cpucfg-fp_sp">F</a> — Single-precision float-point instructions</td></tr>
+<tr><td><code>d</code></td><td><code>f</code></td><td><a href="https://loongson.github.io/LoongArch-Documentation/LoongArch-Vol1-EN.html#cpucfg-fp_dp">D</a> — Double-precision float-point instructions</td></tr>
+<tr><td><code>frecipe</code></td><td></td><td><a href="https://loongson.github.io/LoongArch-Documentation/LoongArch-Vol1-EN.html#cpucfg-frecipe">FRECIPE</a> — Reciprocal approximation instructions</td></tr>
+<tr><td><code>lasx</code></td><td><code>lsx</code></td><td><a href="https://loongson.github.io/LoongArch-Documentation/LoongArch-Vol1-EN.html#cpucfg-lasx">LASX</a> — 256-bit vector instructions</td></tr>
+<tr><td><code>lbt</code></td><td></td><td><a href="https://loongson.github.io/LoongArch-Documentation/LoongArch-Vol1-EN.html#cpucfg-lbt_x86">LBT</a> — Binary translation instructions</td></tr>
+<tr><td><code>lsx</code></td><td><code>d</code></td><td><a href="https://loongson.github.io/LoongArch-Documentation/LoongArch-Vol1-EN.html#cpucfg-lsx">LSX</a> — 128-bit vector instructions</td></tr>
+<tr><td><code>lvz</code></td><td></td><td><a href="https://loongson.github.io/LoongArch-Documentation/LoongArch-Vol1-EN.html#cpucfg-lvz">LVZ</a> — Virtualization instructions</td></tr>
 </tbody></table>
 </div><!-- Keep links near each table to make it easier to move and update. -->
-<div class="rule" id="r-attributes.codegen.target_feature.wasm"><a class="rule-link" href="#r-attributes.codegen.target_feature.wasm" title="attributes.codegen.target_feature.wasm"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.wasm]<span/></a></div>
+<p>r[attributes.codegen.target_feature.riscv]</p>
+<h4 id="riscv32-또는-riscv64"><a class="header" href="#riscv32-또는-riscv64"><code>riscv32</code> 또는 <code>riscv64</code></a></h4>
+<p>On this platform the usage of <code>#[target_feature]</code> functions follows the [above restrictions][attributes.codegen.target_feature.safety-restrictions].</p>
+<p>Further documentation on these features can be found in their respective specification. Many specifications are described in the <a href="https://github.com/riscv/riscv-isa-manual">RISC-V ISA Manual</a>, <a href="https://github.com/riscv/riscv-isa-manual/tree/20250508">version 20250508</a>, or in another manual hosted on the <a href="https://github.com/riscv">RISC-V GitHub Account</a>.</p>
+<div class="table-wrapper"><table><thead><tr><th>기능(Feature)</th><th>암시적으로 활성화함</th><th>설명</th></tr></thead><tbody>
+<tr><td><code>a</code></td><td><code>zaamo</code>, <code>zalrsc</code></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/a-st-ext.adoc">A</a> — Atomic instructions</td></tr>
+<tr><td><code>b</code></td><td><code>zba</code>, <code>zbc</code>, <code>zbs</code></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/b-st-ext.adoc">B</a> — Bit Manipulation instructions</td></tr>
+<tr><td><code>c</code></td><td><code>zca</code></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/c-st-ext.adoc">C</a> — Compressed instructions</td></tr>
+<tr><td><code>m</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/m-st-ext.adoc">M</a> — Integer Multiplication and Division instructions</td></tr>
+<tr><td><code>za64rs</code></td><td><code>za128rs</code></td><td><a href="https://github.com/riscv/riscv-profiles/blob/rva23-rvb23-ratified/src/rva23-profile.adoc">Za64rs</a> — Platform Behavior: Naturally aligned Reservation sets with ≦ 64 Bytes</td></tr>
+<tr><td><code>za128rs</code></td><td></td><td><a href="https://github.com/riscv/riscv-profiles/blob/v1.0/profiles.adoc">Za128rs</a> — Platform Behavior: Naturally aligned Reservation sets with ≦ 128 Bytes</td></tr>
+<tr><td><code>zaamo</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/a-st-ext.adoc">Zaamo</a> — Atomic Memory Operation instructions</td></tr>
+<tr><td><code>zabha</code></td><td><code>zaamo</code></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/zabha.adoc">Zabha</a> — Byte and Halfword Atomic Memory Operation instructions</td></tr>
+<tr><td><code>zacas</code></td><td><code>zaamo</code></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/zacas.adoc">Zacas</a> — Atomic Compare-and-Swap (CAS) instructions</td></tr>
+<tr><td><code>zalrsc</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/a-st-ext.adoc">Zalrsc</a> — Load-Reserved/Store-Conditional instructions</td></tr>
+<tr><td><code>zama16b</code></td><td></td><td><a href="https://github.com/riscv/riscv-profiles/blob/rva23-rvb23-ratified/src/rva23-profile.adoc">Zama16b</a> — Platform Behavior: Misaligned loads, stores, and AMOs to main memory regions that do not cross a naturally aligned 16-byte boundary are atomic</td></tr>
+<tr><td><code>zawrs</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/zawrs.adoc">Zawrs</a> — Wait-on-Reservation-Set instructions</td></tr>
+<tr><td><code>zba</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/b-st-ext.adoc">Zba</a> — Address Generation instructions</td></tr>
+<tr><td><code>zbb</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/b-st-ext.adoc">Zbb</a> — Basic bit-manipulation</td></tr>
+<tr><td><code>zbc</code></td><td><code>zbkc</code></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/b-st-ext.adoc">Zbc</a> — Carry-less multiplication</td></tr>
+<tr><td><code>zbkb</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/b-st-ext.adoc">Zbkb</a> — Bit Manipulation Instructions for Cryptography</td></tr>
+<tr><td><code>zbkc</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/b-st-ext.adoc">Zbkc</a> — Carry-less multiplication for Cryptography</td></tr>
+<tr><td><code>zbkx</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/b-st-ext.adoc">Zbkx</a> — Crossbar permutations</td></tr>
+<tr><td><code>zbs</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/b-st-ext.adoc">Zbs</a> — Single-bit instructions</td></tr>
+<tr><td><code>zca</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/zc.adoc">Zca</a> — Compressed instructions: integer part subset</td></tr>
+<tr><td><code>zcb</code></td><td><code>zca</code></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/zc.adoc">Zcb</a> — Simple Code-size Saving Compressed instructions</td></tr>
+<tr><td><code>zcmop</code></td><td><code>zca</code></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/zimop.adoc">Zcmop</a> — Compressed May-Be-Operations</td></tr>
+<tr><td><code>zic64b</code></td><td></td><td><a href="https://github.com/riscv/riscv-profiles/blob/v1.0/profiles.adoc">Zic64b</a> — Platform Behavior: Naturally aligned 64 byte Cache blocks</td></tr>
+<tr><td><code>zicbom</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/cmo.adoc">Zicbom</a> — Cache-Block Management instructions</td></tr>
+<tr><td><code>zicbop</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/cmo.adoc">Zicbop</a> — Cache-Block Prefetch Hint instructions</td></tr>
+<tr><td><code>zicboz</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/cmo.adoc">Zicboz</a> — Cache-Block Zero instruction</td></tr>
+<tr><td><code>ziccamoa</code></td><td></td><td><a href="https://github.com/riscv/riscv-profiles/blob/v1.0/profiles.adoc">Ziccamoa</a> — Platform Behavior: Cacheable and Coherent Main memory supports all basic atomic operations</td></tr>
+<tr><td><code>ziccif</code></td><td></td><td><a href="https://github.com/riscv/riscv-profiles/blob/v1.0/profiles.adoc">Ziccif</a> — Platform Behavior: Cacheable and Coherent Main memory supports instruction fetch and fetches of naturally aligned power-of-2 sizes up to <code>min(ILEN,XLEN)</code> are atomic</td></tr>
+<tr><td><code>zicclsm</code></td><td></td><td><a href="https://github.com/riscv/riscv-profiles/blob/v1.0/profiles.adoc">Zicclsm</a> — Platform Behavior: Cacheable and Coherent Main memory supports misaligned load/store accesses</td></tr>
+<tr><td><code>ziccrse</code></td><td></td><td><a href="https://github.com/riscv/riscv-profiles/blob/v1.0/profiles.adoc">Ziccrse</a> — Platform Behavior: Cacheable and Coherent Main memory guarantees eventual success on LR/SC sequences</td></tr>
+<tr><td><code>zicntr</code></td><td><code>zicsr</code></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/counters.adoc">Zicntr</a> — Base Counters and Timers</td></tr>
+<tr><td><code>zicond</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/zicond.adoc">Zicond</a> — Integer Conditional Operation instructions</td></tr>
+<tr><td><code>zicsr</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/zicsr.adoc">Zicsr</a> — Control and Status Register (CSR) instructions</td></tr>
+<tr><td><code>zifencei</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/zifencei.adoc">Zifencei</a> — Instruction-Fetch Fence instruction</td></tr>
+<tr><td><code>zihintntl</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/zihintntl.adoc">Zihintntl</a> — Non-Temporal Locality Hint instructions</td></tr>
+<tr><td><code>zihintpause</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/zihintpause.adoc">Zihintpause</a> — Pause Hint instruction</td></tr>
+<tr><td><code>zihpm</code></td><td><code>zicsr</code></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/counters.adoc">Zihpm</a> — Hardware Performance Counters</td></tr>
+<tr><td><code>zimop</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/zimop.adoc">Zimop</a> — May-Be-Operations</td></tr>
+<tr><td><code>zk</code></td><td><code>zkn</code>, <code>zkr</code>, <code>zks</code>, <code>zkt</code>, <code>zbkb</code>, <code>zbkc</code>, <code>zkbx</code></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/scalar-crypto.adoc">Zk</a> — Scalar Cryptography</td></tr>
+<tr><td><code>zkn</code></td><td><code>zknd</code>, <code>zkne</code>, <code>zknh</code>, <code>zbkb</code>, <code>zbkc</code>, <code>zkbx</code></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/scalar-crypto.adoc">Zkn</a> — NIST Algorithm suite extension</td></tr>
+<tr><td><code>zknd</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/scalar-crypto.adoc">Zknd</a> — NIST Suite: AES Decryption</td></tr>
+<tr><td><code>zkne</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/scalar-crypto.adoc">Zkne</a> — NIST Suite: AES Encryption</td></tr>
+<tr><td><code>zknh</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/scalar-crypto.adoc">Zknh</a> — NIST Suite: Hash Function Instructions</td></tr>
+<tr><td><code>zkr</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/scalar-crypto.adoc">Zkr</a> — Entropy Source Extension</td></tr>
+<tr><td><code>zks</code></td><td><code>zksed</code>, <code>zksh</code>, <code>zbkb</code>, <code>zbkc</code>, <code>zkbx</code></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/scalar-crypto.adoc">Zks</a> — ShangMi Algorithm Suite</td></tr>
+<tr><td><code>zksed</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/scalar-crypto.adoc">Zksed</a> — ShangMi Suite: SM4 Block Cipher Instructions</td></tr>
+<tr><td><code>zksh</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/scalar-crypto.adoc">Zksh</a> — ShangMi Suite: SM3 Hash Function Instructions</td></tr>
+<tr><td><code>zkt</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/scalar-crypto.adoc">Zkt</a> — Data Independent Execution Latency Subset</td></tr>
+<tr><td><code>ztso</code></td><td></td><td><a href="https://github.com/riscv/riscv-isa-manual/blob/20250508/src/ztso-st-ext.adoc">Ztso</a> — Total Store Ordering</td></tr>
+</tbody></table>
+</div><!-- Keep links near each table to make it easier to move and update. -->
+<p>r[attributes.codegen.target_feature.wasm]</p>
 <h4 id="wasm32-또는-wasm64"><a class="header" href="#wasm32-또는-wasm64"><code>wasm32</code> 또는 <code>wasm64</code></a></h4>
 <p>Wasm 플랫폼에서 안전한(safe) <code>#[target_feature]</code> 함수는 항상 안전한 컨텍스트에서 사용될 수 있습니다. <code>#[target_feature]</code> 속성을 통해 정의되지 않은 동작을 유발하는 것은 불가능합니다. 왜냐하면 Wasm 엔진이 지원하지 않는 명령어를 사용하려는 시도는 로드 시점에 실패하며, 컴파일러가 예상한 것과 다르게 해석될 위험이 없기 때문입니다.</p>
 <div class="table-wrapper"><table><thead><tr><th>기능(Feature)</th><th>암시적으로 활성화함</th><th>설명</th></tr></thead><tbody>
@@ -447,26 +604,41 @@ fn bar_sse2() {
 <tr><td><code>reference-types</code></td><td></td><td><a href="https://github.com/webassembly/reference-types">WebAssembly reference-types 제안</a></td></tr>
 <tr><td><code>tail-call</code></td><td></td><td><a href="https://github.com/webassembly/tail-call">WebAssembly tail-call 제안</a></td></tr>
 </tbody></table>
-</div><div class="rule" id="r-attributes.codegen.target_feature.info"><a class="rule-link" href="#r-attributes.codegen.target_feature.info" title="attributes.codegen.target_feature.info"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.info]<span/></a></div>
+</div>
+<p>r[attributes.codegen.target_feature.s390x]</p>
+<h4 id="s390x"><a class="header" href="#s390x"><code>s390x</code></a></h4>
+<p>On <code>s390x</code> targets, use of functions with the <code>#[target_feature]</code> attribute follows the [above restrictions][attributes.codegen.target_feature.safety-restrictions].</p>
+<p>Further documentation on these features can be found in the “Additions to z/Architecture” section of Chapter 1 of the <em><a href="https://publibfp.dhe.ibm.com/epubs/pdf/a227832d.pdf">z/Architecture Principles of Operation</a></em>.</p>
+<div class="table-wrapper"><table><thead><tr><th>기능(Feature)</th><th>암시적으로 활성화함</th><th>설명</th></tr></thead><tbody>
+<tr><td><code>vector</code></td><td></td><td>128-bit vector instructions</td></tr>
+<tr><td><code>vector-enhancements-1</code></td><td><code>vector</code></td><td>vector enhancements 1</td></tr>
+<tr><td><code>vector-enhancements-2</code></td><td><code>vector-enhancements-1</code></td><td>vector enhancements 2</td></tr>
+<tr><td><code>vector-enhancements-3</code></td><td><code>vector-enhancements-2</code></td><td>vector enhancements 3</td></tr>
+<tr><td><code>vector-packed-decimal</code></td><td><code>vector</code></td><td>vector packed-decimal</td></tr>
+<tr><td><code>vector-packed-decimal-enhancement</code></td><td><code>vector-packed-decimal</code></td><td>vector packed-decimal enhancement</td></tr>
+<tr><td><code>vector-packed-decimal-enhancement-2</code></td><td><code>vector-packed-decimal-enhancement-2</code></td><td>vector packed-decimal enhancement 2</td></tr>
+<tr><td><code>vector-packed-decimal-enhancement-3</code></td><td><code>vector-packed-decimal-enhancement-3</code></td><td>vector packed-decimal enhancement 3</td></tr>
+<tr><td><code>nnp-assist</code></td><td><code>vector</code></td><td>nnp assist</td></tr>
+<tr><td><code>miscellaneous-extensions-2</code></td><td></td><td>miscellaneous extensions 2</td></tr>
+<tr><td><code>miscellaneous-extensions-3</code></td><td></td><td>miscellaneous extensions 3</td></tr>
+<tr><td><code>miscellaneous-extensions-4</code></td><td></td><td>miscellaneous extensions 4</td></tr>
+</tbody></table>
+</div>
+<p>r[attributes.codegen.target_feature.info]</p>
 <h3 id="추가-정보"><a class="header" href="#추가-정보">추가 정보</a></h3>
-<div class="rule" id="r-attributes.codegen.target_feature.remark-cfg"><a class="rule-link" href="#r-attributes.codegen.target_feature.remark-cfg" title="attributes.codegen.target_feature.remark-cfg"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.remark-cfg]<span/></a></div>
-<p>컴파일 타임 설정에 기반하여 코드 컴파일을 선택적으로 활성화하거나 비활성화하려면 <a href="../conditional-compilation.html#target_feature"><code>target_feature</code> 조건부 컴파일 옵션</a>을 참조하세요. 이 옵션은 <code>target_feature</code> 속성의 영향을 받지 않으며, 오직 크레이트 전체에 대해 활성화된 기능들에 의해서만 구동된다는 점에 유의하세요.</p>
-<div class="rule" id="r-attributes.codegen.target_feature.remark-rt"><a class="rule-link" href="#r-attributes.codegen.target_feature.remark-rt" title="attributes.codegen.target_feature.remark-rt"><span>[attributes<wbr>.codegen<wbr>.target_feature<wbr>.remark-rt]<span/></a></div>
-<p>이러한 플랫폼에서의 런타임 기능 감지에 대해서는 표준 라이브러리의 <a href="../../std/arch/macro.is_x86_feature_detected.html"><code>is_x86_feature_detected</code></a> 또는 <a href="../../std/arch/macro.is_aarch64_feature_detected.html"><code>is_aarch64_feature_detected</code></a> 매크로를 참조하세요.</p>
+<p>r[attributes.codegen.target_feature.remark-cfg] See the <a href="../conditional-compilation.html#target_feature"><code>target_feature</code> conditional compilation option</a> for selectively enabling or disabling compilation of code based on compile-time settings. Note that this option is not affected by the <code>target_feature</code> attribute, and is only driven by the features enabled for the entire crate.</p>
+<p>r[attributes.codegen.target_feature.remark-rt] Whether a feature is enabled can be checked at runtime using a platform-specific macro from the standard library, for instance <a href="../../std/arch/macro.is_x86_feature_detected.html"><code>is_x86_feature_detected</code></a> or <a href="../../std/arch/macro.is_aarch64_feature_detected.html"><code>is_aarch64_feature_detected</code></a>.</p>
 <blockquote>
-<p>참고: <code>rustc</code>는 각 타겟 및 CPU에 대해 기본적으로 활성화된 일련의 기능들을 가지고 있습니다. CPU는 <a href="../../rustc/codegen-options/index.html#target-cpu"><code>-C target-cpu</code></a> 플래그로 선택할 수 있습니다. 개별 기능들은 <a href="../../rustc/codegen-options/index.html#target-feature"><code>-C target-feature</code></a> 플래그를 사용하여 크레이트 전체에 대해 활성화하거나 비활성화할 수 있습니다.</p>
+<p>[!NOTE] <code>rustc</code> has a default set of features enabled for each target and CPU. The CPU may be chosen with the <a href="../../rustc/codegen-options/index.html#target-cpu"><code>-C target-cpu</code></a> flag. Individual features may be enabled or disabled for an entire crate with the <a href="../../rustc/codegen-options/index.html#target-feature"><code>-C target-feature</code></a> flag.</p>
 </blockquote>
-<div class="rule" id="r-attributes.codegen.track_caller"><a class="rule-link" href="#r-attributes.codegen.track_caller" title="attributes.codegen.track_caller"><span>[attributes<wbr>.codegen<wbr>.track_caller]<span/></a></div>
+<p>r[attributes.codegen.track_caller]</p>
 <h2 id="track_caller-속성"><a class="header" href="#track_caller-속성"><code>track_caller</code> 속성</a></h2>
-<div class="rule" id="r-attributes.codegen.track_caller.allowed-positions"><a class="rule-link" href="#r-attributes.codegen.track_caller.allowed-positions" title="attributes.codegen.track_caller.allowed-positions"><span>[attributes<wbr>.codegen<wbr>.track_caller<wbr>.allowed-positions]<span/></a></div>
-<p><code>track_caller</code> 속성은 <code>fn main</code> 엔트리 포인트를 제외하고, <a href="../items/external-blocks.html#abi"><code>"Rust"</code> ABI</a>를 가진 모든 함수에 적용될 수 있습니다.</p>
-<div class="rule" id="r-attributes.codegen.track_caller.traits"><a class="rule-link" href="#r-attributes.codegen.track_caller.traits" title="attributes.codegen.track_caller.traits"><span>[attributes<wbr>.codegen<wbr>.track_caller<wbr>.traits]<span/></a></div>
-<p>트레잇 선언의 함수와 메서드에 적용될 경우, 이 속성은 모든 구현체에 적용됩니다. 만약 트레잇이 속성과 함께 기본 구현을 제공한다면, 이 속성은 오버라이드된 구현체들에도 적용됩니다.</p>
-<div class="rule" id="r-attributes.codegen.track_caller.extern"><a class="rule-link" href="#r-attributes.codegen.track_caller.extern" title="attributes.codegen.track_caller.extern"><span>[attributes<wbr>.codegen<wbr>.track_caller<wbr>.extern]<span/></a></div>
-<p><code>extern</code> 블록 내의 함수에 적용될 경우, 이 속성은 연결된 모든 구현체에도 반드시 적용되어야 합니다. 그렇지 않으면 정의되지 않은 동작(undefined behavior)이 발생합니다. <code>extern</code> 블록에서 사용 가능하도록 만들어진 함수에 적용될 경우, <code>extern</code> 블록 내의 선언부에도 반드시 이 속성이 있어야 합니다. 그렇지 않으면 정의되지 않은 동작이 발생합니다.</p>
-<div class="rule" id="r-attributes.codegen.track_caller.behavior"><a class="rule-link" href="#r-attributes.codegen.track_caller.behavior" title="attributes.codegen.track_caller.behavior"><span>[attributes<wbr>.codegen<wbr>.track_caller<wbr>.behavior]<span/></a></div>
+<p>r[attributes.codegen.track_caller.allowed-positions] The <code>track_caller</code> attribute may be applied to any function with <a href="../items/external-blocks.html#abi"><code>"Rust"</code> ABI</a> with the exception of the entry point <code>fn main</code>.</p>
+<p>r[attributes.codegen.track_caller.traits] When applied to functions and methods in trait declarations, the attribute applies to all implementations. If the trait provides a default implementation with the attribute, then the attribute also applies to override implementations.</p>
+<p>r[attributes.codegen.track_caller.extern] When applied to a function in an <code>extern</code> block the attribute must also be applied to any linked implementations, otherwise undefined behavior results. When applied to a function which is made available to an <code>extern</code> block, the declaration in the <code>extern</code> block must also have the attribute, otherwise undefined behavior results.</p>
+<p>r[attributes.codegen.track_caller.behavior]</p>
 <h3 id="동작"><a class="header" href="#동작">동작</a></h3>
-<p>함수 <code>f</code>에 이 속성을 적용하면 <code>f</code> 내부의 코드가 <code>f</code>를 호출하게 만든 “최상위” 추적 호출의 <a href="../../core/panic/location/struct.Location.html"><code>Location</code></a> 힌트를 얻을 수 있게 됩니다. 관찰 시점에, 구현체는 <code>f</code>의 프레임에서 스택을 거슬러 올라가 속성이 붙지 않은 가장 가까운 함수 <code>outer</code>의 프레임을 찾고, <code>outer</code>에서의 추적된 호출 위치(<a href="../../core/panic/location/struct.Location.html"><code>Location</code></a>)를 반환하는 것처럼 동작합니다.</p>
+<p>Applying the attribute to a function <code>f</code> allows code within <code>f</code> to get a hint of the <a href="core::panic::Location"><code>Location</code></a> of the “topmost” tracked call that led to <code>f</code>’s invocation. At the point of observation, an implementation behaves as if it walks up the stack from <code>f</code>’s frame to find the nearest frame of an <em>unattributed</em> function <code>outer</code>, and it returns the <a href="core::panic::Location"><code>Location</code></a> of the tracked call in <code>outer</code>.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[track_caller]
@@ -475,10 +647,10 @@ fn f() {
 }
 <span class="boring">}</span></code></pre></pre>
 <blockquote>
-<p>참고: <code>core</code>는 호출자의 위치를 관찰하기 위해 <a href="../../core/panic/location/struct.Location.html#method.caller"><code>core::panic::Location::caller</code></a>를 제공합니다. 이는 <code>rustc</code>에 의해 구현된 <a href="../../core/intrinsics/fn.caller_location.html"><code>core::intrinsics::caller_location</code></a> 내장(intrinsic) 기능을 감싸고 있습니다.</p>
+<p>[!NOTE] <code>core</code> provides [<code>core::panic::Location::caller</code>] for observing caller locations. It wraps the [<code>core::intrinsics::caller_location</code>] intrinsic implemented by <code>rustc</code>.</p>
 </blockquote>
 <blockquote>
-<p>참고: 결과로 나오는 <code>Location</code>은 힌트이므로, 구현체는 스택을 거슬러 올라가는 과정을 일찍 중단할 수 있습니다. 중요한 주의 사항에 대해서는 <a href="#limitations">제한 사항</a>을 참조하세요.</p>
+<p>[!NOTE] Because the resulting <code>Location</code> is a hint, an implementation may halt its walk up the stack early. See <a href="#limitations">Limitations</a> for important caveats.</p>
 </blockquote>
 <h4 id="예시"><a class="header" href="#예시">예시</a></h4>
 <p><code>f</code>가 <code>calls_f</code>에 의해 직접 호출될 때, <code>f</code> 내부의 코드는 <code>calls_f</code> 내의 호출 지점(callsite)을 관찰합니다.</p>
@@ -532,42 +704,48 @@ fn calls_h() {
 }
 <span class="boring">}</span></code></pre></pre>
 <p>기타 등등.</p>
-<div class="rule" id="r-attributes.codegen.track_caller.limits"><a class="rule-link" href="#r-attributes.codegen.track_caller.limits" title="attributes.codegen.track_caller.limits"><span>[attributes<wbr>.codegen<wbr>.track_caller<wbr>.limits]<span/></a></div>
+<p>r[attributes.codegen.track_caller.limits]</p>
 <h3 id="제한-사항"><a class="header" href="#제한-사항">제한 사항</a></h3>
-<div class="rule" id="r-attributes.codegen.track_caller.hint"><a class="rule-link" href="#r-attributes.codegen.track_caller.hint" title="attributes.codegen.track_caller.hint"><span>[attributes<wbr>.codegen<wbr>.track_caller<wbr>.hint]<span/></a></div>
-<p>이 정보는 힌트일 뿐이며 구현체가 이를 반드시 보존해야 할 요구 사항은 없습니다.</p>
-<div class="rule" id="r-attributes.codegen.track_caller.decay"><a class="rule-link" href="#r-attributes.codegen.track_caller.decay" title="attributes.codegen.track_caller.decay"><span>[attributes<wbr>.codegen<wbr>.track_caller<wbr>.decay]<span/></a></div>
-<p>특히, <code>#[track_caller]</code>가 붙은 함수를 함수 포인터로 강제 변환하면 심(shim)이 생성됩니다. 이 심은 관찰자에게 해당 함수가 정의된 위치에서 호출된 것처럼 보이게 하여, 가상 호출(virtual calls) 시 실제 호출자 정보를 잃게 만듭니다. 이러한 강제 변환의 흔한 예시는 메서드에 속성이 붙은 트레잇 객체를 생성하는 경우입니다.</p>
+<p>r[attributes.codegen.track_caller.hint] This information is a hint and implementations are not required to preserve it.</p>
+<p>r[attributes.codegen.track_caller.decay] In particular, coercing a function with <code>#[track_caller]</code> to a function pointer creates a shim which appears to observers to have been called at the attributed function’s definition site, losing actual caller information across virtual calls. A common example of this coercion is the creation of a trait object whose methods are attributed.</p>
 <blockquote>
-<p>참고: 앞서 언급한 함수 포인터를 위한 심(shim)이 필요한 이유는, <code>rustc</code>가 함수 ABI에 암시적 매개변수를 추가함으로써 코드 생성 컨텍스트에서 <code>track_caller</code>를 구현하기 때문입니다. 하지만 이는 간접 호출(indirect call)의 경우 불안정할 수 있는데, 해당 매개변수가 함수의 타입의 일부가 아니며 주어진 함수 포인터 타입이 속성이 있는 함수를 참조할 수도 있고 아닐 수도 있기 때문입니다. 심을 생성함으로써 함수 포인터 호출자로부터 암시적 매개변수를 숨겨서 안정성을 유지합니다.</p>
+<p>[!NOTE] The aforementioned shim for function pointers is necessary because <code>rustc</code> implements <code>track_caller</code> in a codegen context by appending an implicit parameter to the function ABI, but this would be unsound for an indirect call because the parameter is not a part of the function’s type and a given function pointer type may or may not refer to a function with the attribute. The creation of a shim hides the implicit parameter from callers of the function pointer, preserving soundness.</p>
 </blockquote>
-<div class="rule" id="r-attributes.codegen.instruction_set"><a class="rule-link" href="#r-attributes.codegen.instruction_set" title="attributes.codegen.instruction_set"><span>[attributes<wbr>.codegen<wbr>.instruction_set]<span/></a></div>
+<!-- template:attributes -->
+<p>r[attributes.codegen.instruction_set]</p>
 <h2 id="instruction_set-속성"><a class="header" href="#instruction_set-속성"><code>instruction_set</code> 속성</a></h2>
-<div class="rule" id="r-attributes.codegen.instruction_set.allowed-positions"><a class="rule-link" href="#r-attributes.codegen.instruction_set.allowed-positions" title="attributes.codegen.instruction_set.allowed-positions"><span>[attributes<wbr>.codegen<wbr>.instruction_set<wbr>.allowed-positions]<span/></a></div>
-<p>_<code>instruction_set</code> <a href="../attributes.html">속성</a>_은 해당 함수가 어떤 명령어 집합(instruction set)으로 생성될지를 제어하기 위해 함수에 적용될 수 있습니다.</p>
-<div class="rule" id="r-attributes.codegen.instruction_set.behavior"><a class="rule-link" href="#r-attributes.codegen.instruction_set.behavior" title="attributes.codegen.instruction_set.behavior"><span>[attributes<wbr>.codegen<wbr>.instruction_set<wbr>.behavior]<span/></a></div>
-<p>이를 통해 이를 지원하는 CPU 아키텍처에서 단일 프로그램 내에 하나 이상의 명령어 집합을 혼용할 수 있습니다.</p>
-<div class="rule" id="r-attributes.codegen.instruction_set.syntax"><a class="rule-link" href="#r-attributes.codegen.instruction_set.syntax" title="attributes.codegen.instruction_set.syntax"><span>[attributes<wbr>.codegen<wbr>.instruction_set<wbr>.syntax]<span/></a></div>
-<p>이 속성은 <a href="../attributes.html#meta-item-attribute-syntax"><em>MetaListPath</em></a> 구문을 사용하며, 아키텍처 계열 이름과 명령어 집합 이름으로 구성된 경로를 인수로 받습니다.</p>
-<div class="rule" id="r-attributes.codegen.instruction_set.target-limits"><a class="rule-link" href="#r-attributes.codegen.instruction_set.target-limits" title="attributes.codegen.instruction_set.target-limits"><span>[attributes<wbr>.codegen<wbr>.instruction_set<wbr>.target-limits]<span/></a></div>
-<p>지원을 하지 않는 타겟에서 <code>instruction_set</code> 속성을 사용하는 것은 컴파일 에러입니다.</p>
-<div class="rule" id="r-attributes.codegen.instruction_set.arm"><a class="rule-link" href="#r-attributes.codegen.instruction_set.arm" title="attributes.codegen.instruction_set.arm"><span>[attributes<wbr>.codegen<wbr>.instruction_set<wbr>.arm]<span/></a></div>
-<h3 id="arm에서"><a class="header" href="#arm에서">ARM에서</a></h3>
-<p><code>ARMv4T</code> 및 <code>ARMv5te</code> 아키텍처의 경우, 다음이 지원됩니다:</p>
+<p>r[attributes.codegen.instruction_set.intro] The <em><code>instruction_set</code> <a href="../attributes.html">attribute</a></em> specifies the instruction set that a function will use during code generation. This allows mixing more than one instruction set in a single program.</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<!-- ignore: arm-only -->
+<pre><code class="language-rust ignore">#[instruction_set(arm::a32)]
+fn arm_code() {}
+
+#[instruction_set(arm::t32)]
+fn thumb_code() {}</code></pre>
+</blockquote>
+<p>r[attributes.codegen.instruction_set.syntax] The <code>instruction_set</code> attribute uses the [MetaListPaths] syntax to specify a single path consisting of the architecture family name and instruction set name.</p>
+<p>r[attributes.codegen.instruction_set.allowed-positions] The <code>instruction_set</code> attribute may only be applied to functions with <a href="items.fn.body">bodies</a> — <a href="expr.closure">closures</a>, <a href="expr.block.async">async blocks</a>, <a href="items.fn">free functions</a>, <a href="items.associated.fn">associated functions</a> in an <a href="items.impl.inherent">inherent impl</a> or <a href="items.impl.trait">trait impl</a>, and associated functions in a <a href="items.traits">trait definition</a> when those functions have a <a href="items.traits.associated-item-decls">default definition</a> .</p>
+<blockquote>
+<p>[!NOTE] <code>rustc</code> ignores use in other positions but lints against it. This may become an error in the future.</p>
+</blockquote>
+<blockquote>
+<p>[!NOTE] Though the attribute can be applied to <a href="expr.closure">closures</a> and <a href="expr.block.async">async blocks</a>, the usefulness of this is limited as we do not yet support attributes on expressions.</p>
+</blockquote>
+<p>r[attributes.codegen.instruction_set.duplicates] The <code>instruction_set</code> attribute may be used only once on a function.</p>
+<p>r[attributes.codegen.instruction_set.target-limits] The <code>instruction_set</code> attribute may only be used with a target that supports the given value.</p>
+<p>r[attributes.codegen.instruction_set.inline-asm] When the <code>instruction_set</code> attribute is used, any inline assembly in the function must use the specified instruction set instead of the target default.</p>
+<p>r[attributes.codegen.instruction_set.arm]</p>
+<h3 id="instruction_set-on-arm"><a class="header" href="#instruction_set-on-arm"><code>instruction_set</code> on ARM</a></h3>
+<p>When targeting the <code>ARMv4T</code> and <code>ARMv5te</code> architectures, the supported values for <code>instruction_set</code> are:</p>
 <ul>
 <li><code>arm::a32</code> — 함수를 A32 “ARM” 코드로 생성합니다.</li>
 <li><code>arm::t32</code> — 함수를 T32 “Thumb” 코드로 생성합니다.</li>
 </ul>
-<!-- ignore: arm-only -->
-<pre><code class="language-rust ignore">#[instruction_set(arm::a32)]
-fn foo_arm_code() {}
-
-#[instruction_set(arm::t32)]
-fn bar_thumb_code() {}</code></pre>
-<p><code>instruction_set</code> 속성을 사용하는 것은 다음과 같은 효과를 가집니다:</p>
+<p>If the address of the function is taken as a function pointer, the low bit of the address will depend on the selected instruction set:</p>
 <ul>
-<li>함수의 주소를 함수 포인터로 취하는 경우, 명령어 집합에 따라 주소의 하위 비트가 0(arm) 또는 1(thumb)로 설정됩니다.</li>
-<li>함수 내의 모든 인라인 어셈블리는 타겟 기본값 대신 지정된 명령어 집합을 사용해야 합니다.</li>
+<li>For <code>arm::a32</code> (“ARM”), it will be 0.</li>
+<li>For <code>arm::t32</code> (“Thumb”), it will be 1.</li>
 </ul>
 
                     </main>

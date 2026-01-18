@@ -222,14 +222,14 @@
 <ul>
 <li>스레드가 일관되지 않은 순서로 데이터나 리소스에 접근하는 경쟁 상태</li>
 <li>두 스레드가 서로를 기다리며 두 스레드 모두 계속 진행하지 못하게 하는 교착 상태</li>
-<li>특정 상황에서만 발생하고 안정적으로 재현하고 수정하기 어려운 버그</li>
+<li>Bugs that only happen in certain situations and are hard to reproduce and fix reliably</li>
 </ul>
 <p>러스트는 스레드 사용의 부정적인 영향을 완화하려고 시도하지만, 멀티스레드 환경에서의 프로그래밍은 여전히 신중한 고려가 필요하며 단일 스레드에서 실행되는 프로그램과는 다른 코드 구조를 요구합니다.</p>
-<p>프로그래밍 언어는 몇 가지 다른 방식으로 스레드를 구현하며, 많은 운영 체제는 새로운 스레드를 생성하기 위해 언어가 호출할 수 있는 API를 제공합니다. 러스트 표준 라이브러리는 스레드 구현의 <em>1:1</em> 모델을 사용하는데, 이는 프로그램이 하나의 언어 스레드당 하나의 운영 체제 스레드를 사용한다는 것을 의미합니다. 1:1 모델과 다른 트레이드오프를 만드는 다른 스레딩 모델을 구현하는 크레이트들도 있습니다. (다음 장에서 보게 될 러스트의 비동기 시스템은 동시성에 대한 또 다른 접근 방식을 제공합니다.)</p>
+<p>Programming languages implement threads in a few different ways, and many operating systems provide an API the programming language can call for creating new threads. The Rust standard library uses a <em>1:1</em> model of thread implementation, whereby a program uses one operating system thread per one language thread. There are crates that implement other models of threading that make different trade-offs to the 1:1 model. (Rust’s async system, which we will see in the next chapter, provides another approach to concurrency as well.)</p>
 <h3 id="spawn으로-새로운-스레드-생성하기"><a class="header" href="#spawn으로-새로운-스레드-생성하기"><code>spawn</code>으로 새로운 스레드 생성하기</a></h3>
-<p>새로운 스레드를 생성하기 위해, 우리는 thread::spawn 함수를 호출하고 새로운 스레드에서 실행하고 싶은 코드를 담은 클로저(클로저에 대해서는 13장에서 이야기했습니다)를 전달합니다. 목록 16-1의 예제는 메인 스레드에서 일부 텍스트를 출력하고 새로운 스레드에서 다른 텍스트를 출력합니다:</p>
+<p>To create a new thread, we call the <code>thread::spawn</code> function and pass it a closure (we talked about closures in Chapter 13) containing the code we want to run in the new thread. The example in Listing 16-1 prints some text from a main thread and other text from a new thread.</p>
 <Listing number="16-1" file-name="src/main.rs" caption="Creating a new thread to print one thing while the main thread prints something else">
-<pre><pre class="playground"><code class="language-rust edition2021">use std::thread;
+<pre><pre class="playground"><code class="language-rust edition2024">use std::thread;
 use std::time::Duration;
 
 fn main() {
@@ -260,13 +260,15 @@ hi number 4 from the main thread!
 hi number 4 from the spawned thread!
 hi number 5 from the spawned thread!
 </code></pre>
-<p>thread::sleep 호출은 스레드가 짧은 시간 동안 실행을 중지하도록 강제하여 다른 스레드가 실행될 수 있도록 합니다. 스레드들은 아마도 번갈아 가며 실행되겠지만, 보장되지는 않습니다: 운영 체제가 스레드를 어떻게 스케줄링하느냐에 달려 있습니다. 이 실행에서는 생성된 스레드의 print 문이 코드에 먼저 나타나지만 메인 스레드가 먼저 출력했습니다. 그리고 생성된 스레드에게 i가 9가 될 때까지 출력하라고 했지만, 메인 스레드가 종료되기 전에 5까지만 도달했습니다.</p>
+<p>The calls to <code>thread::sleep</code> force a thread to stop its execution for a short duration, allowing a different thread to run. The threads will probably take turns, but that isn’t guaranteed: It depends on how your operating system schedules the threads. In this run, the main thread printed first, even though the print statement from the spawned thread appears first in the code. And even though we told the spawned thread to print until <code>i</code> is <code>9</code>, it only got to <code>5</code> before the main thread shut down.</p>
 <p>이 코드를 실행했을 때 메인 스레드의 출력만 보이거나 겹치는 부분이 보이지 않는다면, 운영 체제가 스레드 간 전환을 할 수 있는 기회를 더 많이 만들 수 있도록 범위의 숫자를 늘려보세요.</p>
-<h3 id="join-핸들을-사용하여-모든-스레드가-끝나기를-기다리기"><a class="header" href="#join-핸들을-사용하여-모든-스레드가-끝나기를-기다리기"><code>join</code> 핸들을 사용하여 모든 스레드가 끝나기를 기다리기</a></h3>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="waiting-for-all-threads-to-finish-using-join-handles"></a></p>
+<h3 id="waiting-for-all-threads-to-finish"><a class="header" href="#waiting-for-all-threads-to-finish">Waiting for All Threads to Finish</a></h3>
 <p>목록 16-1의 코드는 메인 스레드가 종료되어 대부분의 경우 생성된 스레드를 조기에 중지할 뿐만 아니라, 스레드가 실행되는 순서에 대한 보장이 없기 때문에 생성된 스레드가 실행될 것이라는 보장도 할 수 없습니다!</p>
-<p>thread::spawn의 반환 값을 변수에 저장하여 생성된 스레드가 실행되지 않거나 조기에 종료되는 문제를 해결할 수 있습니다. thread::spawn의 반환 타입은 JoinHandle입니다. JoinHandle은 소유된 값으로, join 메서드를 호출하면 해당 스레드가 끝날 때까지 기다립니다. 목록 16-2는 목록 16-1에서 생성한 스레드의 JoinHandle을 사용하는 방법과 메인이 종료되기 전에 생성된 스레드가 완료되도록 join을 호출하는 방법을 보여줍니다:</p>
-<Listing number="16-2" file-name="src/main.rs" caption="Saving a `JoinHandle` from `thread::spawn` to guarantee the thread is run to completion">
-<pre><pre class="playground"><code class="language-rust edition2021">use std::thread;
+<p>We can fix the problem of the spawned thread not running or of it ending prematurely by saving the return value of <code>thread::spawn</code> in a variable. The return type of <code>thread::spawn</code> is <code>JoinHandle&lt;T&gt;</code>. A <code>JoinHandle&lt;T&gt;</code> is an owned value that, when we call the <code>join</code> method on it, will wait for its thread to finish. Listing 16-2 shows how to use the <code>JoinHandle&lt;T&gt;</code> of the thread we created in Listing 16-1 and how to call <code>join</code> to make sure the spawned thread finishes before <code>main</code> exits.</p>
+<Listing number="16-2" file-name="src/main.rs" caption="Saving a `JoinHandle<T>` from `thread::spawn` to guarantee the thread is run to completion">
+<pre><pre class="playground"><code class="language-rust edition2024">use std::thread;
 use std::time::Duration;
 
 fn main() {
@@ -306,7 +308,7 @@ hi number 9 from the spawned thread!
 <p>두 스레드는 계속 번갈아 가며 실행되지만, 메인 스레드는 handle.join() 호출로 인해 기다리며 생성된 스레드가 완료될 때까지 종료되지 않습니다.</p>
 <p>하지만 대신 handle.join()을 메인의 for 루프 앞으로 이동하면 어떤 일이 일어나는지 봅시다. 다음과 같이요:</p>
 <Listing file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021">use std::thread;
+<pre><pre class="playground"><code class="language-rust edition2024">use std::thread;
 use std::time::Duration;
 
 fn main() {
@@ -345,8 +347,9 @@ hi number 4 from the main thread!
 </code></pre>
 <p>join이 호출되는 위치와 같은 작은 세부 사항이 스레드가 동시에 실행되는지 여부에 영향을 미칠 수 있습니다.</p>
 <h3 id="스레드에-move-클로저-사용하기"><a class="header" href="#스레드에-move-클로저-사용하기">스레드에 <code>move</code> 클로저 사용하기</a></h3>
-<p>우리는 종종 thread::spawn에 전달되는 클로저와 함께 move 키워드를 사용할 것입니다. 왜냐하면 클로저는 환경에서 사용하는 값의 소유권을 가져와서 해당 값의 소유권을 한 스레드에서 다른 스레드로 이전하기 때문입니다. 13장의 <a href="ch13-01-closures.html#capturing-references-or-moving-ownership">“참조 캡처 또는 소유권 이동”</a><!-- ignore -->에서 클로저 맥락에서의 move에 대해 논의했습니다. 이제 move와 thread::spawn 간의 상호 작용에 더 집중할 것입니다.</p>
-<p>목록 16-1에서 thread::spawn에 전달하는 클로저는 인수를 받지 않는다는 점에 유의하세요. 생성된 스레드의 코드에서 메인 스레드의 데이터를 사용하지 않고 있습니다. 생성된 스레드에서 메인 스레드의 데이터를 사용하려면, 생성된 스레드의 클로저는 필요한 값을 캡처해야 합니다. 목록 16-3은 메인 스레드에서 벡터를 생성하고 생성된 스레드에서 이를 사용하려는 시도를 보여줍니다. 하지만 곧 보시겠지만 이것은 아직 작동하지 않을 것입니다.</p>
+<p>We’ll often use the <code>move</code> keyword with closures passed to <code>thread::spawn</code> because the closure will then take ownership of the values it uses from the environment, thus transferring ownership of those values from one thread to another. In <a href="ch13-01-closures.html#capturing-references-or-moving-ownership">“Capturing References or Moving Ownership”</a><!-- ignore
+--> in Chapter 13, we discussed <code>move</code> in the context of closures. Now we’ll concentrate more on the interaction between <code>move</code> and <code>thread::spawn</code>.</p>
+<p>Notice in Listing 16-1 that the closure we pass to <code>thread::spawn</code> takes no arguments: We’re not using any data from the main thread in the spawned thread’s code. To use data from the main thread in the spawned thread, the spawned thread’s closure must capture the values it needs. Listing 16-3 shows an attempt to create a vector in the main thread and use it in the spawned thread. However, this won’t work yet, as you’ll see in a moment.</p>
 <Listing number="16-3" file-name="src/main.rs" caption="Attempting to use a vector created by the main thread in another thread">
 <pre><code class="language-rust ignore does_not_compile">use std::thread;
 
@@ -387,8 +390,8 @@ help: to force the closure to take ownership of `v` (and any other referenced va
 For more information about this error, try `rustc --explain E0373`.
 error: could not compile `threads` (bin "threads") due to 1 previous error
 </code></pre>
-<p>러스트는 v를 캡처하는 방법을 _추론_하며, println!은 v에 대한 참조만 필요로 하므로 클로저는 v를 대여하려고 시도합니다. 하지만 문제가 있습니다. 러스트는 생성된 스레드가 얼마나 오래 실행될지 알 수 없으므로 v에 대한 참조가 항상 유효할지 알 수 없습니다.</p>
-<p>목록 16-4는 유효하지 않게 될 v에 대한 참조를 가질 가능성이 더 높은 시나리오를 제공합니다:</p>
+<p>Rust <em>infers</em> how to capture <code>v</code>, and because <code>println!</code> only needs a reference to <code>v</code>, the closure tries to borrow <code>v</code>. However, there’s a problem: Rust can’t tell how long the spawned thread will run, so it doesn’t know whether the reference to <code>v</code> will always be valid.</p>
+<p>Listing 16-4 provides a scenario that’s more likely to have a reference to <code>v</code> that won’t be valid.</p>
 <Listing number="16-4" file-name="src/main.rs" caption="A thread with a closure that attempts to capture a reference to `v` from a main thread that drops `v`">
 <pre><code class="language-rust ignore does_not_compile">use std::thread;
 
@@ -404,7 +407,7 @@ fn main() {
     handle.join().unwrap();
 }</code></pre>
 </Listing>
-<p>러스트가 이 코드를 실행하도록 허용했다면, 생성된 스레드가 전혀 실행되지 않고 즉시 백그라운드로 전환될 가능성이 있습니다. 생성된 스레드는 내부에 v에 대한 참조를 가지고 있지만, 메인 스레드는 15장에서 논의한 drop 함수를 사용하여 즉시 v를 드롭합니다. 그러면 생성된 스레드가 실행을 시작할 때 v는 더 이상 유효하지 않으므로 이에 대한 참조도 유효하지 않습니다. 이런!</p>
+<p>If Rust allowed us to run this code, there’s a possibility that the spawned thread would be immediately put in the background without running at all. The spawned thread has a reference to <code>v</code> inside, but the main thread immediately drops <code>v</code>, using the <code>drop</code> function we discussed in Chapter 15. Then, when the spawned thread starts to execute, <code>v</code> is no longer valid, so a reference to it is also invalid. Oh no!</p>
 <p>목록 16-3의 컴파일러 오류를 수정하기 위해 오류 메시지의 조언을 사용할 수 있습니다:</p>
 <!-- manual-regeneration
 after automatic regeneration, look at listings/ch16-fearless-concurrency/listing-16-03/output.txt and copy the relevant part
@@ -414,9 +417,9 @@ after automatic regeneration, look at listings/ch16-fearless-concurrency/listing
 6 |     let handle = thread::spawn(move || {
   |                                ++++
 </code></pre>
-<p>클로저 앞에 move 키워드를 추가함으로써, 러스트가 값을 대여해야 한다고 추론하게 하는 대신 클로저가 사용하는 값의 소유권을 가져오도록 강제합니다. 목록 16-5에 표시된 목록 16-3의 수정 사항은 우리가 의도한 대로 컴파일되고 실행될 것입니다:</p>
+<p>By adding the <code>move</code> keyword before the closure, we force the closure to take ownership of the values it’s using rather than allowing Rust to infer that it should borrow the values. The modification to Listing 16-3 shown in Listing 16-5 will compile and run as we intend.</p>
 <Listing number="16-5" file-name="src/main.rs" caption="Using the `move` keyword to force a closure to take ownership of the values it uses">
-<pre><pre class="playground"><code class="language-rust edition2021">use std::thread;
+<pre><pre class="playground"><code class="language-rust edition2024">use std::thread;
 
 fn main() {
     let v = vec![1, 2, 3];
@@ -434,22 +437,29 @@ fn main() {
 error[E0382]: use of moved value: `v`
   --&gt; src/main.rs:10:10
    |
-4  |     let v = vec![1, 2, 3];
-   |         - `v`는 `Copy` 트레이트를 구현하지 않는 `Vec&lt;i32&gt;` 타입이므로 이동이 발생합니다
-5  |
-6  |     let handle = thread::spawn(move || {
-   |                                ------- 여기서 값이 클로저로 이동됨
-7  |         println!("Here's a vector: {v:?}");
-   |                                     - 클로저 사용으로 인해 변수가 이동됨
+ 4 |     let v = vec![1, 2, 3];
+   |         - move occurs because `v` has type `Vec&lt;i32&gt;`, which does not implement the `Copy` trait
+ 5 |
+ 6 |     let handle = thread::spawn(move || {
+   |                                ------- value moved into closure here
+ 7 |         println!("Here's a vector: {v:?}");
+   |                                     - variable moved due to use in closure
 ...
 10 |     drop(v); // oh no!
-   |          ^ 이동 후 여기서 값이 사용됨
+   |          ^ value used here after move
+   |
+help: consider cloning the value before moving it into the closure
+   |
+ 6 ~     let value = v.clone();
+ 7 ~     let handle = thread::spawn(move || {
+ 8 ~         println!("Here's a vector: {value:?}");
+   |
 
 For more information about this error, try `rustc --explain E0382`.
 error: could not compile `threads` (bin "threads") due to 1 previous error
 </code></pre>
 <p>러스트의 소유권 규칙이 우리를 다시 구했습니다! 목록 16-3의 코드에서 오류가 발생한 이유는 러스트가 보수적으로 스레드에 대해 v를 대여하기만 했기 때문이며, 이는 이론적으로 메인 스레드가 생성된 스레드의 참조를 무효화할 수 있음을 의미했습니다. 러스트에게 v의 소유권을 생성된 스레드로 이동하도록 지시함으로써, 우리는 러스트에게 메인 스레드가 더 이상 v를 사용하지 않을 것임을 보장합니다. 목록 16-4를 같은 방식으로 변경하면, 메인 스레드에서 v를 사용하려고 할 때 소유권 규칙을 위반하게 됩니다. move 키워드는 러스트의 보수적인 기본 대여를 재정의합니다. 그것은 우리가 소유권 규칙을 위반하도록 허용하지 않습니다.</p>
-<p>스레드와 스레드 API에 대한 기본적인 이해를 바탕으로, 스레드로 무엇을 <em>할 수 있는지</em> 살펴봅시다.</p>
+<p>Now that we’ve covered what threads are and the methods supplied by the thread API, let’s look at some situations in which we can use threads.</p>
 
                     </main>
 

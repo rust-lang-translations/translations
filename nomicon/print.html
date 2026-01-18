@@ -241,7 +241,7 @@ Where The Reference exists to detail the syntax and semantics of every part of t
 In general, if the two documents disagree, The Reference should be assumed to be correct (it isn't yet considered normative, it's just better maintained).</p>
 <p>Topics that are within the scope of this book include: the meaning of (un)safety, unsafe primitives provided by the language and standard library, techniques for creating safe abstractions with those unsafe primitives, subtyping and variance, exception-safety (panic/unwind-safety), working with uninitialized memory, type punning, concurrency, interoperating with other languages (FFI), optimization tricks, how constructs lower to compiler/OS/hardware primitives, how to <strong>not</strong> make the memory model people angry, how you're <strong>going</strong> to make the memory model people angry, and more.</p>
 <p>The Rustonomicon is not a place to exhaustively describe the semantics and guarantees of every single API in the standard library, nor is it a place to exhaustively describe every feature of Rust.</p>
-<p>Unless otherwise noted, Rust code in this book uses the Rust 2021 edition.</p>
+<p>Unless otherwise noted, Rust code in this book uses the Rust 2024 edition.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="meet-safe-and-unsafe"><a class="header" href="#meet-safe-and-unsafe">Meet Safe and Unsafe</a></h1>
 <p><img src="img/safeandunsafe.svg" alt="safe and unsafe" /></p>
 <p>It would be great to not have to worry about low-level implementation details.
@@ -331,7 +331,7 @@ invokes Undefined Behavior if the passed offset is not <a href="../std/primitive
 <li>All FFI (Foreign Function Interface) functions are <code>unsafe</code> to call because the
 other language can do arbitrary operations that the Rust compiler can't check.</li>
 </ul>
-<p>As of Rust 1.29.2 the standard library defines the following unsafe traits
+<p>As of Rust 1.29.2, the standard library defines the following unsafe traits
 (there are others, but they are not stabilized yet and some of them may never
 be):</p>
 <ul>
@@ -344,7 +344,7 @@ through a shared reference.</li>
 <p>Much of the Rust standard library also uses Unsafe Rust internally. These
 implementations have generally been rigorously manually checked, so the Safe Rust
 interfaces built on top of these implementations can be assumed to be safe.</p>
-<p>The need for all of this separation boils down a single fundamental property
+<p>The need for all of this separation boils down to a single fundamental property
 of Safe Rust, the <em>soundness property</em>:</p>
 <p><strong>No matter what, Safe Rust can't cause Undefined Behavior.</strong></p>
 <p>The design of the safe/unsafe split means that there is an asymmetric trust
@@ -384,7 +384,7 @@ correctly.</p>
 exist to resolve. The <code>BTreeMap</code> type could theoretically require that keys
 implement a new trait called <code>UnsafeOrd</code>, rather than <code>Ord</code>, that might look
 like this:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::cmp::Ordering;
 
@@ -405,9 +405,9 @@ responsibility to the implementor. Rust has traditionally avoided marking
 traits <code>unsafe</code> because it makes Unsafe Rust pervasive, which isn't desirable.</p>
 <p><code>Send</code> and <code>Sync</code> are marked unsafe because thread safety is a <em>fundamental
 property</em> that unsafe code can't possibly hope to defend against in the way it
-could defend against a buggy <code>Ord</code> implementation. Similarly, <code>GlobalAllocator</code>
+could defend against a buggy <code>Ord</code> implementation. Similarly, <code>GlobalAlloc</code>
 is keeping accounts of all the memory in the program and other things like
-<code>Box</code> or <code>Vec</code> build on top of it. If it does something weird (giving the same
+<code>Box</code> or <code>Vec</code> that build on top of it. If it does something weird (giving the same
 chunk of memory to another request when it is still in use), there's no chance
 to detect that and do anything about it.</p>
 <p>The decision of whether to mark your own traits <code>unsafe</code> depends on the same
@@ -513,7 +513,7 @@ these problems are considered impractical to categorically prevent.</p>
 <p>Rust generally only gives us the tools to talk about Unsafe Rust in a scoped and
 binary manner. Unfortunately, reality is significantly more complicated than
 that. For instance, consider the following toy function:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn index(idx: usize, arr: &amp;[u8]) -&gt; Option&lt;u8&gt; {
     if idx &lt; arr.len() {
@@ -532,7 +532,7 @@ Undefined Behavior through it (which, remember, is the single fundamental
 property of Safe Rust).</p>
 <p>But even in such a trivial function, the scope of the unsafe block is
 questionable. Consider changing the <code>&lt;</code> to a <code>&lt;=</code>:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn index(idx: usize, arr: &amp;[u8]) -&gt; Option&lt;u8&gt; {
     if idx &lt;= arr.len() {
@@ -556,7 +556,7 @@ safety <em>isn't</em> modular in the sense that programs are inherently stateful
 your unsafe operations may depend on arbitrary other state.</p>
 <p>This non-locality gets much worse when we incorporate actual persistent state.
 Consider a simple implementation of <code>Vec</code>:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">use std::ptr;
+<pre><pre class="playground"><code class="language-rust edition2024">use std::ptr;
 
 // Note: This definition is naive. See the chapter on implementing Vec.
 pub struct Vec&lt;T&gt; {
@@ -648,7 +648,7 @@ type may not be known statically in the case of <a href="exotic-sizes.html#dynam
 of their fields' alignments. Rust will consequently insert padding where
 necessary to ensure that all fields are properly aligned and that the overall
 type's size is a multiple of its alignment. For instance:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct A {
     a: u8,
@@ -659,7 +659,7 @@ type's size is a multiple of its alignment. For instance:</p>
 <p>will be 32-bit aligned on a target that aligns these primitives to their
 respective sizes. The whole struct will therefore have a size that is a multiple
 of 32-bits. It may become:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct A {
     a: u8,
@@ -670,7 +670,7 @@ of 32-bits. It may become:</p>
 }
 <span class="boring">}</span></code></pre></pre>
 <p>or maybe:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct A {
     b: u32,
@@ -683,7 +683,7 @@ of 32-bits. It may become:</p>
 as you would expect in C. However with the exception of arrays (which are
 densely packed and in-order), the layout of data is not specified by default.
 Given the two following struct definitions:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct A {
     a: i32,
@@ -702,7 +702,7 @@ instance of A has the same field ordering or padding as an instance of B.</p>
 features of Rust make it desirable for the language to play with data layout in
 complex ways.</p>
 <p>For instance, consider this struct:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Foo&lt;T, U&gt; {
     count: u16,
@@ -731,7 +731,7 @@ struct Foo&lt;u32, u16&gt; {
 <p>The latter case quite simply wastes space. An optimal use of space
 requires different monomorphizations to have <em>different field orderings</em>.</p>
 <p>Enums make this consideration even more complicated. Naively, an enum such as:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>enum Foo {
     A(u32),
@@ -740,7 +740,7 @@ requires different monomorphizations to have <em>different field orderings</em>.
 }
 <span class="boring">}</span></code></pre></pre>
 <p>might be laid out as:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct FooRepr {
     data: u64, // this is either a u64, u32, or u8 based on `tag`
@@ -789,7 +789,7 @@ it points to. The runtime size of the pointee is just the statically known size
 of an element multiplied by the number of elements.</p>
 <p>Structs can actually store a single DST directly as their last field, but this
 makes them a DST as well:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Can't be stored on the stack directly
 struct MySuperSlice {
@@ -800,7 +800,7 @@ struct MySuperSlice {
 <p>Unfortunately, such a type is largely useless without a way to construct it. Currently the
 only properly supported way to create a custom DST is by making your type generic
 and performing an <em>unsizing coercion</em>:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">struct MySuperSliceable&lt;T: ?Sized&gt; {
+<pre><pre class="playground"><code class="language-rust edition2024">struct MySuperSliceable&lt;T: ?Sized&gt; {
     info: u32,
     data: T,
 }
@@ -819,7 +819,7 @@ fn main() {
 <p>(Yes, custom DSTs are a largely half-baked feature for now.)</p>
 <h2 id="zero-sized-types-zsts"><a class="header" href="#zero-sized-types-zsts">Zero Sized Types (ZSTs)</a></h2>
 <p>Rust also allows types to be specified that occupy no space:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Nothing; // No fields = no size
 
@@ -852,14 +852,14 @@ support values.</p>
 consequence of types with no size. In particular, pointer offsets are no-ops,
 and allocators typically <a href="../std/alloc/trait.GlobalAlloc.html#tymethod.alloc">require a non-zero size</a>.</p>
 <p>Note that references to ZSTs (including empty slices), just like all other
-references, must be non-null and suitably aligned. Dereferencing a null or
-unaligned pointer to a ZST is <a href="what-unsafe-does.html">undefined behavior</a>, just like for any other
-type.</p>
+references, must be non-null and suitably aligned. However, loading or storing
+through a null pointer to a ZST is not <a href="what-unsafe-does.html">undefined behavior</a>, unlike
+pointers to other types.</p>
 <h2 id="empty-types"><a class="header" href="#empty-types">Empty Types</a></h2>
 <p>Rust also enables types to be declared that <em>cannot even be instantiated</em>. These
 types can only be talked about at the type level, and never at the value level.
 Empty types can be declared by specifying an enum with no variants:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>enum Void {} // No variants = EMPTY
 <span class="boring">}</span></code></pre></pre>
@@ -876,7 +876,7 @@ because the <code>Err</code> case doesn't actually exist (strictly speaking, thi
 an optimization that is not guaranteed, so for example transmuting one into the
 other is still Undefined Behavior).</p>
 <p>The following also compiles:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>enum Void {}
 
@@ -906,8 +906,7 @@ and other "declared but never defined" types more accurately. However as of
 Rust 2018, <a href="https://github.com/rust-lang/rust/issues/43467">the feature is stuck in limbo over how <code>size_of_val::&lt;MyExternType&gt;()</code>
 should behave</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="alternative-representations"><a class="header" href="#alternative-representations">Alternative representations</a></h1>
-<p>Rust allows you to specify alternative data layout strategies from the default.
-There's also the <a href="https://rust-lang.github.io/unsafe-code-guidelines/layout.html">unsafe code guidelines</a> (note that it's <strong>NOT</strong> normative).</p>
+<p>Rust allows you to specify alternative data layout strategies from the default.</p>
 <h2 id="reprc"><a class="header" href="#reprc">repr(C)</a></h2>
 <p>This is the most important <code>repr</code>. It has fairly simple intent: do what C does.
 The order, size, and alignment of fields is exactly what you would expect from C
@@ -1004,7 +1003,7 @@ pass the enum to C code, or access the type's raw representation and directly
 manipulate its tag and fields. See <a href="https://github.com/rust-lang/rfcs/blob/master/text/2195-really-tagged-unions.md">the RFC</a> for details.</p>
 <p>These <code>repr</code>s have no effect on a struct.</p>
 <p>Adding an explicit <code>repr(u*)</code>, <code>repr(i*)</code>, or <code>repr(C)</code> to an enum with fields suppresses the null-pointer optimization, like:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use std::mem::size_of;
 </span>enum MyOption&lt;T&gt; {
@@ -1038,7 +1037,7 @@ that the compiler will be able to emit code to avoid an unaligned load.</p>
 and it will become a hard error.</p>
 <p><code>repr(packed)/repr(packed(n))</code> is not to be used lightly. Unless you have
 extreme requirements, this should not be used.</p>
-<p>This repr is a modifier on <code>repr(C)</code> and <code>repr(Rust)</code>. For FFI compatibilty
+<p>This repr is a modifier on <code>repr(C)</code> and <code>repr(Rust)</code>. For FFI compatibility
 you most likely always want to be explicit: <code>repr(C, packed)</code>.</p>
 <h2 id="repralignn"><a class="header" href="#repralignn">repr(align(n))</a></h2>
 <p><code>repr(align(n))</code> (where <code>n</code> is a power of two) forces the type to have an
@@ -1063,7 +1062,7 @@ making code safe. You never have to worry about things going away <em>too soon</
 issue...). This is a pervasive problem that C and C++ programs need to deal
 with. Consider this simple mistake that all of us who have used a non-GC'd
 language have made at one point:</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn as_str(data: &amp;u32) -&gt; &amp;str {
     // compute the string
@@ -1089,7 +1088,7 @@ compiler that everything is sound.</p>
 verifying that references don't escape the scope of their referent. That's
 because ensuring pointers are always valid is much more complicated than this.
 For instance in this code,</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut data = vec![1, 2, 3];
 // get an internal reference
@@ -1151,7 +1150,7 @@ if they refer to overlapping regions of memory.</p>
 <h2 id="why-aliasing-matters"><a class="header" href="#why-aliasing-matters">Why Aliasing Matters</a></h2>
 <p>So why should we care about aliasing?</p>
 <p>Consider this simple function:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn compute(input: &amp;u32, output: &amp;mut u32) {
     if *input &gt; 10 {
@@ -1164,7 +1163,7 @@ if they refer to overlapping regions of memory.</p>
 }
 <span class="boring">}</span></code></pre></pre>
 <p>We would <em>like</em> to be able to optimize it to the following function:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn compute(input: &amp;u32, output: &amp;mut u32) {
     let cached_input = *input; // keep `*input` in a register
@@ -1223,7 +1222,7 @@ re-ordering it with a write to the same location.</p>
 of our function, because we've moved the only write to <code>*output</code> to the very
 end of our function. This allows us to freely reorder the reads of <code>*input</code> that
 occur before it:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn compute(input: &amp;u32, output: &amp;mut u32) {
     let mut temp = *output;
@@ -1279,7 +1278,7 @@ and elision of "obvious" things.</p>
 implicitly introduces a scope. For the most part, this doesn't really matter.
 However it does matter for variables that refer to each other. As a simple
 example, let's completely desugar this simple piece of Rust code:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let x = 0;
 let y = &amp;x;
@@ -1303,7 +1302,7 @@ likely desugar to the following:</p>
 <p>Wow. That's... awful. Let's all take a moment to thank Rust for making this easier.</p>
 <p>Actually passing references to outer scopes will cause Rust to infer
 a larger lifetime:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let x = 0;
 let z;
@@ -1325,7 +1324,7 @@ z = y;
 }</code></pre>
 <h2 id="example-references-that-outlive-referents"><a class="header" href="#example-references-that-outlive-referents">Example: references that outlive referents</a></h2>
 <p>Alright, let's look at some of those examples from before:</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn as_str(data: &amp;u32) -&gt; &amp;str {
     let s = format!("{}", data);
@@ -1377,7 +1376,7 @@ fn main() {
 }</code></pre>
 <p>Shoot!</p>
 <p>Of course, the right way to write this function is as follows:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn to_string(data: &amp;u32) -&gt; String {
     format!("{}", data)
@@ -1391,7 +1390,7 @@ can be considered to reside at the bottom of the stack; though this limits
 our implementation <em>just a bit</em>.)</p>
 <h2 id="example-aliasing-a-mutable-reference"><a class="header" href="#example-aliasing-a-mutable-reference">Example: aliasing a mutable reference</a></h2>
 <p>How about the other example:</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut data = vec![1, 2, 3];
 let x = &amp;data[0];
@@ -1439,7 +1438,7 @@ are alive. This looks simple, but there are a few subtleties.</p>
 <p>The following snippet compiles, because after printing <code>x</code>, it is no longer
 needed, so it doesn't matter if it is dangling or aliased (even though the
 variable <code>x</code> <em>technically</em> exists to the very end of the scope).</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut data = vec![1, 2, 3];
 let x = &amp;data[0];
@@ -1450,7 +1449,7 @@ data.push(4);
 <p>However, if the value has a destructor, the destructor is run at the end of the
 scope. And running the destructor is considered a use ‒ obviously the last one.
 So, this will <em>not</em> compile.</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Debug)]
 struct X&lt;'a&gt;(&amp;'a i32);
@@ -1468,7 +1467,7 @@ data.push(4);
 <p>One way to convince the compiler that <code>x</code> is no longer valid is by using <code>drop(x)</code> before <code>data.push(4)</code>.</p>
 <p>Furthermore, there might be multiple possible last uses of the borrow, for
 example in each branch of a condition.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">fn some_condition() -&gt; bool { true }
 </span>let mut data = vec![1, 2, 3];
@@ -1487,7 +1486,7 @@ if some_condition() {
 borrows just being tied to the same local variable. This often happens around
 loops (writing a new value of a variable at the end of the loop and using it for
 the last time at the top of the next iteration).</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut data = vec![1, 2, 3];
 // This mut allows us to change where the reference points to
@@ -1505,7 +1504,7 @@ and fails to compile even when it looks like it should. These'll be solved over
 time.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="limits-of-lifetimes"><a class="header" href="#limits-of-lifetimes">Limits of Lifetimes</a></h1>
 <p>Given the following code:</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021">#[derive(Debug)]
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024">#[derive(Debug)]
 struct Foo;
 
 impl Foo {
@@ -1566,7 +1565,7 @@ care about, but the lifetime system is too coarse-grained to handle that.</p>
 is borrowed twice, and can not infer that the first borrow ceases to be needed
 before the second one occurs. This is caused by Rust conservatively falling back
 to using a whole scope for the first borrow. This will eventually get fixed.</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use std::collections::HashMap;
 </span><span class="boring">use std::hash::Hash;
@@ -1688,7 +1687,7 @@ boundaries.</p>
 <p>Given a function, any output lifetimes that don't derive from inputs are
 unbounded. For instance:</p>
 <!-- no_run: This example exhibits undefined behavior. -->
-<pre><pre class="playground"><code class="language-rust no_run edition2021">fn get_str&lt;'a&gt;(s: *const String) -&gt; &amp;'a str {
+<pre><pre class="playground"><code class="language-rust no_run edition2024">fn get_str&lt;'a&gt;(s: *const String) -&gt; &amp;'a str {
     unsafe { &amp;*s }
 }
 
@@ -1711,7 +1710,7 @@ in a function.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="higher-rank-trait-bounds-hrtbs"><a class="header" href="#higher-rank-trait-bounds-hrtbs">Higher-Rank Trait Bounds (HRTBs)</a></h1>
 <p>Rust's <code>Fn</code> traits are a little bit magic. For instance, we can write the
 following code:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">struct Closure&lt;F&gt; {
+<pre><pre class="playground"><code class="language-rust edition2024">struct Closure&lt;F&gt; {
     data: (u8, u16),
     func: F,
 }
@@ -1773,7 +1772,7 @@ trait)</p>
 places outside of the <code>Fn</code> traits where we encounter HRTBs, and even for
 those we have a nice magic sugar for the common cases.</p>
 <p>In summary, we can rewrite the original code more explicitly as:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">struct Closure&lt;F&gt; {
+<pre><pre class="playground"><code class="language-rust edition2024">struct Closure&lt;F&gt; {
     data: (u8, u16),
     func: F,
 }
@@ -1799,7 +1798,7 @@ or permit undefined behavior.</p>
 <p>In order to allow flexible usage of lifetimes
 while also preventing their misuse, Rust uses <strong>subtyping</strong> and <strong>variance</strong>.</p>
 <p>Let's start with an example.</p>
-<pre><pre class="playground"><code class="language-rust edition2021">// Note: debug expects two parameters with the *same* lifetime
+<pre><pre class="playground"><code class="language-rust edition2024">// Note: debug expects two parameters with the *same* lifetime
 fn debug&lt;'a&gt;(a: &amp;'a str, b: &amp;'a str) {
     println!("a = {a:?} b = {b:?}");
 }
@@ -1854,7 +1853,7 @@ For now, let's also accept the idea that subtypes of lifetimes can be passed thr
 (more on this in <a href="subtyping.html#variance">Variance</a>),
 <em>e.g.</em> <code>&amp;'static str</code> is a subtype of <code>&amp;'world str</code>, then we can "downgrade" <code>&amp;'static str</code> into a <code>&amp;'world str</code>.
 With that, the example above will compile:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">fn debug&lt;'a&gt;(a: &amp;'a str, b: &amp;'a str) {
+<pre><pre class="playground"><code class="language-rust edition2024">fn debug&lt;'a&gt;(a: &amp;'a str, b: &amp;'a str) {
     println!("a = {a:?} b = {b:?}");
 }
 
@@ -1869,7 +1868,7 @@ fn main() {
 <h2 id="variance"><a class="header" href="#variance">Variance</a></h2>
 <p>Above, we glossed over the fact that <code>'static &lt;: 'b</code> implied that <code>&amp;'static T &lt;: &amp;'b T</code>. This uses a property known as <em>variance</em>.
 It's not always as simple as this example, though. To understand that, let's try to extend this example a bit:</p>
-<pre><pre class="playground"><code class="language-rust compile_fail E0597 edition2021">fn assign&lt;T&gt;(input: &amp;mut T, val: T) {
+<pre><pre class="playground"><code class="language-rust compile_fail E0597 edition2024">fn assign&lt;T&gt;(input: &amp;mut T, val: T) {
     *input = val;
 }
 
@@ -1905,7 +1904,7 @@ types <code>Sub</code> and <code>Super</code>, where <code>Sub</code> is a subty
 <p>If we remember from the above examples,
 it was ok for us to treat <code>&amp;'a T</code> as a subtype of <code>&amp;'b T</code> if <code>'a &lt;: 'b</code>,
 therefore we can say that <code>&amp;'a T</code> is <em>covariant</em> over <code>'a</code>.</p>
-<p>Also, we saw that it was not ok for us to treat <code>&amp;mut &amp;'a U</code> as a subtype of <code>&amp;mut &amp;'b U</code>,
+<p>Also, we saw that it was not ok for us to treat <code>&amp;mut &amp;'a T</code> as a subtype of <code>&amp;mut &amp;'b T</code>,
 therefore we can say that <code>&amp;mut T</code> is <em>invariant</em> over <code>T</code></p>
 <p>Here is a table of some other generic types and their variances:</p>
 <div class="table-wrapper"><table><thead><tr><th></th><th style="text-align: center">'a</th><th style="text-align: center">T</th><th style="text-align: center">U</th></tr></thead><tbody>
@@ -1938,7 +1937,7 @@ which gets into higher rank lifetimes, which work independently of subtyping).</
 </blockquote>
 <p>Now that we have some more formal understanding of variance,
 let's go through some more examples in more detail.</p>
-<pre><pre class="playground"><code class="language-rust compile_fail E0597 edition2021">fn assign&lt;T&gt;(input: &amp;mut T, val: T) {
+<pre><pre class="playground"><code class="language-rust compile_fail E0597 edition2024">fn assign&lt;T&gt;(input: &amp;mut T, val: T) {
     *input = val;
 }
 
@@ -1964,7 +1963,7 @@ fn main() {
 </code></pre>
 <p>Good, it doesn't compile! Let's break down what's happening here in detail.</p>
 <p>First let's look at the <code>assign</code> function:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn assign&lt;T&gt;(input: &amp;mut T, val: T) {
     *input = val;
@@ -1977,7 +1976,7 @@ clearly says in its signature the referent and the value must be the <em>exact s
 <p>Because <code>&amp;mut T</code> is invariant over <code>T</code>, the compiler concludes it can't apply any subtyping
 to the first argument, and so <code>T</code> must be exactly <code>&amp;'static str</code>.</p>
 <p>This is counter to the <code>&amp;T</code> case:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn debug&lt;T: std::fmt::Debug&gt;(a: T, b: T) {
     println!("a = {a:?} b = {b:?}");
@@ -2022,7 +2021,7 @@ Covariance doesn't work here. But if we flip it around, it actually <em>does</em
 work! If we need a function that can handle <code>&amp;'static str</code>, a function that can handle <em>any</em> reference lifetime
 will surely work fine.</p>
 <p>Let's see this in practice</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021"><span class="boring">use std::cell::RefCell;
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">use std::cell::RefCell;
 </span>thread_local! {
     pub static StaticVecs: RefCell&lt;Vec&lt;&amp;'static str&gt;&gt; = RefCell::new(Vec::new());
 }
@@ -2065,7 +2064,7 @@ over <code>A</code> is exactly <code>a</code>'s variance over <code>A</code>.</p
 <li>If all uses of <code>A</code> are contravariant, then MyType is contravariant over <code>A</code></li>
 <li>Otherwise, MyType is invariant over <code>A</code></li>
 </ul>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::cell::Cell;
 
@@ -2123,7 +2122,7 @@ are dropped manually via pure-library code the borrow checker doesn't
 understand.</p>
 <p>So why do we care? We care because if the type system isn't careful, it could
 accidentally make dangling pointers. Consider the following simple program:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">struct Inspector&lt;'a&gt;(&amp;'a u8);
+<pre><pre class="playground"><code class="language-rust edition2024">struct Inspector&lt;'a&gt;(&amp;'a u8);
 
 struct World&lt;'a&gt; {
     inspector: Option&lt;Inspector&lt;'a&gt;&gt;,
@@ -2141,7 +2140,7 @@ fn main() {
 strictly outlive <code>inspector</code> doesn't matter. As long as the <code>inspector</code> is
 alive, so is <code>days</code>.</p>
 <p>However if we add a destructor, the program will no longer compile!</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021">struct Inspector&lt;'a&gt;(&amp;'a u8);
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024">struct Inspector&lt;'a&gt;(&amp;'a u8);
 
 impl&lt;'a&gt; Drop for Inspector&lt;'a&gt; {
     fn drop(&amp;mut self) {
@@ -2200,7 +2199,7 @@ the specific drop order and the borrowed data is still fine even if the borrow
 checker doesn't know that.</p>
 <p>For example, this variant of the above <code>Inspector</code> example will never
 access borrowed data:</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021">struct Inspector&lt;'a&gt;(&amp;'a u8, &amp;'static str);
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024">struct Inspector&lt;'a&gt;(&amp;'a u8, &amp;'static str);
 
 impl&lt;'a&gt; Drop for Inspector&lt;'a&gt; {
     fn drop(&amp;mut self) {
@@ -2224,7 +2223,7 @@ fn main() {
     // borrowed `days`.
 }</code></pre></pre>
 <p>Likewise, this variant will also never access borrowed data:</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021">struct Inspector&lt;T&gt;(T, &amp;'static str);
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024">struct Inspector&lt;T&gt;(T, &amp;'static str);
 
 impl&lt;T&gt; Drop for Inspector&lt;T&gt; {
     fn drop(&amp;mut self) {
@@ -2259,7 +2258,7 @@ strictly outlive that value.</p>
 <h2 id="an-escape-hatch"><a class="header" href="#an-escape-hatch">An Escape Hatch</a></h2>
 <p>The precise rules that govern drop checking may be less restrictive in
 the future.</p>
-<p>The current analysis is deliberately conservative and trivial; it forces all
+<p>The current analysis is deliberately conservative; it forces all
 borrowed data in a value to outlive that value, which is certainly sound.</p>
 <p>Future versions of the language may make the analysis more precise, to
 reduce the number of cases where sound code is rejected as unsafe.
@@ -2271,7 +2270,7 @@ not access any expired data, even if its type gives it the capability
 to do so.</p>
 <p>That attribute is called <code>may_dangle</code> and was introduced in <a href="https://github.com/rust-lang/rfcs/blob/master/text/1327-dropck-param-eyepatch.md">RFC 1327</a>.
 To deploy it on the <code>Inspector</code> from above, we would write:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">#![feature(dropck_eyepatch)]
+<pre><pre class="playground"><code class="language-rust edition2024">#![feature(dropck_eyepatch)]
 
 struct Inspector&lt;'a&gt;(&amp;'a u8, &amp;'static str);
 
@@ -2301,7 +2300,7 @@ the following example, we assert that we access no data behind a reference of
 lifetime <code>'b</code> and that the only uses of <code>T</code> will be moves or drops, but omit
 the attribute from <code>'a</code> and <code>U</code>, because we do access data with that lifetime
 and that type:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span>#![feature(dropck_eyepatch)]
 <span class="boring">fn main() {
 </span>use std::fmt::Display;
@@ -2324,7 +2323,7 @@ occur indirectly. Examples of such indirect access are:</p>
 <p>(Future changes to the language, such as impl specialization, may add
 other avenues for such indirect access.)</p>
 <p>Here is an example of invoking a callback:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Inspector&lt;T&gt;(T, &amp;'static str, Box&lt;for &lt;'r&gt; fn(&amp;'r T) -&gt; String&gt;);
 
@@ -2337,7 +2336,7 @@ impl&lt;T&gt; Drop for Inspector&lt;T&gt; {
 }
 <span class="boring">}</span></code></pre></pre>
 <p>Here is an example of a trait method call:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::fmt;
 
@@ -2374,7 +2373,7 @@ the next section.</p>
 types or lifetimes are logically associated with a struct, but not actually
 part of a field. This most commonly occurs with lifetimes. For instance, the
 <code>Iter</code> for <code>&amp;'a [T]</code> is (approximately) defined as follows:</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Iter&lt;'a, T: 'a&gt; {
     ptr: *const T,
@@ -2393,7 +2392,7 @@ the type-system the kind of variance that you want, while also providing other
 useful things such as auto traits and the information needed by drop check.</p>
 <p>Iter logically contains a bunch of <code>&amp;'a T</code>s, so this is exactly what we tell
 the <code>PhantomData</code> to simulate:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::marker;
 
@@ -2410,7 +2409,7 @@ over <code>'a</code> and <code>T</code>. Everything Just Works.</p>
 <p>This very documentation used to say:</p>
 <blockquote>
 <p>Another important example is Vec, which is (approximately) defined as follows:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Vec&lt;T&gt; {
     data: *const T, // *const for variance!
@@ -2430,7 +2429,7 @@ Vec's destructor.</p>
 <p>In order to tell the drop checker that we <em>do</em> own values of type T, and
 therefore may drop some T's when <em>we</em> drop, we must add an extra <code>PhantomData</code>
 saying exactly that:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::marker;
 
@@ -2445,7 +2444,7 @@ struct Vec&lt;T&gt; {
 <p>But ever since <a href="https://rust-lang.github.io/rfcs/1238-nonparametric-dropck.html">RFC 1238</a>,
 <strong>this is no longer true nor necessary</strong>.</p>
 <p>If you were to write:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Vec&lt;T&gt; {
     data: *const T, // `*const` for variance!
@@ -2480,7 +2479,7 @@ curious about what the standard library does with the actual <code>Vec</code> de
 that it still needs to use a <code>_owns_T: PhantomData&lt;T&gt;</code> field for soundness.</p>
 <details><summary>Click here to see why</summary>
 <p>Consider the following example:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024">fn main() {
     let mut v: Vec&lt;&amp;str&gt; = Vec::new();
     let s: String = "Short-lived".into();
     v.push(&amp;s);
@@ -2521,7 +2520,7 @@ exception" is a pervasive situation whenever <strong>we own a <code>T</code></st
 smart enough to know of this opt-out, and will thus be disabled <em>when the generic parameter is held
 in an owned fashion</em> by the fields of the struct.</p>
 <p>Hence why the standard library ends up with:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">#[cfg(any())]
 </span>// we pinky-swear not to use `T` when dropping a `Vec`…
@@ -2582,7 +2581,7 @@ working with a composite structure. The borrow checker (a.k.a. borrowck)
 understands some basic stuff, but will fall over pretty easily. It does
 understand structs sufficiently to know that it's possible to borrow disjoint
 fields of a struct simultaneously. So this works today:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Foo {
     a: i32,
@@ -2601,7 +2600,7 @@ println!("{} {} {} {}", a, b, c, c2);
 <span class="boring">}</span></code></pre></pre>
 <p>However borrowck doesn't understand arrays or slices in any way, so this doesn't
 work:</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut x = [1, 2, 3];
 let a = &amp;mut x[0];
@@ -2631,7 +2630,7 @@ that consumes the slice and returns two mutable slices. One for everything to
 the left of the index, and one for everything to the right. Intuitively we know
 this is safe because the slices don't overlap, and therefore alias. However
 the implementation requires some unsafety:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use std::slice::from_raw_parts_mut;
 </span><span class="boring">struct FakeSlice&lt;T&gt;(T);
@@ -2655,7 +2654,7 @@ the implementation requires some unsafety:</p>
 same value, we explicitly construct brand-new slices through raw pointers.</p>
 <p>However more subtle is how iterators that yield mutable references work.
 The iterator trait is defined as follows:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>trait Iterator {
     type Item;
@@ -2678,7 +2677,7 @@ actually ever yield multiple mutable references to the same piece of data.</p>
 <p>Perhaps surprisingly, mutable iterators don't require unsafe code to be
 implemented for many types!</p>
 <p>For instance here's a singly linked list:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {}
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {}
 </span>type Link&lt;T&gt; = Option&lt;Box&lt;Node&lt;T&gt;&gt;&gt;;
 
 struct Node&lt;T&gt; {
@@ -2709,7 +2708,7 @@ impl&lt;'a, T&gt; Iterator for IterMut&lt;'a, T&gt; {
     }
 }</code></pre></pre>
 <p>Here's a mutable slice:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {}
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {}
 </span>use std::mem;
 
 pub struct IterMut&lt;'a, T: 'a&gt;(&amp;'a mut[T]);
@@ -2739,7 +2738,7 @@ impl&lt;'a, T&gt; DoubleEndedIterator for IterMut&lt;'a, T&gt; {
     }
 }</code></pre></pre>
 <p>And here's a binary tree:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {}
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {}
 </span>use std::collections::VecDeque;
 
 type Link&lt;T&gt; = Option&lt;Box&lt;Node&lt;T&gt;&gt;&gt;;
@@ -2770,7 +2769,9 @@ pub struct IterMut&lt;'a, T: 'a&gt;(VecDeque&lt;NodeIterMut&lt;'a, T&gt;&gt;);
 impl&lt;T&gt; Tree&lt;T&gt; {
     pub fn iter_mut(&amp;mut self) -&gt; IterMut&lt;T&gt; {
         let mut deque = VecDeque::new();
-        self.root.as_mut().map(|root| deque.push_front(root.iter_mut()));
+        if let Some(root) = self.root.as_mut() {
+            deque.push_front(root.iter_mut());
+        }
         IterMut(deque)
     }
 }
@@ -2779,42 +2780,33 @@ impl&lt;T&gt; Node&lt;T&gt; {
     pub fn iter_mut(&amp;mut self) -&gt; NodeIterMut&lt;T&gt; {
         NodeIterMut {
             elem: Some(&amp;mut self.elem),
-            left: self.left.as_mut().map(|node| &amp;mut **node),
-            right: self.right.as_mut().map(|node| &amp;mut **node),
+            left: self.left.as_deref_mut(),
+            right: self.right.as_deref_mut(),
         }
     }
 }
-
 
 impl&lt;'a, T&gt; Iterator for NodeIterMut&lt;'a, T&gt; {
     type Item = State&lt;'a, T&gt;;
 
     fn next(&amp;mut self) -&gt; Option&lt;Self::Item&gt; {
-        match self.left.take() {
-            Some(node) =&gt; Some(State::Node(node)),
-            None =&gt; match self.elem.take() {
-                Some(elem) =&gt; Some(State::Elem(elem)),
-                None =&gt; match self.right.take() {
-                    Some(node) =&gt; Some(State::Node(node)),
-                    None =&gt; None,
-                }
-            }
-        }
+        self.left.take().map(State::Node).or_else(|| {
+            self.elem
+                .take()
+                .map(State::Elem)
+                .or_else(|| self.right.take().map(State::Node))
+        })
     }
 }
 
 impl&lt;'a, T&gt; DoubleEndedIterator for NodeIterMut&lt;'a, T&gt; {
     fn next_back(&amp;mut self) -&gt; Option&lt;Self::Item&gt; {
-        match self.right.take() {
-            Some(node) =&gt; Some(State::Node(node)),
-            None =&gt; match self.elem.take() {
-                Some(elem) =&gt; Some(State::Elem(elem)),
-                None =&gt; match self.left.take() {
-                    Some(node) =&gt; Some(State::Node(node)),
-                    None =&gt; None,
-                }
-            }
-        }
+        self.right.take().map(State::Node).or_else(|| {
+            self.elem
+                .take()
+                .map(State::Elem)
+                .or_else(|| self.left.take().map(State::Node))
+        })
     }
 }
 
@@ -2822,10 +2814,12 @@ impl&lt;'a, T&gt; Iterator for IterMut&lt;'a, T&gt; {
     type Item = &amp;'a mut T;
     fn next(&amp;mut self) -&gt; Option&lt;Self::Item&gt; {
         loop {
-            match self.0.front_mut().and_then(|node_it| node_it.next()) {
+            match self.0.front_mut().and_then(Iterator::next) {
                 Some(State::Elem(elem)) =&gt; return Some(elem),
                 Some(State::Node(node)) =&gt; self.0.push_front(node.iter_mut()),
-                None =&gt; if let None = self.0.pop_front() { return None },
+                None =&gt; {
+                    self.0.pop_front()?;
+                }
             }
         }
     }
@@ -2834,10 +2828,12 @@ impl&lt;'a, T&gt; Iterator for IterMut&lt;'a, T&gt; {
 impl&lt;'a, T&gt; DoubleEndedIterator for IterMut&lt;'a, T&gt; {
     fn next_back(&amp;mut self) -&gt; Option&lt;Self::Item&gt; {
         loop {
-            match self.0.back_mut().and_then(|node_it| node_it.next_back()) {
+            match self.0.back_mut().and_then(DoubleEndedIterator::next_back) {
                 Some(State::Elem(elem)) =&gt; return Some(elem),
                 Some(State::Node(node)) =&gt; self.0.push_back(node.iter_mut()),
-                None =&gt; if let None = self.0.pop_back() { return None },
+                None =&gt; {
+                    self.0.pop_back()?;
+                }
             }
         }
     }
@@ -2858,7 +2854,7 @@ consequently gives you several ways to solve them.</p>
 <p>First we'll look at the ways that Safe Rust gives you to reinterpret values.
 The most trivial way to do this is to just destructure a value into its
 constituent parts and then build a new type out of them. e.g.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Foo {
     x: u32,
@@ -2885,7 +2881,7 @@ They mostly exist to make Rust "just work" in more cases, and are largely harmle
 <p>Note that we do not perform coercions when matching traits (except for receivers, see the <a href="./dot-operator.html">next page</a>).
 If there is an <code>impl</code> for some type <code>U</code> and <code>T</code> coerces to <code>U</code>, that does not constitute an implementation for <code>T</code>.
 For example, the following will not type check, even though it is OK to coerce <code>t</code> to <code>&amp;T</code> and there is an <code>impl</code> for <code>&amp;T</code>:</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021">trait Trait {}
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024">trait Trait {}
 
 fn foo&lt;X: Trait&gt;(t: X) {}
 
@@ -2913,7 +2909,7 @@ fn main() {
 <p>The dot operator will perform a lot of magic to convert types.
 It will perform auto-referencing, auto-dereferencing, and coercion until types
 match.
-The detailed mechanics of method lookup are defined <a href="https://rustc-dev-guide.rust-lang.org/method-lookup.html">here</a>,
+The detailed mechanics of method lookup are defined <a href="https://rustc-dev-guide.rust-lang.org/hir-typeck/method-lookup.html">here</a>,
 but here is a brief overview that outlines the main steps.</p>
 <p>Suppose we have a function <code>foo</code> that has a receiver (a <code>self</code>, <code>&amp;self</code> or
 <code>&amp;mut self</code> parameter).
@@ -2958,7 +2954,7 @@ so it dereferences again.
 It can't dereference <code>[T; 3]</code>, so the compiler unsizes it, giving <code>[T]</code>.
 Finally, <code>[T]</code> implements <code>Index</code>, so it can now call the actual <code>index</code> function.</p>
 <p>Consider the following more complicated example of the dot operator at work:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn do_stuff&lt;T: Clone&gt;(value: &amp;T) {
     let cloned = value.clone();
@@ -2977,7 +2973,7 @@ In this case, the function has the signature <code>fn clone(&amp;&amp;T) -&gt; &
 The compiler sees that <code>&amp;T: Clone</code>, and then deduces that <code>cloned: &amp;T</code>.</p>
 <p>Here is another example where the autoref behavior is used to create some subtle
 effects:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use std::sync::Arc;
 </span><span class="boring">
@@ -3104,7 +3100,7 @@ unchecked (unsafe) ways.</p>
 <p>Like C, all stack variables in Rust are uninitialized until a value is
 explicitly assigned to them. Unlike C, Rust statically prevents you from ever
 reading them until you do:</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021">fn main() {
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024">fn main() {
     let x: i32;
     println!("{}", x);
 }</code></pre></pre>
@@ -3119,7 +3115,7 @@ to <code>x</code> before it is first used. For short, we also say that "<code>x<
 to be mutable to perform a delayed initialization if every branch assigns
 exactly once. However the analysis does not take advantage of constant analysis
 or anything like that. So this compiles:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024">fn main() {
     let x: i32;
 
     if true {
@@ -3131,7 +3127,7 @@ or anything like that. So this compiles:</p>
     println!("{}", x);
 }</code></pre></pre>
 <p>but this doesn't:</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021">fn main() {
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024">fn main() {
     let x: i32;
     if true {
         x = 1;
@@ -3143,7 +3139,7 @@ or anything like that. So this compiles:</p>
   |                    ^ use of possibly uninitialized `x`
 </code></pre>
 <p>while this does:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024">fn main() {
     let x: i32;
     if true {
         x = 1;
@@ -3155,7 +3151,7 @@ or anything like that. So this compiles:</p>
 <p>Of course, while the analysis doesn't consider actual values, it does
 have a relatively sophisticated understanding of dependencies and control
 flow. For instance, this works:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let x: i32;
 
@@ -3176,7 +3172,7 @@ println!("{}", x);
 <span class="boring">}</span></code></pre></pre>
 <p>If a value is moved out of a variable, that variable becomes logically
 uninitialized if the type of the value isn't Copy. That is:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024">fn main() {
     let x = 0;
     let y = Box::new(0);
     let z1 = x; // x is still valid because i32 is Copy
@@ -3184,7 +3180,7 @@ uninitialized if the type of the value isn't Copy. That is:</p>
 }</code></pre></pre>
 <p>However reassigning <code>y</code> in this example <em>would</em> require <code>y</code> to be marked as
 mutable, as a Safe Rust program could observe that the value of <code>y</code> changed:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024">fn main() {
     let mut y = Box::new(0);
     let z = y; // y is now logically uninitialized because Box isn't Copy
     y = Box::new(1); // reinitialize y
@@ -3201,7 +3197,7 @@ How can it do this with conditional initialization?</p>
 <p>Note that this is not a problem that all assignments need worry about. In
 particular, assigning through a dereference unconditionally drops, and assigning
 in a <code>let</code> unconditionally doesn't drop:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut x = Box::new(0); // let makes a fresh variable, so never need to drop
 let y = &amp;mut x;
@@ -3217,7 +3213,7 @@ flag is evaluated to determine if it should be dropped.</p>
 statically known at every point in the program. If this is the case, then the
 compiler can theoretically generate more efficient code! For instance, straight-
 line code has such <em>static drop semantics</em>:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut x = Box::new(0); // x was uninit; just overwrite.
 let mut y = x;           // y was uninit; just overwrite and make x uninit.
@@ -3228,7 +3224,7 @@ y = x;                   // y was init; Drop y, overwrite it, and make x uninit!
 <span class="boring">}</span></code></pre></pre>
 <p>Similarly, branched code where all branches have the same behavior with respect
 to initialization has static drop semantics:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">let condition = true;
 </span>let mut x = Box::new(0);    // x was uninit; just overwrite.
@@ -3242,7 +3238,7 @@ x = Box::new(0);            // x was uninit; just overwrite.
                             // x goes out of scope; x was init; Drop x!
 <span class="boring">}</span></code></pre></pre>
 <p>However code like this <em>requires</em> runtime information to correctly Drop:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">let condition = true;
 </span>let x;
@@ -3254,7 +3250,7 @@ if condition {
                             // check the flag!
 <span class="boring">}</span></code></pre></pre>
 <p>Of course, in this case it's trivial to retrieve static drop semantics:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">let condition = true;
 </span>if condition {
@@ -3275,7 +3271,7 @@ array in a more incremental or dynamic way.</p>
 <a href="../core/mem/union.MaybeUninit.html"><code>MaybeUninit</code></a>. This type can be used to handle memory that has not been fully
 initialized yet.</p>
 <p>With <code>MaybeUninit</code>, we can initialize an array element by element as follows:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::mem::{self, MaybeUninit};
 
@@ -3286,12 +3282,8 @@ initialized yet.</p>
 const SIZE: usize = 10;
 
 let x = {
-    // Create an uninitialized array of `MaybeUninit`. The `assume_init` is
-    // safe because the type we are claiming to have initialized here is a
-    // bunch of `MaybeUninit`s, which do not require initialization.
-    let mut x: [MaybeUninit&lt;Box&lt;u32&gt;&gt;; SIZE] = unsafe {
-        MaybeUninit::uninit().assume_init()
-    };
+    // Create an uninitialized array of `MaybeUninit`.
+    let mut x = [const { MaybeUninit::uninit() }; SIZE];
 
     // Dropping a `MaybeUninit` does nothing. Thus using raw pointer
     // assignment instead of `ptr::write` does not cause the old
@@ -3306,19 +3298,12 @@ let x = {
     unsafe { mem::transmute::&lt;_, [Box&lt;u32&gt;; SIZE]&gt;(x) }
 };
 
-dbg!(x);
+println!("{x:?}");
 <span class="boring">}</span></code></pre></pre>
 <p>This code proceeds in three steps:</p>
 <ol>
 <li>
-<p>Create an array of <code>MaybeUninit&lt;T&gt;</code>. With current stable Rust, we have to use
-unsafe code for this: we take some uninitialized piece of memory
-(<code>MaybeUninit::uninit()</code>) and claim we have fully initialized it
-(<a href="../core/mem/union.MaybeUninit.html#method.assume_init"><code>assume_init()</code></a>). This seems ridiculous, because we didn't!
-The reason this is correct is that the array consists itself entirely of
-<code>MaybeUninit</code>, which do not actually require initialization. For most other
-types, doing <code>MaybeUninit::uninit().assume_init()</code> produces an invalid
-instance of said type, so you got yourself some Undefined Behavior.</p>
+<p>Create an array of <code>MaybeUninit&lt;T&gt;</code>.</p>
 </li>
 <li>
 <p>Initialize the array. The subtle aspect of this is that usually, when we use
@@ -3393,7 +3378,7 @@ also cannot use <code>&amp;mut base_ptr.field</code> as that would be creating a
 reference. So, you must carefully use the <a href="../reference/types/pointer.html#r-type.pointer.raw.constructor">raw reference</a> syntax. This creates
 a raw pointer to the field without creating an intermediate reference:</li>
 </ul>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::{ptr, mem::MaybeUninit};
 
@@ -3433,7 +3418,7 @@ thread, file, or socket is exposed through this kind of API.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="constructors"><a class="header" href="#constructors">Constructors</a></h1>
 <p>There is exactly one way to create an instance of a user-defined type: name it,
 and initialize all its fields at once:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Foo {
     a: u8,
@@ -3497,7 +3482,7 @@ be implemented at all!</p>
 Drop, Rust will prevent you from e.g. moving fields out of self. For most types,
 this is totally fine.</p>
 <p>For instance, a custom implementation of <code>Box</code> might write <code>Drop</code> like this:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">#![feature(ptr_internals, allocator_api)]
+<pre><pre class="playground"><code class="language-rust edition2024">#![feature(ptr_internals, allocator_api)]
 
 use std::alloc::{Allocator, Global, GlobalAlloc, Layout};
 use std::mem;
@@ -3519,7 +3504,7 @@ impl&lt;T&gt; Drop for Box&lt;T&gt; {
 a <a href="phantom-data.html">Unique</a> that has no actual <code>Drop</code> implementation. Similarly nothing can
 use-after-free the <code>ptr</code> because when drop exits, it becomes inaccessible.</p>
 <p>However this wouldn't work:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">#![feature(allocator_api, ptr_internals)]
+<pre><pre class="playground"><code class="language-rust edition2024">#![feature(allocator_api, ptr_internals)]
 
 use std::alloc::{Allocator, Global, GlobalAlloc, Layout};
 use std::ptr::{drop_in_place, Unique, NonNull};
@@ -3555,7 +3540,7 @@ happily proceed to tell the box to Drop itself and everything will blow up with
 use-after-frees and double-frees.</p>
 <p>Note that the recursive drop behavior applies to all structs and enums
 regardless of whether they implement Drop. Therefore something like</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Boxy&lt;T&gt; {
     data1: Box&lt;T&gt;,
@@ -3567,7 +3552,7 @@ regardless of whether they implement Drop. Therefore something like</p>
 dropped, even though it itself doesn't implement Drop. We say that such a type
 <em>needs Drop</em>, even though it is not itself Drop.</p>
 <p>Similarly,</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>enum Link {
     Next(Box&lt;Link&gt;),
@@ -3582,7 +3567,7 @@ certainly many valid use cases for needing to do trickier things with
 destructors.</p>
 <p>The classic safe solution to overriding recursive drop and allowing moving out
 of Self during <code>drop</code> is to use an Option:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">#![feature(allocator_api, ptr_internals)]
+<pre><pre class="playground"><code class="language-rust edition2024">#![feature(allocator_api, ptr_internals)]
 
 use std::alloc::{Allocator, GlobalAlloc, Global, Layout};
 use std::ptr::{drop_in_place, Unique, NonNull};
@@ -3967,7 +3952,7 @@ user-defined!</p>
 code and the unsafe code into two separate phases:</p>
 <pre><code class="language-text">bubble_up(heap, index):
     let end_index = index;
-    while end_index != 0 &amp;&amp; heap[end_index] &lt; heap[parent(end_index)]:
+    while end_index != 0 &amp;&amp; heap[index] &lt; heap[parent(end_index)]:
         end_index = parent(end_index)
 
     let elem = heap[index]
@@ -4127,7 +4112,7 @@ Rust of course cannot prevent all logic errors.</p>
 <p>In any case, a race condition cannot violate memory safety in a Rust program on
 its own. Only in conjunction with some other unsafe code can a race condition
 actually violate memory safety. For instance, a correct program looks like this:</p>
-<pre><pre class="playground"><code class="language-rust no_run edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::thread;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -4160,7 +4145,7 @@ println!("{}", data[idx.load(Ordering::SeqCst)]);
 <span class="boring">}</span></code></pre></pre>
 <p>We can cause a race condition to violate memory safety if we instead do the bound
 check in advance, and then unsafely access the data with an unchecked value:</p>
-<pre><pre class="playground"><code class="language-rust no_run edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::thread;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -4226,7 +4211,7 @@ non-trivial untracked ownership, and it's unlikely that their author was
 necessarily thinking hard about thread safety. In the case of <code>Rc</code>, we have a nice
 example of a type that contains a <code>*mut</code> that is definitely not thread-safe.</p>
 <p>Types that aren't automatically derived can simply implement them if desired:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct MyBox(*mut u8);
 
@@ -4235,7 +4220,7 @@ unsafe impl Sync for MyBox {}
 <span class="boring">}</span></code></pre></pre>
 <p>In the <em>incredibly rare</em> case that a type is inappropriately automatically
 derived to be Send or Sync, then one can also unimplement Send and Sync:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span>#![feature(negative_impls)]
 
 <span class="boring">fn main() {
@@ -4261,13 +4246,13 @@ with similar-ish behavior ourselves to see an example of when it is sound to
 implement Send and Sync. Let's call it a <code>Carton</code>.</p>
 <p>We start by writing code to take a value allocated on the stack and transfer it
 to the heap.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">pub mod libc {
 </span><span class="boring">   pub use ::std::os::raw::{c_int, c_void};
 </span><span class="boring">   #[allow(non_camel_case_types)]
 </span><span class="boring">   pub type size_t = usize;
-</span><span class="boring">   extern "C" { pub fn posix_memalign(memptr: *mut *mut c_void, align: size_t, size: size_t) -&gt; c_int; }
+</span><span class="boring">   unsafe extern "C" { pub fn posix_memalign(memptr: *mut *mut c_void, align: size_t, size: size_t) -&gt; c_int; }
 </span><span class="boring">}
 </span>use std::{
     mem::{align_of, size_of},
@@ -4314,7 +4299,7 @@ impl&lt;T&gt; Carton&lt;T&gt; {
 to access it. <a href="https://doc.rust-lang.org/std/boxed/struct.Box.html"><code>Box</code></a> implements <a href="https://doc.rust-lang.org/core/ops/trait.Deref.html"><code>Deref</code></a> and
 <a href="https://doc.rust-lang.org/core/ops/trait.DerefMut.html"><code>DerefMut</code></a> so that you can access the inner value. Let's do
 that.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::ops::{Deref, DerefMut};
 
@@ -4354,7 +4339,7 @@ impl&lt;T&gt; DerefMut for Carton&lt;T&gt; {
 safely be Send unless it shares mutable state with something else without
 enforcing exclusive access to it. Each <code>Carton</code> has a unique pointer, so
 we're good.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct Carton&lt;T&gt;(std::ptr::NonNull&lt;T&gt;);
 </span>// Safety: No one besides us has the raw pointer, so we can safely transfer the
@@ -4367,7 +4352,7 @@ or written to from another <code>&amp;Carton</code>. Since you need an <code>&am
 write to the pointer, and the borrow checker enforces that mutable
 references must be exclusive, there are no soundness issues making <code>Carton</code>
 sync either.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct Carton&lt;T&gt;(std::ptr::NonNull&lt;T&gt;);
 </span>// Safety: Since there exists a public way to go from a `&amp;Carton&lt;T&gt;` to a `&amp;T`
@@ -4383,7 +4368,7 @@ contained type is Send and Sync. When writing custom types that behave like
 standard library types we can assert that we have the same requirements.
 For example, the following code asserts that a Carton is Send if the same
 sort of Box would be Send, which in this case is the same as saying T is Send.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct Carton&lt;T&gt;(std::ptr::NonNull&lt;T&gt;);
 </span>unsafe impl&lt;T&gt; Send for Carton&lt;T&gt; where Box&lt;T&gt;: Send {}
@@ -4393,12 +4378,12 @@ Once we fix that we have a new requirement we have to ensure we meet to be Send:
 we need to know <code>free</code> can be called on a pointer that was yielded by an
 allocation done on another thread. We can check this is true in the docs for
 <a href="https://linux.die.net/man/3/free"><code>libc::free</code></a>.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct Carton&lt;T&gt;(std::ptr::NonNull&lt;T&gt;);
 </span><span class="boring">mod libc {
 </span><span class="boring">    pub use ::std::os::raw::c_void;
-</span><span class="boring">    extern "C" { pub fn free(p: *mut c_void); }
+</span><span class="boring">    unsafe extern "C" { pub fn free(p: *mut c_void); }
 </span><span class="boring">}
 </span>impl&lt;T&gt; Drop for Carton&lt;T&gt; {
     fn drop(&amp;mut self) {
@@ -4423,7 +4408,7 @@ only to data races?</p>
 due to this model being particularly excellent or easy to understand. Indeed,
 this model is quite complex and known to have <a href="http://plv.mpi-sws.org/c11comp/popl15.pdf">several flaws</a>.
 Rather, it is a pragmatic concession to the fact that <em>everyone</em> is pretty bad
-at modeling atomics. At very least, we can benefit from existing tooling and
+at modeling atomics. At the very least, we can benefit from existing tooling and
 research around the C/C++ memory model.
 (You'll often see this model referred to as "C/C++11" or just "C11". C just copies
 the C++ memory model; and C++11 was the first version of the model but it has
@@ -4583,7 +4568,7 @@ if A and B access <em>different</em> locations in memory.</p>
 <p>Basic use of release-acquire is therefore simple: you acquire a location of
 memory to begin the critical section, and then release that location to end it.
 For instance, a simple spinlock might look like:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">use std::sync::Arc;
+<pre><pre class="playground"><code class="language-rust edition2024">use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 
@@ -4658,7 +4643,7 @@ of using <code>Unique&lt;T&gt;</code> we will use <a href="vec/../../std/ptr/str
 raw pointer, which gives us two of the above properties, namely it is covariant
 over <code>T</code> and is declared to never be null. By implementing Send/Sync if <code>T</code> is,
 we get the same results as using <code>Unique&lt;T&gt;</code>:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">use std::ptr::NonNull;
+<pre><pre class="playground"><code class="language-rust edition2024">use std::ptr::NonNull;
 
 pub struct Vec&lt;T&gt; {
     ptr: NonNull&lt;T&gt;,
@@ -4808,20 +4793,17 @@ such we will guard against this case explicitly.</p>
 impl&lt;T&gt; Vec&lt;T&gt; {
     fn grow(&amp;mut self) {
         let (new_cap, new_layout) = if self.cap == 0 {
-            (1, Layout::array::&lt;T&gt;(1).unwrap())
+            (1, Layout::array::&lt;T&gt;(1))
         } else {
             // This can't overflow since self.cap &lt;= isize::MAX.
             let new_cap = 2 * self.cap;
-
-            // `Layout::array` checks that the number of bytes is &lt;= usize::MAX,
-            // but this is redundant since old_layout.size() &lt;= isize::MAX,
-            // so the `unwrap` should never fail.
-            let new_layout = Layout::array::&lt;T&gt;(new_cap).unwrap();
-            (new_cap, new_layout)
+            (new_cap, Layout::array::&lt;T&gt;(new_cap))
         };
 
-        // Ensure that the new allocation doesn't exceed `isize::MAX` bytes.
-        assert!(new_layout.size() &lt;= isize::MAX as usize, "Allocation too large");
+        // `Layout::array` checks that the number of bytes allocated is
+        // in 1..=isize::MAX and will error otherwise.  An allocation of
+        // 0 bytes isn't possible thanks to the above condition.
+        let new_layout = new_layout.expect("Allocation too large");
 
         let new_ptr = if self.cap == 0 {
             unsafe { alloc::alloc(new_layout) }
@@ -5571,8 +5553,20 @@ impl&lt;T&gt; DoubleEndedIterator for RawValIter&lt;T&gt; {
     }
 }</code></pre>
 <p>And that's it. Iteration works!</p>
+<p>One last thing we need to consider is that when our vector is dropped, it deallocates the memory that was allocated while it was alive. With ZSTs, we didn't allocate any memory; in fact, we never do. So, right now, our code has unsoundness: we're still trying to deallocate a <code>NonNull::dangling()</code> pointer that we use to simulate the ZST in our vector. This means we'd cause undefined behavior if we tried to deallocate something we never allocated (obviously, and for good reasons). To fix this, in our <code>RawVec</code>'s <code>Drop</code> trait, we're going to tweak it to ensure we only deallocate types that are sized.</p>
+<pre><code class="language-rust ignore">impl&lt;T&gt; Drop for RawVec&lt;T&gt; {
+    fn drop(&amp;mut self) {
+        println!("RawVec&lt;T&gt; Drop called, deallocating memory");
+        if self.cap != 0 &amp;&amp; std::mem::size_of::&lt;T&gt;() &gt; 0 {
+            let layout = std::alloc::Layout::array::&lt;T&gt;(self.cap).unwrap();
+            unsafe {
+                std::alloc::dealloc(self.ptr.as_ptr() as *mut _, layout);
+            }
+        }
+    }
+}</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="the-final-code"><a class="header" href="#the-final-code">The Final Code</a></h1>
-<pre><pre class="playground"><code class="language-rust edition2021">use std::alloc::{self, Layout};
+<pre><pre class="playground"><code class="language-rust edition2024">use std::alloc::{self, Layout};
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Deref, DerefMut};
@@ -5604,23 +5598,17 @@ impl&lt;T&gt; RawVec&lt;T&gt; {
         assert!(mem::size_of::&lt;T&gt;() != 0, "capacity overflow");
 
         let (new_cap, new_layout) = if self.cap == 0 {
-            (1, Layout::array::&lt;T&gt;(1).unwrap())
+            (1, Layout::array::&lt;T&gt;(1))
         } else {
-            // This can't overflow because we ensure self.cap &lt;= isize::MAX.
+            // This can't overflow since self.cap &lt;= isize::MAX.
             let new_cap = 2 * self.cap;
-
-            // `Layout::array` checks that the number of bytes is &lt;= usize::MAX,
-            // but this is redundant since old_layout.size() &lt;= isize::MAX,
-            // so the `unwrap` should never fail.
-            let new_layout = Layout::array::&lt;T&gt;(new_cap).unwrap();
-            (new_cap, new_layout)
+            (new_cap, Layout::array::&lt;T&gt;(new_cap))
         };
 
-        // Ensure that the new allocation doesn't exceed `isize::MAX` bytes.
-        assert!(
-            new_layout.size() &lt;= isize::MAX as usize,
-            "Allocation too large"
-        );
+        // `Layout::array` checks that the number of bytes allocated is
+        // in 1..=isize::MAX and will error otherwise.  An allocation of
+        // 0 bytes isn't possible thanks to the above condition.
+        let new_layout = new_layout.expect("Allocation too large");
 
         let new_ptr = if self.cap == 0 {
             unsafe { alloc::alloc(new_layout) }
@@ -6009,7 +5997,7 @@ that's overkill. Instead, we'll use atomics. And since everyone already needs a
 pointer to the T's allocation, we might as well put the reference count in that
 same allocation.</p>
 <p>Naively, it would look something like this:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::atomic;
 
@@ -6040,7 +6028,7 @@ wrapper around a raw pointer that declares that:</p>
 <code>ArcInner&lt;T&gt;</code>. This will tell the drop checker that we have some notion of
 ownership of a value of <code>ArcInner&lt;T&gt;</code> (which itself contains some <code>T</code>).</p>
 <p>With these changes we get our final structure:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::marker::PhantomData;
 use std::ptr::NonNull;
@@ -6190,7 +6178,7 @@ ordering, see <a href="arc-mutex/../atomics.html">the section on atomics</a>.</p
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">let old_rc = inner.rc.fetch_add(1, Ordering::Relaxed);</code></pre>
 <p>We'll need to add another import to use <code>Ordering</code>:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::atomic::Ordering;
 <span class="boring">}</span></code></pre></pre>
@@ -6293,7 +6281,7 @@ Acquire load, which could improve performance in highly-contended situations.
 See <a href="https://github.com/rust-lang/rust/pull/41714">2</a>.</p>
 </blockquote>
 <p>To do this, we do the following:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use std::sync::atomic::Ordering;
 </span>use std::sync::atomic;
@@ -6324,7 +6312,7 @@ pointer is valid.</p>
 }</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="final-code"><a class="header" href="#final-code">Final Code</a></h1>
 <p>Here's the final code, with some added comments and re-ordered imports:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::marker::PhantomData;
 use std::ops::Deref;
@@ -6413,11 +6401,27 @@ snappy includes a C interface (documented in
 <a href="https://github.com/google/snappy/blob/master/snappy-c.h"><code>snappy-c.h</code></a>).</p>
 <h2 id="a-note-about-libc"><a class="header" href="#a-note-about-libc">A note about libc</a></h2>
 <p>Many of these examples use <a href="https://crates.io/crates/libc">the <code>libc</code> crate</a>, which provides various
-type definitions for C types, among other things. If you’re trying these
+type definitions for C types, among other things. If you’re trying out these
 examples yourself, you’ll need to add <code>libc</code> to your <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
 libc = "0.2.0"
 </code></pre>
+<h2 id="prepare-the-build-script"><a class="header" href="#prepare-the-build-script">Prepare the build script</a></h2>
+<p>Because <a href="https://github.com/google/snappy">snappy</a> is a static library by default, so there is no stdc++ linked in the output artifact.
+In order to use this foreign library in Rust, we have to manually specify that we want to link stdc++ std to our project.
+The easiest way to do this is by setting up a build script.</p>
+<p>First edit <code>Cargo.toml</code>, inside <code>package</code> add <code>build = "build.rs"</code>:</p>
+<pre><code class="language-toml">[package]
+...
+build = "build.rs"
+</code></pre>
+<p>Then create a new file at the root of your workspace, named <code>build.rs</code>:</p>
+<pre><pre class="playground"><code class="language-rust edition2024">// build.rs
+fn main() {
+    println!("cargo:rustc-link-lib=dylib=stdc++"); // This line may be unnecessary for some environments.
+    println!("cargo:rustc-link-search=&lt;YOUR SNAPPY LIBRARY PATH&gt;");
+}</code></pre></pre>
+<p>For more information, please read <a href="https://doc.rust-lang.org/cargo/reference/build-scripts.html">The Cargo Book - build script</a>.</p>
 <h2 id="calling-foreign-functions"><a class="header" href="#calling-foreign-functions">Calling foreign functions</a></h2>
 <p>The following is a minimal example of calling a foreign function which will
 compile if snappy is installed:</p>
@@ -6425,7 +6429,7 @@ compile if snappy is installed:</p>
 <pre><code class="language-rust ignore">use libc::size_t;
 
 #[link(name = "snappy")]
-extern {
+unsafe extern "C" {
     fn snappy_max_compressed_length(source_length: size_t) -&gt; size_t;
 }
 
@@ -6435,7 +6439,7 @@ fn main() {
 }</code></pre>
 <p>The <code>extern</code> block is a list of function signatures in a foreign library, in
 this case with the platform's C ABI. The <code>#[link(...)]</code> attribute is used to
-instruct the linker to link against the snappy library so the symbols are
+instruct the linker to link against the snappy library so the symbols can be
 resolved.</p>
 <p>Foreign functions are assumed to be unsafe so calls to them need to be wrapped
 with <code>unsafe {}</code> as a promise to the compiler that everything contained within
@@ -6451,7 +6455,7 @@ of keeping the binding correct at runtime.</p>
 <pre><code class="language-rust ignore">use libc::{c_int, size_t};
 
 #[link(name = "snappy")]
-extern {
+unsafe extern "C" {
     fn snappy_compress(input: *const u8,
                        input_length: size_t,
                        compressed: *mut u8,
@@ -6472,7 +6476,7 @@ extern {
 <p>The raw C API needs to be wrapped to provide memory safety and make use of higher-level concepts
 like vectors. A library can choose to expose only the safe, high-level interface and hide the unsafe
 internal details.</p>
-<p>Wrapping the functions which expect buffers involves using the <code>slice::raw</code> module to manipulate Rust
+<p>Wrapping the functions which expect buffers involves using the <code>slice::raw</code> module to manipulate Rust's
 vectors as pointers to memory. Rust's vectors are guaranteed to be a contiguous block of memory. The
 length is the number of elements currently contained, and the capacity is the total size in elements of
 the allocated memory. The length is less than or equal to the capacity.</p>
@@ -6600,15 +6604,15 @@ mod tests {
 <h2 id="destructors-1"><a class="header" href="#destructors-1">Destructors</a></h2>
 <p>Foreign libraries often hand off ownership of resources to the calling code.
 When this occurs, we must use Rust's destructors to provide safety and guarantee
-the release of these resources (especially in the case of panic).</p>
-<p>For more about destructors, see the <a href="../std/ops/trait.Drop.html">Drop trait</a>.</p>
+the release of these resources (especially in the case of a panic).</p>
+<p>For more information about destructors, see the <a href="../std/ops/trait.Drop.html">Drop trait</a>.</p>
 <h2 id="calling-rust-code-from-c"><a class="header" href="#calling-rust-code-from-c">Calling Rust code from C</a></h2>
-<p>You may wish to compile Rust code in a way so that it can be called from C.
+<p>You may wish to compile Rust code in a way that can be called from C.
 This is fairly easy, but requires a few things.</p>
 <h3 id="rust-side"><a class="header" href="#rust-side">Rust side</a></h3>
 <p>First, we assume you have a lib crate named as <code>rust_from_c</code>.
 <code>lib.rs</code> should have Rust code as following:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">#[no_mangle]
+<pre><pre class="playground"><code class="language-rust edition2024">#[unsafe(no_mangle)]
 pub extern "C" fn hello_from_rust() {
     println!("Hello from Rust!");
 }
@@ -6619,7 +6623,7 @@ The <code>no_mangle</code> attribute turns off Rust's name mangling, so that it 
 <pre><code class="language-toml">[lib]
 crate-type = ["cdylib"]
 </code></pre>
-<p>(NOTE: We could also use the <code>staticlib</code> crate type but it needs to tweak some linking flags.)</p>
+<p>(NOTE: We could also use the <code>staticlib</code> crate type but it also requires tweaking some linking flags.)</p>
 <p>Run <code>cargo build</code> and you're ready to go on the Rust side.</p>
 <h3 id="c-side"><a class="header" href="#c-side">C side</a></h3>
 <p>We'll create a C file to call the <code>hello_from_rust</code> function and compile it by <code>gcc</code>.</p>
@@ -6641,7 +6645,7 @@ Run the following to compile:</p>
 Hello from Rust!
 </code></pre>
 <p>That's it!
-For more realistic example, check the <a href="https://github.com/eqrion/cbindgen"><code>cbindgen</code></a>.</p>
+For a more realistic example, check the <a href="https://github.com/eqrion/cbindgen"><code>cbindgen</code></a>.</p>
 <h2 id="callbacks-from-c-code-to-rust-functions"><a class="header" href="#callbacks-from-c-code-to-rust-functions">Callbacks from C code to Rust functions</a></h2>
 <p>Some external libraries require the usage of callbacks to report back their
 current state or intermediate data to the caller.
@@ -6652,12 +6656,12 @@ with the correct calling convention to make it callable from C code.</p>
 to the C library and afterwards be invoked from there.</p>
 <p>A basic example is:</p>
 <p>Rust code:</p>
-<pre><pre class="playground"><code class="language-rust no_run edition2021">extern fn callback(a: i32) {
+<pre><pre class="playground"><code class="language-rust no_run edition2024">extern fn callback(a: i32) {
     println!("I'm called from C with value {0}", a);
 }
 
 #[link(name = "extlib")]
-extern {
+unsafe extern {
    fn register_callback(cb: extern fn(i32)) -&gt; i32;
    fn trigger_callback();
 }
@@ -6693,12 +6697,12 @@ C library. The C library can then include the pointer to the Rust object in
 the notification. This will allow the callback to unsafely access the
 referenced Rust object.</p>
 <p>Rust code:</p>
-<pre><pre class="playground"><code class="language-rust no_run edition2021">struct RustObject {
+<pre><pre class="playground"><code class="language-rust no_run edition2024">struct RustObject {
     a: i32,
     // Other members...
 }
 
-extern "C" fn callback(target: *mut RustObject, a: i32) {
+unsafe extern "C" fn callback(target: *mut RustObject, a: i32) {
     println!("I'm called from C with value {0}", a);
     unsafe {
         // Update the value in RustObject with the value received from the callback:
@@ -6707,9 +6711,9 @@ extern "C" fn callback(target: *mut RustObject, a: i32) {
 }
 
 #[link(name = "extlib")]
-extern {
+unsafe extern {
    fn register_callback(target: *mut RustObject,
-                        cb: extern fn(*mut RustObject, i32)) -&gt; i32;
+                        cb: unsafe extern fn(*mut RustObject, i32)) -&gt; i32;
    fn trigger_callback();
 }
 
@@ -6808,7 +6812,7 @@ unsafe are only allowed inside unsafe blocks. Unsafe blocks isolate unsafety and
 the compiler that the unsafety does not leak out of the block.</p>
 <p>Unsafe functions, on the other hand, advertise it to the world. An unsafe function is written like
 this:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>unsafe fn kaboom(ptr: *const i32) -&gt; i32 { *ptr }
 <span class="boring">}</span></code></pre></pre>
@@ -6819,7 +6823,7 @@ global state. In order to access these variables, you declare them in <code>exte
 blocks with the <code>static</code> keyword:</p>
 <!-- ignore: requires libc crate -->
 <pre><code class="language-rust ignore">#[link(name = "readline")]
-extern {
+unsafe extern {
     static rl_readline_version: libc::c_int;
 }
 
@@ -6835,7 +6839,7 @@ them.</p>
 use std::ptr;
 
 #[link(name = "readline")]
-extern {
+unsafe extern {
     static mut rl_prompt: *const libc::c_char;
 }
 
@@ -6859,7 +6863,7 @@ conventions. Rust provides a way to tell the compiler which convention to use:</
 <pre><code class="language-rust ignore">#[cfg(all(target_os = "win32", target_arch = "x86"))]
 #[link(name = "kernel32")]
 #[allow(non_snake_case)]
-extern "stdcall" {
+unsafe extern "stdcall" {
     fn SetEnvironmentVariableA(n: *const u8, v: *const u8) -&gt; libc::c_int;
 }
 <span class="boring">fn main() { }</span></code></pre>
@@ -6874,13 +6878,12 @@ are:</p>
 <li><code>vectorcall</code>
 This is currently hidden behind the <code>abi_vectorcall</code> gate and is subject to change.</li>
 <li><code>Rust</code></li>
-<li><code>rust-intrinsic</code></li>
 <li><code>system</code></li>
 <li><code>C</code></li>
 <li><code>win64</code></li>
 <li><code>sysv64</code></li>
 </ul>
-<p>Most of the abis in this list are self-explanatory, but the <code>system</code> abi may
+<p>Most of the ABIs in this list are self-explanatory, but the <code>system</code> ABI may
 seem a little odd. This constraint selects whatever the appropriate ABI is for
 interoperating with the target's libraries. For example, on win32 with a x86
 architecture, this means that the abi used would be <code>stdcall</code>. On x86_64,
@@ -6910,7 +6913,7 @@ against <code>libc</code> and <code>libm</code> by default.</p>
 <h2 id="variadic-functions"><a class="header" href="#variadic-functions">Variadic functions</a></h2>
 <p>In C, functions can be 'variadic', meaning they accept a variable number of arguments. This can
 be achieved in Rust by specifying <code>...</code> within the argument list of a foreign function declaration:</p>
-<pre><code class="language-no_run">extern {
+<pre><code class="language-no_run">unsafe extern {
     fn foo(x: i32, ...);
 }
 
@@ -6921,7 +6924,7 @@ fn main() {
 }
 </code></pre>
 <p>Normal Rust functions can <em>not</em> be variadic:</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// This will not compile
 
@@ -6952,7 +6955,7 @@ we have function pointers flying across the FFI boundary in both directions.</p>
 <pre><code class="language-rust ignore">use libc::c_int;
 
 <span class="boring">#[cfg(hidden)]
-</span>extern "C" {
+</span>unsafe extern "C" {
     /// Registers the callback.
     fn register(cb: Option&lt;extern "C" fn(Option&lt;extern "C" fn(c_int) -&gt; c_int&gt;, c_int) -&gt; c_int&gt;);
 }
@@ -7006,8 +7009,8 @@ undefined</strong>, as is the interaction of <code>panic</code> with foreign exc
 mechanisms (notably C++'s <code>try</code>/<code>catch</code>).</p>
 <h3 id="rust-panic-with-c-unwind"><a class="header" href="#rust-panic-with-c-unwind">Rust <code>panic</code> with <code>"C-unwind"</code></a></h3>
 <!-- ignore: using unstable feature -->
-<pre><code class="language-rust ignore">#[no_mangle]
-extern "C-unwind" fn example() {
+<pre><code class="language-rust ignore">#[unsafe(no_mangle)]
+unsafe extern "C-unwind" fn example() {
     panic!("Uh oh");
 }</code></pre>
 <p>This function (when compiled with <code>panic=unwind</code>) is permitted to unwind C++
@@ -7028,13 +7031,13 @@ stack frames.</p>
 <h3 id="c-throw-with-c-unwind"><a class="header" href="#c-throw-with-c-unwind">C++ <code>throw</code> with <code>"C-unwind"</code></a></h3>
 <!-- ignore: using unstable feature -->
 <pre><code class="language-rust ignore">#[link(...)]
-extern "C-unwind" {
+unsafe extern "C-unwind" {
     // A C++ function that may throw an exception
     fn may_throw();
 }
 
-#[no_mangle]
-extern "C-unwind" fn rust_passthrough() {
+#[unsafe(no_mangle)]
+unsafe extern "C-unwind" fn rust_passthrough() {
     let b = Box::new(5);
     unsafe { may_throw(); }
     println!("{:?}", &amp;b);
@@ -7056,9 +7059,9 @@ exception thrown by <code>may_throw</code>.</p>
 <p>If <code>may_throw</code> does throw an exception, <code>b</code> will be dropped. Otherwise, <code>5</code>
 will be printed.</p>
 <h3 id="panic-can-be-stopped-at-an-abi-boundary"><a class="header" href="#panic-can-be-stopped-at-an-abi-boundary"><code>panic</code> can be stopped at an ABI boundary</a></h3>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>#[no_mangle]
+</span>#[unsafe(no_mangle)]
 extern "C" fn assert_nonzero(input: u32) {
     assert!(input != 0)
 }
@@ -7068,9 +7071,9 @@ to (safely) abort the process, whether or not compiled with <code>panic=abort</c
 <h3 id="catching-panic-preemptively"><a class="header" href="#catching-panic-preemptively">Catching <code>panic</code> preemptively</a></h3>
 <p>If you are writing Rust code that may panic, and you don't wish to abort the
 process if it panics, you must use <a href="../std/panic/fn.catch_unwind.html"><code>catch_unwind</code></a>:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">use std::panic::catch_unwind;
+<pre><pre class="playground"><code class="language-rust edition2024">use std::panic::catch_unwind;
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn oh_no() -&gt; i32 {
     let result = catch_unwind(|| {
         panic!("Oops!");
@@ -7093,7 +7096,7 @@ void bar(void *arg);
 </code></pre>
 <p>We can represent this in Rust with the <code>c_void</code> type:</p>
 <!-- ignore: requires libc crate -->
-<pre><code class="language-rust ignore">extern "C" {
+<pre><code class="language-rust ignore">unsafe extern "C" {
     pub fn foo(arg: *mut libc::c_void);
     pub fn bar(arg: *mut libc::c_void);
 }
@@ -7108,7 +7111,7 @@ void foo(struct Foo *arg);
 void bar(struct Bar *arg);
 </code></pre>
 <p>To do this in Rust, let’s create our own opaque types:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">#[repr(C)]
+<pre><pre class="playground"><code class="language-rust edition2024">#[repr(C)]
 pub struct Foo {
     _data: (),
     _marker:
@@ -7121,7 +7124,7 @@ pub struct Bar {
         core::marker::PhantomData&lt;(*mut u8, core::marker::PhantomPinned)&gt;,
 }
 
-extern "C" {
+unsafe extern "C" {
     pub fn foo(arg: *mut Foo);
     pub fn bar(arg: *mut Bar);
 }
@@ -7130,8 +7133,8 @@ extern "C" {
 we create an opaque type that we can't instantiate outside of this module.
 (A struct with no field could be instantiated by anyone.)
 We also want to use this type in FFI, so we have to add <code>#[repr(C)]</code>.
-The marker ensures the compiler does not mark the struct as <code>Send</code>, <code>Sync</code> and <code>Unpin</code> are
-not applied to the struct. (<code>*mut u8</code> is not <code>Send</code> or <code>Sync</code>, <code>PhantomPinned</code> is not <code>Unpin</code>)</p>
+The marker ensures the compiler does not mark the struct as <code>Send</code>, <code>Sync</code>, and
+<code>Unpin</code>. (<code>*mut u8</code> is not <code>Send</code> or <code>Sync</code>, <code>PhantomPinned</code> is not <code>Unpin</code>)</p>
 <p>But because our <code>Foo</code> and <code>Bar</code> types are
 different, we’ll get type safety between the two of them, so we cannot
 accidentally pass a pointer to <code>Foo</code> to <code>bar()</code>.</p>
@@ -7168,7 +7171,7 @@ a <code>#![no_std]</code> executable because on many platforms, we have to provi
 <p>You will need to define a symbol for the entry point that is suitable for your target. For example, <code>main</code>, <code>_start</code>, <code>WinMain</code>, or whatever starting point is relevant for your target.
 Additionally, you need to use the <code>#![no_main]</code> attribute to prevent the compiler from attempting to generate an entry point itself.</p>
 <p>Additionally, it's required to define a <a href="panic-handler.html">panic handler function</a>.</p>
-<pre><pre class="playground"><code class="language-rust edition2021">#![feature(lang_items, core_intrinsics, rustc_private)]
+<pre><pre class="playground"><code class="language-rust edition2024">#![feature(lang_items, core_intrinsics, rustc_private)]
 #![allow(internal_features)]
 #![no_std]
 #![no_main]
@@ -7185,7 +7188,7 @@ use core::ffi::{c_char, c_int};
 use core::panic::PanicInfo;
 
 // Entry point for this program.
-#[no_mangle] // ensure that this symbol is included in the output as `main`
+#[unsafe(no_mangle)] // ensure that this symbol is included in the output as `main`
 extern "C" fn main(_argc: c_int, _argv: *const *const c_char) -&gt; c_int {
     0
 }

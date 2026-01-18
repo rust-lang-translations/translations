@@ -186,7 +186,7 @@
                         <a href="https://github.com/rust-lang-translations/project" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/rust-lang/rust/edit/master/src/doc/rustc/src/platform-support/nvptx64-nvidia-cuda.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/rust-lang/rust/edit/main/src/doc/rustc/src/platform-support/nvptx64-nvidia-cuda.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -220,10 +220,60 @@
 <p>This is the target meant for deploying code for Nvidia® accelerators based on their CUDA
 platform.</p>
 <h2 id="target-maintainers"><a class="header" href="#target-maintainers">Target maintainers</a></h2>
+<p><a href="https://github.com/kjetilkjeka">@kjetilkjeka</a></p>
+<h2 id="requirements"><a class="header" href="#requirements">Requirements</a></h2>
+<p>This target is <code>no_std</code>, and uses the <code>llvm-bitcode-linker</code> by default. For PTX output, build with crate-type <code>cdylib</code>.
+The necessary components for this workflow are:</p>
 <ul>
-<li>Riccardo D'Ambrosio, https://github.com/RDambrosio016</li>
-<li>Kjetil Kjeka, https://github.com/kjetilkjeka</li>
+<li><code>rustup toolchain add nightly</code></li>
+<li><code>rustup component add llvm-tools --toolchain nightly</code></li>
+<li><code>rustup component add llvm-bitcode-linker --toolchain nightly</code></li>
 </ul>
+<p>There are two options for using the core library:</p>
+<ul>
+<li><code>rustup component add rust-src --toolchain nightly</code> and build using <code>-Z build-std=core</code>.</li>
+<li><code>rustup target add nvptx64-nvidia-cuda --toolchain nightly</code></li>
+</ul>
+<h3 id="target-and-features"><a class="header" href="#target-and-features">Target and features</a></h3>
+<p>It is generally necessary to specify the target, such as <code>-C target-cpu=sm_89</code>, because the default is very old. This implies two target features: <code>sm_89</code> and <code>ptx78</code> (and all preceding features within <code>sm_*</code> and <code>ptx*</code>). Rust will default to using the oldest PTX version that supports the target processor (see <a href="https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#release-notes-ptx-release-history">this table</a>), which maximizes driver compatibility.
+One can use <code>-C target-feature=+ptx80</code> to choose a later PTX version without changing the target (the default in this case, <code>ptx78</code>, requires CUDA driver version 11.8, while <code>ptx80</code> would require driver version 12.0).
+Later PTX versions may allow more efficient code generation.</p>
+<p>Although Rust follows LLVM in representing <code>ptx*</code> and <code>sm_*</code> as target features, they should be thought of as having crate granularity, set via (either via <code>-Ctarget-cpu</code> and optionally <code>-Ctarget-feature</code>).
+While the compiler accepts <code>#[target_feature(enable = "ptx80", enable = "sm_89")]</code>, it is not supported, may not behave as intended, and may become erroneous in the future.</p>
+<h2 id="building-rust-kernels"><a class="header" href="#building-rust-kernels">Building Rust kernels</a></h2>
+<p>A <code>no_std</code> crate containing one or more functions with <code>extern "ptx-kernel"</code> can be compiled to PTX using a command like the following.</p>
+<pre><code class="language-console">$ RUSTFLAGS='-Ctarget-cpu=sm_89' cargo +nightly rustc --target=nvptx64-nvidia-cuda -Zbuild-std=core --crate-type=cdylib
+</code></pre>
+<p>Intrinsics in <code>core::arch::nvptx</code> may use <code>#[cfg(target_feature = "...")]</code>, thus it's necessary to use <code>-Zbuild-std=core</code> with appropriate <code>RUSTFLAGS</code>. The following components are needed for this workflow:</p>
+<pre><code class="language-console">$ rustup component add rust-src --toolchain nightly
+$ rustup component add llvm-tools --toolchain nightly
+$ rustup component add llvm-bitcode-linker --toolchain nightly
+</code></pre>
+<h2 id="target-specific-restrictions"><a class="header" href="#target-specific-restrictions">Target specific restrictions</a></h2>
+<p>The PTX instruction set architecture has special requirements regarding what is
+and isn't allowed. In order to avoid producing invalid PTX or generating undefined
+behavior by LLVM, some Rust language features are disallowed when compiling for this target.</p>
+<h3 id="static-initializers-must-be-acyclic"><a class="header" href="#static-initializers-must-be-acyclic">Static initializers must be acyclic</a></h3>
+<p>A static's initializer must not form a cycle with itself or another static's
+initializer. Therefore, the compiler will reject not only the self-referencing static <code>A</code>,
+but all of the following statics.</p>
+<pre><code class="language-Rust">struct Foo(&amp;'static Foo);
+
+static A: Foo = Foo(&amp;A); //~ ERROR static initializer forms a cycle involving `A`
+
+static B0: Foo = Foo(&amp;B1); //~ ERROR static initializer forms a cycle involving `B0`
+static B1: Foo = Foo(&amp;B0);
+
+static C0: Foo = Foo(&amp;C1); //~ ERROR static initializer forms a cycle involving `C0`
+static C1: Foo = Foo(&amp;C2);
+static C2: Foo = Foo(&amp;C0);
+</code></pre>
+<p>Initializers that are acyclic are allowed:</p>
+<pre><code class="language-Rust">struct Bar(&amp;'static u32);
+
+static BAR: Bar = Bar(&amp;INT); // is allowed
+static INT: u32 = 42u32; // also allowed
+</code></pre>
 <!-- FIXME: fill this out
 
 ## Requirements
@@ -246,7 +296,7 @@ What format do binaries use by default? ELF, PE, something else?
 ## Building the target
 
 If Rust doesn't build the target by default, how can users build it? Can users
-just add it to the `target` list in `config.toml`?
+just add it to the `target` list in `bootstrap.toml`?
 
 ## Building Rust programs
 

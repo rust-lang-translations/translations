@@ -186,7 +186,7 @@
                         <a href="https://github.com/rust-lang-translations/project" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/rust-lang/rust/edit/master/src/doc/rustc/src/codegen-options/index.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/rust-lang/rust/edit/main/src/doc/rustc/src/codegen-options/index.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -304,6 +304,17 @@ generate import libraries when using the <a href="../../reference/items/external
 It takes a path to <a href="https://sourceware.org/binutils/docs/binutils/dlltool.html">the dlltool executable</a>.
 If this flag is not specified, a dlltool executable will be inferred based on
 the host environment and target.</p>
+<h2 id="dwarf-version"><a class="header" href="#dwarf-version">dwarf-version</a></h2>
+<p>This option controls the version of DWARF that the compiler emits, on platforms
+that use DWARF to encode debug information. It takes one of the following
+values:</p>
+<ul>
+<li><code>2</code>: DWARF version 2 (the default on certain platforms, like Android).</li>
+<li><code>3</code>: DWARF version 3 (the default on certain platforms, like AIX).</li>
+<li><code>4</code>: DWARF version 4 (the default on most platforms, like Linux &amp; macOS).</li>
+<li><code>5</code>: DWARF version 5.</li>
+</ul>
+<p>DWARF version 1 is not supported.</p>
 <h2 id="embed-bitcode"><a class="header" href="#embed-bitcode">embed-bitcode</a></h2>
 <p>This flag controls whether or not the compiler embeds LLVM bitcode into object
 files. It takes one of the following values:</p>
@@ -361,6 +372,7 @@ tables are required by the target an error will be emitted.</li>
 to save information after compiling a crate to be reused when recompiling the
 crate, improving re-compile times. This takes a path to a directory where
 incremental files will be stored.</p>
+<p>Using incremental compilation inhibits certain optimizations (for example by increasing the amount of codegen units) and is therefore not recommended for release builds.</p>
 <h2 id="inline-threshold"><a class="header" href="#inline-threshold">inline-threshold</a></h2>
 <p>This option is deprecated and does nothing.</p>
 <p>Consider using <code>-Cllvm-args=--inline-threshold=...</code>.</p>
@@ -370,9 +382,27 @@ chapter on <a href="../instrument-coverage.html">instrumentation-based code cove
 <p>Note that while the <code>-C instrument-coverage</code> option is stable, the profile data
 format produced by the resulting instrumentation may change, and may not work
 with coverage tools other than those built and shipped with the compiler.</p>
+<h2 id="jump-tables"><a class="header" href="#jump-tables">jump-tables</a></h2>
+<p>This option is used to allow or prevent the LLVM codegen backend from creating
+jump tables when lowering switches from Rust code.</p>
+<ul>
+<li><code>y</code>, <code>yes</code>, <code>on</code>, <code>true</code> or no value: allow jump tables (the default).</li>
+<li><code>n</code>, <code>no</code>, <code>off</code> or <code>false</code>: disable jump tables.</li>
+</ul>
+<p>To prevent jump tables being created from Rust code, a target must ensure
+all crates are compiled with jump tables disabled.</p>
+<p>Note, in many cases the Rust toolchain is distributed with precompiled
+crates, such as the core and std crates, which could possibly include
+jump tables. Furthermore, this option does not guarantee a target will
+be free of jump tables. They could arise from external dependencies,
+inline asm, or other complicated interactions when using crates which
+are compiled with jump table support.</p>
+<p>Disabling jump tables can be used to help provide protection against
+jump-oriented-programming (JOP) attacks.</p>
 <h2 id="link-arg"><a class="header" href="#link-arg">link-arg</a></h2>
 <p>This flag lets you append a single extra argument to the linker invocation.</p>
 <p>"Append" is significant; you can pass this flag multiple times to add multiple arguments.</p>
+<p>On Unix-like targets that use <code>cc</code> as the linker driver, use <code>-Clink-arg=-Wl,$ARG</code> to pass an argument to the actual linker.</p>
 <h2 id="link-args"><a class="header" href="#link-args">link-args</a></h2>
 <p>This flag lets you append multiple extra arguments to the linker invocation. The
 options should be separated by spaces.</p>
@@ -386,20 +416,65 @@ linked. It takes one of the following values:</p>
 <p>This flag was historically used to help improve some older forms of code
 coverage measurement. Its use is not recommended.</p>
 <h2 id="link-self-contained"><a class="header" href="#link-self-contained">link-self-contained</a></h2>
-<p>On <code>windows-gnu</code>, <code>linux-musl</code>, and <code>wasi</code> targets, this flag controls whether the
-linker will use libraries and objects shipped with Rust instead of those in the system.
-It takes one of the following values:</p>
+<p>This flag controls whether the linker will use libraries and objects shipped with Rust instead of
+those in the system.  It also controls which binary is used for the linker itself. This allows
+overriding cases when detection fails or the user wants to use shipped libraries.</p>
+<p>You can enable or disable the usage of any self-contained components using one of the following values:</p>
 <ul>
 <li>no value: rustc will use heuristic to disable self-contained mode if system has necessary tools.</li>
 <li><code>y</code>, <code>yes</code>, <code>on</code>, <code>true</code>: use only libraries/objects shipped with Rust.</li>
 <li><code>n</code>, <code>no</code>, <code>off</code> or <code>false</code>: rely on the user or the linker to provide non-Rust libraries/objects.</li>
 </ul>
-<p>This allows overriding cases when detection fails or user wants to use shipped libraries.</p>
+<p>It is also possible to enable or disable specific self-contained components in a more granular way.
+You can pass a comma-separated list of self-contained components, individually enabled
+(<code>+component</code>) or disabled (<code>-component</code>).</p>
+<p>Currently, only the <code>linker</code> granular option is stabilized, and only on the <code>x86_64-unknown-linux-gnu</code> target:</p>
+<ul>
+<li><code>linker</code>: toggle the usage of self-contained linker binaries (linker, dlltool, and their necessary libraries)</li>
+</ul>
+<p>Note that only the <code>-linker</code> opt-out is stable on the <code>x86_64-unknown-linux-gnu</code> target: <code>+linker</code> is
+already the default on this target.</p>
+<h4 id="implementation-notes"><a class="header" href="#implementation-notes">Implementation notes</a></h4>
+<p>On the <code>x86_64-unknown-linux-gnu</code> target, when using the default linker flavor (using <code>cc</code> as the
+linker driver) and linker features (to try using <code>lld</code>), <code>rustc</code> will try to use the self-contained
+linker by passing a <code>-B /path/to/sysroot/</code> link argument to the driver to find <code>rust-lld</code> in the
+sysroot. For backwards-compatibility, and to limit name and <code>PATH</code> collisions, this is done using a
+shim executable (the <code>lld-wrapper</code> tool) that forwards execution to the <code>rust-lld</code> executable itself.</p>
 <h2 id="linker"><a class="header" href="#linker">linker</a></h2>
 <p>This flag controls which linker <code>rustc</code> invokes to link your code. It takes a
 path to the linker executable. If this flag is not specified, the linker will
 be inferred based on the target. See also the <a href="#linker-flavor">linker-flavor</a>
 flag for another way to specify the linker.</p>
+<p>Note that on Unix-like targets (for example, <code>*-unknown-linux-gnu</code> or <code>*-unknown-freebsd</code>)
+the C compiler (for example <code>cc</code> or <code>clang</code>) is used as the "linker" here, serving as a linker driver.
+It will invoke the actual linker with all the necessary flags to be able to link against the system libraries like libc.</p>
+<h2 id="linker-features"><a class="header" href="#linker-features">linker-features</a></h2>
+<p>The <code>-Clinker-features</code> flag allows enabling or disabling specific features used during linking.</p>
+<p>These feature flags are a flexible extension mechanism that is complementary to linker flavors,
+designed to avoid the combinatorial explosion of having to create a new set of flavors for each
+linker feature we'd want to use.</p>
+<p>The flag accepts a comma-separated list of features, individually enabled (<code>+feature</code>) or disabled
+(<code>-feature</code>).</p>
+<p>Currently only one is stable, and only on the <code>x86_64-unknown-linux-gnu</code> target:</p>
+<ul>
+<li><code>lld</code>: to toggle trying to use the lld linker, either the system-installed binary, or the self-contained
+<code>rust-lld</code> linker (via the <a href="#link-self-contained"><code>-Clink-self-contained=+linker</code></a> flag).</li>
+</ul>
+<p>For example, use:</p>
+<ul>
+<li><code>-Clinker-features=+lld</code> to opt into using the <code>lld</code> linker, when possible (see the Implementation notes below)</li>
+<li><code>-Clinker-features=-lld</code> to opt out instead, for targets where it is configured as the default linker</li>
+</ul>
+<p>Note that only the <code>-lld</code> opt-out is stable on the <code>x86_64-unknown-linux-gnu</code> target: <code>+lld</code> is
+already the default on this target.</p>
+<h4 id="implementation-notes-1"><a class="header" href="#implementation-notes-1">Implementation notes</a></h4>
+<p>On the <code>x86_64-unknown-linux-gnu</code> target, when using the default linker flavor (using <code>cc</code> as the
+linker driver), <code>rustc</code> will try to use lld by passing a <code>-fuse-ld=lld</code> link argument to the driver.
+<code>rustc</code> will also try to detect if that <em>causes</em> an error during linking (for example, if GCC is too
+old to understand the flag, and returns an error) and will then retry linking without this argument,
+as a fallback.</p>
+<p>If the user <em>also</em> passes a <code>-Clink-arg=-fuse-ld=$value</code>, both will be given to the linker
+driver but the user's will be passed last, and would generally have priority over <code>rustc</code>'s.</p>
 <h2 id="linker-flavor"><a class="header" href="#linker-flavor">linker-flavor</a></h2>
 <p>This flag controls the linker flavor used by <code>rustc</code>. If a linker is given with
 the <a href="#linker"><code>-C linker</code> flag</a>, then the linker flavor is inferred from the
@@ -443,6 +518,9 @@ compilation and avoid generating object files that aren't used.</p>
 <p>This flag can be used to pass a list of arguments directly to LLVM.</p>
 <p>The list must be separated by spaces.</p>
 <p>Pass <code>--help</code> to see a list of options.</p>
+<div class="warning">
+<p>Because this flag directly talks to LLVM, it is not subject to the usual stability guarantees of rustc's CLI interface.</p>
+</div>
 <h2 id="lto"><a class="header" href="#lto">lto</a></h2>
 <p>This flag controls whether LLVM uses <a href="https://llvm.org/docs/LinkTimeOptimization.html">link time
 optimizations</a> to produce
@@ -451,11 +529,12 @@ linking time. It takes one of the following values:</p>
 <ul>
 <li><code>y</code>, <code>yes</code>, <code>on</code>, <code>true</code>, <code>fat</code>, or no value: perform "fat" LTO which attempts to
 perform optimizations across all crates within the dependency graph.</li>
-<li><code>n</code>, <code>no</code>, <code>off</code>, <code>false</code>: disables LTO.</li>
 <li><code>thin</code>: perform <a href="http://blog.llvm.org/2016/06/thinlto-scalable-and-incremental-lto.html">"thin"
 LTO</a>.
 This is similar to "fat", but takes substantially less time to run while
-still achieving performance gains similar to "fat".</li>
+still achieving performance gains similar to "fat".
+For larger projects like the Rust compiler, ThinLTO can even result in better performance than fat LTO.</li>
+<li><code>n</code>, <code>no</code>, <code>off</code>, <code>false</code>: disables LTO.</li>
 </ul>
 <p>If <code>-C lto</code> is not specified, then the compiler will attempt to perform "thin
 local LTO" which performs "thin" LTO on the local crate only across its
@@ -484,6 +563,7 @@ between two different versions of the same crate being linked.</p>
 <h2 id="no-prepopulate-passes"><a class="header" href="#no-prepopulate-passes">no-prepopulate-passes</a></h2>
 <p>This flag tells the pass manager to use an empty list of passes, instead of the
 usual pre-populated list of passes.</p>
+<p>When combined with <code>-O --emit llvm-ir</code>, it can be used to see the optimized LLVM IR emitted by rustc before any optimizations are applied by LLVM.</p>
 <h2 id="no-redzone"><a class="header" href="#no-redzone">no-redzone</a></h2>
 <p>This flag allows you to disable <a href="https://en.wikipedia.org/wiki/Red_zone_(computing)">the
 red zone</a>. It takes one
@@ -511,7 +591,7 @@ parallelism</a>.</p>
 <li><code>2</code>: some optimizations.</li>
 <li><code>3</code>: all optimizations.</li>
 <li><code>s</code>: optimize for binary size.</li>
-<li><code>z</code>: optimize for binary size, but also turn off loop vectorization.</li>
+<li><code>z</code>: optimize for binary size, but more aggressively. Often results in larger binaries than <code>s</code></li>
 </ul>
 <p>Note: The <a href="../command-line-arguments.html#option-o-optimize"><code>-O</code> flag</a> is an alias for <code>-C opt-level=3</code>.</p>
 <p>The default is <code>0</code>.</p>
@@ -530,19 +610,26 @@ one of the following values:</p>
 <p>This option lets you control what happens when the code panics.</p>
 <ul>
 <li><code>abort</code>: terminate the process upon panic</li>
+<li><code>immediate-abort</code>: terminate the process upon panic, and do not call any panic hooks</li>
 <li><code>unwind</code>: unwind the stack upon panic</li>
 </ul>
 <p>If not specified, the default depends on the target.</p>
+<p>If any crate in the crate graph uses <code>abort</code>, the final binary (<code>bin</code>, <code>dylib</code>, <code>cdylib</code>, <code>staticlib</code>) must also use <code>abort</code>.
+If any crate in the crate graph uses <code>immediate-abort</code>, every crate in the graph must use <code>immediate-abort</code>.
+If <code>std</code> is used as a <code>dylib</code> with <code>unwind</code>, the final binary must also use <code>unwind</code>.</p>
 <h2 id="passes"><a class="header" href="#passes">passes</a></h2>
 <p>This flag can be used to add extra <a href="http://llvm.org/docs/Passes.html">LLVM
 passes</a> to the compilation.</p>
 <p>The list must be separated by spaces.</p>
 <p>See also the <a href="#no-prepopulate-passes"><code>no-prepopulate-passes</code></a> flag.</p>
+<div class="warning">
+<p>Because this flag directly talks to LLVM, it not subject to the usual stability guarantees of rustc's CLI interface.</p>
+</div>
 <h2 id="prefer-dynamic"><a class="header" href="#prefer-dynamic">prefer-dynamic</a></h2>
 <p>By default, <code>rustc</code> prefers to statically link dependencies. This option will
 indicate that dynamic linking should be used if possible if both a static and
 dynamic versions of a library are available.</p>
-<p>There is <a href="https://github.com/rust-lang/rust/blob/master/compiler/rustc_metadata/src/dependency_format.rs">an internal algorithm</a>
+<p>There is <a href="https://github.com/rust-lang/rust/blob/HEAD/compiler/rustc_metadata/src/dependency_format.rs">an internal algorithm</a>
 for determining whether or not it is possible to statically or dynamically link
 with a dependency.</p>
 <p>This flag takes one of the following values:</p>
@@ -627,12 +714,22 @@ enables Full RELRO by default on platforms where it is supported.</p>
 <p>The list of passes should be separated by spaces.</p>
 <p><code>all</code> will remark on every pass.</p>
 <h2 id="rpath"><a class="header" href="#rpath">rpath</a></h2>
-<p>This flag controls whether <a href="https://en.wikipedia.org/wiki/Rpath"><code>rpath</code></a> is
-enabled. It takes one of the following values:</p>
+<p>This flag controls whether rustc sets an <a href="https://en.wikipedia.org/wiki/Rpath"><code>rpath</code></a> for the binary.
+It takes one of the following values:</p>
 <ul>
 <li><code>y</code>, <code>yes</code>, <code>on</code>, <code>true</code> or no value: enable rpath.</li>
 <li><code>n</code>, <code>no</code>, <code>off</code> or <code>false</code>: disable rpath (the default).</li>
 </ul>
+<p>This flag only does something on Unix-like platforms (Mach-O and ELF), it is ignored on other platforms.</p>
+<p>If enabled, rustc will add output-relative (using <code>@load_path</code> on Mach-O and <code>$ORIGIN</code> on ELF respectively) rpaths to all <code>dylib</code> dependencies.</p>
+<p>For example, for the following directory structure, with <code>libdep.so</code> being a <code>dylib</code> crate compiled with <code>-Cprefer-dynamic</code>:</p>
+<pre><code class="language-text">dep
+ |- libdep.so
+a.rs
+</code></pre>
+<p><code>rustc a.rs --extern dep=dep/libdep.so -Crpath</code> will, on x86-64 Linux, result in approximately the following <code>DT_RUNPATH</code>: <code>$ORIGIN/dep:$ORIGIN/$RELATIVE_PATH_TO_SYSROOT/lib/rustlib/x86_64-unknown-linux-gnu/lib</code> (where <code>RELATIVE_PATH_TO_SYSROOT</code> depends on the build directory location).</p>
+<p>This is primarily useful for local development, to ensure that all the <code>dylib</code> dependencies can be found appropriately.</p>
+<p>To set the rpath to a different value (which can be useful for distribution), <code>-Clink-arg</code> with a platform-specific linker argument can be used to set the rpath directly.</p>
 <h2 id="save-temps"><a class="header" href="#save-temps">save-temps</a></h2>
 <p>This flag controls whether temporary files generated during compilation are
 deleted once compilation finishes. It takes one of the following values:</p>
@@ -647,6 +744,7 @@ point instructions in software. It takes one of the following values:</p>
 <li><code>y</code>, <code>yes</code>, <code>on</code>, <code>true</code> or no value: use soft floats.</li>
 <li><code>n</code>, <code>no</code>, <code>off</code> or <code>false</code>: use hardware floats (the default).</li>
 </ul>
+<p>This flag only works on <code>*eabihf</code> targets and <strong>is unsound and deprecated</strong>.</p>
 <h2 id="split-debuginfo"><a class="header" href="#split-debuginfo">split-debuginfo</a></h2>
 <p>This option controls the emission of "split debuginfo" for debug information
 that <code>rustc</code> generates. The default behavior of this option is
@@ -755,7 +853,7 @@ effective only for x86 targets.</p>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../command-line-arguments.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../command-line-arguments/print-options.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
@@ -769,7 +867,7 @@ effective only for x86 targets.</p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../command-line-arguments.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../command-line-arguments/print-options.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 

@@ -216,54 +216,57 @@
 
                 <div id="content" class="content">
                     <main>
-                        <div class="rule" id="r-comments.syntax"><a class="rule-link" href="#r-comments.syntax" title="comments.syntax"><span>[comments<wbr>.syntax]<span/></a></div>
+                        <p>r[comments]</p>
 <h1 id="주석"><a class="header" href="#주석">주석</a></h1>
-<blockquote>
-<p><strong><sup>렉서</sup></strong><br />
-라인_주석 :<br />
-      <code>//</code> (~[<code>/</code> <code>!</code> <code>\n</code>] | <code>//</code>) ~<code>\n</code><sup>*</sup><br />
-   | <code>//</code></p>
-<p>블록_주석 :<br />
-      <code>/*</code> (~[<code>*</code> <code>!</code>] | <code>**</code> | <em>블록주석또는문서</em>) (<em>블록주석또는문서</em> | ~<code>*/</code>)<sup>*</sup> <code>*/</code><br />
-   | <code>/**/</code><br />
-   | <code>/***/</code></p>
-<p>INNER_LINE_DOC :<br />
-   <code>//!</code> ~[<code>\n</code> <em>고립된CR</em>]<sup>*</sup></p>
-<p>내부_블록_문서 :<br />
-   <code>/*!</code> ( <em>블록주석또는문서</em> | ~[<code>*/</code> <em>고립된CR</em>] )<sup>*</sup> <code>*/</code></p>
-<p>OUTER_LINE_DOC :<br />
-   <code>///</code> (~<code>/</code> ~[<code>\n</code> <em>IsolatedCR</em>]<sup>*</sup>)<sup>?</sup></p>
-<p>OUTER_BLOCK_DOC :<br />
-   <code>/**</code> (~<code>*</code> | <em>BlockCommentOrDoc</em> ) (<em>BlockCommentOrDoc</em> | ~[<code>*/</code> <em>IsolatedCR</em>])<sup>*</sup> <code>*/</code></p>
-<p><em>블록주석또는문서</em> :<br />
-      블록_주석<br />
-   | 외부_블록_문서<br />
-   | 내부_블록_문서</p>
-<p><em>고립된CR</em> :<br />
-   \r</p>
-</blockquote>
-<div class="rule" id="r-comments.normal"><a class="rule-link" href="#r-comments.normal" title="comments.normal"><span>[comments<wbr>.normal]<span/></a></div>
+<p>r[comments.syntax]</p>
+<pre><code class="language-grammar lexer">@root LINE_COMMENT -&gt;
+      `//` (~[`/` `!` LF] | `//`) ~LF*
+    | `//`
+
+BLOCK_COMMENT -&gt;
+      `/*`
+        ( ~[`*` `!`] | `**` | BLOCK_COMMENT_OR_DOC )
+        ( BLOCK_COMMENT_OR_DOC | ~`*/` )*
+      `*/`
+    | `/**/`
+    | `/***/`
+
+@root INNER_LINE_DOC -&gt;
+    `//!` ~[LF CR]*
+
+INNER_BLOCK_DOC -&gt;
+    `/*!` ( BLOCK_COMMENT_OR_DOC | ~[`*/` CR] )* `*/`
+
+@root OUTER_LINE_DOC -&gt;
+    `///` (~`/` ~[LF CR]*)?
+
+OUTER_BLOCK_DOC -&gt;
+    `/**`
+      ( ~`*` | BLOCK_COMMENT_OR_DOC )
+      ( BLOCK_COMMENT_OR_DOC | ~[`*/` CR] )*
+    `*/`
+
+@root BLOCK_COMMENT_OR_DOC -&gt;
+      BLOCK_COMMENT
+    | OUTER_BLOCK_DOC
+    | INNER_BLOCK_DOC
+</code></pre>
+<p>r[comments.normal]</p>
 <h2 id="비-문서-주석"><a class="header" href="#비-문서-주석">비 문서 주석</a></h2>
 <p>주석은 일반적인 C++ 스타일의 라인 (<code>//</code>) 및 블록 (<code>/* ... */</code>) 주석 형식을 따릅니다. 중첩된 블록 주석이 지원됩니다.</p>
-<div class="rule" id="r-comments.normal.tokenization"><a class="rule-link" href="#r-comments.normal.tokenization" title="comments.normal.tokenization"><span>[comments<wbr>.normal<wbr>.tokenization]<span/></a></div>
-<p>비 문서 주석은 공백의 한 형태로 해석됩니다.</p>
-<div class="rule" id="r-comments.doc"><a class="rule-link" href="#r-comments.doc" title="comments.doc"><span>[comments<wbr>.doc]<span/></a></div>
+<p>r[comments.normal.tokenization] Non-doc comments are interpreted as a form of whitespace.</p>
+<p>r[comments.doc]</p>
 <h2 id="문서-주석"><a class="header" href="#문서-주석">문서 주석</a></h2>
-<div class="rule" id="r-comments.doc.syntax"><a class="rule-link" href="#r-comments.doc.syntax" title="comments.doc.syntax"><span>[comments<wbr>.doc<wbr>.syntax]<span/></a></div>
-<p>정확히 세 개의 슬래시(<code>///</code>)로 시작하는 라인 문서 주석과 블록 문서 주석(<code>/** ... */</code>), 이 두 가지 외부 문서 주석은 <a href="../rustdoc/the-doc-attribute.html"><code>doc</code> 속성</a>을 위한 특별한 구문으로 해석됩니다.</p>
-<div class="rule" id="r-comments.doc.attributes"><a class="rule-link" href="#r-comments.doc.attributes" title="comments.doc.attributes"><span>[comments<wbr>.doc<wbr>.attributes]<span/></a></div>
-<p>즉, 이들은 주석 본문 주위에 <code>#[doc="..."]</code>를 작성하는 것과 동일합니다. 즉, <code>/// Foo</code>는 <code>#[doc="Foo"]</code>로, <code>/** Bar */</code>는 <code>#[doc="Bar"]</code>로 바뀝니다. 따라서 외부 속성을 허용하는 것 앞에 나타나야 합니다.</p>
-<div class="rule" id="r-comments.doc.inner-syntax"><a class="rule-link" href="#r-comments.doc.inner-syntax" title="comments.doc.inner-syntax"><span>[comments<wbr>.doc<wbr>.inner-syntax]<span/></a></div>
-<p><code>//!</code>로 시작하는 라인 주석과 <code>/*! ... */</code> 블록 주석은 뒤따르는 항목이 아닌 주석의 부모에 적용되는 문서 주석입니다.</p>
-<div class="rule" id="r-comments.doc.inner-attributes"><a class="rule-link" href="#r-comments.doc.inner-attributes" title="comments.doc.inner-attributes"><span>[comments<wbr>.doc<wbr>.inner-attributes]<span/></a></div>
-<p>즉, 이들은 주석 본문 주위에 <code>#![doc="..."]</code>를 작성하는 것과 동일합니다. <code>//!</code> 주석은 일반적으로 소스 파일을 차지하는 모듈을 문서화하는 데 사용됩니다.</p>
-<div class="rule" id="r-comments.doc.bare-crs"><a class="rule-link" href="#r-comments.doc.bare-crs" title="comments.doc.bare-crs"><span>[comments<wbr>.doc<wbr>.bare-crs]<span/></a></div>
-<p>문서 주석에는 <code>U+000D</code> (CR) 문자가 허용되지 않습니다.</p>
+<p>r[comments.doc.syntax] Line doc comments beginning with exactly <em>three</em> slashes (<code>///</code>), and block doc comments (<code>/** ... */</code>), both outer doc comments, are interpreted as a special syntax for <a href="../rustdoc/the-doc-attribute.html"><code>doc</code> attributes</a>.</p>
+<p>r[comments.doc.attributes] That is, they are equivalent to writing <code>#[doc="..."]</code> around the body of the comment, i.e., <code>/// Foo</code> turns into <code>#[doc="Foo"]</code> and <code>/** Bar */</code> turns into <code>#[doc="Bar"]</code>. They must therefore appear before something that accepts an outer attribute.</p>
+<p>r[comments.doc.inner-syntax] Line comments beginning with <code>//!</code> and block comments <code>/*! ... */</code> are doc comments that apply to the parent of the comment, rather than the item that follows.</p>
+<p>r[comments.doc.inner-attributes] That is, they are equivalent to writing <code>#![doc="..."]</code> around the body of the comment. <code>//!</code> comments are usually used to document modules that occupy a source file.</p>
+<p>r[comments.doc.bare-crs] The character <code>U+000D</code> (CR) is not allowed in doc comments.</p>
 <blockquote>
-<p><strong>참고</strong>: <code>rustdoc</code>에서 예상하는 바와 같이 문서 주석에 마크다운을 포함하는 것이 일반적입니다. 그러나 주석 구문은 내부 마크다운을 존중하지 않습니다. <code>/** `glob = "*/*.rs";` */</code>는 첫 번째 <code>*/</code>에서 주석을 종료하며, 나머지 코드는 구문 오류를 발생시킵니다. 이는 라인 문서 주석에 비해 블록 문서 주석의 내용을 약간 제한합니다.</p>
+<p>[!NOTE] It is conventional for doc comments to contain Markdown, as expected by <code>rustdoc</code>. However, the comment syntax does not respect any internal Markdown. <code>/** `glob = "*/*.rs";` */</code> terminates the comment at the first <code>*/</code>, and the remaining code would cause a syntax error. This slightly limits the content of block doc comments compared to line doc comments.</p>
 </blockquote>
 <blockquote>
-<p><strong>참고</strong>: <code>U+000D</code> (CR) 문자와 그 뒤에 바로 오는 <code>U+000A</code> (LF) 문자의 시퀀스는 이전에 단일 <code>U+000A</code> (LF)로 변환되었을 것입니다.</p>
+<p>[!NOTE] The sequence <code>U+000D</code> (CR) immediately followed by <code>U+000A</code> (LF) would have been previously transformed into a single <code>U+000A</code> (LF).</p>
 </blockquote>
 <h2 id="예시"><a class="header" href="#예시">예시</a></h2>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]

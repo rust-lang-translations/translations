@@ -224,7 +224,7 @@ array in a more incremental or dynamic way.</p>
 <a href="../core/mem/union.MaybeUninit.html"><code>MaybeUninit</code></a>. This type can be used to handle memory that has not been fully
 initialized yet.</p>
 <p>With <code>MaybeUninit</code>, we can initialize an array element by element as follows:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::mem::{self, MaybeUninit};
 
@@ -235,12 +235,8 @@ initialized yet.</p>
 const SIZE: usize = 10;
 
 let x = {
-    // Create an uninitialized array of `MaybeUninit`. The `assume_init` is
-    // safe because the type we are claiming to have initialized here is a
-    // bunch of `MaybeUninit`s, which do not require initialization.
-    let mut x: [MaybeUninit&lt;Box&lt;u32&gt;&gt;; SIZE] = unsafe {
-        MaybeUninit::uninit().assume_init()
-    };
+    // Create an uninitialized array of `MaybeUninit`.
+    let mut x = [const { MaybeUninit::uninit() }; SIZE];
 
     // Dropping a `MaybeUninit` does nothing. Thus using raw pointer
     // assignment instead of `ptr::write` does not cause the old
@@ -255,19 +251,12 @@ let x = {
     unsafe { mem::transmute::&lt;_, [Box&lt;u32&gt;; SIZE]&gt;(x) }
 };
 
-dbg!(x);
+println!("{x:?}");
 <span class="boring">}</span></code></pre></pre>
 <p>This code proceeds in three steps:</p>
 <ol>
 <li>
-<p>Create an array of <code>MaybeUninit&lt;T&gt;</code>. With current stable Rust, we have to use
-unsafe code for this: we take some uninitialized piece of memory
-(<code>MaybeUninit::uninit()</code>) and claim we have fully initialized it
-(<a href="../core/mem/union.MaybeUninit.html#method.assume_init"><code>assume_init()</code></a>). This seems ridiculous, because we didn't!
-The reason this is correct is that the array consists itself entirely of
-<code>MaybeUninit</code>, which do not actually require initialization. For most other
-types, doing <code>MaybeUninit::uninit().assume_init()</code> produces an invalid
-instance of said type, so you got yourself some Undefined Behavior.</p>
+<p>Create an array of <code>MaybeUninit&lt;T&gt;</code>.</p>
 </li>
 <li>
 <p>Initialize the array. The subtle aspect of this is that usually, when we use
@@ -342,7 +331,7 @@ also cannot use <code>&amp;mut base_ptr.field</code> as that would be creating a
 reference. So, you must carefully use the <a href="../reference/types/pointer.html#r-type.pointer.raw.constructor">raw reference</a> syntax. This creates
 a raw pointer to the field without creating an intermediate reference:</li>
 </ul>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::{ptr, mem::MaybeUninit};
 

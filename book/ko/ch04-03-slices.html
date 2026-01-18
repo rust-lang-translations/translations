@@ -217,13 +217,16 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="슬라이스-타입"><a class="header" href="#슬라이스-타입">슬라이스 타입</a></h2>
-<p>_슬라이스(slices)_는 <a href="ch08-00-common-collections.html">컬렉션(collection)</a> 전체가 아니라 컬렉션 내의 연속된 요소 시퀀스를 참조할 수 있게 해줍니다. 슬라이스는 참조의 일종이므로 소유권을 갖지 않습니다.</p>
-<p>여기에 작은 프로그래밍 문제가 있습니다: 공백으로 구분된 단어들의 문자열을 받아서 그 문자열에서 찾은 첫 번째 단어를 반환하는 함수를 작성하세요. 만약 함수가 문자열에서 공백을 찾지 못하면, 전체 문자열이 하나의 단어라는 뜻이므로 전체 문자열을 반환해야 합니다.</p>
+<p><em>Slices</em> let you reference a contiguous sequence of elements in a <a href="ch08-00-common-collections.html">collection</a><!-- ignore -->. A slice is a kind of reference, so it does not have ownership.</p>
+<p>Here’s a small programming problem: Write a function that takes a string of words separated by spaces and returns the first word it finds in that string. If the function doesn’t find a space in the string, the whole string must be one word, so the entire string should be returned.</p>
+<blockquote>
+<p>Note: For the purposes of introducing slices, we are assuming ASCII only in this section; a more thorough discussion of UTF-8 handling is in the <a href="ch08-02-strings.html#storing-utf-8-encoded-text-with-strings">“Storing UTF-8 Encoded Text with Strings”</a><!-- ignore --> section of Chapter 8.</p>
+</blockquote>
 <p>슬라이스가 해결할 문제를 이해하기 위해, 슬라이스를 사용하지 않고 이 함수의 시그니처를 어떻게 작성할지 살펴보겠습니다.</p>
 <pre><code class="language-rust ignore">fn first_word(s: &amp;String) -&gt; ?</code></pre>
-<p><code>first_word</code> 함수는 <code>&amp;String</code>을 매개변수로 가집니다. 소유권이 필요 없으므로 이 방식은 적절합니다. (관용적인 러스트에서 함수는 꼭 필요한 경우가 아니면 인수의 소유권을 가져가지 않는데, 그 이유는 앞으로 진행하면서 명확해질 것입니다!) 그런데 무엇을 반환해야 할까요? 문자열의 일부를 나타낼 방법이 마땅치 않습니다. 하지만 공백으로 표시된 단어 끝의 인덱스를 반환할 수는 있을 것입니다. 목록 4-7과 같이 시도해 봅시다.</p>
+<p>The <code>first_word</code> function has a parameter of type <code>&amp;String</code>. We don’t need ownership, so this is fine. (In idiomatic Rust, functions do not take ownership of their arguments unless they need to, and the reasons for that will become clear as we keep going.) But what should we return? We don’t really have a way to talk about <em>part</em> of a string. However, we could return the index of the end of the word, indicated by a space. Let’s try that, as shown in Listing 4-7.</p>
 <Listing number="4-7" file-name="src/main.rs" caption="The `first_word` function that returns a byte index value into the `String` parameter">
-<pre><pre class="playground"><code class="language-rust edition2021">fn first_word(s: &amp;String) -&gt; usize {
+<pre><pre class="playground"><code class="language-rust edition2024">fn first_word(s: &amp;String) -&gt; usize {
     let bytes = s.as_bytes();
 
     for (i, &amp;item) in bytes.iter().enumerate() {
@@ -283,7 +286,7 @@
 </span><span class="boring">fn main() {}</span></code></pre>
 <p>이제 문자열에서 첫 번째 단어 끝의 인덱스를 찾아낼 수 있게 되었지만, 문제가 하나 있습니다. <code>usize</code>를 독자적으로 반환하고 있는데, 이 숫자는 <code>&amp;String</code>의 맥락 안에서만 의미가 있습니다. 즉, <code>String</code>과는 별개의 값이기 때문에 나중에도 이 인덱스가 유효할 것이라는 보장이 없습니다. 목록 4-7의 <code>first_word</code> 함수를 사용하는 목록 4-8의 프로그램을 살펴봅시다.</p>
 <Listing number="4-8" file-name="src/main.rs" caption="Storing the result from calling the `first_word` function and then changing the `String` contents">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn first_word(s: &amp;String) -&gt; usize {
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn first_word(s: &amp;String) -&gt; usize {
 </span><span class="boring">    let bytes = s.as_bytes();
 </span><span class="boring">
 </span><span class="boring">    for (i, &amp;item) in bytes.iter().enumerate() {
@@ -302,31 +305,33 @@
 
     s.clear(); // 이 코드는 String을 비워서 ""와 같게 만듭니다
 
-    // word는 여기서 여전히 5라는 값을 갖지만, s에는 이제 5라는 값과 함께
-    // 의미 있게 사용할 수 있는 내용이 없으므로, word는 이제
-    // 완전히 유효하지 않습니다!
+    // word still has the value 5 here, but s no longer has any content that we
+    // could meaningfully use with the value 5, so word is now totally invalid!
 }</code></pre></pre>
 </Listing>
 <p>이 프로그램은 아무런 오류 없이 컴파일되며, <code>s.clear()</code>를 호출한 뒤에 <code>word</code>를 사용하더라도 마찬가지입니다. <code>word</code>는 <code>s</code>의 상태와 전혀 연결되어 있지 않기 때문에, <code>word</code>는 여전히 <code>5</code>라는 값을 담고 있습니다. 변수 <code>s</code>와 함께 이 <code>5</code>라는 값을 사용하여 첫 번째 단어를 추출해내려 할 수도 있겠지만, <code>word</code>에 <code>5</code>를 저장한 이후로 <code>s</code>의 내용이 바뀌었기 때문에 이는 버그가 될 것입니다.</p>
-<p><code>word</code>의 인덱스가 <code>s</code>의 데이터와 동기화되지 않을까 봐 걱정하는 것은 번거롭고 오류가 발생하기 쉽습니다! <code>second_word</code> 함수를 작성한다면 이러한 인덱스 관리는 훨씬 더 취약해질 것입니다. 그 함수의 시그니처는 아마 다음과 같을 것입니다:</p>
+<p>Having to worry about the index in <code>word</code> getting out of sync with the data in <code>s</code> is tedious and error-prone! Managing these indices is even more brittle if we write a <code>second_word</code> function. Its signature would have to look like this:</p>
 <pre><code class="language-rust ignore">fn second_word(s: &amp;String) -&gt; (usize, usize) {</code></pre>
 <p>이제 우리는 시작 인덱스_와_ 끝 인덱스를 추적하게 되었고, 특정 상태의 데이터로부터 계산되었으면서도 그 상태에 전혀 묶여 있지 않은 값들이 더 많아졌습니다. 서로 동기화되어야 할 관련 없는 변수 세 개가 여기저기 떠다니게 된 것입니다.</p>
 <p>다행히 러스트는 이 문제에 대한 해결책인 문자열 슬라이스를 가지고 있습니다.</p>
 <h3 id="문자열-슬라이스"><a class="header" href="#문자열-슬라이스">문자열 슬라이스</a></h3>
-<p>_문자열 슬라이스_는 <code>String</code>의 일부에 대한 참조이며, 다음과 같습니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+<p>A <em>string slice</em> is a reference to a contiguous sequence of the elements of a <code>String</code>, and it looks like this:</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span>    let s = String::from("hello world");
 
     let hello = &amp;s[0..5];
     let world = &amp;s[6..11];
 <span class="boring">}</span></code></pre></pre>
-<p>전체 <code>String</code>에 대한 참조라기보다는, <code>hello</code>는 추가 <code>[0..5]</code> 비트에 지정된 <code>String</code>의 일부에 대한 참조입니다. 우리는 대괄호 안에 <code>[starting_index..ending_index]</code>를 지정하여 범위를 사용하여 슬라이스를 생성합니다. 여기서 _<code>starting_index</code>_는 슬라이스의 첫 번째 위치이고 _<code>ending_index</code>_는 슬라이스의 마지막 위치보다 하나 더 큰 값입니다. 내부적으로 슬라이스 데이터 구조는 시작 위치와 슬라이스의 길이를 저장하며, 이는 _<code>ending_index</code>_에서 _<code>starting_index</code>_를 뺀 값에 해당합니다. 따라서 <code>let world = &amp;s[6..11];</code>의 경우, <code>world</code>는 <code>s</code>의 인덱스 6에 있는 바이트에 대한 포인터와 길이 값 <code>5</code>를 포함하는 슬라이스가 됩니다.</p>
+<p>Rather than a reference to the entire <code>String</code>, <code>hello</code> is a reference to a portion of the <code>String</code>, specified in the extra <code>[0..5]</code> bit. We create slices using a range within square brackets by specifying <code>[starting_index..ending_index]</code>, where <em><code>starting_index</code></em> is the first position in the slice and <em><code>ending_index</code></em> is one more than the last position in the slice. Internally, the slice data structure stores the starting position and the length of the slice, which corresponds to <em><code>ending_index</code></em> minus <em><code>starting_index</code></em>. So, in the case of <code>let world = &amp;s[6..11];</code>, <code>world</code> would be a slice that contains a pointer to the byte at index 6 of <code>s</code> with a length value of <code>5</code>.</p>
 <p>그림 4-7은 이를 다이어그램으로 보여줍니다.</p>
-<p><img alt="세 개의 테이블: s의 스택 데이터를 나타내는 테이블은 힙에 있는 문자열 데이터 &quot;hello world&quot; 테이블의 인덱스 0에 있는 바이트를 가리킵니다. 세 번째 테이블은 슬라이스 world의 스택 데이터를 나타내며, 길이 값은 5이고 힙 데이터 테이블의 바이트 6을 가리킵니다."
+<p><img alt="Three tables: a table representing the stack data of s, which points
+to the byte at index 0 in a table of the string data &quot;hello world&quot; on
+the heap. The third table represents the stack data of the slice world, which
+has a length value of 5 and points to byte 6 of the heap data table."
 src="img/trpl04-07.svg" class="center" style="width: 50%;" /></p>
-<p><span class="caption">그림 4-7: <code>String</code>의 일부를 참조하는 문자열 슬라이스</span></p>
+<p><span class="caption">Figure 4-7: A string slice referring to part of a <code>String</code></span></p>
 <p>러스트의 <code>..</code> 범위 구문을 사용하면, 인덱스 0에서 시작하고 싶을 때 두 개의 점 앞에 있는 값을 생략할 수 있습니다. 즉, 다음은 동일합니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let s = String::from("hello");
 
@@ -334,7 +339,7 @@ let slice = &amp;s[0..2];
 let slice = &amp;s[..2];
 <span class="boring">}</span></code></pre></pre>
 <p>마찬가지로, 슬라이스에 <code>String</code>의 마지막 바이트가 포함되면, 뒤에 오는 숫자를 생략할 수 있습니다. 즉, 다음은 동일합니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let s = String::from("hello");
 
@@ -343,8 +348,8 @@ let len = s.len();
 let slice = &amp;s[3..len];
 let slice = &amp;s[3..];
 <span class="boring">}</span></code></pre></pre>
-<p>전체 문자열의 슬라이스를 가져오기 위해 두 값 모두를 생략할 수도 있습니다. 따라서 다음은 동일합니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<p>You can also drop both values to take a slice of the entire string. So, these are equal:</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let s = String::from("hello");
 
@@ -354,11 +359,11 @@ let slice = &amp;s[0..len];
 let slice = &amp;s[..];
 <span class="boring">}</span></code></pre></pre>
 <blockquote>
-<p>참고: 문자열 슬라이스 범위 인덱스는 유효한 UTF-8 문자 경계에서 발생해야 합니다. 멀티바이트 문자 중간에 문자열 슬라이스를 생성하려고 하면 프로그램이 오류와 함께 종료됩니다. 문자열 슬라이스를 소개하기 위해 이 섹션에서는 ASCII만 가정합니다. UTF-8 처리에 대한 더 자세한 논의는 8장의 <a href="ch08-02-strings.html#storing-utf-8-encoded-text-with-strings">“문자열로 UTF-8 인코딩된 텍스트 저장하기”</a><!-- ignore --> 섹션에 있습니다.</p>
+<p>Note: String slice range indices must occur at valid UTF-8 character boundaries. If you attempt to create a string slice in the middle of a multibyte character, your program will exit with an error.</p>
 </blockquote>
 <p>이 모든 정보를 염두에 두고, <code>first_word</code>를 슬라이스를 반환하도록 다시 작성해 봅시다. "문자열 슬라이스"를 나타내는 타입은 <code>&amp;str</code>로 작성됩니다:</p>
 <Listing file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021">fn first_word(s: &amp;String) -&gt; &amp;str {
+<pre><pre class="playground"><code class="language-rust edition2024">fn first_word(s: &amp;String) -&gt; &amp;str {
     let bytes = s.as_bytes();
 
     for (i, &amp;item) in bytes.iter().enumerate() {
@@ -376,7 +381,7 @@ let slice = &amp;s[..];
 <p>이제 <code>first_word</code>를 호출하면, 기본 데이터에 연결된 단일 값을 반환받습니다. 이 값은 슬라이스의 시작점에 대한 참조와 슬라이스 내 요소의 수로 구성됩니다.</p>
 <p>슬라이스를 반환하는 것은 <code>second_word</code> 함수에서도 작동할 것입니다:</p>
 <pre><code class="language-rust ignore">fn second_word(s: &amp;String) -&gt; &amp;str {</code></pre>
-<p>이제 컴파일러가 <code>String</code>에 대한 참조가 유효하게 유지되도록 보장하기 때문에 훨씬 더 망가뜨리기 어려운 간단한 API를 갖게 되었습니다. 목록 4-8의 프로그램에서 첫 번째 단어의 끝 인덱스를 얻었지만 문자열을 지워서 인덱스가 유효하지 않게 되었던 버그를 기억하세요? 그 코드는 논리적으로는 잘못되었지만 즉각적인 오류를 보여주지는 않았습니다. 비워진 문자열과 함께 첫 번째 단어 인덱스를 계속 사용하려고 하면 나중에 문제가 나타났을 것입니다. 슬라이스는 이러한 버그를 불가능하게 만들고 코드에 문제가 있음을 훨씬 더 빨리 알 수 있도록 합니다. <code>first_word</code>의 슬라이스 버전을 사용하면 컴파일 타임 오류가 발생합니다:</p>
+<p>We now have a straightforward API that’s much harder to mess up because the compiler will ensure that the references into the <code>String</code> remain valid. Remember the bug in the program in Listing 4-8, when we got the index to the end of the first word but then cleared the string so our index was invalid? That code was logically incorrect but didn’t show any immediate errors. The problems would show up later if we kept trying to use the first word index with an emptied string. Slices make this bug impossible and let us know much sooner that we have a problem with our code. Using the slice version of <code>first_word</code> will throw a compile-time error:</p>
 <Listing file-name="src/main.rs">
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">fn first_word(s: &amp;String) -&gt; &amp;str {
 </span><span class="boring">    let bytes = s.as_bytes();
@@ -413,21 +418,21 @@ error[E0502]: cannot borrow `s` as mutable because it is also borrowed as immuta
    |     ^^^^^^^^^ mutable borrow occurs here
 19 |
 20 |     println!("the first word is: {word}");
-   |                                  ------ immutable borrow later used here
+   |                                   ---- immutable borrow later used here
 
 For more information about this error, try `rustc --explain E0502`.
 error: could not compile `ownership` (bin "ownership") due to 1 previous error
 </code></pre>
 <p>빌림 규칙에서 기억하듯이, 어떤 것에 대한 불변 참조가 있다면 가변 참조도 가질 수 없습니다. <code>clear</code>는 <code>String</code>을 잘라내야 하므로 가변 참조를 얻어야 합니다. <code>clear</code> 호출 후의 <code>println!</code>은 <code>word</code>의 참조를 사용하므로, 불변 참조는 그 시점에도 활성화되어 있어야 합니다. 러스트는 <code>clear</code>의 가변 참조와 <code>word</code>의 불변 참조가 동시에 존재하는 것을 허용하지 않으며, 컴파일이 실패합니다. 러스트는 API를 사용하기 쉽게 만들었을 뿐만 아니라, 컴파일 타임에 전체 오류 클래스를 제거했습니다!</p>
-<!-- Old heading. Do not remove or links may break. -->
+<!-- Old headings. Do not remove or links may break. -->
 <p><a id="string-literals-are-slices"></a></p>
 <h4 id="슬라이스로서의-문자열-리터럴"><a class="header" href="#슬라이스로서의-문자열-리터럴">슬라이스로서의 문자열 리터럴</a></h4>
 <p>문자열 리터럴이 바이너리 내부에 저장된다는 것을 기억하세요. 이제 슬라이스에 대해 알았으니, 문자열 리터럴을 제대로 이해할 수 있습니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let s = "헬로, 월드!";
 <span class="boring">}</span></code></pre></pre>
-<p>여기서 <code>s</code>의 타입은 <code>&amp;str</code>입니다: 이는 바이너리의 특정 지점을 가리키는 슬라이스입니다. 이것이 문자열 리터럴이 불변인 이유이기도 합니다. <code>&amp;str</code>은 불변 참조입니다.</p>
+<p>The type of <code>s</code> here is <code>&amp;str</code>: It’s a slice pointing to that specific point of the binary. This is also why string literals are immutable; <code>&amp;str</code> is an immutable reference.</p>
 <h4 id="매개변수로서의-문자열-슬라이스"><a class="header" href="#매개변수로서의-문자열-슬라이스">매개변수로서의 문자열 슬라이스</a></h4>
 <p>리터럴과 <code>String</code> 값의 슬라이스를 가져올 수 있다는 것을 알면 <code>first_word</code>에 대한 한 가지 개선점으로 이어지며, 그것은 바로 시그니처입니다:</p>
 <pre><code class="language-rust ignore">fn first_word(s: &amp;String) -&gt; &amp;str {</code></pre>
@@ -467,10 +472,11 @@ error: could not compile `ownership` (bin "ownership") due to 1 previous error
 </span><span class="boring">    let word = first_word(my_string_literal);
 </span><span class="boring">}</span></code></pre>
 </Listing>
-<p>문자열 슬라이스가 있다면 이를 직접 전달할 수 있습니다. <code>String</code>이 있다면 <code>String</code>의 슬라이스나 <code>String</code>에 대한 참조를 전달할 수 있습니다. 이러한 유연성은 15장의 <a href="ch15-02-deref.html#implicit-deref-coercions-with-functions-and-methods">“함수와 메서드를 이용한 암시적 역참조 강제”</a><!--ignore--> 섹션에서 다룰 기능인 _역참조 강제(deref coercions)_를 활용합니다.</p>
+<p>If we have a string slice, we can pass that directly. If we have a <code>String</code>, we can pass a slice of the <code>String</code> or a reference to the <code>String</code>. This flexibility takes advantage of deref coercions, a feature we will cover in the <a href="ch15-02-deref.html#using-deref-coercions-in-functions-and-methods">“Using Deref Coercions in Functions and Methods”</a><!--
+ignore --> section of Chapter 15.</p>
 <p>함수가 <code>String</code>에 대한 참조 대신 문자열 슬라이스를 받도록 정의하면, 기능을 전혀 잃지 않으면서도 API를 더 범용적이고 유용하게 만들 수 있습니다:</p>
 <Listing file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn first_word(s: &amp;str) -&gt; &amp;str {
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn first_word(s: &amp;str) -&gt; &amp;str {
 </span><span class="boring">    let bytes = s.as_bytes();
 </span><span class="boring">
 </span><span class="boring">    for (i, &amp;item) in bytes.iter().enumerate() {
@@ -506,12 +512,12 @@ error: could not compile `ownership` (bin "ownership") due to 1 previous error
 </Listing>
 <h3 id="다른-슬라이스들"><a class="header" href="#다른-슬라이스들">다른 슬라이스들</a></h3>
 <p>문자열 슬라이스는 예상하셨겠지만 문자열에 특화되어 있습니다. 하지만 더 범용적인 슬라이스 타입도 있습니다. 다음 배열을 살펴보세요:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let a = [1, 2, 3, 4, 5];
 <span class="boring">}</span></code></pre></pre>
 <p>문자열의 일부를 참조하고 싶을 때와 마찬가지로, 배열의 일부를 참조하고 싶을 때가 있습니다. 다음과 같이 할 수 있습니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let a = [1, 2, 3, 4, 5];
 
@@ -521,7 +527,7 @@ assert_eq!(slice, &amp;[2, 3]);
 <span class="boring">}</span></code></pre></pre>
 <p>이 슬라이스는 <code>&amp;[i32]</code> 타입을 갖습니다. 이는 첫 번째 요소에 대한 참조와 길이를 저장함으로써 문자열 슬라이스와 동일한 방식으로 작동합니다. 이런 종류의 슬라이스는 다른 모든 종류의 컬렉션에 대해서도 사용하게 될 것입니다. 8장에서 벡터를 다룰 때 이러한 컬렉션들에 대해 자세히 논의하겠습니다.</p>
 <h2 id="요약"><a class="header" href="#요약">요약</a></h2>
-<p>소유권, 빌림, 그리고 슬라이스 개념은 컴파일 타임에 러스트 프로그램의 메모리 안전성을 보장합니다. 러스트 언어는 다른 시스템 프로그래밍 언어와 마찬가지로 메모리 사용에 대한 제어권을 제공하지만, 데이터 소유자가 스코프를 벗어날 때 자동으로 데이터를 정리해주므로 이러한 제어를 위해 추가적인 코드를 작성하고 디버깅할 필요가 없습니다.</p>
+<p>The concepts of ownership, borrowing, and slices ensure memory safety in Rust programs at compile time. The Rust language gives you control over your memory usage in the same way as other systems programming languages. But having the owner of data automatically clean up that data when the owner goes out of scope means you don’t have to write and debug extra code to get this control.</p>
 <p>소유권은 러스트의 다른 많은 부분들이 작동하는 방식에 영향을 미치므로, 책의 나머지 부분에서도 이러한 개념들을 계속 이야기할 것입니다. 이제 5장으로 넘어가서 <code>struct</code>를 사용해 데이터 조각들을 그룹화하는 방법을 살펴보겠습니다.</p>
 
                     </main>

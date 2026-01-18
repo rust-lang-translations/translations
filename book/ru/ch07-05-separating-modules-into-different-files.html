@@ -219,7 +219,7 @@
                         <h2 id="Размещение-модулей-в-разных-файлах"><a class="header" href="#Размещение-модулей-в-разных-файлах">Размещение модулей в разных файлах</a></h2>
 <p>До сих пор все примеры в этой главе определяли несколько модулей в одном файле. Когда модули становятся большими, вы можете захотеть переместить их определения в отдельные файлы, чтобы упростить навигацию по коду.</p>
 <p>Для начала, давайте рассмотрим код Листинга 7-17, в котором было несколько модулей ресторана. Мы будем извлекать модули в файлы вместо того, чтобы определять все модули в файле корня крейта. В нашем случае, корень крейта — это <em>src/lib.rs</em>, но это разделение также работает и с бинарными крейтами, у которых корнем крейта будет <em>src/main.rs</em>.</p>
-<p>Сначала, мы извлечём модуль <code>front_of_house</code> в свой собственный файл. Удалите код внутри фигурных скобок для модуля <code>front_of_house</code>, оставив только объявление <code>mod front_of_house;</code>, так что теперь <em>src/lib.rs</em> содержит код, показанный в Листинге 7-21. Обратите внимание, что этот вариант не скомпилируется, пока мы не создадим файл <em>src/front_of_house.rs</em> с кодом из Листинга 7-22.</p>
+<p>First, we’ll extract the <code>front_of_house</code> module to its own file. Remove the code inside the curly brackets for the <code>front_of_house</code> module, leaving only the <code>mod front_of_house;</code> declaration, so that <em>src/lib.rs</em> contains the code shown in Listing 7-21. Note that this won’t compile until we create the <em>src/front_of_house.rs</em> file in Listing 7-22.</p>
 <Listing number="7-21" file-name="src/lib.rs" caption="Declaring the `front_of_house` module whose body will be in *src/front_of_house.rs*">
 <pre><code class="language-rust ignore does_not_compile">mod front_of_house;
 
@@ -241,11 +241,11 @@ pub fn eat_at_restaurant() {
 <Listing file-name="src/front_of_house.rs">
 <pre><code class="language-rust ignore">pub mod hosting;</code></pre>
 </Listing>
-<p>Затем мы создаём директорию <em>src/front_of_house</em> и файл <em>hosting.rs</em>, в котором будут определения, написанные в модуле <code>hosting</code>:</p>
+<p>Then, we create a <em>src/front_of_house</em> directory and a <em>hosting.rs</em> file to contain the definitions made in the <code>hosting</code> module:</p>
 <Listing file-name="src/front_of_house/hosting.rs">
 <pre><code class="language-rust ignore">pub fn add_to_waitlist() {}</code></pre>
 </Listing>
-<p>Если вместо этого мы поместим <em>hosting.rs</em> в директорию <em>src</em>, компилятор будет думать, что код в <em>hosting.rs</em> это модуль <code>hosting</code>, объявленный в корне крейта, а не объявленный как дочерний модуль <code>front_of_house</code>. Правила компилятора для проверки того, какие файлы содержат код каких модулей, предполагают, что каталоги и файлы точно соответствуют дереву модулей.</p>
+<p>If we instead put <em>hosting.rs</em> in the <em>src</em> directory, the compiler would expect the <em>hosting.rs</em> code to be in a <code>hosting</code> module declared in the crate root and not declared as a child of the <code>front_of_house</code> module. The compiler’s rules for which files to check for which modules’ code mean the directories and files more closely match the module tree.</p>
 <blockquote>
 <h3 id="Альтернативные-пути-к-файлам"><a class="header" href="#Альтернативные-пути-к-файлам">Альтернативные пути к файлам</a></h3>
 <p>До сих пор мы рассматривали наиболее идиоматические пути к файлам, используемые компилятором Rust, но Rust также поддерживает и старый стиль пути к файлу. Для модуля с именем <code>front_of_house</code>, объявленного в корне крейта, компилятор будет искать код модуля в:</p>
@@ -258,13 +258,13 @@ pub fn eat_at_restaurant() {
 <li><em>src/front_of_house/hosting.rs</em> (современный стиль; использовался нами до сих пор)</li>
 <li><em>src/front_of_house/hosting/mod.rs</em> (старый стиль; всё ещё поддерживается)</li>
 </ul>
-<p>Если вы используете оба стиля для одного и того же модуля, вы получите ошибку компиляции. Использование сочетания обоих стилей для разных модулей в одном проекте допустимо, но это может сбивать с толку людей, перемещающихся по вашему проекту.</p>
+<p>If you use both styles for the same module, you’ll get a compiler error. Using a mix of both styles for different modules in the same project is allowed but might be confusing for people navigating your project.</p>
 <p>Основным недостатком стиля, в котором используются файлы с именами <em>mod.rs</em>, является то, что в вашем проекте может оказаться много файлов с именами <em>mod.rs</em>, что может привести к путанице, если вы одновременно откроете их в редакторе.</p>
 </blockquote>
 <p>Мы перенесли код каждого модуля в отдельный файл, а дерево модулей осталось прежним. Вызовы функций в <code>eat_at_restaurant</code> будут работать без каких-либо изменений, несмотря на то, что определения находятся в разных файлах. Этот метод позволяет перемещать модули в новые файлы по мере их разрастания.</p>
 <p>Обратите внимание, что инструкция <code>pub use crate::front_of_house::hosting</code> в <em>src/lib.rs</em> также не изменилась, и <code>use</code> не влияет на то, какие файлы компилируются как часть крейта. Ключевое слово <code>mod</code> объявляет модули, и Rust ищет код, который входит в этот модуль, в файле с тем же именем, что и у модуля.</p>
 <h2 id="Подведём-итоги"><a class="header" href="#Подведём-итоги">Подведём итоги</a></h2>
-<p>Rust позволяет разбивать пакет на несколько крейтов, а крейт — на модули, так что вы можете ссылаться на элементы, определённые в одном модуле, из другого модуля. Это можно делать при помощи указания абсолютных или относительных путей. Эти пути можно добавить в область видимости инструкцией <code>use</code>, поэтому вы можете пользоваться более короткими путями для многократного использования элементов в этой области видимости. Код модуля по умолчанию является приватным,  но можно сделать определения общедоступными, добавив ключевое слово <code>pub</code>.</p>
+<p>Rust lets you split a package into multiple crates and a crate into modules so that you can refer to items defined in one module from another module. You can do this by specifying absolute or relative paths. These paths can be brought into scope with a <code>use</code> statement so that you can use a shorter path for multiple uses of the item in that scope. Module code is private by default, but you can make definitions public by adding the <code>pub</code> keyword.</p>
 <p>В следующей главе мы рассмотрим некоторые коллекции данных из стандартной библиотеки, которые вы можете использовать в своём (хорошо теперь организованном) коде.</p>
 
                     </main>

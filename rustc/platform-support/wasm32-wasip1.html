@@ -186,7 +186,7 @@
                         <a href="https://github.com/rust-lang-translations/project" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/rust-lang/rust/edit/master/src/doc/rustc/src/platform-support/wasm32-wasip1.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/rust-lang/rust/edit/main/src/doc/rustc/src/platform-support/wasm32-wasip1.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -218,41 +218,40 @@
                         <h1 id="wasm32-wasip1"><a class="header" href="#wasm32-wasip1"><code>wasm32-wasip1</code></a></h1>
 <p><strong>Tier: 2</strong></p>
 <p>The <code>wasm32-wasip1</code> target is a WebAssembly compilation target which
-assumes that the [WASIp1] (aka "WASI preview1") set of "syscalls" are available
-for use in the standard library. Historically this target in the Rust compiler
-was one of the first for WebAssembly where Rust and C code are explicitly
-intended to interoperate as well.</p>
-<p>There's a bit of history to the target and current development which is also
-worth explaining before going much further. Historically this target was
-originally called <code>wasm32-wasi</code> in both rustc and Clang. This was first added
-to Rust in 2019. In the intervening years leading up to 2024 the WASI standard
-continued to be developed and was eventually "rebased" on top of the <a href="https://github.com/webassembly/component-model">Component
-Model</a>. This was a large change to the WASI specification and was released as
-0.2.0 ("WASIp2" colloquially) in January 2024. The previous target's name in
-rustc, <code>wasm32-wasi</code>, was then renamed to <code>wasm32-wasip1</code>, to avoid
-confusion with this new target to be added to rustc as <code>wasm32-wasip2</code>.
-Some more context can be found in these MCPs:</p>
+assumes that the <a href="https://github.com/WebAssembly/WASI/tree/main/legacy/preview1">WASIp1</a> (aka "WASI preview1") set of "syscalls" are available
+for use in the standard library. This target explicitly supports interop with
+non-Rust code such as C and C++.</p>
+<p>The <a href="https://github.com/WebAssembly/WASI/tree/main/legacy/preview1">WASIp1</a> set of syscalls is standard insofar as it was written down once by
+a set of folks and has not changed since then. Additionally the <a href="https://github.com/WebAssembly/WASI/tree/main/legacy/preview1">WASIp1</a>
+syscalls have been adapted and adopted into a number of runtimes and embeddings.
+It is not standard in the sense that there are no formal semantics for each
+syscall and APIs are no longer receiving any maintenance (e.g. no new APIs, no
+new documentation, etc). After <a href="https://github.com/WebAssembly/WASI/tree/main/legacy/preview1">WASIp1</a> was originally developed in 2019 the
+WASI standard effort has since been "rebased" on top of the <a href="https://github.com/webassembly/component-model">Component Model</a>.
+This was a large change to the WASI specification and was released as 0.2.0
+("WASIp2" colloquially) in January 2024. Current standardization efforts are
+focused on the Component Model-based definition of WASI. At this point the
+<code>wasm32-wasip1</code> Rust target is intended for historical compatibility with
+<a href="https://github.com/WebAssembly/WASI/tree/main/legacy/preview1">WASIp1</a> set of syscalls.</p>
+<p>Today the <code>wasm32-wasip1</code> target will generate core WebAssembly modules
+which will import functions from the <code>wasi_snapshot_preview1</code> module for
+OS-related functionality (e.g. printing).</p>
+<blockquote>
+<p><strong>Note</strong>: Prior to March 2024 this target was known as <code>wasm32-wasi</code> with some
+historical context found in old MCPs:</p>
 <ul>
 <li><a href="https://github.com/rust-lang/compiler-team/issues/607">Rename wasm32-wasi target to wasm32-wasip1</a></li>
 <li><a href="https://github.com/rust-lang/compiler-team/issues/695">Smooth the renaming transition of wasm32-wasi</a></li>
 </ul>
-<p>At this point the <code>wasm32-wasip1</code> target is intended for historical
-compatibility with the first version of the WASI standard. As of now (January
-2024) the 0.2.0 target of WASI ("WASIp2") is relatively new. The state of
-WASI will likely change in few years after which point this documentation will
-probably receive another update.</p>
-<p>Today the <code>wasm32-wasip1</code> target will generate core WebAssembly modules
-which will import functions from the <code>wasi_snapshot_preview1</code> module for
-OS-related functionality (e.g. printing).</p>
+</blockquote>
 <h2 id="target-maintainers"><a class="header" href="#target-maintainers">Target maintainers</a></h2>
 <p>When this target was added to the compiler platform-specific documentation here
 was not maintained at that time. This means that the list below is not
 exhaustive and there are more interested parties in this target. That being
 said since when this document was last updated those interested in maintaining
 this target are:</p>
-<ul>
-<li>Alex Crichton, https://github.com/alexcrichton</li>
-</ul>
+<p><a href="https://github.com/alexcrichton">@alexcrichton</a>
+<a href="https://github.com/loganek">@loganek</a></p>
 <h2 id="requirements"><a class="header" href="#requirements">Requirements</a></h2>
 <p>This target is cross-compiled. The target includes support for <code>std</code> itself,
 but not all of the standard library works. For example spawning a thread will
@@ -310,6 +309,10 @@ to Rust 1.80 the <code>target_env</code> condition was not set.</p>
 <p>The default set of WebAssembly features enabled for compilation is currently the
 same as <a href="./wasm32-unknown-unknown.html"><code>wasm32-unknown-unknown</code></a>. See the
 documentation there for more information.</p>
+<h2 id="unwinding"><a class="header" href="#unwinding">Unwinding</a></h2>
+<p>This target is compiled with <code>-Cpanic=abort</code> by default. For information on
+using <code>-Cpanic=unwind</code> see the <a href="./wasm32-unknown-unknown.html#unwinding">documentation about unwinding for
+<code>wasm32-unknown-unknown</code></a>.</p>
 
                     </main>
 

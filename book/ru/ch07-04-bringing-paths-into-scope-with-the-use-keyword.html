@@ -217,8 +217,8 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="Добавление-путей-в-область-видимости-ключевым-словом-use"><a class="header" href="#Добавление-путей-в-область-видимости-ключевым-словом-use">Добавление путей в область видимости ключевым словом <code>use</code></a></h2>
-<p>Необходимость записывать пути к функциям вызова может показаться неудобной и многословной. В Листинге 7-7 независимо от того, выбирали ли мы абсолютный или относительный путь к функции <code>add_to_waitlist</code>, каждый раз, когда мы хотели вызвать <code>add_to_waitlist</code>, нам приходилось также указывать <code>front_of_house</code> и <code>hosting</code>. К счастью, есть способ упростить этот процесс: мы можем один раз создать псевдоним на путь при помощи ключевого слова <code>use</code>, а затем использовать более короткое имя везде в области видимости.</p>
-<p>В Листинге 7-11 мы подключили модуль <code>crate::front_of_house::hosting</code> в область видимости функции <code>eat_at_restaurant</code>, поэтому нам достаточно только указать <code>hosting::add_to_waitlist</code> для вызова функции <code>add_to_waitlist</code> внутри <code>eat_at_restaurant</code>.</p>
+<p>Having to write out the paths to call functions can feel inconvenient and repetitive. In Listing 7-7, whether we chose the absolute or relative path to the <code>add_to_waitlist</code> function, every time we wanted to call <code>add_to_waitlist</code> we had to specify <code>front_of_house</code> and <code>hosting</code> too. Fortunately, there’s a way to simplify this process: We can create a shortcut to a path with the <code>use</code> keyword once and then use the shorter name everywhere else in the scope.</p>
+<p>In Listing 7-11, we bring the <code>crate::front_of_house::hosting</code> module into the scope of the <code>eat_at_restaurant</code> function so that we only have to specify <code>hosting::add_to_waitlist</code> to call the <code>add_to_waitlist</code> function in <code>eat_at_restaurant</code>.</p>
 <Listing number="7-11" file-name="src/lib.rs" caption="Bringing a module into scope with `use`">
 <pre><code class="language-rust noplayground test_harness">mod front_of_house {
     pub mod hosting {
@@ -252,12 +252,13 @@ mod customer {
 <p>Ошибка компилятора показывает, что данный псевдоним не может использоваться в модуле <code>customer</code>:</p>
 <pre><code class="language-console">$ cargo build
    Compiling restaurant v0.1.0 (file:///projects/restaurant)
-error[E0433]: failed to resolve: use of undeclared crate or module `hosting`
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `hosting`
   --&gt; src/lib.rs:11:9
    |
 11 |         hosting::add_to_waitlist();
-   |         ^^^^^^^ use of undeclared crate or module `hosting`
+   |         ^^^^^^^ use of unresolved module or unlinked crate `hosting`
    |
+   = help: if you wanted to use a crate named `hosting`, use `cargo add hosting` to add it to your `Cargo.toml`
 help: consider importing this module through its public re-export
    |
 10 +     use crate::hosting;
@@ -294,14 +295,14 @@ pub fn eat_at_restaurant() {
 <p>Хотя Листинги 7-11 и 7-13 выполняют одну и ту же задачу, Листинг 7-11 является идиоматическим способом подключения функции в область видимости с помощью <code>use</code>. Подключение родительского модуля функции в область видимости при помощи <code>use</code> означает, что мы должны указывать родительский модуль при вызове функции. Указание родительского модуля при вызове функции даёт понять, что функция не определена локально, но в то же время сводя к минимуму повторение полного пути. В коде Листинга 7-13 не ясно, где именно определена <code>add_to_waitlist</code>.</p>
 <p>С другой стороны, при подключении структур, перечислений и других элементов использованием <code>use</code>, идиоматически правильным будет указывать полный путь. Листинг 7-14 показывает идиоматический способ подключения структуры стандартной библиотеки <code>HashMap</code> в область видимости бинарного крейта.</p>
 <Listing number="7-14" file-name="src/main.rs" caption="Bringing `HashMap` into scope in an idiomatic way">
-<pre><pre class="playground"><code class="language-rust edition2021">use std::collections::HashMap;
+<pre><pre class="playground"><code class="language-rust edition2024">use std::collections::HashMap;
 
 fn main() {
     let mut map = HashMap::new();
     map.insert(1, 2);
 }</code></pre></pre>
 </Listing>
-<p>За этой идиомой нет веской причины: это просто соглашение, которое появилось само собой. Люди привыкли читать и писать код на Rust таким образом.</p>
+<p>There’s no strong reason behind this idiom: It’s just the convention that has emerged, and folks have gotten used to reading and writing Rust code this way.</p>
 <p>Исключением из этой идиомы является случай, когда мы подключаем два элемента с одинаковыми именами в область видимости используя инструкцию <code>use</code> — Rust просто не позволяет этого сделать. Листинг 7-15 показывает, как подключить в область действия два типа с одинаковыми именами <code>Result</code>, но из разных родительских модулей, и как на них ссылаться.</p>
 <Listing number="7-15" file-name="src/lib.rs" caption="Bringing two types with the same name into the same scope requires using their parent modules.">
 <pre><code class="language-rust noplayground">use std::fmt;
@@ -319,7 +320,7 @@ fn function2() -&gt; io::Result&lt;()&gt; {
 </Listing>
 <p>Как видите, использование имени родительских модулей позволяет различать два типа <code>Result</code>. Если бы вместо этого мы указали <code>use std::fmt::Result</code> и <code>use std::io::Result</code>, мы бы имели два типа <code>Result</code> в одной области видимости, и Rust не смог бы понять какой из двух <code>Result</code> мы имели в виду, когда нашёл бы их употребление в коде.</p>
 <h3 id="Предоставление-новых-имён-с-помощью-ключевого-слова-as"><a class="header" href="#Предоставление-новых-имён-с-помощью-ключевого-слова-as">Предоставление новых имён с помощью ключевого слова <code>as</code></a></h3>
-<p>Есть другое решение проблемы добавления словом <code>use</code> двух типов с одинаковыми именами в одну и ту же область видимости: после пути можно указать <code>as</code> и новое локальное имя (или <em>псевдоним</em>) для типа. Листинг 7-16 показывает, как по-другому написать код из Листинга 7-15, путём переименования одного из двух типов <code>Result</code> словом <code>as</code>.</p>
+<p>There’s another solution to the problem of bringing two types of the same name into the same scope with <code>use</code>: After the path, we can specify <code>as</code> and a new local name, or <em>alias</em>, for the type. Listing 7-16 shows another way to write the code in Listing 7-15 by renaming one of the two <code>Result</code> types using <code>as</code>.</p>
 <Listing number="7-16" file-name="src/lib.rs" caption="Renaming a type when it’s brought into scope with the `as` keyword">
 <pre><code class="language-rust noplayground">use std::fmt::Result;
 use std::io::Result as IoResult;
@@ -336,7 +337,7 @@ fn function2() -&gt; IoResult&lt;()&gt; {
 </Listing>
 <p>Во второй инструкции <code>use</code> мы выбрали новое имя <code>IoResult</code> для типа <code>std::io::Result</code>, которое теперь не будет конфликтовать с типом <code>Result</code> из <code>std::fmt</code>, который также подключён в область видимости. Оба Листинга 7-15 и 7-16 считаются идиоматичными, так что выбор за вами!</p>
 <h3 id="Реэкспорт-имён-с-pub-use"><a class="header" href="#Реэкспорт-имён-с-pub-use">Реэкспорт имён с <code>pub use</code></a></h3>
-<p>Когда мы подключаем имя в область видимости, используя ключевое слово <code>use</code>, то имя, доступное в новой области видимости, является приватным. Чтобы позволить коду, который вызывает наш код, ссылаться на это имя, как если бы оно было определено в области видимости данного кода, можно объединить <code>pub</code> и <code>use</code>. Этот метод называется <em>реэкспортом</em>, потому что мы подключаем элемент в область видимости, но также делаем этот элемент доступным для подключения в других областях видимости.</p>
+<p>When we bring a name into scope with the <code>use</code> keyword, the name is private to the scope into which we imported it. To enable code outside that scope to refer to that name as if it had been defined in that scope, we can combine <code>pub</code> and <code>use</code>. This technique is called <em>re-exporting</em> because we’re bringing an item into scope but also making that item available for others to bring into their scope.</p>
 <p>Листинг 7-17 показывает код из Листинга 7-11, где <code>use</code> в корневом модуле заменено на <code>pub use</code>.</p>
 <Listing number="7-17" file-name="src/lib.rs" caption="Making a name available for any code to use from a new scope with `pub use`">
 <pre><code class="language-rust noplayground test_harness">mod front_of_house {
@@ -352,7 +353,7 @@ pub fn eat_at_restaurant() {
 }</code></pre>
 </Listing>
 <p>До этого изменения внешний код должен был вызывать функцию <code>add_to_waitlist</code>, используя путь <code>restaurant::front_of_house::hosting::add_to_waitlist()</code>. Теперь, поскольку это объявление <code>pub use</code> реэкспортировало модуль <code>hosting</code> из корневого модуля, внешний код теперь может использовать вместо него путь <code>restaurant::hosting::add_to_waitlist()</code>.</p>
-<p>Реэкспорт полезен, когда внутренняя структура вашего кода отличается от того, как программисты, вызывающие ваш код, думают о предметной области. Например, по аналогии с рестораном люди, управляющие им, думают о "front of house" и "back of house". Но клиенты, посещающие ресторан, вероятно, не будут думать о частях ресторана в таких терминах. Используя <code>pub use</code>, мы можем написать наш код с одной структурой, но сделать общедоступной другую структуру. Благодаря этому наша библиотека хорошо организована и для программистов, работающих над библиотекой, и для программистов, вызывающих библиотеку. Мы рассмотрим ещё один пример <code>pub use</code> и его влияние на документацию вашего крейта в разделе <a href="ch14-02-publishing-to-crates-io.html#%D0%AD%D0%BA%D1%81%D0%BF%D0%BE%D1%80%D1%82-%D1%83%D0%B4%D0%BE%D0%B1%D0%BD%D0%BE%D0%B3%D0%BE-%D0%BE%D0%B1%D1%89%D0%B5%D0%B4%D0%BE%D1%81%D1%82%D1%83%D0%BF%D0%BD%D0%BE%D0%B3%D0%BE-API-%D1%81-pub-use">"Экспорт удобного общедоступного API с <code>pub use</code>"</a><!-- ignore --> Главы 14.</p>
+<p>Re-exporting is useful when the internal structure of your code is different from how programmers calling your code would think about the domain. For example, in this restaurant metaphor, the people running the restaurant think about “front of house” and “back of house.” But customers visiting a restaurant probably won’t think about the parts of the restaurant in those terms. With <code>pub use</code>, we can write our code with one structure but expose a different structure. Doing so makes our library well organized for programmers working on the library and programmers calling the library. We’ll look at another example of <code>pub use</code> and how it affects your crate’s documentation in <a href="ch14-02-publishing-to-crates-io.html#exporting-a-convenient-public-api">“Exporting a Convenient Public API”</a><!-- ignore --> in Chapter 14.</p>
 <h3 id="Использование-внешних-пакетов"><a class="header" href="#Использование-внешних-пакетов">Использование внешних пакетов</a></h3>
 <p>В Главе 2 мы запрограммировали игру в угадайку, где использовался внешний пакет с именем <code>rand</code> для генерации случайного числа. Чтобы использовать <code>rand</code> в нашем проекте, мы добавили эту строку в <em>Cargo.toml</em>.</p>
 <!-- When updating the version of `rand` used, also update the version of
@@ -367,6 +368,7 @@ pub fn eat_at_restaurant() {
 <p>Добавление rand в качестве зависимости в <em>Cargo.toml</em> указывает Cargo загрузить пакет <code>rand</code> и все его зависимости с <a href="https://crates.io/">crates.io</a> и сделать <code>rand</code> доступным для нашего проекта.</p>
 <p>Затем, чтобы подключить определения <code>rand</code> в область видимости нашего пакета, мы добавили строку <code>use</code>, начинающуюся с названия пакета <code>rand</code> и списка элементов, которые мы хотим подключить в область видимости. Напомним, что в разделе <a href="ch02-00-guessing-game-tutorial.html#%D0%93%D0%B5%D0%BD%D0%B5%D1%80%D0%B0%D1%86%D0%B8%D1%8F-%D1%81%D0%B5%D0%BA%D1%80%D0%B5%D1%82%D0%BD%D0%BE%D0%B3%D0%BE-%D1%87%D0%B8%D1%81%D0%BB%D0%B0">"Генерация секретного числа"</a><!-- ignore -->Главы 2 мы подключили трейт <code>Rng</code> в область видимости и вызвали функцию <code>rand::thread_rng</code>:</p>
 <pre><code class="language-rust ignore"><span class="boring">use std::io;
+</span><span class="boring">
 </span>use rand::Rng;
 
 fn main() {
@@ -388,12 +390,14 @@ fn main() {
 </span>}</code></pre>
 <p>Участники Сообщества Rust создали множество пакетов, доступных на <a href="https://crates.io/">crates.io</a>, и добавление любого из них в ваш пакет включает в себя одни и те же шаги: нужно перечислить их в файле <em>Cargo.toml</em> вашего пакета и использовать <code>use</code> для подключения элементов внешних пакетов в область видимости.</p>
 <p>Обратите внимание, что стандартная библиотека <code>std</code> также является крейтом, внешним по отношению к нашему пакету. Поскольку стандартная библиотека поставляется с языком Rust, нам не нужно изменять <em>Cargo.toml</em> для подключения <code>std</code>. Но нам нужно ссылаться на неё при помощи <code>use</code>, чтобы добавить элементы оттуда в область видимости нашего пакета. Например, с <code>HashMap</code> мы использовали бы эту строку:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::collections::HashMap;
 <span class="boring">}</span></code></pre></pre>
 <p>Это абсолютный путь, начинающийся с <code>std</code>, имени крейта стандартной библиотеки.</p>
-<h3 id="Использование-перечисления-путей-для-сокращения-строчек-use"><a class="header" href="#Использование-перечисления-путей-для-сокращения-строчек-use">Использование перечисления путей для сокращения строчек <code>use</code></a></h3>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="using-nested-paths-to-clean-up-large-use-lists"></a></p>
+<h3 id="using-nested-paths-to-clean-up-use-lists"><a class="header" href="#using-nested-paths-to-clean-up-use-lists">Using Nested Paths to Clean Up <code>use</code> Lists</a></h3>
 <p>Если мы используем несколько элементов, определённых в одном крейте или в том же модуле, то перечисление каждого элемента в отдельной строке может занимать много вертикального пространства в файле. Например, эти две инструкции <code>use</code> используются в нашей игре в угадайку (Листинг 2-4) для подключения элементов из <code>std</code> в область видимости:</p>
 <Listing file-name="src/main.rs">
 <pre><code class="language-rust ignore"><span class="boring">use rand::Rng;
@@ -470,14 +474,16 @@ use std::io::Write;</code></pre>
 <pre><code class="language-rust noplayground">use std::io::{self, Write};</code></pre>
 </Listing>
 <p>Эта строка подключает <code>std::io</code> и <code>std::io::Write</code> в область видимости.</p>
-<h3 id="Оператор-"><a class="header" href="#Оператор-">Оператор <code>*</code></a></h3>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="the-glob-operator"></a></p>
+<h3 id="importing-items-with-the-glob-operator"><a class="header" href="#importing-items-with-the-glob-operator">Importing Items with the Glob Operator</a></h3>
 <p>If we want to bring <em>all</em> public items defined in a path into scope, we can specify that path followed by the <code>*</code> glob operator:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::collections::*;
 <span class="boring">}</span></code></pre></pre>
-<p>Эта инструкция <code>use</code> подключает все открытые элементы из модуля <code>std::collections</code> в текущую область видимости. Будьте осторожны при использовании оператора <code>*</code>! Он может усложнить понимание, какие имена находятся в области видимости и где были определены имена, используемые в вашей программе.</p>
-<p>Оператор <code>*</code> часто используется при тестировании для подключения всего, что есть в модуле <code>tests</code>; мы поговорим об этом в разделе <a href="ch11-01-writing-tests.html#%D0%9A%D0%B0%D0%BA-%D0%BF%D0%B8%D1%81%D0%B0%D1%82%D1%8C-%D1%82%D0%B5%D1%81%D1%82%D1%8B">"Как писать тесты"</a><!-- ignore --> Главы 11. Оператор <code>*</code> также иногда используется как часть шаблона prelude: обратитесь к <a href="https://doc.rust-lang.org/std/prelude/index.html#other-preludes">документации стандартной библиотеки</a><!-- ignore --> для получения дополнительной информации.</p>
+<p>This <code>use</code> statement brings all public items defined in <code>std::collections</code> into the current scope. Be careful when using the glob operator! Glob can make it harder to tell what names are in scope and where a name used in your program was defined. Additionally, if the dependency changes its definitions, what you’ve imported changes as well, which may lead to compiler errors when you upgrade the dependency if the dependency adds a definition with the same name as a definition of yours in the same scope, for example.</p>
+<p>The glob operator is often used when testing to bring everything under test into the <code>tests</code> module; we’ll talk about that in <a href="ch11-01-writing-tests.html#how-to-write-tests">“How to Write Tests”</a><!-- ignore --> in Chapter 11. The glob operator is also sometimes used as part of the prelude pattern: See <a href="../std/prelude/index.html#other-preludes">the standard library documentation</a><!-- ignore --> for more information on that pattern.</p>
 
                     </main>
 

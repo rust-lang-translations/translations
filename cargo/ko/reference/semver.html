@@ -89,6 +89,7 @@
         <link rel="stylesheet" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/cargo.css">
         <link rel="stylesheet" href="../theme/language-picker.css">
 
 
@@ -669,7 +670,7 @@ fn main() {
     let p = Packed { a: 1, b: 2 };
     // Some assumption about the size of the type.
     // Without `packed`, this fails since the size is 4.
-    const _: () = assert!(std::mem::size_of::&lt;Packed&gt;() == 3); // Error: evaluation of constant value failed
+    const _: () = assert!(std::mem::size_of::&lt;Packed&gt;() == 3); // Error: assertion failed
 }</code></pre>
 <pre><code class="language-rust ignore">// MAJOR CHANGE
 
@@ -769,7 +770,7 @@ fn main() {
     let p = Packed { a: 1, b: 2 };
     // Some assumption about the size of the type.
     // The alignment has changed from 8 to 4.
-    const _: () = assert!(std::mem::align_of::&lt;Packed&gt;() == 8); // Error: evaluation of constant value failed
+    const _: () = assert!(std::mem::align_of::&lt;Packed&gt;() == 8); // Error: assertion failed
 }</code></pre>
 <h4 id="repr-align-remove"><a class="header" href="#repr-align-remove">Major: Removing <code>repr(align)</code> from a struct, union, or enum</a></h4>
 <p>It is a breaking change to remove <code>repr(align)</code> from a struct, union, or enum, if their layout was well-defined. This may change the alignment or layout that external crates are relying on.</p>
@@ -800,7 +801,7 @@ fn main() {
     let p = Packed { a: 1, b: 2 };
     // Some assumption about the size of the type.
     // The alignment has changed from 8 to 4.
-    const _: () = assert!(std::mem::align_of::&lt;Packed&gt;() == 8); // Error: evaluation of constant value failed
+    const _: () = assert!(std::mem::align_of::&lt;Packed&gt;() == 8); // Error: assertion failed
 }</code></pre>
 <h4 id="repr-c-shuffle"><a class="header" href="#repr-c-shuffle">Major: Changing the order of public fields of a <code>repr(C)</code> type</a></h4>
 <p>It is a breaking change to change the order of public fields of a <code>repr(C)</code> type. External crates may be relying on the specific ordering of the fields.</p>
@@ -826,7 +827,7 @@ pub struct SpecificLayout {
 // Example usage that will break.
 use updated_crate::SpecificLayout;
 
-extern "C" {
+unsafe extern "C" {
     // This C function is assuming a specific layout defined in a C header.
     fn c_fn_get_b(x: &amp;SpecificLayout) -&gt; u32;
 }
@@ -874,7 +875,7 @@ pub struct SpecificLayout {
 // Example usage that will break.
 use updated_crate::SpecificLayout;
 
-extern "C" {
+unsafe extern "C" {
     // This C function is assuming a specific layout defined in a C header.
     fn c_fn_get_b(x: &amp;SpecificLayout) -&gt; u32; // Error: is not FFI-safe
 }
@@ -975,7 +976,7 @@ pub struct Transparent&lt;T&gt;(T);
 #![deny(improper_ctypes)]
 use updated_crate::Transparent;
 
-extern "C" {
+unsafe extern "C" {
     fn c_fn() -&gt; Transparent&lt;f64&gt;; // Error: is not FFI-safe
 }
 
@@ -1292,7 +1293,7 @@ struct Foo;
 impl Trait for Foo {}
 
 fn main() {
-    let obj: Box&lt;dyn Trait&gt; = Box::new(Foo); // Error: cannot be made into an object
+    let obj: Box&lt;dyn Trait&gt; = Box::new(Foo); // Error: the trait `Trait` is not dyn compatible
 }</code></pre>
 <p>It is safe to do the converse (making a non-object safe trait into a safe one).</p>
 <h3 id="trait-new-parameter-no-default"><a class="header" href="#trait-new-parameter-no-default">Major: adding a type parameter without a default</a></h3>
@@ -1795,6 +1796,7 @@ fn main() {
 <p>It is generally recommended to treat this as a minor change, rather than as a major change, for <a href="https://github.com/rust-lang/api-guidelines/discussions/231">various reasons</a>. It is usually relatively easy to update to a newer version of Rust. Rust also has a rapid 6-week release cycle, and some projects will provide compatibility within a window of releases (such as the current stable release plus N previous releases). Just keep in mind that some large projects may not be able to update their Rust toolchain rapidly.</p>
 <p>Mitigation strategies:</p>
 <ul>
+<li>Document your package’s minimum-supported Rust version by setting <a href="rust-version.html"><code>package.rust-version</code></a>, allowing Cargo’s dependency resolution to attempt to <a href="resolver.html#rust-version">select older versions of your package</a> when needed. Be sure to consider the <a href="rust-version.html#support-expectations">support expectations</a> when doing so.</li>
 <li>Use <a href="features.html">Cargo features</a> to make the new features opt-in.</li>
 <li>Provide a large window of support for older releases.</li>
 <li>Copy the source of new standard library items if possible so that you can continue to use an older version but take advantage of the new feature.</li>

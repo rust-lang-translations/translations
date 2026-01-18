@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>테스트 주도 개발을 통한 라이브러리 기능 개발 - The Rust Programming Language</title>
+        <title>Adding Functionality with Test Driven Development - The Rust Programming Language</title>
 
 
         <!-- Custom HTML head -->
@@ -216,8 +216,10 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="테스트-주도-개발로-라이브러리-기능-개발하기"><a class="header" href="#테스트-주도-개발로-라이브러리-기능-개발하기">테스트 주도 개발로 라이브러리 기능 개발하기</a></h2>
-<p>로직을 _src/lib.rs_로 추출하고 인수 수집 및 에러 처리를 _src/main.rs_에 남겨두었으니, 이제 코드의 핵심 기능에 대한 테스트를 작성하기가 훨씬 쉬워졌습니다. 명령줄에서 바이너리를 직접 호출할 필요 없이, 다양한 인수를 사용하여 함수를 직접 호출하고 반환 값을 확인할 수 있습니다.</p>
+                        <!-- Old headings. Do not remove or links may break. -->
+<p><a id="developing-the-librarys-functionality-with-test-driven-development"></a></p>
+<h2 id="adding-functionality-with-test-driven-development"><a class="header" href="#adding-functionality-with-test-driven-development">Adding Functionality with Test-Driven Development</a></h2>
+<p>Now that we have the search logic in <em>src/lib.rs</em> separate from the <code>main</code> function, it’s much easier to write tests for the core functionality of our code. We can call functions directly with various arguments and check return values without having to call our binary from the command line.</p>
 <p>이 섹션에서는 다음과 같은 단계의 테스트 주도 개발(TDD) 프로세스를 사용하여 <code>minigrep</code> 프로그램에 검색 로직을 추가하겠습니다:</p>
 <ol>
 <li>실패하는 테스트를 작성하고 실행하여, 예상한 이유로 실패하는지 확인합니다.</li>
@@ -225,39 +227,18 @@
 <li>방금 추가하거나 변경한 코드를 리팩터링하고 테스트가 계속 통과하는지 확인합니다.</li>
 <li>1단계부터 반복합니다!</li>
 </ol>
-<p>소프트웨어를 작성하는 여러 방법 중 하나일 뿐이지만, TDD는 코드 설계를 주도하는 데 도움이 될 수 있습니다. 테스트를 통과시키는 코드를 작성하기 전에 테스트를 먼저 작성하면 프로세스 전반에 걸쳐 높은 테스트 커버리지를 유지하는 데 도움이 됩니다.</p>
+<p>Though it’s just one of many ways to write software, TDD can help drive code design. Writing the test before you write the code that makes the test pass helps maintain high test coverage throughout the process.</p>
 <p>파일 내용에서 검색어 문자열을 실제로 검색하고 검색어와 일치하는 줄 목록을 생성하는 기능의 구현을 TDD로 진행해 보겠습니다. 이 기능을 <code>search</code>라는 함수에 추가하겠습니다.</p>
 <h3 id="실패하는-테스트-작성하기"><a class="header" href="#실패하는-테스트-작성하기">실패하는 테스트 작성하기</a></h3>
-<p>더 이상 필요하지 않으므로, 프로그램의 동작을 확인하기 위해 사용했던 <code>println!</code> 문들을 _src/lib.rs_와 _src/main.rs_에서 제거합시다. 그런 다음 <a href="ch11-01-writing-tests.html#the-anatomy-of-a-test-function">11장</a><!-- ignore -->에서 했던 것처럼 _src/lib.rs_에 테스트 함수가 포함된 <code>tests</code> 모듈을 추가하겠습니다. 테스트 함수는 우리가 <code>search</code> 함수가 갖기를 원하는 동작을 명시합니다. 즉, 검색어와 검색할 텍스트를 인수로 받아, 텍스트 중에서 검색어를 포함하는 줄들만 반환해야 합니다. 목록 12-15는 아직 컴파일되지 않는 이 테스트를 보여줍니다.</p>
-<Listing number="12-15" file-name="src/lib.rs" caption="Creating a failing test for the `search` function we wish we had">
-<pre><code class="language-rust ignore does_not_compile"><span class="boring">use std::error::Error;
-</span><span class="boring">use std::fs;
-</span><span class="boring">
-</span><span class="boring">pub struct Config {
-</span><span class="boring">    pub query: String,
-</span><span class="boring">    pub file_path: String,
+<p>In <em>src/lib.rs</em>, we’ll add a <code>tests</code> module with a test function, as we did in <a href="ch11-01-writing-tests.html#the-anatomy-of-a-test-function">Chapter 11</a><!-- ignore -->. The test function specifies the behavior we want the <code>search</code> function to have: It will take a query and the text to search, and it will return only the lines from the text that contain the query. Listing 12-15 shows this test.</p>
+<Listing number="12-15" file-name="src/lib.rs" caption="Creating a failing test for the `search` function for the functionality we wish we had">
+<pre><code class="language-rust ignore does_not_compile"><span class="boring">pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
+</span><span class="boring">    unimplemented!();
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">impl Config {
-</span><span class="boring">    pub fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
-</span><span class="boring">        if args.len() &lt; 3 {
-</span><span class="boring">            return Err("인수가 부족합니다");
-</span><span class="boring">        }
-</span><span class="boring">
-</span><span class="boring">        let query = args[1].clone();
-</span><span class="boring">        let file_path = args[2].clone();
-</span><span class="boring">
-</span><span class="boring">        Ok(Config { query, file_path })
-</span><span class="boring">    }
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">pub fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
-</span><span class="boring">    let contents = fs::read_to_string(config.file_path)?;
-</span><span class="boring">
-</span><span class="boring">    Ok(())
-</span><span class="boring">}
-</span><span class="boring">
-</span>#[cfg(test)]
+</span>// --생략--
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -274,36 +255,9 @@ Pick three.";
 }</code></pre>
 </Listing>
 <p>이 테스트는 <code>"duct"</code>라는 문자열을 검색합니다. 검색 대상 텍스트는 세 줄이며, 그중 한 줄만 <code>"duct"</code>를 포함하고 있습니다(여는 따옴표 뒤의 백슬래시는 러스트에게 이 문자열 리터럴의 시작 부분에 개행 문자를 넣지 말라고 알려주는 것임에 주의하세요). 우리는 <code>search</code> 함수에서 반환된 값이 우리가 기대하는 줄만 포함하고 있는지 단언합니다.</p>
-<p>아직은 이 테스트를 실행하여 실패하는 것을 볼 수 없는데, 테스트가 컴파일조차 되지 않기 때문입니다. <code>search</code> 함수가 아직 존재하지 않으니까요! TDD 원칙에 따라, 목록 12-16과 같이 항상 빈 벡터를 반환하는 <code>search</code> 함수의 정의를 추가하여 테스트가 컴파일되고 실행되기에 충분한 코드만 추가하겠습니다. 그러면 테스트는 컴파일될 것이고, 빈 벡터가 <code>"safe, fast, productive."</code>라는 줄을 포함한 벡터와 일치하지 않기 때문에 실패할 것입니다.</p>
-<Listing number="12-16" file-name="src/lib.rs" caption="Defining just enough of the `search` function so our test will compile">
-<pre><code class="language-rust noplayground"><span class="boring">use std::error::Error;
-</span><span class="boring">use std::fs;
-</span><span class="boring">
-</span><span class="boring">pub struct Config {
-</span><span class="boring">    pub query: String,
-</span><span class="boring">    pub file_path: String,
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">impl Config {
-</span><span class="boring">    pub fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
-</span><span class="boring">        if args.len() &lt; 3 {
-</span><span class="boring">            return Err("인수가 부족합니다");
-</span><span class="boring">        }
-</span><span class="boring">
-</span><span class="boring">        let query = args[1].clone();
-</span><span class="boring">        let file_path = args[2].clone();
-</span><span class="boring">
-</span><span class="boring">        Ok(Config { query, file_path })
-</span><span class="boring">    }
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">pub fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
-</span><span class="boring">    let contents = fs::read_to_string(config.file_path)?;
-</span><span class="boring">
-</span><span class="boring">    Ok(())
-</span><span class="boring">}
-</span><span class="boring">
-</span>pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
+<p>If we run this test, it will currently fail because the <code>unimplemented!</code> macro panics with the message “not implemented”. In accordance with TDD principles, we’ll take a small step of adding just enough code to get the test to not panic when calling the function by defining the <code>search</code> function to always return an empty vector, as shown in Listing 12-16. Then, the test should compile and fail because an empty vector doesn’t match a vector containing the line <code>"safe, fast, productive."</code>.</p>
+<Listing number="12-16" file-name="src/lib.rs" caption="Defining just enough of the `search` function so that calling it won’t panic">
+<pre><code class="language-rust noplayground">pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
     vec![]
 }
 <span class="boring">
@@ -323,55 +277,28 @@ Pick three.";
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 </Listing>
-<p><code>search</code>의 시그니처에서 명시적인 라이프타임 <code>'a</code>를 정의하고, 이를 <code>contents</code> 인수와 반환 값에 사용해야 함에 주목하세요. <a href="ch10-03-lifetime-syntax.html">10장</a><!-- ignore -->에서 배웠듯이, 라이프타임 매개변수는 어떤 인수의 라이프타임이 반환 값의 라이프타임과 연결되는지를 명시합니다. 이 경우, 반환된 벡터가 (<code>query</code> 인수가 아닌) <code>contents</code> 인수의 슬라이스를 참조하는 문자열 슬라이스들을 포함해야 함을 나타냅니다.</p>
+<p>Now let’s discuss why we need to define an explicit lifetime <code>'a</code> in the signature of <code>search</code> and use that lifetime with the <code>contents</code> argument and the return value. Recall in <a href="ch10-03-lifetime-syntax.html">Chapter 10</a><!-- ignore --> that the lifetime parameters specify which argument lifetime is connected to the lifetime of the return value. In this case, we indicate that the returned vector should contain string slices that reference slices of the argument <code>contents</code> (rather than the argument <code>query</code>).</p>
 <p>다시 말해, 우리는 <code>search</code> 함수가 반환하는 데이터가 <code>contents</code> 인수로 전달된 데이터만큼 오래 살 것이라고 러스트에게 알려주는 것입니다. 이는 중요합니다! 슬라이스에 의해 참조되는 데이터는 그 참조가 유효한 동안 반드시 유효해야 합니다. 만약 컴파일러가 우리가 <code>contents</code>가 아닌 <code>query</code>의 문자열 슬라이스를 만든다고 가정한다면, 안전성 검사를 잘못 수행하게 될 것입니다.</p>
 <p>만약 라이프타임 명시를 잊어버리고 이 함수를 컴파일하려고 하면, 다음과 같은 에러가 발생합니다:</p>
 <pre><code class="language-console">$ cargo build
    Compiling minigrep v0.1.0 (file:///projects/minigrep)
 error[E0106]: missing lifetime specifier
-  --&gt; src/lib.rs:28:51
-   |
-28 | pub fn search(query: &amp;str, contents: &amp;str) -&gt; Vec&lt;&amp;str&gt; {
-   |                      ----            ----         ^ expected named lifetime parameter
-   |
-   = help: this function's return type contains a borrowed value, but the signature does not say whether it is borrowed from `query` or `contents`
+ --&gt; src/lib.rs:1:51
+  |
+1 | pub fn search(query: &amp;str, contents: &amp;str) -&gt; Vec&lt;&amp;str&gt; {
+  |                      ----            ----         ^ expected named lifetime parameter
+  |
+  = help: this function's return type contains a borrowed value, but the signature does not say whether it is borrowed from `query` or `contents`
 help: consider introducing a named lifetime parameter
-   |
-28 | pub fn search&lt;'a&gt;(query: &amp;'a str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
-   |              ++++         ++                 ++              ++
+  |
+1 | pub fn search&lt;'a&gt;(query: &amp;'a str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
+  |              ++++         ++                 ++              ++
 
 For more information about this error, try `rustc --explain E0106`.
 error: could not compile `minigrep` (lib) due to 1 previous error
 </code></pre>
-<p>러스트가 두 인수 중 어느 것이 필요한지 알 방법이 없으므로, 우리가 명시적으로 알려주어야 합니다. <code>contents</code>가 모든 텍스트를 담고 있는 인수이고 우리는 그 텍스트 중 일치하는 부분들을 반환하고 싶어 하므로, <code>contents</code>가 라이프타임 문법을 통해 반환 값과 연결되어야 할 인수라는 것을 알 수 있습니다.</p>
+<p>Rust can’t know which of the two parameters we need for the output, so we need to tell it explicitly. Note that the help text suggests specifying the same lifetime parameter for all the parameters and the output type, which is incorrect! Because <code>contents</code> is the parameter that contains all of our text and we want to return the parts of that text that match, we know <code>contents</code> is the only parameter that should be connected to the return value using the lifetime syntax.</p>
 <p>다른 프로그래밍 언어들은 시그니처에서 인수와 반환 값을 연결할 것을 요구하지 않지만, 이 관행은 시간이 지남에 따라 익숙해질 것입니다. 이 예제를 10장의 <a href="ch10-03-lifetime-syntax.html#validating-references-with-lifetimes">“라이프타임으로 참조 유효성 검증하기”</a><!-- ignore --> 섹션에 있는 예제들과 비교해 보는 것도 좋을 것입니다.</p>
-<p>이제 테스트를 실행해 봅시다:</p>
-<pre><code class="language-console">$ cargo test
-   Compiling minigrep v0.1.0 (file:///projects/minigrep)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.97s
-     Running unittests src/lib.rs (target/debug/deps/minigrep-9cd200e5fac0fc94)
-
-running 1 test
-test tests::one_result ... FAILED
-
-failures:
-
----- tests::one_result stdout ----
-thread 'tests::one_result' panicked at src/lib.rs:44:9:
-assertion `left == right` failed
-  left: ["safe, fast, productive."]
- right: []
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-
-
-failures:
-    tests::one_result
-
-test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-
-error: test failed, to rerun pass `--lib`
-</code></pre>
-<p>좋습니다, 테스트가 정확히 예상했던 대로 실패하네요. 이제 테스트를 통과시켜 봅시다!</p>
 <h3 id="테스트를-통과시키기-위한-코드-작성하기"><a class="header" href="#테스트를-통과시키기-위한-코드-작성하기">테스트를 통과시키기 위한 코드 작성하기</a></h3>
 <p>현재 우리 테스트는 항상 빈 벡터를 반환하기 때문에 실패하고 있습니다. 이를 해결하고 <code>search</code>를 구현하기 위해, 우리 프로그램은 다음과 같은 단계들을 거쳐야 합니다:</p>
 <ol>
@@ -385,34 +312,7 @@ error: test failed, to rerun pass `--lib`
 <h4 id="lines-메서드로-줄-반복하기"><a class="header" href="#lines-메서드로-줄-반복하기"><code>lines</code> 메서드로 줄 반복하기</a></h4>
 <p>Rust has a helpful method to handle line-by-line iteration of strings, conveniently named <code>lines</code>, that works as shown in Listing 12-17. Note that this won’t compile yet.</p>
 <Listing number="12-17" file-name="src/lib.rs" caption="Iterating through each line in `contents`">
-<pre><code class="language-rust ignore does_not_compile"><span class="boring">use std::error::Error;
-</span><span class="boring">use std::fs;
-</span><span class="boring">
-</span><span class="boring">pub struct Config {
-</span><span class="boring">    pub query: String,
-</span><span class="boring">    pub file_path: String,
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">impl Config {
-</span><span class="boring">    pub fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
-</span><span class="boring">        if args.len() &lt; 3 {
-</span><span class="boring">            return Err("인수가 부족합니다");
-</span><span class="boring">        }
-</span><span class="boring">
-</span><span class="boring">        let query = args[1].clone();
-</span><span class="boring">        let file_path = args[2].clone();
-</span><span class="boring">
-</span><span class="boring">        Ok(Config { query, file_path })
-</span><span class="boring">    }
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">pub fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
-</span><span class="boring">    let contents = fs::read_to_string(config.file_path)?;
-</span><span class="boring">
-</span><span class="boring">    Ok(())
-</span><span class="boring">}
-</span><span class="boring">
-</span>pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
+<pre><code class="language-rust ignore does_not_compile">pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
     for line in contents.lines() {
         // 여기서 line으로 무언가를 합니다
     }
@@ -434,38 +334,11 @@ error: test failed, to rerun pass `--lib`
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 </Listing>
-<p><code>lines</code> 메서드는 반복자를 반환합니다. 반복자에 대해서는 <a href="ch13-02-iterators.html">13장</a><!-- ignore -->에서 깊이 있게 다루겠지만, <a href="ch03-05-control-flow.html#looping-through-a-collection-with-for">목록 3-5</a><!-- ignore -->에서 컬렉션의 각 아이템에 대해 코드를 실행하기 위해 반복자와 <code>for</code> 루프를 사용했던 방식을 기억해 보세요.</p>
+<p>The <code>lines</code> method returns an iterator. We’ll talk about iterators in depth in <a href="ch13-02-iterators.html">Chapter 13</a><!-- ignore -->. But recall that you saw this way of using an iterator in <a href="ch03-05-control-flow.html#looping-through-a-collection-with-for">Listing 3-5</a><!-- ignore -->, where we used a <code>for</code> loop with an iterator to run some code on each item in a collection.</p>
 <h4 id="각-줄에서-검색어-찾기"><a class="header" href="#각-줄에서-검색어-찾기">각 줄에서 검색어 찾기</a></h4>
 <p>다음으로, 현재 줄이 우리 검색어 문자열을 포함하고 있는지 확인하겠습니다. 다행히 문자열에는 이를 대신해 주는 <code>contains</code>라는 유용한 메서드가 있습니다! 목록 12-18에 나온 것처럼 <code>search</code> 함수에서 <code>contains</code> 메서드를 호출하도록 추가하세요. 이 코드는 여전히 컴파일되지 않는다는 점에 주의하세요.</p>
 <Listing number="12-18" file-name="src/lib.rs" caption="Adding functionality to see whether the line contains the string in `query`">
-<pre><code class="language-rust ignore does_not_compile"><span class="boring">use std::error::Error;
-</span><span class="boring">use std::fs;
-</span><span class="boring">
-</span><span class="boring">pub struct Config {
-</span><span class="boring">    pub query: String,
-</span><span class="boring">    pub file_path: String,
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">impl Config {
-</span><span class="boring">    pub fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
-</span><span class="boring">        if args.len() &lt; 3 {
-</span><span class="boring">            return Err("인수가 부족합니다");
-</span><span class="boring">        }
-</span><span class="boring">
-</span><span class="boring">        let query = args[1].clone();
-</span><span class="boring">        let file_path = args[2].clone();
-</span><span class="boring">
-</span><span class="boring">        Ok(Config { query, file_path })
-</span><span class="boring">    }
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">pub fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
-</span><span class="boring">    let contents = fs::read_to_string(config.file_path)?;
-</span><span class="boring">
-</span><span class="boring">    Ok(())
-</span><span class="boring">}
-</span><span class="boring">
-</span>pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
+<pre><code class="language-rust ignore does_not_compile">pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
     for line in contents.lines() {
         if line.contains(query) {
             // 여기서 line으로 무언가를 합니다
@@ -492,35 +365,8 @@ error: test failed, to rerun pass `--lib`
 <p>현재 우리는 기능을 하나씩 만들어가는 중입니다. 코드를 컴파일하려면, 함수 시그니처에서 명시한 대로 본문에서 값을 반환해야 합니다.</p>
 <h4 id="일치하는-줄-저장하기"><a class="header" href="#일치하는-줄-저장하기">일치하는 줄 저장하기</a></h4>
 <p>이 함수를 완성하려면, 우리가 반환하고자 하는 일치하는 줄들을 저장할 방법이 필요합니다. 이를 위해 <code>for</code> 루프 이전에 가변 벡터를 만들고, 벡터의 <code>push</code> 메서드를 호출하여 <code>line</code>을 저장할 수 있습니다. <code>for</code> 루프가 끝난 뒤에는 목록 12-19와 같이 벡터를 반환합니다.</p>
-<Listing number="12-19" file-name="src/lib.rs" caption="Storing the lines that match so we can return them">
-<pre><code class="language-rust ignore"><span class="boring">use std::error::Error;
-</span><span class="boring">use std::fs;
-</span><span class="boring">
-</span><span class="boring">pub struct Config {
-</span><span class="boring">    pub query: String,
-</span><span class="boring">    pub file_path: String,
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">impl Config {
-</span><span class="boring">    pub fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
-</span><span class="boring">        if args.len() &lt; 3 {
-</span><span class="boring">            return Err("인수가 부족합니다");
-</span><span class="boring">        }
-</span><span class="boring">
-</span><span class="boring">        let query = args[1].clone();
-</span><span class="boring">        let file_path = args[2].clone();
-</span><span class="boring">
-</span><span class="boring">        Ok(Config { query, file_path })
-</span><span class="boring">    }
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">pub fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
-</span><span class="boring">    let contents = fs::read_to_string(config.file_path)?;
-</span><span class="boring">
-</span><span class="boring">    Ok(())
-</span><span class="boring">}
-</span><span class="boring">
-</span>pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
+<Listing number="12-19" file-name="src/lib.rs" caption="Storing the lines that match so that we can return them">
+<pre><code class="language-rust ignore">pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
     let mut results = Vec::new();
 
     for line in contents.lines() {
@@ -574,68 +420,6 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 </code></pre>
 <p>테스트가 통과했으니, 우리는 이것이 작동한다는 것을 압니다!</p>
 <p>이 시점에서, 동일한 기능을 유지하면서 테스트를 통과시킨 채로 <code>search</code> 함수의 구현을 리팩터링할 기회를 고려해 볼 수 있습니다. <code>search</code> 함수의 코드가 나쁘지는 않지만, 반복자의 몇몇 유용한 기능을 활용하고 있지는 않습니다. <a href="ch13-02-iterators.html">13장</a><!-- ignore -->에서 반복자를 자세히 다루며 이 예제로 돌아와 어떻게 개선할 수 있는지 살펴보겠습니다.</p>
-<h4 id="run-함수에서-search-함수-사용하기"><a class="header" href="#run-함수에서-search-함수-사용하기"><code>run</code> 함수에서 <code>search</code> 함수 사용하기</a></h4>
-<p><code>search</code> 함수가 잘 작동하고 테스트도 통과했으므로, 이제 <code>run</code> 함수에서 <code>search</code>를 호출해야 합니다. <code>config.query</code> 값과 <code>run</code>이 파일에서 읽어온 <code>contents</code>를 <code>search</code> 함수에 전달해야 합니다. 그러면 <code>run</code>은 <code>search</code>에서 반환된 각 줄을 출력할 것입니다:</p>
-<p><span class="filename">파일명: src/lib.rs</span></p>
-<pre><code class="language-rust ignore"><span class="boring">use std::error::Error;
-</span><span class="boring">use std::fs;
-</span><span class="boring">
-</span><span class="boring">pub struct Config {
-</span><span class="boring">    pub query: String,
-</span><span class="boring">    pub file_path: String,
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">impl Config {
-</span><span class="boring">    pub fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
-</span><span class="boring">        if args.len() &lt; 3 {
-</span><span class="boring">            return Err("인수가 부족합니다");
-</span><span class="boring">        }
-</span><span class="boring">
-</span><span class="boring">        let query = args[1].clone();
-</span><span class="boring">        let file_path = args[2].clone();
-</span><span class="boring">
-</span><span class="boring">        Ok(Config { query, file_path })
-</span><span class="boring">    }
-</span><span class="boring">}
-</span><span class="boring">
-</span>pub fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
-    let contents = fs::read_to_string(config.file_path)?;
-
-    for line in search(&amp;config.query, &amp;contents) {
-        println!("{line}");
-    }
-
-    Ok(())
-}
-<span class="boring">
-</span><span class="boring">pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
-</span><span class="boring">    let mut results = Vec::new();
-</span><span class="boring">
-</span><span class="boring">    for line in contents.lines() {
-</span><span class="boring">        if line.contains(query) {
-</span><span class="boring">            results.push(line);
-</span><span class="boring">        }
-</span><span class="boring">    }
-</span><span class="boring">
-</span><span class="boring">    results
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">#[cfg(test)]
-</span><span class="boring">mod tests {
-</span><span class="boring">    use super::*;
-</span><span class="boring">
-</span><span class="boring">    #[test]
-</span><span class="boring">    fn one_result() {
-</span><span class="boring">        let query = "duct";
-</span><span class="boring">        let contents = "\
-</span><span class="boring">Rust:
-</span><span class="boring">safe, fast, productive.
-</span><span class="boring">Pick three.";
-</span><span class="boring">
-</span><span class="boring">        assert_eq!(vec!["safe, fast, productive."], search(query, contents));
-</span><span class="boring">    }
-</span><span class="boring">}</span></code></pre>
-<p>우리는 여전히 <code>for</code> 루프를 사용하여 <code>search</code>에서 반환된 각 줄을 출력합니다.</p>
 <p>이제 프로그램 전체가 작동할 것입니다! 먼저 에밀리 디킨슨의 시에서 정확히 한 줄만 반환해야 하는 단어인 _frog_로 테스트해 봅시다.</p>
 <pre><code class="language-console">$ cargo run -- frog poem.txt
    Compiling minigrep v0.1.0 (file:///projects/minigrep)

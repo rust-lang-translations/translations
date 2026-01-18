@@ -225,7 +225,7 @@
 <p>트레잇 객체는 지정된 트레잇을 구현하는 어떤 타입을 나타냅니다. 원래의 구체적인 타입은 타입 사용에 필요한 모든 정보를 담고 있는 vtable을 이용한 런타임 리플렉션을 위해 <em>지워집니다(erased)</em>. 트레잇 객체 포인터를 완성하는 정보는 vtable 포인터입니다. 피지칭자(pointee)의 런타임 크기는 vtable에서 동적으로 요청할 수 있습니다.</p>
 <p>슬라이스는 단순히 어떤 연속적인 저장 공간(일반적으로 배열이나 <code>Vec</code>)에 대한 뷰입니다. 슬라이스 포인터를 완성하는 정보는 단순히 그것이 가리키는 요소의 개수입니다. 피지칭자의 런타임 크기는 단순히 요소의 정적으로 알려진 크기에 요소의 개수를 곱한 값입니다.</p>
 <p>구조체는 실제로 마지막 필드로 단일 DST를 직접 저장할 수 있지만, 이 경우 해당 구조체 역시 DST가 됩니다.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// 스택에 직접 저장할 수 없음
 struct MySuperSlice {
@@ -234,7 +234,7 @@ struct MySuperSlice {
 }
 <span class="boring">}</span></code></pre></pre>
 <p>불행히도, 이러한 타입은 생성할 방법이 없다면 거의 무용지물입니다. 현재 사용자 정의 DST를 만드는 유일하게 제대로 지원되는 방법은 타입을 제네릭으로 만들고 _언사이징 강제 변환(unsizing coercion)_을 수행하는 것입니다.</p>
-<pre><pre class="playground"><code class="language-rust edition2021">struct MySuperSliceable&lt;T: ?Sized&gt; {
+<pre><pre class="playground"><code class="language-rust edition2024">struct MySuperSliceable&lt;T: ?Sized&gt; {
     info: u32,
     data: T,
 }
@@ -253,7 +253,7 @@ fn main() {
 <p>(그렇습니다. 사용자 정의 DST는 현재로서는 상당히 미완성된 기능입니다.)</p>
 <h2 id="크기가-0인-타입zsts"><a class="header" href="#크기가-0인-타입zsts">크기가 0인 타입(ZSTs)</a></h2>
 <p>러스트는 또한 공간을 차지하지 않는 타입을 지정할 수 있게 해줍니다.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Nothing; // 필드 없음 = 크기 없음
 
@@ -268,17 +268,17 @@ struct LotsOfNothing {
 <p>이것의 가장 극단적인 예 중 하나는 집합(Set)과 맵(Map)입니다. <code>Map&lt;Key, Value&gt;</code>가 주어졌을 때, <code>Set&lt;Key&gt;</code>를 단순히 <code>Map&lt;Key, UselessJunk&gt;</code>를 감싸는 얇은 래퍼로 구현하는 것이 일반적입니다. 많은 언어에서 이는 <code>UselessJunk</code>를 위한 공간을 할당하고, 그것을 저장하고 로드한 뒤 버리는 작업을 필요로 합니다. 이것이 불필요하다는 것을 증명하는 것은 컴파일러에게 어려운 분석일 것입니다.</p>
 <p>하지만 러스트에서는 단순히 <code>Set&lt;Key&gt; = Map&lt;Key, ()&gt;</code>라고 말할 수 있습니다. 이제 러스트는 모든 로드와 저장이 무의미하고 어떤 할당도 크기를 갖지 않는다는 것을 정적으로 압니다. 그 결과, 단형성화된 코드는 기본적으로 <code>HashMap</code>이 값을 지원하기 위해 가져야 하는 오버헤드가 전혀 없는 <code>HashSet</code>의 커스텀 구현체가 됩니다.</p>
 <p>안전한 코드는 ZST에 대해 걱정할 필요가 없지만, <em>안전하지 않은(unsafe)</em> 코드는 크기가 없는 타입의 결과에 주의해야 합니다. 특히, 포인터 오프셋은 무연산이며, 할당자는 일반적으로 <a href="../std/alloc/trait.GlobalAlloc.html#tymethod.alloc">0이 아닌 크기를 요구합니다</a>.</p>
-<p>ZST에 대한 참조(빈 슬라이스 포함)는 다른 모든 참조와 마찬가지로 null이 아니어야 하며 적절하게 정렬되어야 합니다. ZST에 대한 null 또는 정렬되지 않은 포인터를 역참조하는 것은 다른 타입과 마찬가지로 <a href="what-unsafe-does.html">정의되지 않은 동작(undefined behavior)</a>입니다.</p>
+<p>Note that references to ZSTs (including empty slices), just like all other references, must be non-null and suitably aligned. However, loading or storing through a null pointer to a ZST is not <a href="what-unsafe-does.html">undefined behavior</a>, unlike pointers to other types.</p>
 <h2 id="빈-타입empty-types"><a class="header" href="#빈-타입empty-types">빈 타입(Empty Types)</a></h2>
 <p>러스트는 또한 <em>심지어 인스턴스화할 수도 없는</em> 타입을 선언할 수 있게 해줍니다. 이러한 타입은 타입 수준에서만 논의될 수 있으며, 값 수준에서는 절대 존재할 수 없습니다. 빈 타입은 변형(variant)이 없는 열거형(enum)을 지정하여 선언할 수 있습니다.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>enum Void {} // 변형 없음 = 비어 있음(EMPTY)
 <span class="boring">}</span></code></pre></pre>
 <p>빈 타입은 ZST보다 훨씬 더 미미한 존재입니다. 빈 타입을 사용하는 주된 동기 부여 사례는 타입 수준의 도달 불가능성(type-level unreachability)입니다. 예를 들어, 어떤 API가 일반적으로 <code>Result</code>를 반환해야 하지만, 특정한 경우에는 실제로는 절대 실패하지 않는(infallible) 상황을 가정해 봅시다. <code>Result&lt;T, Void&gt;</code>를 반환함으로써 이를 타입 수준에서 전달하는 것이 가능합니다. 이 API의 사용자는 이 값이 <code>Err</code>이 되는 것이 _정적으로 불가능_하다는 것을 알기 때문에 안심하고 <code>unwrap</code>할 수 있습니다. <code>Err</code>이 되려면 <code>Void</code> 타입의 값을 제공해야 하기 때문입니다.</p>
 <p>원칙적으로 러스트는 이 사실에 기반하여 흥미로운 분석과 최적화를 수행할 수 있습니다. 예를 들어, <code>Result&lt;T, Void&gt;</code>는 단순히 <code>T</code>로 표현되는데, 이는 <code>Err</code> 케이스가 실제로 존재하지 않기 때문입니다(엄밀히 말하면 이는 보장되지 않는 최적화일 뿐이므로, 예를 들어 하나를 다른 하나로 <code>transmute</code>하는 것은 여전히 정의되지 않은 동작입니다).</p>
 <p>다음 코드도 컴파일됩니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>enum Void {}
 

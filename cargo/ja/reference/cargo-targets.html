@@ -89,6 +89,7 @@
         <link rel="stylesheet" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/cargo.css">
         <link rel="stylesheet" href="../theme/language-picker.css">
 
 
@@ -267,7 +268,7 @@ crate-type = ["staticlib"]
 <p>Integration tests can use the public API of the package’s library. They are also linked with the <a href="specifying-dependencies.html"><code>[dependencies]</code></a> and <a href="specifying-dependencies.html#development-dependencies"><code>[dev-dependencies]</code></a> defined in <code>Cargo.toml</code>.</p>
 <p>If you want to share code among multiple integration tests, you can place it in a separate module such as <code>tests/common/mod.rs</code> and then put <code>mod common;</code> in each test to import it.</p>
 <p>Each integration test results in a separate executable binary, and <a href="../commands/cargo-test.html"><code>cargo test</code></a> will run them serially. In some cases this can be inefficient, as it can take longer to compile, and may not make full use of multiple CPUs when running the tests. If you have a lot of integration tests, you may want to consider creating a single integration test, and split the tests into multiple modules. The libtest harness will automatically find all of the <code>#[test]</code> annotated functions and run them in parallel. You can pass module names to <a href="../commands/cargo-test.html"><code>cargo test</code></a> to only run the tests within that module.</p>
-<p>Binary targets are automatically built if there is an integration test. This allows an integration test to execute the binary to exercise and test its behavior. The <code>CARGO_BIN_EXE_&lt;name&gt;</code> <a href="environment-variables.html#environment-variables-cargo-sets-for-crates">environment variable</a> is set when the integration test is built so that it can use the <a href="../../std/macro.env.html"><code>env</code> macro</a> to locate the executable.</p>
+<p>Binary targets are automatically built if there is an integration test. This allows an integration test to execute the binary to exercise and test its behavior. The <code>CARGO_BIN_EXE_&lt;name&gt;</code> <a href="environment-variables.html#environment-variables-cargo-sets-for-crates">environment variable</a> is set when the integration test is built and run so that it can use the <a href="../../std/macro.env.html"><code>env</code> macro</a> or <a href="../../std/env/fn.var.html"><code>var</code> function</a> to locate the executable.</p>
 <h2 id="benchmarks"><a class="header" href="#benchmarks">Benchmarks</a></h2>
 <p>Benchmarks provide a way to test the performance of your code using the <a href="../commands/cargo-bench.html"><code>cargo bench</code></a> command. They follow the same structure as <a href="#tests">tests</a>, with each benchmark function annotated with the <code>#[bench]</code> attribute. Similarly to tests:</p>
 <ul>
@@ -291,7 +292,6 @@ bench = true           # Is benchmarked by default.
 doc = true             # Is documented by default.
 proc-macro = false     # Set to `true` for a proc-macro library.
 harness = true         # Use libtest harness.
-edition = "2015"       # The edition of the target.
 crate-type = ["lib"]   # The crate types to generate.
 required-features = [] # Features required to build this target (N/A for lib).
 </code></pre>
@@ -324,8 +324,6 @@ required-features = [] # Features required to build this target (N/A for lib).
 <p>The <code>harness</code> field indicates that the <a href="../../rustc/command-line-arguments.html#option-test"><code>--test</code> flag</a> will be passed to <code>rustc</code> which will automatically include the libtest library which is the driver for collecting and running tests marked with the <a href="../../reference/attributes/testing.html#the-test-attribute"><code>#[test]</code> attribute</a> or benchmarks with the <code>#[bench]</code> attribute. The default is <code>true</code> for all targets.</p>
 <p>If set to <code>false</code>, then you are responsible for defining a <code>main()</code> function to run tests and benchmarks.</p>
 <p>Tests have the <a href="../../reference/conditional-compilation.html#test"><code>cfg(test)</code> conditional expression</a> enabled whether or not the harness is enabled.</p>
-<h3 id="the-edition-field"><a class="header" href="#the-edition-field">The <code>edition</code> field</a></h3>
-<p>The <code>edition</code> field defines the <a href="../../edition-guide/index.html">Rust edition</a> the target will use. If not specified, it defaults to the <a href="manifest.html#the-edition-field"><code>edition</code> field</a> for the <code>[package]</code>. This field should usually not be set, and is only intended for advanced scenarios such as incrementally transitioning a large package to a new edition.</p>
 <h3 id="the-crate-type-field"><a class="header" href="#the-crate-type-field">The <code>crate-type</code> field</a></h3>
 <p>The <code>crate-type</code> field defines the <a href="../../reference/linkage.html">crate types</a> that will be generated by the target. It is an array of strings, allowing you to specify multiple crate types for a single target. This can only be specified for libraries and examples. Binaries, tests, and benchmarks are always the “bin” crate type. The defaults are:</p>
 <div class="table-wrapper"><table><thead><tr><th>Target</th><th>Crate Type</th></tr></thead><tbody>
@@ -347,6 +345,11 @@ tools = []
 name = "my-pg-tool"
 required-features = ["postgres", "tools"]
 </code></pre>
+<h3 id="the-edition-field"><a class="header" href="#the-edition-field">The <code>edition</code> field</a></h3>
+<p>The <code>edition</code> field defines the <a href="../../edition-guide/index.html">Rust edition</a> the target will use. If not specified, it defaults to the <a href="manifest.html#the-edition-field"><code>edition</code> field</a> for the <code>[package]</code>.</p>
+<blockquote>
+<p><strong>Note:</strong> This field is deprecated and will be removed in a future Edition</p>
+</blockquote>
 <h2 id="target-auto-discovery"><a class="header" href="#target-auto-discovery">Target auto-discovery</a></h2>
 <p>By default, Cargo automatically determines the targets to build based on the <a href="../guide/project-layout.html">layout of the files</a> on the filesystem. The target configuration tables, such as <code>[lib]</code>, <code>[[bin]]</code>, <code>[[test]]</code>, <code>[[bench]]</code>, or <code>[[example]]</code>, can be used to add additional targets that don’t follow the standard directory layout.</p>
 <p>The automatic target discovery can be disabled so that only manually configured targets will be built. Setting the keys <code>autolib</code>, <code>autobins</code>, <code>autoexamples</code>, <code>autotests</code>, or <code>autobenches</code> to <code>false</code> in the <code>[package]</code> section will disable auto-discovery of the corresponding target type.</p>

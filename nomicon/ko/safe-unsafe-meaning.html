@@ -227,14 +227,14 @@
 <li>크기가 지정된 타입에 대한 모든 원시 포인터는 전달된 오프셋이 <a href="../std/primitive.pointer.html#method.offset">"범위 내"</a>에 있지 않으면 정의되지 않은 동작을 호출하는 <a href="../std/primitive.pointer.html#method.offset"><code>offset</code></a> 메서드를 가집니다.</li>
 <li>모든 FFI(외부 함수 인터페이스) 함수는 다른 언어가 러스트 컴파일러가 확인할 수 없는 임의의 작업을 수행할 수 있기 때문에 <code>unsafe</code>로 호출해야 합니다.</li>
 </ul>
-<p>러스트 1.29.2 기준으로 표준 라이브러리는 다음 안전하지 않은 트레잇을 정의합니다(다른 트레잇도 있지만 아직 안정화되지 않았으며 일부는 영원히 안정화되지 않을 수도 있습니다):</p>
+<p>As of Rust 1.29.2, the standard library defines the following unsafe traits (there are others, but they are not stabilized yet and some of them may never be):</p>
 <ul>
 <li><a href="../std/marker/trait.Send.html"><code>Send</code></a>`는 구현체가 다른 스레드로 안전하게 전송(이동)될 수 있음을 약속하는 마커 트레잇(API가 없는 트레잇)입니다.</li>
 <li><a href="../std/marker/trait.Sync.html"><code>Sync</code></a>`는 구현체가 스레드 간에 참조를 안전하게 공유할 수 있음을 약속하는 마커 트레잇(API가 없는 트레잇)입니다.</li>
 <li><a href="../std/alloc/trait.GlobalAlloc.html"><code>GlobalAlloc</code></a> allows customizing the memory allocator of the whole program.</li>
 </ul>
 <p>러스트 표준 라이브러리의 많은 부분도 내부적으로 안전하지 않은 러스트를 사용합니다. 이러한 구현은 일반적으로 엄격하게 수동으로 검사되었으므로, 이러한 구현 위에 구축된 안전한 러스트 인터페이스는 안전하다고 가정할 수 있습니다.</p>
-<p>이 모든 분리의 필요성은 안전한 러스트의 단 하나의 근본적인 속성인 _건전성 속성_으로 귀결됩니다:</p>
+<p>The need for all of this separation boils down to a single fundamental property of Safe Rust, the <em>soundness property</em>:</p>
 <p><strong>어떤 경우에도 안전한 러스트는 정의되지 않은 동작을 유발할 수 없습니다.</strong></p>
 <p>안전/비안전 분리의 설계는 안전한 러스트와 안전하지 않은 러스트 사이에 비대칭적인 신뢰 관계가 있음을 의미합니다. 안전한 러스트는 자신이 접하는 모든 안전하지 않은 러스트가 올바르게 작성되었다고 본질적으로 신뢰해야 합니다. 반면에 안전하지 않은 러스트는 주의 없이는 안전한 러스트를 신뢰할 수 없습니다.</p>
 <p>예를 들어, 러스트에는 <a href="../std/cmp/trait.PartialOrd.html"><code>PartialOrd</code></a> 및 <a href="../std/cmp/trait.Ord.html"><code>Ord</code></a> 트레잇이 있어 단순히 비교할 수 있는 타입과 "전체" 순서(기본적으로 비교가 합리적으로 작동함을 의미)를 제공하는 타입을 구분합니다.</p>
@@ -245,7 +245,7 @@
 <p>On the other hand, <code>BTreeMap</code>'s key type is generic. Trusting its <code>Ord</code> implementation means trusting every <code>Ord</code> implementation in the past, present, and future. Here the risk is high: someone somewhere is going to make a mistake and mess up their <code>Ord</code> implementation, or even just straight up lie about providing a total ordering because "it seems to work". When that happens, <code>BTreeMap</code> needs to be prepared.</p>
 <p>동일한 논리가 올바르게 작동하도록 전달된 클로저를 신뢰하는 데에도 적용됩니다.</p>
 <p>이러한 무한한 일반 신뢰 문제는 <code>unsafe</code> 트레잇이 해결하기 위해 존재하는 문제입니다. <code>BTreeMap</code> 타입은 이론적으로 <code>Ord</code> 대신 <code>UnsafeOrd</code>라는 새로운 트레잇을 키가 구현하도록 요구할 수 있으며, 이는 다음과 같을 수 있습니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::cmp::Ordering;
 
@@ -255,7 +255,7 @@ unsafe trait UnsafeOrd {
 <span class="boring">}</span></code></pre></pre>
 <p>그러면 타입은 <code>unsafe</code>를 사용하여 <code>UnsafeOrd</code>를 구현하고, 해당 구현이 트레잇이 기대하는 모든 계약을 유지함을 보장했음을 나타냅니다. 이 상황에서 <code>BTreeMap</code> 내부의 안전하지 않은 러스트는 키 타입의 <code>UnsafeOrd</code> 구현이 올바르다고 신뢰하는 것이 정당화될 것입니다. 만약 그렇지 않다면, 이는 안전하지 않은 트레잇 구현의 잘못이며, 이는 러스트의 안전 보장과 일치합니다.</p>
 <p>트레잇을 <code>unsafe</code>로 표시할지 여부는 API 설계 선택입니다. 안전한 트레잇은 구현하기 쉽지만, 이에 의존하는 모든 안전하지 않은 코드는 잘못된 동작에 대해 방어해야 합니다. 트레잇을 <code>unsafe</code>로 표시하면 이 책임이 구현자에게 전가됩니다. 러스트는 전통적으로 트레잇을 <code>unsafe</code>로 표시하는 것을 피했는데, 이는 안전하지 않은 러스트를 만연하게 만들어 바람직하지 않기 때문입니다.</p>
-<p><code>Send</code>와 <code>Sync</code>는 스레드 안전성이 _근본적인 속성_이므로 안전하지 않은 것으로 표시됩니다. 안전하지 않은 코드는 버그 있는 <code>Ord</code> 구현에 대해 방어할 수 있는 방식으로 스레드 안전성에 대해 방어할 수 없습니다. 마찬가지로 <code>GlobalAllocator</code>는 프로그램의 모든 메모리를 관리하며 <code>Box</code> 또는 <code>Vec</code>와 같은 다른 것들이 그 위에 구축됩니다. 만약 <code>GlobalAllocator</code>가 이상한 행동을 한다면(여전히 사용 중인 메모리 청크를 다른 요청에 제공하는 등), 이를 감지하고 조치할 기회가 없습니다.</p>
+<p><code>Send</code> and <code>Sync</code> are marked unsafe because thread safety is a <em>fundamental property</em> that unsafe code can't possibly hope to defend against in the way it could defend against a buggy <code>Ord</code> implementation. Similarly, <code>GlobalAlloc</code> is keeping accounts of all the memory in the program and other things like <code>Box</code> or <code>Vec</code> that build on top of it. If it does something weird (giving the same chunk of memory to another request when it is still in use), there's no chance to detect that and do anything about it.</p>
 <p>자신만의 트레잇을 <code>unsafe</code>로 표시할지 여부는 동일한 종류의 고려 사항에 따라 달라집니다. <code>unsafe</code> 코드가 트레잇의 깨진 구현에 대해 합리적으로 방어할 수 없다면, 트레잇을 <code>unsafe</code>로 표시하는 것이 합리적인 선택입니다.</p>
 <p>As an aside, while <code>Send</code> and <code>Sync</code> are <code>unsafe</code> traits, they are <em>also</em> automatically implemented for types when such derivations are provably safe to do. <code>Send</code> is automatically derived for all types composed only of values whose types also implement <code>Send</code>. <code>Sync</code> is automatically derived for all types composed only of values whose types also implement <code>Sync</code>. This minimizes the pervasive unsafety of making these two traits <code>unsafe</code>. And not many people are going to <em>implement</em> memory allocators (or use them directly, for that matter).</p>
 <p>이것이 안전한 러스트와 안전하지 않은 러스트 사이의 균형입니다. 분리는 안전한 러스트를 가능한 한 인체공학적으로 사용하도록 설계되었지만, 안전하지 않은 러스트를 작성할 때는 추가적인 노력과 주의가 필요합니다. 이 책의 나머지 부분은 주로 취해야 할 주의 사항과 안전하지 않은 러스트가 준수해야 하는 계약에 대한 논의입니다.</p>

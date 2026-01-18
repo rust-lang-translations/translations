@@ -252,7 +252,7 @@ non-trivial untracked ownership, and it's unlikely that their author was
 necessarily thinking hard about thread safety. In the case of <code>Rc</code>, we have a nice
 example of a type that contains a <code>*mut</code> that is definitely not thread-safe.</p>
 <p>Types that aren't automatically derived can simply implement them if desired:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct MyBox(*mut u8);
 
@@ -261,7 +261,7 @@ unsafe impl Sync for MyBox {}
 <span class="boring">}</span></code></pre></pre>
 <p>In the <em>incredibly rare</em> case that a type is inappropriately automatically
 derived to be Send or Sync, then one can also unimplement Send and Sync:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span>#![feature(negative_impls)]
 
 <span class="boring">fn main() {
@@ -287,13 +287,13 @@ with similar-ish behavior ourselves to see an example of when it is sound to
 implement Send and Sync. Let's call it a <code>Carton</code>.</p>
 <p>We start by writing code to take a value allocated on the stack and transfer it
 to the heap.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">pub mod libc {
 </span><span class="boring">   pub use ::std::os::raw::{c_int, c_void};
 </span><span class="boring">   #[allow(non_camel_case_types)]
 </span><span class="boring">   pub type size_t = usize;
-</span><span class="boring">   extern "C" { pub fn posix_memalign(memptr: *mut *mut c_void, align: size_t, size: size_t) -&gt; c_int; }
+</span><span class="boring">   unsafe extern "C" { pub fn posix_memalign(memptr: *mut *mut c_void, align: size_t, size: size_t) -&gt; c_int; }
 </span><span class="boring">}
 </span>use std::{
     mem::{align_of, size_of},
@@ -340,7 +340,7 @@ impl&lt;T&gt; Carton&lt;T&gt; {
 to access it. <a href="https://doc.rust-lang.org/std/boxed/struct.Box.html"><code>Box</code></a> implements <a href="https://doc.rust-lang.org/core/ops/trait.Deref.html"><code>Deref</code></a> and
 <a href="https://doc.rust-lang.org/core/ops/trait.DerefMut.html"><code>DerefMut</code></a> so that you can access the inner value. Let's do
 that.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::ops::{Deref, DerefMut};
 
@@ -380,7 +380,7 @@ impl&lt;T&gt; DerefMut for Carton&lt;T&gt; {
 safely be Send unless it shares mutable state with something else without
 enforcing exclusive access to it. Each <code>Carton</code> has a unique pointer, so
 we're good.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct Carton&lt;T&gt;(std::ptr::NonNull&lt;T&gt;);
 </span>// Safety: No one besides us has the raw pointer, so we can safely transfer the
@@ -393,7 +393,7 @@ or written to from another <code>&amp;Carton</code>. Since you need an <code>&am
 write to the pointer, and the borrow checker enforces that mutable
 references must be exclusive, there are no soundness issues making <code>Carton</code>
 sync either.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct Carton&lt;T&gt;(std::ptr::NonNull&lt;T&gt;);
 </span>// Safety: Since there exists a public way to go from a `&amp;Carton&lt;T&gt;` to a `&amp;T`
@@ -409,7 +409,7 @@ contained type is Send and Sync. When writing custom types that behave like
 standard library types we can assert that we have the same requirements.
 For example, the following code asserts that a Carton is Send if the same
 sort of Box would be Send, which in this case is the same as saying T is Send.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct Carton&lt;T&gt;(std::ptr::NonNull&lt;T&gt;);
 </span>unsafe impl&lt;T&gt; Send for Carton&lt;T&gt; where Box&lt;T&gt;: Send {}
@@ -419,12 +419,12 @@ Once we fix that we have a new requirement we have to ensure we meet to be Send:
 we need to know <code>free</code> can be called on a pointer that was yielded by an
 allocation done on another thread. We can check this is true in the docs for
 <a href="https://linux.die.net/man/3/free"><code>libc::free</code></a>.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct Carton&lt;T&gt;(std::ptr::NonNull&lt;T&gt;);
 </span><span class="boring">mod libc {
 </span><span class="boring">    pub use ::std::os::raw::c_void;
-</span><span class="boring">    extern "C" { pub fn free(p: *mut c_void); }
+</span><span class="boring">    unsafe extern "C" { pub fn free(p: *mut c_void); }
 </span><span class="boring">}
 </span>impl&lt;T&gt; Drop for Carton&lt;T&gt; {
     fn drop(&amp;mut self) {

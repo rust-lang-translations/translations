@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Замыкания: анонимные функции, захватывающие своё окружение - The Rust Programming Language</title>
+        <title>Closures - The Rust Programming Language</title>
 
 
         <!-- Custom HTML head -->
@@ -216,15 +216,15 @@
 
                 <div id="content" class="content">
                     <main>
-                        <!-- Old heading. Do not remove or links may break. -->
-<p><a id="closures-anonymous-functions-that-can-capture-their-environment"></a></p>
-<h2 id="Замыкания-анонимные-функции-захватывающие-своё-окружение"><a class="header" href="#Замыкания-анонимные-функции-захватывающие-своё-окружение">Замыкания: анонимные функции, захватывающие своё окружение</a></h2>
+                        <!-- Old headings. Do not remove or links may break. -->
+<p><a id="closures-anonymous-functions-that-can-capture-their-environment"></a> <a id="closures-anonymous-functions-that-capture-their-environment"></a></p>
+<h2 id="closures"><a class="header" href="#closures">Closures</a></h2>
 <p>Rust’s closures are anonymous functions you can save in a variable or pass as arguments to other functions. You can create the closure in one place and then call the closure elsewhere to evaluate it in a different context. Unlike functions, closures can capture values from the scope in which they’re defined. We’ll demonstrate how these closure features allow for code reuse and behavior customization.</p>
 <!-- Old headings. Do not remove or links may break. -->
-<p><a id="creating-an-abstraction-of-behavior-with-closures"></a> <a id="refactoring-using-functions"></a> <a id="refactoring-with-closures-to-store-code"></a></p>
-<h3 id="capturing-the-environment-with-closures"><a class="header" href="#capturing-the-environment-with-closures">Capturing the Environment with Closures</a></h3>
-<p>We’ll first examine how we can use closures to capture values from the environment they’re defined in for later use. Here’s the scenario: Every so often, our t-shirt company gives away an exclusive, limited-edition shirt to someone on our mailing list as a promotion. People on the mailing list can optionally add their favorite color to their profile. If the person chosen for a free shirt has their favorite color set, they get that color shirt. If the person hasn’t specified a favorite color, they get whatever color the company currently has the most of.</p>
-<p>There are many ways to implement this. For this example, we’re going to use an enum called <code>ShirtColor</code> that has the variants <code>Red</code> and <code>Blue</code> (limiting the number of colors available for simplicity). We represent the company’s inventory with an <code>Inventory</code> struct that has a field named <code>shirts</code> that contains a <code>Vec&lt;ShirtColor&gt;</code> representing the shirt colors currently in stock. The method <code>giveaway</code> defined on <code>Inventory</code> gets the optional shirt color preference of the free shirt winner, and returns the shirt color the person will get. This setup is shown in Listing 13-1:</p>
+<p><a id="creating-an-abstraction-of-behavior-with-closures"></a> <a id="refactoring-using-functions"></a> <a id="refactoring-with-closures-to-store-code"></a> <a id="capturing-the-environment-with-closures"></a></p>
+<h3 id="capturing-the-environment"><a class="header" href="#capturing-the-environment">Capturing the Environment</a></h3>
+<p>We’ll first examine how we can use closures to capture values from the environment they’re defined in for later use. Here’s the scenario: Every so often, our T-shirt company gives away an exclusive, limited-edition shirt to someone on our mailing list as a promotion. People on the mailing list can optionally add their favorite color to their profile. If the person chosen for a free shirt has their favorite color set, they get that color shirt. If the person hasn’t specified a favorite color, they get whatever color the company currently has the most of.</p>
+<p>There are many ways to implement this. For this example, we’re going to use an enum called <code>ShirtColor</code> that has the variants <code>Red</code> and <code>Blue</code> (limiting the number of colors available for simplicity). We represent the company’s inventory with an <code>Inventory</code> struct that has a field named <code>shirts</code> that contains a <code>Vec&lt;ShirtColor&gt;</code> representing the shirt colors currently in stock. The method <code>giveaway</code> defined on <code>Inventory</code> gets the optional shirt color preference of the free-shirt winner, and it returns the shirt color the person will get. This setup is shown in Listing 13-1.</p>
 <Listing number="13-1" file-name="src/main.rs" caption="Shirt company giveaway situation">
 <pre><code class="language-rust noplayground">#[derive(Debug, PartialEq, Copy, Clone)]
 enum ShirtColor {
@@ -280,9 +280,9 @@ fn main() {
 }</code></pre>
 </Listing>
 <p>The <code>store</code> defined in <code>main</code> has two blue shirts and one red shirt remaining to distribute for this limited-edition promotion. We call the <code>giveaway</code> method for a user with a preference for a red shirt and a user without any preference.</p>
-<p>Again, this code could be implemented in many ways, and here, to focus on closures, we’ve stuck to concepts you’ve already learned except for the body of the <code>giveaway</code> method that uses a closure. In the <code>giveaway</code> method, we get the user preference as a parameter of type <code>Option&lt;ShirtColor&gt;</code> and call the <code>unwrap_or_else</code> method on <code>user_preference</code>. The <a href="../std/option/enum.Option.html#method.unwrap_or_else"><code>unwrap_or_else</code> method on <code>Option&lt;T&gt;</code></a><!-- ignore --> is defined by the standard library. It takes one argument: a closure without any arguments that returns a value <code>T</code> (the same type stored in the <code>Some</code> variant of the <code>Option&lt;T&gt;</code>, in this case <code>ShirtColor</code>). If the <code>Option&lt;T&gt;</code> is the <code>Some</code> variant, <code>unwrap_or_else</code> returns the value from within the <code>Some</code>. If the <code>Option&lt;T&gt;</code> is the <code>None</code> variant, <code>unwrap_or_else</code> calls the closure and returns the value returned by the closure.</p>
-<p>We specify the closure expression <code>|| self.most_stocked()</code> as the argument to <code>unwrap_or_else</code>. This is a closure that takes no parameters itself (if the closure had parameters, they would appear between the two vertical bars). The body of the closure calls <code>self.most_stocked()</code>. We’re defining the closure here, and the implementation of <code>unwrap_or_else</code> will evaluate the closure later if the result is needed.</p>
-<p>Running this code prints:</p>
+<p>Again, this code could be implemented in many ways, and here, to focus on closures, we’ve stuck to concepts you’ve already learned, except for the body of the <code>giveaway</code> method that uses a closure. In the <code>giveaway</code> method, we get the user preference as a parameter of type <code>Option&lt;ShirtColor&gt;</code> and call the <code>unwrap_or_else</code> method on <code>user_preference</code>. The <a href="../std/option/enum.Option.html#method.unwrap_or_else"><code>unwrap_or_else</code> method on <code>Option&lt;T&gt;</code></a><!-- ignore --> is defined by the standard library. It takes one argument: a closure without any arguments that returns a value <code>T</code> (the same type stored in the <code>Some</code> variant of the <code>Option&lt;T&gt;</code>, in this case <code>ShirtColor</code>). If the <code>Option&lt;T&gt;</code> is the <code>Some</code> variant, <code>unwrap_or_else</code> returns the value from within the <code>Some</code>. If the <code>Option&lt;T&gt;</code> is the <code>None</code> variant, <code>unwrap_or_else</code> calls the closure and returns the value returned by the closure.</p>
+<p>We specify the closure expression <code>|| self.most_stocked()</code> as the argument to <code>unwrap_or_else</code>. This is a closure that takes no parameters itself (if the closure had parameters, they would appear between the two vertical pipes). The body of the closure calls <code>self.most_stocked()</code>. We’re defining the closure here, and the implementation of <code>unwrap_or_else</code> will evaluate the closure later if the result is needed.</p>
+<p>Running this code prints the following:</p>
 <pre><code class="language-console">$ cargo run
    Compiling shirt-company v0.1.0 (file:///projects/shirt-company)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.27s
@@ -291,12 +291,14 @@ The user with preference Some(Red) gets Red
 The user with preference None gets Blue
 </code></pre>
 <p>One interesting aspect here is that we’ve passed a closure that calls <code>self.most_stocked()</code> on the current <code>Inventory</code> instance. The standard library didn’t need to know anything about the <code>Inventory</code> or <code>ShirtColor</code> types we defined, or the logic we want to use in this scenario. The closure captures an immutable reference to the <code>self</code> <code>Inventory</code> instance and passes it with the code we specify to the <code>unwrap_or_else</code> method. Functions, on the other hand, are not able to capture their environment in this way.</p>
-<h3 id="closure-type-inference-and-annotation"><a class="header" href="#closure-type-inference-and-annotation">Closure Type Inference and Annotation</a></h3>
-<p>There are more differences between functions and closures. Closures don’t usually require you to annotate the types of the parameters or the return value like <code>fn</code> functions do. Type annotations are required on functions because the types are part of an explicit interface exposed to your users. Defining this interface rigidly is important for ensuring that everyone agrees on what types of values a function uses and returns. Closures, on the other hand, aren’t used in an exposed interface like this: they’re stored in variables and used without naming them and exposing them to users of our library.</p>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="closure-type-inference-and-annotation"></a></p>
+<h3 id="inferring-and-annotating-closure-types"><a class="header" href="#inferring-and-annotating-closure-types">Inferring and Annotating Closure Types</a></h3>
+<p>There are more differences between functions and closures. Closures don’t usually require you to annotate the types of the parameters or the return value like <code>fn</code> functions do. Type annotations are required on functions because the types are part of an explicit interface exposed to your users. Defining this interface rigidly is important for ensuring that everyone agrees on what types of values a function uses and returns. Closures, on the other hand, aren’t used in an exposed interface like this: They’re stored in variables, and they’re used without naming them and exposing them to users of our library.</p>
 <p>Closures are typically short and relevant only within a narrow context rather than in any arbitrary scenario. Within these limited contexts, the compiler can infer the types of the parameters and the return type, similar to how it’s able to infer the types of most variables (there are rare cases where the compiler needs closure type annotations too).</p>
-<p>As with variables, we can add type annotations if we want to increase explicitness and clarity at the cost of being more verbose than is strictly necessary. Annotating the types for a closure would look like the definition shown in Listing 13-2. In this example, we’re defining a closure and storing it in a variable rather than defining the closure in the spot we pass it as an argument as we did in Listing 13-1.</p>
+<p>As with variables, we can add type annotations if we want to increase explicitness and clarity at the cost of being more verbose than is strictly necessary. Annotating the types for a closure would look like the definition shown in Listing 13-2. In this example, we’re defining a closure and storing it in a variable rather than defining the closure in the spot we pass it as an argument, as we did in Listing 13-1.</p>
 <Listing number="13-2" file-name="src/main.rs" caption="Adding optional type annotations of the parameter and return value types in the closure">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">use std::thread;
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">use std::thread;
 </span><span class="boring">use std::time::Duration;
 </span><span class="boring">
 </span><span class="boring">fn generate_workout(intensity: u32, random_number: u32) {
@@ -328,12 +330,12 @@ The user with preference None gets Blue
 </span><span class="boring">    generate_workout(simulated_user_specified_value, simulated_random_number);
 </span><span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>With type annotations added, the syntax of closures looks more similar to the syntax of functions. Here we define a function that adds 1 to its parameter and a closure that has the same behavior, for comparison. We’ve added some spaces to line up the relevant parts. This illustrates how closure syntax is similar to function syntax except for the use of pipes and the amount of syntax that is optional:</p>
+<p>With type annotations added, the syntax of closures looks more similar to the syntax of functions. Here, we define a function that adds 1 to its parameter and a closure that has the same behavior, for comparison. We’ve added some spaces to line up the relevant parts. This illustrates how closure syntax is similar to function syntax except for the use of pipes and the amount of syntax that is optional:</p>
 <pre><code class="language-rust ignore">fn  add_one_v1   (x: u32) -&gt; u32 { x + 1 }
 let add_one_v2 = |x: u32| -&gt; u32 { x + 1 };
 let add_one_v3 = |x|             { x + 1 };
 let add_one_v4 = |x|               x + 1  ;</code></pre>
-<p>The first line shows a function definition, and the second line shows a fully annotated closure definition. In the third line, we remove the type annotations from the closure definition. In the fourth line, we remove the brackets, which are optional because the closure body has only one expression. These are all valid definitions that will produce the same behavior when they’re called. The <code>add_one_v3</code> and <code>add_one_v4</code> lines require the closures to be evaluated to be able to compile because the types will be inferred from their usage. This is similar to <code>let v = Vec::new();</code> needing either type annotations or values of some type to be inserted into the <code>Vec</code> for Rust to be able to infer the type.</p>
+<p>The first line shows a function definition and the second line shows a fully annotated closure definition. In the third line, we remove the type annotations from the closure definition. In the fourth line, we remove the brackets, which are optional because the closure body has only one expression. These are all valid definitions that will produce the same behavior when they’re called. The <code>add_one_v3</code> and <code>add_one_v4</code> lines require the closures to be evaluated to be able to compile because the types will be inferred from their usage. This is similar to <code>let v = Vec::new();</code> needing either type annotations or values of some type to be inserted into the <code>Vec</code> for Rust to be able to infer the type.</p>
 <p>For closure definitions, the compiler will infer one concrete type for each of their parameters and for their return value. For instance, Listing 13-3 shows the definition of a short closure that just returns the value it receives as a parameter. This closure isn’t very useful except for the purposes of this example. Note that we haven’t added any type annotations to the definition. Because there are no type annotations, we can call the closure with any type, which we’ve done here with <code>String</code> the first time. If we then try to call <code>example_closure</code> with an integer, we’ll get an error.</p>
 <Listing number="13-3" file-name="src/main.rs" caption="Attempting to call a closure whose types are inferred with two different types">
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">fn main() {
@@ -350,9 +352,8 @@ error[E0308]: mismatched types
  --&gt; src/main.rs:5:29
   |
 5 |     let n = example_closure(5);
-  |             --------------- ^- help: try using a conversion method: `.to_string()`
-  |             |               |
-  |             |               expected `String`, found integer
+  |             --------------- ^ expected `String`, found integer
+  |             |
   |             arguments to this function are incorrect
   |
 note: expected because the closure was earlier called with an argument of type `String`
@@ -367,6 +368,10 @@ note: closure parameter defined here
   |
 2 |     let example_closure = |x| x;
   |                            ^
+help: try using a conversion method
+  |
+5 |     let n = example_closure(5.to_string());
+  |                              ++++++++++++
 
 For more information about this error, try `rustc --explain E0308`.
 error: could not compile `closure-example` (bin "closure-example") due to 1 previous error
@@ -374,9 +379,9 @@ error: could not compile `closure-example` (bin "closure-example") due to 1 prev
 <p>The first time we call <code>example_closure</code> with the <code>String</code> value, the compiler infers the type of <code>x</code> and the return type of the closure to be <code>String</code>. Those types are then locked into the closure in <code>example_closure</code>, and we get a type error when we next try to use a different type with the same closure.</p>
 <h3 id="capturing-references-or-moving-ownership"><a class="header" href="#capturing-references-or-moving-ownership">Capturing References or Moving Ownership</a></h3>
 <p>Closures can capture values from their environment in three ways, which directly map to the three ways a function can take a parameter: borrowing immutably, borrowing mutably, and taking ownership. The closure will decide which of these to use based on what the body of the function does with the captured values.</p>
-<p>In Listing 13-4, we define a closure that captures an immutable reference to the vector named <code>list</code> because it only needs an immutable reference to print the value:</p>
+<p>In Listing 13-4, we define a closure that captures an immutable reference to the vector named <code>list</code> because it only needs an immutable reference to print the value.</p>
 <Listing number="13-4" file-name="src/main.rs" caption="Defining and calling a closure that captures an immutable reference">
-<pre><pre class="playground"><code class="language-rust edition2021">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024">fn main() {
     let list = vec![1, 2, 3];
     println!("Before defining closure: {list:?}");
 
@@ -390,8 +395,6 @@ error: could not compile `closure-example` (bin "closure-example") due to 1 prev
 <p>This example also illustrates that a variable can bind to a closure definition, and we can later call the closure by using the variable name and parentheses as if the variable name were a function name.</p>
 <p>Because we can have multiple immutable references to <code>list</code> at the same time, <code>list</code> is still accessible from the code before the closure definition, after the closure definition but before the closure is called, and after the closure is called. This code compiles, runs, and prints:</p>
 <pre><code class="language-console">$ cargo run
-     Locking 1 package to latest compatible version
-      Adding closure-example v0.1.0 (/Users/chris/dev/rust-lang/book/tmp/listings/ch13-functional-features/listing-13-04)
    Compiling closure-example v0.1.0 (file:///projects/closure-example)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.43s
      Running `target/debug/closure-example`
@@ -400,9 +403,9 @@ Before calling closure: [1, 2, 3]
 From closure: [1, 2, 3]
 After calling closure: [1, 2, 3]
 </code></pre>
-<p>Next, in Listing 13-5, we change the closure body so that it adds an element to the <code>list</code> vector. The closure now captures a mutable reference:</p>
+<p>Next, in Listing 13-5, we change the closure body so that it adds an element to the <code>list</code> vector. The closure now captures a mutable reference.</p>
 <Listing number="13-5" file-name="src/main.rs" caption="Defining and calling a closure that captures a mutable reference">
-<pre><pre class="playground"><code class="language-rust edition2021">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024">fn main() {
     let mut list = vec![1, 2, 3];
     println!("Before defining closure: {list:?}");
 
@@ -414,19 +417,17 @@ After calling closure: [1, 2, 3]
 </Listing>
 <p>This code compiles, runs, and prints:</p>
 <pre><code class="language-console">$ cargo run
-     Locking 1 package to latest compatible version
-      Adding closure-example v0.1.0 (/Users/chris/dev/rust-lang/book/tmp/listings/ch13-functional-features/listing-13-05)
    Compiling closure-example v0.1.0 (file:///projects/closure-example)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.43s
      Running `target/debug/closure-example`
 Before defining closure: [1, 2, 3]
 After calling closure: [1, 2, 3, 7]
 </code></pre>
-<p>Note that there’s no longer a <code>println!</code> between the definition and the call of the <code>borrows_mutably</code> closure: when <code>borrows_mutably</code> is defined, it captures a mutable reference to <code>list</code>. We don’t use the closure again after the closure is called, so the mutable borrow ends. Between the closure definition and the closure call, an immutable borrow to print isn’t allowed because no other borrows are allowed when there’s a mutable borrow. Try adding a <code>println!</code> there to see what error message you get!</p>
+<p>Note that there’s no longer a <code>println!</code> between the definition and the call of the <code>borrows_mutably</code> closure: When <code>borrows_mutably</code> is defined, it captures a mutable reference to <code>list</code>. We don’t use the closure again after the closure is called, so the mutable borrow ends. Between the closure definition and the closure call, an immutable borrow to print isn’t allowed, because no other borrows are allowed when there’s a mutable borrow. Try adding a <code>println!</code> there to see what error message you get!</p>
 <p>If you want to force the closure to take ownership of the values it uses in the environment even though the body of the closure doesn’t strictly need ownership, you can use the <code>move</code> keyword before the parameter list.</p>
-<p>This technique is mostly useful when passing a closure to a new thread to move the data so that it’s owned by the new thread. We’ll discuss threads and why you would want to use them in detail in Chapter 16 when we talk about concurrency, but for now, let’s briefly explore spawning a new thread using a closure that needs the <code>move</code> keyword. Listing 13-6 shows Listing 13-4 modified to print the vector in a new thread rather than in the main thread:</p>
+<p>This technique is mostly useful when passing a closure to a new thread to move the data so that it’s owned by the new thread. We’ll discuss threads and why you would want to use them in detail in Chapter 16 when we talk about concurrency, but for now, let’s briefly explore spawning a new thread using a closure that needs the <code>move</code> keyword. Listing 13-6 shows Listing 13-4 modified to print the vector in a new thread rather than in the main thread.</p>
 <Listing number="13-6" file-name="src/main.rs" caption="Using `move` to force the closure for the thread to take ownership of `list`">
-<pre><pre class="playground"><code class="language-rust edition2021">use std::thread;
+<pre><pre class="playground"><code class="language-rust edition2024">use std::thread;
 
 fn main() {
     let list = vec![1, 2, 3];
@@ -437,17 +438,18 @@ fn main() {
         .unwrap();
 }</code></pre></pre>
 </Listing>
-<p>We spawn a new thread, giving the thread a closure to run as an argument. The closure body prints out the list. In Listing 13-4, the closure only captured <code>list</code> using an immutable reference because that's the least amount of access to <code>list</code> needed to print it. In this example, even though the closure body still only needs an immutable reference, we need to specify that <code>list</code> should be moved into the closure by putting the <code>move</code> keyword at the beginning of the closure definition. The new thread might finish before the rest of the main thread finishes, or the main thread might finish first. If the main thread maintained ownership of <code>list</code> but ended before the new thread did and dropped <code>list</code>, the immutable reference in the thread would be invalid. Therefore, the compiler requires that <code>list</code> be moved into the closure given to the new thread so the reference will be valid. Try removing the <code>move</code> keyword or using <code>list</code> in the main thread after the closure is defined to see what compiler errors you get!</p>
+<p>We spawn a new thread, giving the thread a closure to run as an argument. The closure body prints out the list. In Listing 13-4, the closure only captured <code>list</code> using an immutable reference because that's the least amount of access to <code>list</code> needed to print it. In this example, even though the closure body still only needs an immutable reference, we need to specify that <code>list</code> should be moved into the closure by putting the <code>move</code> keyword at the beginning of the closure definition. If the main thread performed more operations before calling <code>join</code> on the new thread, the new thread might finish before the rest of the main thread finishes, or the main thread might finish first. If the main thread maintained ownership of <code>list</code> but ended before the new thread and drops <code>list</code>, the immutable reference in the thread would be invalid. Therefore, the compiler requires that <code>list</code> be moved into the closure given to the new thread so that the reference will be valid. Try removing the <code>move</code> keyword or using <code>list</code> in the main thread after the closure is defined to see what compiler errors you get!</p>
 <!-- Old headings. Do not remove or links may break. -->
-<p><a id="storing-closures-using-generic-parameters-and-the-fn-traits"></a> <a id="limitations-of-the-cacher-implementation"></a> <a id="moving-captured-values-out-of-the-closure-and-the-fn-traits"></a></p>
-<h3 id="moving-captured-values-out-of-closures-and-the-fn-traits"><a class="header" href="#moving-captured-values-out-of-closures-and-the-fn-traits">Moving Captured Values Out of Closures and the <code>Fn</code> Traits</a></h3>
-<p>Once a closure has captured a reference or captured ownership of a value from the environment where the closure is defined (thus affecting what, if anything, is moved <em>into</em> the closure), the code in the body of the closure defines what happens to the references or values when the closure is evaluated later (thus affecting what, if anything, is moved <em>out of</em> the closure). A closure body can do any of the following: move a captured value out of the closure, mutate the captured value, neither move nor mutate the value, or capture nothing from the environment to begin with.</p>
+<p><a id="storing-closures-using-generic-parameters-and-the-fn-traits"></a> <a id="limitations-of-the-cacher-implementation"></a> <a id="moving-captured-values-out-of-the-closure-and-the-fn-traits"></a> <a id="moving-captured-values-out-of-closures-and-the-fn-traits"></a></p>
+<h3 id="moving-captured-values-out-of-closures"><a class="header" href="#moving-captured-values-out-of-closures">Moving Captured Values Out of Closures</a></h3>
+<p>Once a closure has captured a reference or captured ownership of a value from the environment where the closure is defined (thus affecting what, if anything, is moved <em>into</em> the closure), the code in the body of the closure defines what happens to the references or values when the closure is evaluated later (thus affecting what, if anything, is moved <em>out of</em> the closure).</p>
+<p>A closure body can do any of the following: Move a captured value out of the closure, mutate the captured value, neither move nor mutate the value, or capture nothing from the environment to begin with.</p>
 <p>The way a closure captures and handles values from the environment affects which traits the closure implements, and traits are how functions and structs can specify what kinds of closures they can use. Closures will automatically implement one, two, or all three of these <code>Fn</code> traits, in an additive fashion, depending on how the closure’s body handles the values:</p>
-<ol>
-<li><code>FnOnce</code> applies to closures that can be called once. All closures implement at least this trait, because all closures can be called. A closure that moves captured values out of its body will only implement <code>FnOnce</code> and none of the other <code>Fn</code> traits, because it can only be called once.</li>
-<li><code>FnMut</code> applies to closures that don’t move captured values out of their body, but that might mutate the captured values. These closures can be called more than once.</li>
-<li><code>Fn</code> applies to closures that don’t move captured values out of their body and that don’t mutate captured values, as well as closures that capture nothing from their environment. These closures can be called more than once without mutating their environment, which is important in cases such as calling a closure multiple times concurrently.</li>
-</ol>
+<ul>
+<li><code>FnOnce</code> applies to closures that can be called once. All closures implement at least this trait because all closures can be called. A closure that moves captured values out of its body will only implement <code>FnOnce</code> and none of the other <code>Fn</code> traits because it can only be called once.</li>
+<li><code>FnMut</code> applies to closures that don’t move captured values out of their body but might mutate the captured values. These closures can be called more than once.</li>
+<li><code>Fn</code> applies to closures that don’t move captured values out of their body and don’t mutate captured values, as well as closures that capture nothing from their environment. These closures can be called more than once without mutating their environment, which is important in cases such as calling a closure multiple times concurrently.</li>
+</ul>
 <p>Let’s look at the definition of the <code>unwrap_or_else</code> method on <code>Option&lt;T&gt;</code> that we used in Listing 13-1:</p>
 <pre><code class="language-rust ignore">impl&lt;T&gt; Option&lt;T&gt; {
     pub fn unwrap_or_else&lt;F&gt;(self, f: F) -&gt; T
@@ -460,15 +462,15 @@ fn main() {
         }
     }
 }</code></pre>
-<p>Recall that <code>T</code> is the generic type representing the type of the value in the <code>Some</code> variant of an <code>Option</code>. That type <code>T</code> is also the return type of the <code>unwrap_or_else</code> function: code that calls <code>unwrap_or_else</code> on an <code>Option&lt;String&gt;</code>, for example, will get a <code>String</code>.</p>
+<p>Recall that <code>T</code> is the generic type representing the type of the value in the <code>Some</code> variant of an <code>Option</code>. That type <code>T</code> is also the return type of the <code>unwrap_or_else</code> function: Code that calls <code>unwrap_or_else</code> on an <code>Option&lt;String&gt;</code>, for example, will get a <code>String</code>.</p>
 <p>Next, notice that the <code>unwrap_or_else</code> function has the additional generic type parameter <code>F</code>. The <code>F</code> type is the type of the parameter named <code>f</code>, which is the closure we provide when calling <code>unwrap_or_else</code>.</p>
-<p>The trait bound specified on the generic type <code>F</code> is <code>FnOnce() -&gt; T</code>, which means <code>F</code> must be able to be called once, take no arguments, and return a <code>T</code>. Using <code>FnOnce</code> in the trait bound expresses the constraint that <code>unwrap_or_else</code> is only going to call <code>f</code> at most one time. In the body of <code>unwrap_or_else</code>, we can see that if the <code>Option</code> is <code>Some</code>, <code>f</code> won’t be called. If the <code>Option</code> is <code>None</code>, <code>f</code> will be called once. Because all closures implement <code>FnOnce</code>, <code>unwrap_or_else</code> accepts all three kinds of closures and is as flexible as it can be.</p>
+<p>The trait bound specified on the generic type <code>F</code> is <code>FnOnce() -&gt; T</code>, which means <code>F</code> must be able to be called once, take no arguments, and return a <code>T</code>. Using <code>FnOnce</code> in the trait bound expresses the constraint that <code>unwrap_or_else</code> will not call <code>f</code> more than once. In the body of <code>unwrap_or_else</code>, we can see that if the <code>Option</code> is <code>Some</code>, <code>f</code> won’t be called. If the <code>Option</code> is <code>None</code>, <code>f</code> will be called once. Because all closures implement <code>FnOnce</code>, <code>unwrap_or_else</code> accepts all three kinds of closures and is as flexible as it can be.</p>
 <blockquote>
-<p>Note: If what we want to do doesn’t require capturing a value from the environment, we can use the name of a function rather than a closure. For example, we could call <code>unwrap_or_else(Vec::new)</code> on a <code>Option&lt;Vec&lt;T&gt;&gt;</code> value to get a new, empty vector if the value is <code>None</code>. The compiler automatically implements whichever of the <code>Fn</code> traits is applicable for a function definition.</p>
+<p>Note: If what we want to do doesn’t require capturing a value from the environment, we can use the name of a function rather than a closure where we need something that implements one of the <code>Fn</code> traits. For example, on an <code>Option&lt;Vec&lt;T&gt;&gt;</code> value, we could call <code>unwrap_or_else(Vec::new)</code> to get a new, empty vector if the value is <code>None</code>. The compiler automatically implements whichever of the <code>Fn</code> traits is applicable for a function definition.</p>
 </blockquote>
-<p>Now let’s look at the standard library method <code>sort_by_key</code> defined on slices, to see how that differs from <code>unwrap_or_else</code> and why <code>sort_by_key</code> uses <code>FnMut</code> instead of <code>FnOnce</code> for the trait bound. The closure gets one argument in the form of a reference to the current item in the slice being considered, and returns a value of type <code>K</code> that can be ordered. This function is useful when you want to sort a slice by a particular attribute of each item. In Listing 13-7, we have a list of <code>Rectangle</code> instances and we use <code>sort_by_key</code> to order them by their <code>width</code> attribute from low to high:</p>
+<p>Now let’s look at the standard library method <code>sort_by_key</code>, defined on slices, to see how that differs from <code>unwrap_or_else</code> and why <code>sort_by_key</code> uses <code>FnMut</code> instead of <code>FnOnce</code> for the trait bound. The closure gets one argument in the form of a reference to the current item in the slice being considered, and it returns a value of type <code>K</code> that can be ordered. This function is useful when you want to sort a slice by a particular attribute of each item. In Listing 13-7, we have a list of <code>Rectangle</code> instances, and we use <code>sort_by_key</code> to order them by their <code>width</code> attribute from low to high.</p>
 <Listing number="13-7" file-name="src/main.rs" caption="Using `sort_by_key` to order rectangles by width">
-<pre><pre class="playground"><code class="language-rust edition2021">#[derive(Debug)]
+<pre><pre class="playground"><code class="language-rust edition2024">#[derive(Debug)]
 struct Rectangle {
     width: u32,
     height: u32,
@@ -505,8 +507,8 @@ fn main() {
     },
 ]
 </code></pre>
-<p>The reason <code>sort_by_key</code> is defined to take an <code>FnMut</code> closure is that it calls the closure multiple times: once for each item in the slice. The closure <code>|r| r.width</code> doesn’t capture, mutate, or move out anything from its environment, so it meets the trait bound requirements.</p>
-<p>In contrast, Listing 13-8 shows an example of a closure that implements just the <code>FnOnce</code> trait, because it moves a value out of the environment. The compiler won’t let us use this closure with <code>sort_by_key</code>:</p>
+<p>The reason <code>sort_by_key</code> is defined to take an <code>FnMut</code> closure is that it calls the closure multiple times: once for each item in the slice. The closure <code>|r| r.width</code> doesn’t capture, mutate, or move anything out from its environment, so it meets the trait bound requirements.</p>
+<p>In contrast, Listing 13-8 shows an example of a closure that implements just the <code>FnOnce</code> trait, because it moves a value out of the environment. The compiler won’t let us use this closure with <code>sort_by_key</code>.</p>
 <Listing number="13-8" file-name="src/main.rs" caption="Attempting to use an `FnOnce` closure with `sort_by_key`">
 <pre><code class="language-rust ignore does_not_compile">#[derive(Debug)]
 struct Rectangle {
@@ -531,19 +533,21 @@ fn main() {
     println!("{list:#?}");
 }</code></pre>
 </Listing>
-<p>This is a contrived, convoluted way (that doesn’t work) to try and count the number of times <code>sort_by_key</code> calls the closure when sorting <code>list</code>. This code attempts to do this counting by pushing <code>value</code>—a <code>String</code> from the closure’s environment—into the <code>sort_operations</code> vector. The closure captures <code>value</code> then moves <code>value</code> out of the closure by transferring ownership of <code>value</code> to the <code>sort_operations</code> vector. This closure can be called once; trying to call it a second time wouldn’t work because <code>value</code> would no longer be in the environment to be pushed into <code>sort_operations</code> again! Therefore, this closure only implements <code>FnOnce</code>. When we try to compile this code, we get this error that <code>value</code> can’t be moved out of the closure because the closure must implement <code>FnMut</code>:</p>
+<p>This is a contrived, convoluted way (that doesn’t work) to try to count the number of times <code>sort_by_key</code> calls the closure when sorting <code>list</code>. This code attempts to do this counting by pushing <code>value</code>—a <code>String</code> from the closure’s environment—into the <code>sort_operations</code> vector. The closure captures <code>value</code> and then moves <code>value</code> out of the closure by transferring ownership of <code>value</code> to the <code>sort_operations</code> vector. This closure can be called once; trying to call it a second time wouldn’t work, because <code>value</code> would no longer be in the environment to be pushed into <code>sort_operations</code> again! Therefore, this closure only implements <code>FnOnce</code>. When we try to compile this code, we get this error that <code>value</code> can’t be moved out of the closure because the closure must implement <code>FnMut</code>:</p>
 <pre><code class="language-console">$ cargo run
    Compiling rectangles v0.1.0 (file:///projects/rectangles)
 error[E0507]: cannot move out of `value`, a captured variable in an `FnMut` closure
   --&gt; src/main.rs:18:30
    |
 15 |     let value = String::from("closure called");
-   |         ----- captured outer variable
+   |         -----   ------------------------------ move occurs because `value` has type `String`, which does not implement the `Copy` trait
+   |         |
+   |         captured outer variable
 16 |
 17 |     list.sort_by_key(|r| {
    |                      --- captured by this `FnMut` closure
 18 |         sort_operations.push(value);
-   |                              ^^^^^ move occurs because `value` has type `String`, which does not implement the `Copy` trait
+   |                              ^^^^^ `value` is moved here
    |
 help: consider cloning the value if the performance cost is acceptable
    |
@@ -553,9 +557,9 @@ help: consider cloning the value if the performance cost is acceptable
 For more information about this error, try `rustc --explain E0507`.
 error: could not compile `rectangles` (bin "rectangles") due to 1 previous error
 </code></pre>
-<p>The error points to the line in the closure body that moves <code>value</code> out of the environment. To fix this, we need to change the closure body so that it doesn’t move values out of the environment. To count the number of times the closure is called, keeping a counter in the environment and incrementing its value in the closure body is a more straightforward way to calculate that. The closure in Listing 13-9 works with <code>sort_by_key</code> because it is only capturing a mutable reference to the <code>num_sort_operations</code> counter and can therefore be called more than once:</p>
-<Listing number="13-9" file-name="src/main.rs" caption="Using an `FnMut` closure with `sort_by_key` is allowed">
-<pre><pre class="playground"><code class="language-rust edition2021">#[derive(Debug)]
+<p>The error points to the line in the closure body that moves <code>value</code> out of the environment. To fix this, we need to change the closure body so that it doesn’t move values out of the environment. Keeping a counter in the environment and incrementing its value in the closure body is a more straightforward way to count the number of times the closure is called. The closure in Listing 13-9 works with <code>sort_by_key</code> because it is only capturing a mutable reference to the <code>num_sort_operations</code> counter and can therefore be called more than once.</p>
+<Listing number="13-9" file-name="src/main.rs" caption="Using an `FnMut` closure with `sort_by_key` is allowed.">
+<pre><pre class="playground"><code class="language-rust edition2024">#[derive(Debug)]
 struct Rectangle {
     width: u32,
     height: u32,

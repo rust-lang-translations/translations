@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>성능 비교: 루프 vs. 반복자 - The Rust Programming Language</title>
+        <title>Performance in Loops vs. Iterators - The Rust Programming Language</title>
 
 
         <!-- Custom HTML head -->
@@ -216,33 +216,20 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="성능-비교-루프-vs-반복자"><a class="header" href="#성능-비교-루프-vs-반복자">성능 비교: 루프 vs. 반복자</a></h2>
+                        <!-- Old headings. Do not remove or links may break. -->
+<p><a id="comparing-performance-loops-vs-iterators"></a></p>
+<h2 id="performance-in-loops-vs-iterators"><a class="header" href="#performance-in-loops-vs-iterators">Performance in Loops vs. Iterators</a></h2>
 <p>루프와 반복자 중 어느 것을 사용할지 결정하려면, 어떤 구현이 더 빠른지 알아야 합니다: 명시적인 <code>for</code> 루프를 사용한 <code>search</code> 함수 버전인지, 아니면 반복자를 사용한 버전인지 말이죠.</p>
 <p>아서 코난 도일 경의 <em>셜록 홈즈의 모험</em> 전체 내용을 <code>String</code>으로 불러온 다음, 내용 중에서 단어 _the_를 찾는 방식으로 벤치마크를 실행했습니다. <code>for</code> 루프를 사용한 <code>search</code> 버전과 반복자를 사용한 버전의 벤치마크 결과는 다음과 같습니다:</p>
 <pre><code class="language-text">test bench_search_for  ... bench:  19,620,300 ns/iter (+/- 915,700)
 test bench_search_iter ... bench:  19,234,900 ns/iter (+/- 657,200)
 </code></pre>
-<p>두 구현의 성능은 비슷합니다! 여기서 벤치마크 코드를 설명하지는 않을 것인데, 핵심은 두 버전이 완전히 동일하다는 것을 증명하는 것이 아니라 이 두 구현이 성능 측면에서 어떻게 비교되는지에 대한 일반적인 감을 잡는 것이기 때문입니다.</p>
-<p>더 포괄적인 벤치마크를 위해서는 다양한 크기의 여러 텍스트를 <code>contents</code>로 사용하고, 다양한 단어와 길이를 <code>query</code>로 사용하는 등 모든 종류의 변수들을 확인해야 합니다. 요점은 이것입니다: 반복자는 고수준의 추상화임에도 불구하고, 저수준 코드를 직접 작성했을 때와 거의 동일한 코드로 컴파일됩니다. 반복자는 러스트의 <em>제로 코스트 추상화(zero-cost abstractions)</em> 중 하나로, 이는 추상화를 사용하더라도 추가적인 런타임 오버헤드가 발생하지 않음을 의미합니다. 이는 C++의 최초 설계자이자 구현자인 비야네 스트롭스트룹(Bjarne Stroustrup)이 “Foundations of C++” (2012)에서 _제로 오버헤드(zero-overhead)_를 정의한 방식과 유사합니다:</p>
+<p>The two implementations have similar performance! We won’t explain the benchmark code here because the point is not to prove that the two versions are equivalent but to get a general sense of how these two implementations compare performance-wise.</p>
+<p>For a more comprehensive benchmark, you should check using various texts of various sizes as the <code>contents</code>, different words and words of different lengths as the <code>query</code>, and all kinds of other variations. The point is this: Iterators, although a high-level abstraction, get compiled down to roughly the same code as if you’d written the lower-level code yourself. Iterators are one of Rust’s <em>zero-cost abstractions</em>, by which we mean that using the abstraction imposes no additional runtime overhead. This is analogous to how Bjarne Stroustrup, the original designer and implementor of C++, defines zero-overhead in his 2012 ETAPS keynote presentation “Foundations of C++”:</p>
 <blockquote>
 <p>일반적으로, C++ 구현은 제로 오버헤드 원칙을 따릅니다: 사용하지 않는 것에 대해서는 비용을 지불하지 않습니다. 더 나아가: 사용하는 것에 대해서는, 직접 코드를 작성하더라도 그보다 더 잘할 수는 없습니다.</p>
 </blockquote>
-<p>또 다른 예로, 다음 코드는 오디오 디코더에서 가져온 것입니다. 디코딩 알고리즘은 선형 예측(linear prediction) 연산을 사용하여 이전 샘플들의 선형 함수를 기반으로 미래 값을 추정합니다. 이 코드는 반복자 체인을 사용하여 스코프 내의 세 변수에 대해 수학 연산을 수행합니다: 데이터 슬라이스인 <code>buffer</code>, 12개의 계수가 담긴 <code>coefficients</code> 배열, 그리고 <code>qlp_shift</code>만큼 데이터를 시프트할 양입니다. 이 예제에서는 변수들을 선언만 하고 값을 주지는 않았습니다. 이 코드가 문맥 밖에서는 큰 의미가 없을지라도, 러스트가 고수준의 아이디어를 어떻게 저수준 코드로 번역하는지 보여주는 간결하고 실질적인 예입니다.</p>
-<pre><code class="language-rust ignore">let buffer: &amp;mut [i32];
-let coefficients: [i64; 12];
-let qlp_shift: i16;
-
-for i in 12..buffer.len() {
-    let prediction = coefficients.iter()
-                                 .zip(&amp;buffer[i - 12..i])
-                                 .map(|(&amp;c, &amp;s)| c * s as i64)
-                                 .sum::&lt;i64&gt;() &gt;&gt; qlp_shift;
-    let delta = buffer[i];
-    buffer[i] = prediction as i32 + delta;
-}</code></pre>
-<p><code>prediction</code> 값을 계산하기 위해, 이 코드는 <code>coefficients</code>에 있는 12개의 각 값을 순회하면서 <code>zip</code> 메서드를 사용하여 계수 값들을 <code>buffer</code>의 이전 12개 값과 쌍으로 묶습니다. 그런 다음 각 쌍에 대해 두 값을 곱하고, 그 결과들을 모두 합산한 뒤, 합계의 비트를 <code>qlp_shift</code>만큼 오른쪽으로 시프트합니다.</p>
-<p>오디오 디코더와 같은 애플리케이션의 계산은 종종 성능을 최우선으로 고려합니다. 여기서 우리는 반복자를 생성하고, 두 개의 어댑터를 사용한 다음, 값을 소비합니다. 이 러스트 코드는 어떤 어셈블리 코드로 컴파일될까요? 음, 이 글을 쓰는 시점에서는 직접 손으로 작성한 것과 동일한 어셈블리로 컴파일됩니다. <code>coefficients</code>의 값들을 순회하는 것에 대응하는 루프가 전혀 없습니다: 러스트는 12번의 반복이 있음을 알고 있기 때문에 루프를 “언롤(unroll)”합니다. _언롤링(Unrolling)_은 루프 제어 코드의 오버헤드를 제거하고 대신 루프의 각 반복에 대해 반복되는 코드를 생성하는 최적화 기법입니다.</p>
-<p>모든 계수(coefficients)가 레지스터에 저장되므로, 값에 접근하는 것이 매우 빠릅니다. 런타임에 배열 접근에 대한 경계 검사(bounds checks)도 없습니다. 러스트가 적용할 수 있는 이러한 모든 최적화는 결과 코드를 매우 효율적으로 만듭니다. 이제 이 사실을 알았으니, 두려움 없이 반복자와 클로저를 사용할 수 있습니다! 이들은 코드를 더 고수준으로 보이게 만들지만, 그렇게 함으로써 발생하는 런타임 성능 저하는 없습니다.</p>
+<p>In many cases, Rust code using iterators compiles to the same assembly you’d write by hand. Optimizations such as loop unrolling and eliminating bounds checking on array access apply and make the resultant code extremely efficient. Now that you know this, you can use iterators and closures without fear! They make code seem like it’s higher level but don’t impose a runtime performance penalty for doing so.</p>
 <h2 id="요약"><a class="header" href="#요약">요약</a></h2>
 <p>클로저와 반복자는 함수형 프로그래밍 언어의 아이디어에서 영감을 받은 러스트의 기능입니다. 이들은 저수준 성능을 유지하면서도 고수준의 아이디어를 명확하게 표현할 수 있는 러스트의 능력에 기여합니다. 클로저와 반복자의 구현은 런타임 성능에 영향을 주지 않도록 설계되었습니다. 이는 제로 코스트 추상화를 제공하고자 하는 러스트의 목표 중 일부입니다.</p>
 <p>이제 I/O 프로젝트의 표현력을 향상시켰으니, 프로젝트를 전 세계와 공유하는 데 도움이 될 <code>cargo</code>의 몇 가지 추가 기능들을 살펴봅시다.</p>

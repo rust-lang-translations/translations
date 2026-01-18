@@ -217,17 +217,31 @@
 <h2 id="소개"><a class="header" href="#소개">소개</a></h2>
 <p>이 가이드는 외부 코드용 바인딩 작성을 소개하기 위해 <a href="https://github.com/google/snappy">snappy</a> 압축/해제 라이브러리를 사용할 것입니다. 러스트는 현재 C++ 라이브러리를 직접 호출할 수 없지만, snappy는 (<a href="https://github.com/google/snappy/blob/master/snappy-c.h"><code>snappy-c.h</code></a>에 문서화된) C 인터페이스를 포함하고 있습니다.</p>
 <h2 id="libc에-대한-참고-사항"><a class="header" href="#libc에-대한-참고-사항">libc에 대한 참고 사항</a></h2>
-<p>이 예제들 중 다수는 다른 기능들 외에도 C 타입들에 대한 다양한 타입 정의를 제공하는 <a href="https://crates.io/crates/libc"><code>libc</code> 크레이트</a>를 사용합니다. 직접 이 예제들을 실행해 보려면 <code>Cargo.toml</code>에 <code>libc</code>를 추가해야 합니다:</p>
+<p>Many of these examples use <a href="https://crates.io/crates/libc">the <code>libc</code> crate</a>, which provides various type definitions for C types, among other things. If you’re trying out these examples yourself, you’ll need to add <code>libc</code> to your <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
 libc = "0.2.0"
 </code></pre>
+<h2 id="prepare-the-build-script"><a class="header" href="#prepare-the-build-script">Prepare the build script</a></h2>
+<p>Because <a href="https://github.com/google/snappy">snappy</a> is a static library by default, so there is no stdc++ linked in the output artifact. In order to use this foreign library in Rust, we have to manually specify that we want to link stdc++ std to our project. The easiest way to do this is by setting up a build script.</p>
+<p>First edit <code>Cargo.toml</code>, inside <code>package</code> add <code>build = "build.rs"</code>:</p>
+<pre><code class="language-toml">[package]
+...
+build = "build.rs"
+</code></pre>
+<p>Then create a new file at the root of your workspace, named <code>build.rs</code>:</p>
+<pre><pre class="playground"><code class="language-rust edition2024">// build.rs
+fn main() {
+    println!("cargo:rustc-link-lib=dylib=stdc++"); // This line may be unnecessary for some environments.
+    println!("cargo:rustc-link-search=&lt;YOUR SNAPPY LIBRARY PATH&gt;");
+}</code></pre></pre>
+<p>For more information, please read <a href="https://doc.rust-lang.org/cargo/reference/build-scripts.html">The Cargo Book - build script</a>.</p>
 <h2 id="외부-함수-호출하기"><a class="header" href="#외부-함수-호출하기">외부 함수 호출하기</a></h2>
 <p>다음은 snappy가 설치되어 있다면 컴파일될, 외부 함수를 호출하는 최소한의 예제입니다:</p>
 <!-- ignore: requires libc crate -->
 <pre><code class="language-rust ignore">use libc::size_t;
 
 #[link(name = "snappy")]
-extern {
+unsafe extern "C" {
     fn snappy_max_compressed_length(source_length: size_t) -&gt; size_t;
 }
 
@@ -235,7 +249,7 @@ fn main() {
     let x = unsafe { snappy_max_compressed_length(100) };
     println!("100바이트 버퍼의 최대 압축 길이: {}", x);
 }</code></pre>
-<p><code>extern</code> 블록은 외부 라이브러리에 있는 함수 시그니처들의 목록이며, 이 경우에는 플랫폼의 C ABI를 사용합니다. <code>#[link(...)]</code> 속성은 링커에게 snappy 라이브러리와 링크하여 심볼들이 해결되도록 지시하는 데 사용됩니다.</p>
+<p>The <code>extern</code> block is a list of function signatures in a foreign library, in this case with the platform's C ABI. The <code>#[link(...)]</code> attribute is used to instruct the linker to link against the snappy library so the symbols can be resolved.</p>
 <p>외부 함수들은 비안전(unsafe)한 것으로 간주되므로, 그 호출은 그 안에 포함된 모든 것이 정말로 안전하다는 컴파일러에 대한 약속으로서 <code>unsafe {}</code>로 감싸야 합니다. C 라이브러리들은 종종 스레드 안전하지 않은 인터페이스를 노출하며, 포인터 인자를 받는 거의 모든 함수는 포인터가 매달려 있을(dangling) 수 있으므로 모든 가능한 입력에 대해 유효하지 않습니다. 또한 원시 포인터는 러스트의 안전한 메모리 모델을 벗어납니다.</p>
 <p>외부 함수에 대한 인자 타입을 선언할 때, 러스트 컴파일러는 선언이 올바른지 확인할 수 없습니다. 따라서 이를 올바르게 지정하는 것은 런타임에 바인딩이 올바르게 유지되도록 하는 일의 일부입니다.</p>
 <p><code>extern</code> 블록을 확장하여 전체 snappy API를 다룰 수 있습니다:</p>
@@ -243,7 +257,7 @@ fn main() {
 <pre><code class="language-rust ignore">use libc::{c_int, size_t};
 
 #[link(name = "snappy")]
-extern {
+unsafe extern "C" {
     fn snappy_compress(input: *const u8,
                        input_length: size_t,
                        compressed: *mut u8,
@@ -262,7 +276,7 @@ extern {
 <span class="boring">fn main() {}</span></code></pre>
 <h2 id="안전한-인터페이스-만들기"><a class="header" href="#안전한-인터페이스-만들기">안전한 인터페이스 만들기</a></h2>
 <p>메모리 안전성을 제공하고 벡터와 같은 고수준 개념을 활용하기 위해 원시 C API를 래핑할 필요가 있습니다. 라이브러리는 안전한 고수준 인터페이스만을 노출하고 비안전한 내부 세부 사항은 숨기기로 선택할 수 있습니다.</p>
-<p>버퍼를 기대하는 함수들을 래핑하려면 러스트 벡터를 메모리 포인터로 조작하기 위해 <code>slice::raw</code> 모듈을 사용해야 합니다. 러스트의 벡터는 연속된 메모리 블록임이 보장됩니다. 길이는 현재 포함된 요소의 수이고, 용량은 할당된 메모리에 들어갈 수 있는 총 요소 수입니다. 길이는 용량보다 작거나 같습니다.</p>
+<p>Wrapping the functions which expect buffers involves using the <code>slice::raw</code> module to manipulate Rust's vectors as pointers to memory. Rust's vectors are guaranteed to be a contiguous block of memory. The length is the number of elements currently contained, and the capacity is the total size in elements of the allocated memory. The length is less than or equal to the capacity.</p>
 <!-- ignore: requires libc crate -->
 <pre><code class="language-rust ignore"><span class="boring">use libc::{c_int, size_t};
 </span><span class="boring">unsafe fn snappy_validate_compressed_buffer(_: *const u8, _: size_t) -&gt; c_int { 0 }
@@ -378,13 +392,13 @@ mod tests {
     }
 }</code></pre>
 <h2 id="소멸자"><a class="header" href="#소멸자">소멸자</a></h2>
-<p>외부 라이브러리들은 종종 자원의 소유권을 호출한 코드에 넘겨줍니다. 이런 일이 발생하면, 우리는 안전을 제공하고 이러한 자원들의 해제를 보장하기 위해(특히 패닉이 발생한 경우) 러스트의 소멸자를 사용해야 합니다.</p>
-<p>소멸자에 대한 자세한 내용은 <a href="../std/ops/trait.Drop.html">Drop 트레잇</a>을 참조하십시오.</p>
+<p>Foreign libraries often hand off ownership of resources to the calling code. When this occurs, we must use Rust's destructors to provide safety and guarantee the release of these resources (especially in the case of a panic).</p>
+<p>For more information about destructors, see the <a href="../std/ops/trait.Drop.html">Drop trait</a>.</p>
 <h2 id="c에서-러스트-코드-호출하기"><a class="header" href="#c에서-러스트-코드-호출하기">C에서 러스트 코드 호출하기</a></h2>
-<p>러스트 코드를 C에서 호출할 수 있는 방식으로 컴파일하고 싶을 수 있습니다. 이는 꽤 쉽지만, 몇 가지가 필요합니다.</p>
+<p>You may wish to compile Rust code in a way that can be called from C. This is fairly easy, but requires a few things.</p>
 <h3 id="러스트-측"><a class="header" href="#러스트-측">러스트 측</a></h3>
 <p>먼저, <code>rust_from_c</code>라는 이름의 라이브러리 크레이트가 있다고 가정합니다. <code>lib.rs</code>에는 다음과 같은 러스트 코드가 있어야 합니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">#[no_mangle]
+<pre><pre class="playground"><code class="language-rust edition2024">#[unsafe(no_mangle)]
 pub extern "C" fn hello_from_rust() {
     println!("러스트에서 인사드립니다!");
 }
@@ -394,7 +408,7 @@ pub extern "C" fn hello_from_rust() {
 <pre><code class="language-toml">[lib]
 crate-type = ["cdylib"]
 </code></pre>
-<p>(참고: <code>staticlib</code> 크레이트 타입을 사용할 수도 있지만, 일부 링크 플래그를 조정해야 합니다.)(참고: <code>staticlib</code> 크레이트 타입을 사용할 수도 있지만, 일부 링크 플래그를 조정해야 합니다.)</p>
+<p>(NOTE: We could also use the <code>staticlib</code> crate type but it also requires tweaking some linking flags.)</p>
 <p><code>cargo build</code>를 실행하면 러스트 측 준비는 끝납니다.</p>
 <h3 id="c-측"><a class="header" href="#c-측">C 측</a></h3>
 <p><code>hello_from_rust</code> 함수를 호출할 C 파일을 만들고 <code>gcc</code>로 컴파일할 것입니다.</p>
@@ -414,18 +428,18 @@ int main(void) {
 <pre><code class="language-sh">$ LD_LIBRARY_PATH=./target/debug ./call_rust
 Hello from Rust!
 </code></pre>
-<p>이게 전부입니다! 더 실질적인 예제는 <a href="https://github.com/eqrion/cbindgen"><code>cbindgen</code></a>을 확인해 보십시오.</p>
+<p>That's it! For a more realistic example, check the <a href="https://github.com/eqrion/cbindgen"><code>cbindgen</code></a>.</p>
 <h2 id="c-코드에서-러스트-함수로의-콜백"><a class="header" href="#c-코드에서-러스트-함수로의-콜백">C 코드에서 러스트 함수로의 콜백</a></h2>
 <p>일부 외부 라이브러리는 현재 상태나 중간 데이터를 호출자에게 보고하기 위해 콜백 사용을 요구합니다. 러스트에서 정의된 함수를 외부 라이브러리에 전달하는 것이 가능합니다. 이를 위한 요구 사항은 콜백 함수가 C 코드에서 호출 가능하도록 올바른 호출 규약과 함께 <code>extern</code>으로 표시되어야 한다는 것입니다.</p>
 <p>그 후 콜백 함수는 등록 호출을 통해 C 라이브러리로 전달될 수 있으며, 그 후 거기에서 호출될 수 있습니다.</p>
 <p>기본적인 예제는 다음과 같습니다:</p>
 <p>러스트 코드:</p>
-<pre><pre class="playground"><code class="language-rust no_run edition2021">extern fn callback(a: i32) {
+<pre><pre class="playground"><code class="language-rust no_run edition2024">extern fn callback(a: i32) {
     println!("C에서 값 {0}과(와) 함께 호출되었습니다", a);
 }
 
 #[link(name = "extlib")]
-extern {
+unsafe extern {
    fn register_callback(cb: extern fn(i32)) -&gt; i32;
    fn trigger_callback();
 }
@@ -454,12 +468,12 @@ void trigger_callback() {
 <p>앞의 예제는 C 코드에서 전역 함수를 호출하는 방법을 보여주었습니다. 하지만 종종 특정 러스트 객체를 대상으로 콜백을 호출하고 싶을 때가 있습니다. 이는 각각의 C 객체에 대한 래퍼를 나타내는 객체일 수 있습니다.</p>
 <p>이는 객체에 대한 원시 포인터를 C 라이브러리에 전달함으로써 달성할 수 있습니다. 그러면 C 라이브러리는 알림에 러스트 객체에 대한 포인터를 포함할 수 있습니다. 이를 통해 콜백이 참조된 러스트 객체에 비안전하게 접근할 수 있게 됩니다.</p>
 <p>러스트 코드:</p>
-<pre><pre class="playground"><code class="language-rust no_run edition2021">struct RustObject {
+<pre><pre class="playground"><code class="language-rust no_run edition2024">struct RustObject {
     a: i32,
     // 다른 멤버들...
 }
 
-extern "C" fn callback(target: *mut RustObject, a: i32) {
+unsafe extern "C" fn callback(target: *mut RustObject, a: i32) {
     println!("C에서 값 {0}과(와) 함께 호출되었습니다", a);
     unsafe {
         // 콜백으로부터 받은 값으로 RustObject의 값을 업데이트합니다:
@@ -468,9 +482,9 @@ extern "C" fn callback(target: *mut RustObject, a: i32) {
 }
 
 #[link(name = "extlib")]
-extern {
+unsafe extern {
    fn register_callback(target: *mut RustObject,
-                        cb: extern fn(*mut RustObject, i32)) -&gt; i32;
+                        cb: unsafe extern fn(*mut RustObject, i32)) -&gt; i32;
    fn trigger_callback();
 }
 
@@ -530,7 +544,7 @@ void trigger_callback() {
 <h2 id="비안전-블록-unsafe-blocks"><a class="header" href="#비안전-블록-unsafe-blocks">비안전 블록 (Unsafe blocks)</a></h2>
 <p>원시 포인터 역참조나 비안전(unsafe)으로 표시된 함수 호출과 같은 일부 연산은 비안전 블록 내부에서만 허용됩니다. 비안전 블록은 비안전성을 격리하며, 비안전성이 블록 밖으로 새어 나오지 않는다는 컴파일러에 대한 약속입니다.</p>
 <p>반면 비안전 함수는 이를 세상에 알립니다. 비안전 함수는 다음과 같이 작성됩니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>unsafe fn kaboom(ptr: *const i32) -&gt; i32 { *ptr }
 <span class="boring">}</span></code></pre></pre>
@@ -539,7 +553,7 @@ void trigger_callback() {
 <p>외부 API는 전역 상태를 추적하는 등의 작업을 수행하는 전역 변수를 내보내는 경우가 많습니다. 이러한 변수에 접근하려면, <code>extern</code> 블록 내에서 <code>static</code> 키워드로 선언해야 합니다:</p>
 <!-- ignore: requires libc crate -->
 <pre><code class="language-rust ignore">#[link(name = "readline")]
-extern {
+unsafe extern {
     static rl_readline_version: libc::c_int;
 }
 
@@ -553,7 +567,7 @@ fn main() {
 use std::ptr;
 
 #[link(name = "readline")]
-extern {
+unsafe extern {
     static mut rl_prompt: *const libc::c_char;
 }
 
@@ -574,7 +588,7 @@ fn main() {
 <pre><code class="language-rust ignore">#[cfg(all(target_os = "win32", target_arch = "x86"))]
 #[link(name = "kernel32")]
 #[allow(non_snake_case)]
-extern "stdcall" {
+unsafe extern "stdcall" {
     fn SetEnvironmentVariableA(n: *const u8, v: *const u8) -&gt; libc::c_int;
 }
 <span class="boring">fn main() { }</span></code></pre>
@@ -587,13 +601,12 @@ extern "stdcall" {
 <li><code>thiscall</code></li>
 <li><code>vectorcall</code> 이는 현재 <code>abi_vectorcall</code> 게이트 뒤에 숨겨져 있으며 변경될 수 있습니다.</li>
 <li><code>Rust</code></li>
-<li><code>rust-intrinsic</code></li>
 <li><code>system</code></li>
 <li><code>C</code></li>
 <li><code>win64</code></li>
 <li><code>sysv64</code></li>
 </ul>
-<p>이 목록의 대부분의 ABI는 자명하지만, <code>system</code> ABI는 약간 생소할 수 있습니다. 이 제약 조건은 타겟의 라이브러리와 상호 운용하기 위해 적절한 ABI가 무엇이든 선택합니다. 예를 들어, x86 아키텍처의 win32에서 이는 사용되는 ABI가 <code>stdcall</code>임을 의미합니다. 그러나 x86_64에서 윈도우는 <code>C</code> 호출 규약을 사용하므로 <code>C</code>가 사용됩니다. 이는 이전 예제에서 x86뿐만 아니라 모든 윈도우 시스템에 대한 블록을 정의하기 위해 <code>extern "system" { ... }</code>을 사용할 수 있었음을 의미합니다.</p>
+<p>Most of the ABIs in this list are self-explanatory, but the <code>system</code> ABI may seem a little odd. This constraint selects whatever the appropriate ABI is for interoperating with the target's libraries. For example, on win32 with a x86 architecture, this means that the abi used would be <code>stdcall</code>. On x86_64, however, windows uses the <code>C</code> calling convention, so <code>C</code> would be used. This means that in our previous example, we could have used <code>extern "system" { ... }</code> to define a block for all windows systems, not only x86 ones.</p>
 <h2 id="외부-코드와의-상호-운용성"><a class="header" href="#외부-코드와의-상호-운용성">외부 코드와의 상호 운용성</a></h2>
 <p>러스트는 <code>#[repr(C)]</code> 속성이 적용된 경우에만 <code>struct</code>의 레이아웃이 플랫폼의 C 표현과 호환됨을 보장합니다. <code>#[repr(C, packed)]</code>는 패딩 없이 구조체 멤버를 배치하는 데 사용할 수 있습니다. <code>#[repr(C)]</code>는 열거형(enum)에도 적용될 수 있습니다.</p>
 <p>러스트의 소유된 박스(<code>Box&lt;T&gt;</code>)는 내부 객체를 가리키는 핸들로서 null이 될 수 없는 포인터를 사용합니다. 하지만 이들은 내부 할당자에 의해 관리되므로 수동으로 생성해서는 안 됩니다. 참조는 해당 타입으로 직접 향하는 null이 될 수 없는 포인터라고 안전하게 가정할 수 있습니다. 하지만 빌림 검사나 가변성 규칙을 어기는 것이 안전하다고 보장되지는 않으므로, 필요한 경우에는 원시 포인터(<code>*</code>)를 사용하는 것을 선호하십시오. 컴파일러가 원시 포인터에 대해서는 그만큼 많은 가정을 할 수 없기 때문입니다.</p>
@@ -601,7 +614,7 @@ extern "stdcall" {
 <p><a href="https://crates.io/crates/libc">crates.io의 <code>libc</code> 크레이트</a>는 <code>libc</code> 모듈에 C 표준 라이브러리를 위한 타입 별칭과 함수 정의를 포함하고 있으며, 러스트는 기본적으로 <code>libc</code> 및 <code>libm</code>과 링크됩니다.</p>
 <h2 id="가변-인자-함수-variadic-functions"><a class="header" href="#가변-인자-함수-variadic-functions">가변 인자 함수 (Variadic functions)</a></h2>
 <p>C에서 함수는 '가변 인자'를 가질 수 있습니다. 즉, 가변적인 개수의 인자를 받을 수 있음을 의미합니다. 러스트에서는 외부 함수 선언의 인자 목록 안에 <code>...</code>를 지정함으로써 이를 달성할 수 있습니다:</p>
-<pre><code class="language-no_run">extern {
+<pre><code class="language-no_run">unsafe extern {
     fn foo(x: i32, ...);
 }
 
@@ -612,7 +625,7 @@ fn main() {
 }
 </code></pre>
 <p>일반적인 러스트 함수는 가변 인자를 가질 수 <em>없습니다</em>:</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// 이 코드는 컴파일되지 않습니다
 
@@ -627,7 +640,7 @@ fn foo(x: i32, ...) {}
 <pre><code class="language-rust ignore">use libc::c_int;
 
 <span class="boring">#[cfg(hidden)]
-</span>extern "C" {
+</span>unsafe extern "C" {
     /// 콜백을 등록합니다.
     fn register(cb: Option&lt;extern "C" fn(Option&lt;extern "C" fn(c_int) -&gt; c_int&gt;, c_int) -&gt; c_int&gt;);
 }
@@ -670,8 +683,8 @@ fn main() {
 <p><code>catch_unwind</code>와 외부 예외 사이의 상호작용은 <strong>정의되지 않았으며</strong>, <code>panic</code>과 외부 예외 포착 메커니즘(특히 C++의 <code>try</code>/<code>catch</code>) 사이의 상호작용도 마찬가지입니다.</p>
 <h3 id="c-unwind를-사용한-러스트-panic"><a class="header" href="#c-unwind를-사용한-러스트-panic"><code>"C-unwind"</code>를 사용한 러스트 <code>panic</code></a></h3>
 <!-- ignore: using unstable feature -->
-<pre><code class="language-rust ignore">#[no_mangle]
-extern "C-unwind" fn example() {
+<pre><code class="language-rust ignore">#[unsafe(no_mangle)]
+unsafe extern "C-unwind" fn example() {
     panic!("어라");
 }</code></pre>
 <p>이 함수는 (<code>panic=unwind</code>로 컴파일되었을 때) C++ 스택 프레임을 언와인딩하는 것이 허용됩니다.</p>
@@ -691,13 +704,13 @@ extern "C-unwind" fn example() {
 <h3 id="c-unwind를-사용한-c-throw"><a class="header" href="#c-unwind를-사용한-c-throw"><code>"C-unwind"</code>를 사용한 C++ <code>throw</code></a></h3>
 <!-- ignore: using unstable feature -->
 <pre><code class="language-rust ignore">#[link(...)]
-extern "C-unwind" {
+unsafe extern "C-unwind" {
     // 예외를 던질 수 있는 C++ 함수
     fn may_throw();
 }
 
-#[no_mangle]
-extern "C-unwind" fn rust_passthrough() {
+#[unsafe(no_mangle)]
+unsafe extern "C-unwind" fn rust_passthrough() {
     let b = Box::new(5);
     unsafe { may_throw(); }
     println!("{:?}", &amp;b);
@@ -717,9 +730,9 @@ extern "C-unwind" fn rust_passthrough() {
 </code></pre>
 <p>만약 <code>may_throw</code>가 예외를 던진다면 <code>b</code>는 드롭될 것입니다. 그렇지 않다면 <code>5</code>가 출력될 것입니다.</p>
 <h3 id="panic은-abi-경계에서-멈출-수-있습니다"><a class="header" href="#panic은-abi-경계에서-멈출-수-있습니다"><code>panic</code>은 ABI 경계에서 멈출 수 있습니다</a></h3>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>#[no_mangle]
+</span>#[unsafe(no_mangle)]
 extern "C" fn assert_nonzero(input: u32) {
     assert!(input != 0)
 }
@@ -727,9 +740,9 @@ extern "C" fn assert_nonzero(input: u32) {
 <p>만약 <code>assert_nonzero</code>가 인자 <code>0</code>과 함께 호출되면, 런타임은 <code>panic=abort</code>로 컴파일되었는지 여부와 관계없이 프로세스를 (안전하게) 중단시킬 것임을 보장합니다.</p>
 <h3 id="panic을-선제적으로-포착하기"><a class="header" href="#panic을-선제적으로-포착하기"><code>panic</code>을 선제적으로 포착하기</a></h3>
 <p>패닉이 발생할 수 있는 러스트 코드를 작성 중이고, 패닉 시 프로세스가 중단되는 것을 원치 않는다면 <a href="../std/panic/fn.catch_unwind.html"><code>catch_unwind</code></a>를 사용해야 합니다.</p>
-<pre><pre class="playground"><code class="language-rust edition2021">use std::panic::catch_unwind;
+<pre><pre class="playground"><code class="language-rust edition2024">use std::panic::catch_unwind;
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn oh_no() -&gt; i32 {
     let result = catch_unwind(|| {
         panic!("이크!");
@@ -749,7 +762,7 @@ void bar(void *arg);
 </code></pre>
 <p>우리는 러스트에서 <code>c_void</code> 타입을 사용하여 이를 표현할 수 있습니다:</p>
 <!-- ignore: requires libc crate -->
-<pre><code class="language-rust ignore">extern "C" {
+<pre><code class="language-rust ignore">unsafe extern "C" {
     pub fn foo(arg: *mut libc::c_void);
     pub fn bar(arg: *mut libc::c_void);
 }
@@ -761,7 +774,7 @@ void foo(struct Foo *arg);
 void bar(struct Bar *arg);
 </code></pre>
 <p>러스트에서 이를 구현하기 위해, 우리만의 불투명 타입을 만들어 봅시다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">#[repr(C)]
+<pre><pre class="playground"><code class="language-rust edition2024">#[repr(C)]
 pub struct Foo {
     _data: (),
     _marker:
@@ -774,12 +787,12 @@ pub struct Bar {
         core::marker::PhantomData&lt;(*mut u8, core::marker::PhantomPinned)&gt;,
 }
 
-extern "C" {
+unsafe extern "C" {
     pub fn foo(arg: *mut Foo);
     pub fn bar(arg: *mut Bar);
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
-<p>최소한 하나의 비공개 필드를 포함하고 생성자를 제공하지 않음으로써, 우리는 이 모듈 밖에서는 인스턴스화할 수 없는 불투명 타입을 만듭니다. (필드가 없는 구조체는 누구나 인스턴스화할 수 있습니다.) 또한 이 타입을 FFI에서 사용하기를 원하므로 <code>#[repr(C)]</code>를 추가해야 합니다. 마커는 컴파일러가 구조체를 <code>Send</code>, <code>Sync</code>로 표시하지 않도록 보장하며, <code>Unpin</code>도 적용되지 않도록 합니다. (<code>*mut u8</code>은 <code>Send</code>나 <code>Sync</code>가 아니며, <code>PhantomPinned</code>는 <code>Unpin</code>이 아닙니다.)</p>
+<p>By including at least one private field and no constructor, we create an opaque type that we can't instantiate outside of this module. (A struct with no field could be instantiated by anyone.) We also want to use this type in FFI, so we have to add <code>#[repr(C)]</code>. The marker ensures the compiler does not mark the struct as <code>Send</code>, <code>Sync</code>, and <code>Unpin</code>. (<code>*mut u8</code> is not <code>Send</code> or <code>Sync</code>, <code>PhantomPinned</code> is not <code>Unpin</code>)</p>
 <p>하지만 우리의 <code>Foo</code>와 <code>Bar</code> 타입은 서로 다르기 때문에, 둘 사이에 타입 안전성이 확보됩니다. 따라서 실수로 <code>Foo</code>에 대한 포인터를 <code>bar()</code>에 전달하는 일을 방지할 수 있습니다.</p>
 <p>비어 있는 열거형(enum)을 FFI 타입으로 사용하는 것은 정말 좋지 않은 생각입니다. 컴파일러는 비어 있는 열거형이 거주 불가능(uninhabited)하다는 것에 의존하므로, <code>&amp;Empty</code> 타입의 값을 다루는 것은 매우 위험하며 정의되지 않은 동작을 유발하여 비정상적인 프로그램 동작으로 이어질 수 있습니다.</p>
 <blockquote>

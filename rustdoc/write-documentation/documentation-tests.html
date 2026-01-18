@@ -373,6 +373,19 @@ which has a line that starts with a <code>#</code>:</p>
 <pre><code class="language-text">/// let s = "foo
 /// ## bar # baz";
 </code></pre>
+<p>Here is an example with a macro rule which matches on tokens starting with <code>#</code>:</p>
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>/// ```
+/// macro_rules! ignore { (##tag) =&gt; {}; }
+/// ignore! {
+///     ###tag
+/// }
+/// ```
+<span class="boring">fn f() {}
+</span><span class="boring">}</span></code></pre></pre>
+<p>As you can see, the rule is expecting two <code>#</code>, so when calling it, we need to add an extra <code>#</code>
+because the first one is used as escape.</p>
 <h2 id="using--in-doc-tests"><a class="header" href="#using--in-doc-tests">Using <code>?</code> in doc tests</a></h2>
 <p>When writing an example, it is rarely useful to include a complete error
 handling, as it would add significant amounts of boilerplate code. Instead, you
@@ -567,6 +580,37 @@ should not be merged with the others. So the previous code should use it:</p>
 <span class="boring">}</span></code></pre></pre>
 <p>In this case, it means that the line information will not change if you add/remove other
 doctests.</p>
+<h3 id="ignoring-targets"><a class="header" href="#ignoring-targets">Ignoring targets</a></h3>
+<p>Attributes starting with <code>ignore-</code> can be used to ignore doctests for specific
+targets. For example, <code>ignore-x86_64</code> will avoid building doctests when the
+target name contains <code>x86_64</code>.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>/// ```ignore-x86_64
+/// assert!(2 == 2);
+/// ```
+struct Foo;
+<span class="boring">}</span></code></pre></pre>
+<p>This doctest will not be built for targets such as <code>x86_64-unknown-linux-gnu</code>.</p>
+<p>Multiple ignore attributes can be specified to ignore multiple targets:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>/// ```ignore-x86_64,ignore-windows
+/// assert!(2 == 2);
+/// ```
+struct Foo;
+<span class="boring">}</span></code></pre></pre>
+<p>If you want to preserve backwards compatibility for older versions of rustdoc,
+you can specify both <code>ignore</code> and <code>ignore-</code>, such as:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>/// ```ignore,ignore-x86_64
+/// assert!(2 == 2);
+/// ```
+struct Foo;
+<span class="boring">}</span></code></pre></pre>
+<p>In older versions, this will be ignored on all targets, but starting with
+version 1.88.0, <code>ignore-x86_64</code> will override <code>ignore</code>.</p>
 <h3 id="custom-css-classes-for-code-blocks"><a class="header" href="#custom-css-classes-for-code-blocks">Custom CSS classes for code blocks</a></h3>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

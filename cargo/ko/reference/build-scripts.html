@@ -89,6 +89,7 @@
         <link rel="stylesheet" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/cargo.css">
         <link rel="stylesheet" href="../theme/language-picker.css">
 
 
@@ -252,6 +253,10 @@ fn main() {
 <p>In addition to environment variables, the build script’s current directory is the source directory of the build script’s package.</p>
 <h2 id="outputs-of-the-build-script"><a class="header" href="#outputs-of-the-build-script">Outputs of the Build Script</a></h2>
 <p>Build scripts may save any output files or intermediate artifacts in the directory specified in the <a href="environment-variables.html#environment-variables-cargo-sets-for-build-scripts"><code>OUT_DIR</code> environment variable</a>. Scripts should not modify any files outside of that directory.</p>
+<blockquote>
+<p><strong>Note:</strong> Cargo does not clean or reset <code>OUT_DIR</code> between builds. The contents of this directory may persist across rebuilds, even if the build script is re-run. This behavior is intentional to support incremental builds, such as native code compilation.</p>
+<p>Build scripts should not rely on <code>OUT_DIR</code> being empty, as its contents may persist across rebuilds. If a script requires a clean directory, it is currently responsible for managing or cleaning up any files or subdirectories it creates. Future improvements in this area are being discussed (see <a href="https://github.com/rust-lang/cargo/issues/16427">#16427</a> and <a href="https://github.com/rust-lang/cargo/issues/9661">#9661</a>).</p>
+</blockquote>
 <p>Build scripts communicate with Cargo by printing to stdout. Cargo will interpret each line that starts with <code>cargo::</code> as an instruction that will influence compilation of the package. All other lines are ignored.</p>
 <blockquote>
 <p>The order of <code>cargo::</code> instructions printed by the build script <em>may</em> affect the order of arguments that <code>cargo</code> passes to <code>rustc</code>. In turn, the order of arguments passed to <code>rustc</code> may affect the order of arguments passed to the linker. Therefore, you will want to pay attention to the order of the build script’s instructions. For example, if object <code>foo</code> needs to link against library <code>bar</code>, you may want to make sure that library <code>bar</code>’s <a href="#rustc-link-lib"><code>cargo::rustc-link-lib</code></a> instruction appears <em>after</em> instructions to link object <code>foo</code>.</p>
@@ -268,6 +273,9 @@ fn main() {
 </li>
 <li>
 <p><a href="#rustc-link-arg"><code>cargo::rustc-link-arg=FLAG</code></a> — Passes custom flags to a linker for benchmarks, binaries, <code>cdylib</code> crates, examples, and tests.</p>
+</li>
+<li>
+<p><a href="#rustc-cdylib-link-arg"><code>cargo::rustc-link-arg-cdylib=FLAG</code></a> — Passes custom flags to a linker for cdylib crates.</p>
 </li>
 <li>
 <p><a href="#rustc-link-arg-bin"><code>cargo::rustc-link-arg-bin=BIN=FLAG</code></a> — Passes custom flags to a linker for the binary <code>BIN</code>.</p>
@@ -303,9 +311,6 @@ fn main() {
 <p><a href="#rustc-env"><code>cargo::rustc-env=VAR=VALUE</code></a> — Sets an environment variable.</p>
 </li>
 <li>
-<p><a href="#rustc-cdylib-link-arg"><code>cargo::rustc-cdylib-link-arg=FLAG</code></a> — Passes custom flags to a linker for cdylib crates.</p>
-</li>
-<li>
 <p><a href="#cargo-error"><code>cargo::error=MESSAGE</code></a> — Displays an error on the terminal.</p>
 </li>
 <li>
@@ -320,22 +325,25 @@ fn main() {
 </blockquote>
 <h3 id="rustc-link-arg"><a class="header" href="#rustc-link-arg"><code>cargo::rustc-link-arg=FLAG</code></a></h3>
 <p>The <code>rustc-link-arg</code> instruction tells Cargo to pass the <a href="../../rustc/codegen-options/index.html#link-arg"><code>-C link-arg=FLAG</code> option</a> to the compiler, but only when building supported targets (benchmarks, binaries, <code>cdylib</code> crates, examples, and tests). Its usage is highly platform specific. It is useful to set the shared library version or linker script.</p>
+<h3 id="rustc-cdylib-link-arg"><a class="header" href="#rustc-cdylib-link-arg"><code>cargo::rustc-link-arg-cdylib=FLAG</code></a></h3>
+<p>The <code>rustc-link-arg-cdylib</code> instruction tells Cargo to pass the <a href="../../rustc/codegen-options/index.html#link-arg"><code>-C link-arg=FLAG</code> option</a> to the compiler, but only when building a <code>cdylib</code> library target. Its usage is highly platform specific. It is useful to set the shared library version or the runtime-path.</p>
+<p>For historical reasons, the <code>cargo::rustc-cdylib-link-arg</code> form is an alias for <code>cargo::rustc-link-arg-cdylib</code>, and has the same meaning.</p>
 <h3 id="rustc-link-arg-bin"><a class="header" href="#rustc-link-arg-bin"><code>cargo::rustc-link-arg-bin=BIN=FLAG</code></a></h3>
 <p>The <code>rustc-link-arg-bin</code> instruction tells Cargo to pass the <a href="../../rustc/codegen-options/index.html#link-arg"><code>-C link-arg=FLAG</code> option</a> to the compiler, but only when building the binary target with name <code>BIN</code>. Its usage is highly platform specific. It is useful to set a linker script or other linker options.</p>
 <h3 id="rustc-link-arg-bins"><a class="header" href="#rustc-link-arg-bins"><code>cargo::rustc-link-arg-bins=FLAG</code></a></h3>
 <p>The <code>rustc-link-arg-bins</code> instruction tells Cargo to pass the <a href="../../rustc/codegen-options/index.html#link-arg"><code>-C link-arg=FLAG</code> option</a> to the compiler, but only when building a binary target. Its usage is highly platform specific. It is useful to set a linker script or other linker options.</p>
-<h3 id="rustc-link-lib"><a class="header" href="#rustc-link-lib"><code>cargo::rustc-link-lib=LIB</code></a></h3>
-<p>The <code>rustc-link-lib</code> instruction tells Cargo to link the given library using the compiler’s <a href="../../rustc/command-line-arguments.html#option-l-link-lib"><code>-l</code> flag</a>. This is typically used to link a native library using <a href="../../nomicon/ffi.html">FFI</a>.</p>
-<p>The <code>LIB</code> string is passed directly to rustc, so it supports any syntax that <code>-l</code> does.<br />
-Currently the fully supported syntax for <code>LIB</code> is <code>[KIND[:MODIFIERS]=]NAME[:RENAME]</code>.</p>
-<p>The <code>-l</code> flag is only passed to the library target of the package, unless there is no library target, in which case it is passed to all targets. This is done because all other targets have an implicit dependency on the library target, and the given library to link should only be included once. This means that if a package has both a library and a binary target, the <em>library</em> has access to the symbols from the given lib, and the binary should access them through the library target’s public API.</p>
-<p>The optional <code>KIND</code> may be one of <code>dylib</code>, <code>static</code>, or <code>framework</code>. See the <a href="../../rustc/command-line-arguments.html#option-l-link-lib">rustc book</a> for more detail.</p>
 <h3 id="rustc-link-arg-tests"><a class="header" href="#rustc-link-arg-tests"><code>cargo::rustc-link-arg-tests=FLAG</code></a></h3>
 <p>The <code>rustc-link-arg-tests</code> instruction tells Cargo to pass the <a href="../../rustc/codegen-options/index.html#link-arg"><code>-C link-arg=FLAG</code> option</a> to the compiler, but only when building a tests target.</p>
 <h3 id="rustc-link-arg-examples"><a class="header" href="#rustc-link-arg-examples"><code>cargo::rustc-link-arg-examples=FLAG</code></a></h3>
 <p>The <code>rustc-link-arg-examples</code> instruction tells Cargo to pass the <a href="../../rustc/codegen-options/index.html#link-arg"><code>-C link-arg=FLAG</code> option</a> to the compiler, but only when building an examples target.</p>
 <h3 id="rustc-link-arg-benches"><a class="header" href="#rustc-link-arg-benches"><code>cargo::rustc-link-arg-benches=FLAG</code></a></h3>
 <p>The <code>rustc-link-arg-benches</code> instruction tells Cargo to pass the <a href="../../rustc/codegen-options/index.html#link-arg"><code>-C link-arg=FLAG</code> option</a> to the compiler, but only when building a benchmark target.</p>
+<h3 id="rustc-link-lib"><a class="header" href="#rustc-link-lib"><code>cargo::rustc-link-lib=LIB</code></a></h3>
+<p>The <code>rustc-link-lib</code> instruction tells Cargo to link the given library using the compiler’s <a href="../../rustc/command-line-arguments.html#option-l-link-lib"><code>-l</code> flag</a>. This is typically used to link a native library using <a href="../../nomicon/ffi.html">FFI</a>.</p>
+<p>The <code>LIB</code> string is passed directly to rustc, so it supports any syntax that <code>-l</code> does.<br />
+Currently the fully supported syntax for <code>LIB</code> is <code>[KIND[:MODIFIERS]=]NAME[:RENAME]</code>.</p>
+<p>The <code>-l</code> flag is only passed to the library target of the package, unless there is no library target, in which case it is passed to all targets. This is done because all other targets have an implicit dependency on the library target, and the given library to link should only be included once. This means that if a package has both a library and a binary target, the <em>library</em> has access to the symbols from the given lib, and the binary should access them through the library target’s public API.</p>
+<p>The optional <code>KIND</code> may be one of <code>dylib</code>, <code>static</code>, or <code>framework</code>. See the <a href="../../rustc/command-line-arguments.html#option-l-link-lib">rustc book</a> for more detail.</p>
 <h3 id="rustc-link-search"><a class="header" href="#rustc-link-search"><code>cargo::rustc-link-search=[KIND=]PATH</code></a></h3>
 <p>The <code>rustc-link-search</code> instruction tells Cargo to pass the <a href="../../rustc/command-line-arguments.html#option-l-search-path"><code>-L</code> flag</a> to the compiler to add a directory to the library search path.</p>
 <p>The optional <code>KIND</code> may be one of <code>dependency</code>, <code>crate</code>, <code>native</code>, <code>framework</code>, or <code>all</code>. See the <a href="../../rustc/command-line-arguments.html#option-l-search-path">rustc book</a> for more detail.</p>
@@ -370,8 +378,6 @@ if foo_bar_condition {
 <blockquote>
 <p><strong>Note</strong>: These environment variables are also set when running an executable with <code>cargo run</code> or <code>cargo test</code>. However, this usage is discouraged since it ties the executable to Cargo’s execution environment. Normally, these environment variables should only be checked at compile-time with the <code>env!</code> macro.</p>
 </blockquote>
-<h3 id="rustc-cdylib-link-arg"><a class="header" href="#rustc-cdylib-link-arg"><code>cargo::rustc-cdylib-link-arg=FLAG</code></a></h3>
-<p>The <code>rustc-cdylib-link-arg</code> instruction tells Cargo to pass the <a href="../../rustc/codegen-options/index.html#link-arg"><code>-C link-arg=FLAG</code> option</a> to the compiler, but only when building a <code>cdylib</code> library target. Its usage is highly platform specific. It is useful to set the shared library version or the runtime-path.</p>
 <h3 id="cargo-error"><a class="header" href="#cargo-error"><code>cargo::error=MESSAGE</code></a></h3>
 <p>The <code>error</code> instruction tells Cargo to display an error after the build script has finished running, and then fail the build.</p>
 <blockquote>
@@ -408,10 +414,10 @@ links = "foo"
 <p>This manifest states that the package links to the <code>libfoo</code> native library. When using the <code>links</code> key, the package must have a build script, and the build script should use the <a href="#rustc-link-lib"><code>rustc-link-lib</code> instruction</a> to link the library.</p>
 <p>Primarily, Cargo requires that there is at most one package per <code>links</code> value. In other words, it is forbidden to have two packages link to the same native library. This helps prevent duplicate symbols between crates. Note, however, that there are <a href="#-sys-packages">conventions in place</a> to alleviate this.</p>
 <p>Build scripts can generate an arbitrary set of metadata in the form of key-value pairs. This metadata is set with the <code>cargo::metadata=KEY=VALUE</code> instruction.</p>
-<p>The metadata is passed to the build scripts of <strong>dependent</strong> packages. For example, if the package <code>foo</code> depends on <code>bar</code>, which links <code>baz</code>, then if <code>bar</code> generates <code>key=value</code> as part of its build script metadata, then the build script of <code>foo</code> will have the environment variables <code>DEP_BAZ_KEY=value</code> (note that the value of the <code>links</code> key is used). See the <a href="build-script-examples.html#using-another-sys-crate">“Using another <code>sys</code> crate”</a> for an example of how this can be used.</p>
+<p>The metadata is passed to the build scripts of <strong>dependent</strong> packages. For example, if the package <code>foo</code> depends on <code>bar</code>, which links <code>baz</code>, then if <code>bar</code> generates <code>key=value</code> as part of its build script metadata, then the build script of <code>foo</code> will have the environment variables <code>DEP_BAZ_KEY=value</code> (note that the value of the <code>links</code> key is used and the case change for <code>key</code>). See the <a href="build-script-examples.html#using-another-sys-crate">“Using another <code>sys</code> crate”</a> for an example of how this can be used.</p>
 <p>Note that metadata is only passed to immediate dependents, not transitive dependents.</p>
 <blockquote>
-<p><strong>MSRV:</strong> 1.77 is required for <code>cargo::metadata=KEY=VALUE</code>. To support older versions, use <code>cargo:KEY=VAUE</code> (unsupported directives are assumed to be metadata keys).</p>
+<p><strong>MSRV:</strong> 1.77 is required for <code>cargo::metadata=KEY=VALUE</code>. To support older versions, use <code>cargo:KEY=VALUE</code> (unsupported directives are assumed to be metadata keys).</p>
 </blockquote>
 <h2 id="-sys-packages"><a class="header" href="#-sys-packages"><code>*-sys</code> Packages</a></h2>
 <p>Some Cargo packages that link to system libraries have a naming convention of having a <code>-sys</code> suffix. Any package named <code>foo-sys</code> should provide two major pieces of functionality:</p>
@@ -422,7 +428,7 @@ links = "foo"
 <p>The set of <code>*-sys</code> packages provides a common set of dependencies for linking to native libraries. There are a number of benefits earned from having this convention of native-library-related packages:</p>
 <ul>
 <li>Common dependencies on <code>foo-sys</code> alleviates the rule about one package per value of <code>links</code>.</li>
-<li>Other <code>-sys</code> packages can take advantage of the <code>DEP_NAME_KEY=value</code> environment variables to better integrate with other packages. See the <a href="build-script-examples.html#using-another-sys-crate">“Using another <code>sys</code> crate”</a> example.</li>
+<li>Other <code>-sys</code> packages can take advantage of the <code>DEP_LINKS_KEY=value</code> environment variables to better integrate with other packages. See the <a href="build-script-examples.html#using-another-sys-crate">“Using another <code>sys</code> crate”</a> example.</li>
 <li>A common dependency allows centralizing logic on discovering <code>libfoo</code> itself (or building it from source).</li>
 <li>These dependencies are easily <a href="#overriding-build-scripts">overridable</a>.</li>
 </ul>

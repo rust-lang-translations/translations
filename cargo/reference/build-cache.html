@@ -89,6 +89,7 @@
         <link rel="stylesheet" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/cargo.css">
         <link rel="stylesheet" href="../theme/language-picker.css">
 
 
@@ -220,11 +221,29 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="build-cache"><a class="header" href="#build-cache">Build cache</a></h1>
-<p>Cargo stores the output of a build into the “target” directory. By default,
-this is the directory named <code>target</code> in the root of your
-<a href="../appendix/glossary.html#workspace" title="&quot;workspace&quot; (glossary entry)"><em>workspace</em></a>. To change the location, you can set the
+<p>Cargo stores the output of a build into the “target” and “build” directories. By default,
+both directories point to a directory named <code>target</code> in the root of your
+<a href="../appendix/glossary.html#workspace" title="&quot;workspace&quot; (glossary entry)"><em>workspace</em></a>. To change the location of the target-dir, you can set the
 <code>CARGO_TARGET_DIR</code> <a href="../reference/environment-variables.html">environment variable</a>, the <a href="../reference/config.html#buildtarget-dir"><code>build.target-dir</code></a> config
-value, or the <code>--target-dir</code> command-line flag.</p>
+value, or the <code>--target-dir</code> command-line flag. To change the location of the build-dir, you can set the
+<code>CARGO_BUILD_BUILD_DIR</code> <a href="../reference/environment-variables.html">environment variable</a> or the <a href="../reference/config.html#buildbuild-dir"><code>build.build-dir</code></a> config value.</p>
+<p>Artifacts are split in two categories:</p>
+<ul>
+<li>Final build artifacts
+<ul>
+<li>Final build artifacts are output meant for end users of Cargo</li>
+<li>e.g. binaries for bin crates, output of <code>cargo doc</code>, Cargo <code>--timings</code> reports</li>
+<li>Stored in the target-dir</li>
+</ul>
+</li>
+<li>Intermediate build artifacts
+<ul>
+<li>Intermediate build artifacts are internal to Cargo and the Rust compiler</li>
+<li>End users will generally not need to interact with intermediate build artifacts</li>
+<li>Stored in the Cargo build-dir</li>
+</ul>
+</li>
+</ul>
 <p>The directory layout depends on whether or not you are using the <code>--target</code>
 flag to build for a specific platform. If <code>--target</code> is not specified, Cargo
 runs in a mode where it builds for the host architecture. The output goes into
@@ -265,16 +284,16 @@ placed into the following directories:</p>
 the <code>target</code> directory:</p>
 <div class="table-wrapper"><table><thead><tr><th>Directory</th><th>Description</th></tr></thead><tbody>
 <tr><td><code style="white-space: nowrap">target/doc/</code></td><td>Contains rustdoc documentation (<a href="../commands/cargo-doc.html"><code>cargo doc</code></a>).</td></tr>
-<tr><td><code style="white-space: nowrap">target/package/</code></td><td>Contains the output of the <a href="../commands/cargo-package.html"><code>cargo package</code></a> and <a href="../commands/cargo-publish.html"><code>cargo publish</code></a> commands.</td></tr>
+<tr><td><code style="white-space: nowrap">target/package/</code></td><td>Contains the output of the <a href="../commands/cargo-package.html"><code>cargo package</code></a>.</td></tr>
 </tbody></table>
 </div>
-<p>Cargo also creates several other directories and files needed for the build
-process. Their layout is considered internal to Cargo, and is subject to
+<p>Cargo also creates several other directories and files in the build-dir needed for the build
+process. The build-dir layout is considered internal to Cargo, and is subject to
 change. Some of these directories are:</p>
 <div class="table-wrapper"><table><thead><tr><th>Directory</th><th>Description</th></tr></thead><tbody>
-<tr><td><code style="white-space: nowrap">target/debug/deps/</code></td><td>Dependencies and other artifacts.</td></tr>
-<tr><td><code style="white-space: nowrap">target/debug/incremental/</code></td><td><code>rustc</code> <a href="../reference/profiles.html#incremental">incremental output</a>, a cache used to speed up subsequent builds.</td></tr>
-<tr><td><code style="white-space: nowrap">target/debug/build/</code></td><td>Output from <a href="../reference/build-scripts.html">build scripts</a>.</td></tr>
+<tr><td><code style="white-space: nowrap">&lt;build-dir&gt;/debug/deps/</code></td><td>Dependencies and other artifacts.</td></tr>
+<tr><td><code style="white-space: nowrap">&lt;build-dir&gt;/debug/incremental/</code></td><td><code>rustc</code> <a href="../reference/profiles.html#incremental">incremental output</a>, a cache used to speed up subsequent builds.</td></tr>
+<tr><td><code style="white-space: nowrap">&lt;build-dir&gt;/debug/build/</code></td><td>Output from <a href="../reference/build-scripts.html">build scripts</a>.</td></tr>
 </tbody></table>
 </div>
 <h2 id="dep-info-files"><a class="header" href="#dep-info-files">Dep-info files</a></h2>
@@ -291,7 +310,7 @@ re-executed. The paths in the file are absolute by default. See the
 <p>A third party tool, <a href="https://github.com/mozilla/sccache">sccache</a>, can be used to share built dependencies across
 different workspaces.</p>
 <p>To setup <code>sccache</code>, install it with <code>cargo install sccache</code> and set
-<code>RUSTC_WRAPPER</code> environmental variable to <code>sccache</code> before invoking Cargo. If
+<code>RUSTC_WRAPPER</code> environment variable to <code>sccache</code> before invoking Cargo. If
 you use bash, it makes sense to add <code>export RUSTC_WRAPPER=sccache</code> to
 <code>.bashrc</code>. Alternatively, you can set <a href="../reference/config.html#buildrustc-wrapper"><code>build.rustc-wrapper</code></a> in the <a href="../reference/config.html">Cargo
 configuration</a>. Refer to sccache documentation for more details.</p>

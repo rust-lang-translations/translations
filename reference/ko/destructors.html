@@ -216,13 +216,12 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="소멸자"><a class="header" href="#소멸자">소멸자</a></h1>
-<div class="rule" id="r-destructors.intro"><a class="rule-link" href="#r-destructors.intro" title="destructors.intro"><span>[destructors<wbr>.intro]<span/></a></div>
-<p><a href="glossary.html#initialized">초기화된(initialized)</a> <a href="variables.html">변수</a> 또는 <a href="expressions.html#temporaries">임시 값(temporary)</a>이 <a href="#drop-scopes">스코프(scope)</a>를 벗어나면, 해당 값의 _소멸자(destructor)_가 실행되거나 해당 값이 _드롭(dropped)_됩니다. <a href="expressions/operator-expr.html#assignment-expressions">할당(Assignment)</a> 또한 좌항 피연산자가 초기화된 상태라면 그 소멸자를 실행합니다. 변수가 부분적으로만 초기화된 경우, 초기화된 필드만 드롭됩니다.</p>
-<div class="rule" id="r-destructors.operation"><a class="rule-link" href="#r-destructors.operation" title="destructors.operation"><span>[destructors<wbr>.operation]<span/></a></div>
-<p>타입 <code>T</code>의 소멸자는 다음과 같이 구성됩니다.</p>
+                        <p>r<a href="destructors.html">destructors</a></p>
+<h1 id="소멸자"><a class="header" href="#소멸자">소멸자</a></h1>
+<p>r[destructors.intro] When an <a href="glossary.html#initialized">initialized</a> <a href="variables.html">variable</a> or <a href="expressions.html#temporaries">temporary</a> goes out of <a href="#drop-scopes">scope</a>, its <em>destructor</em> is run or it is <em>dropped</em>. <a href="expressions/operator-expr.html#assignment-expressions">Assignment</a> also runs the destructor of its left-hand operand, if it’s initialized. If a variable has been partially initialized, only its initialized fields are dropped.</p>
+<p>r[destructors.operation] The destructor of a type <code>T</code> consists of:</p>
 <ol>
-<li><code>T: Drop</code>인 경우, <a href="../core/ops/drop/trait.Drop.html#tymethod.drop"><code>&lt;T as std::ops::Drop&gt;::drop</code></a> 호출</li>
+<li>If <code>T: Drop</code>, calling <a href="core::ops::Drop::drop"><code>&lt;T as core::ops::Drop&gt;::drop</code></a></li>
 <li>모든 필드에 대해 재귀적으로 소멸자 실행.
 <ul>
 <li><a href="types/struct.html">구조체(struct)</a>의 필드들은 선언된 순서대로 드롭됩니다.</li>
@@ -235,8 +234,7 @@
 </ul>
 </li>
 </ol>
-<div class="rule" id="r-destructors.drop_in_place"><a class="rule-link" href="#r-destructors.drop_in_place" title="destructors.drop_in_place"><span>[destructors<wbr>.drop_in_place]<span/></a></div>
-<p>자신만의 스마트 포인터를 구현할 때와 같이 소멸자를 수동으로 실행해야 하는 경우, <a href="../core/ptr/fn.drop_in_place.html"><code>std::ptr::drop_in_place</code></a>를 사용할 수 있습니다.</p>
+<p>r[destructors.drop_in_place] If a destructor must be run manually, such as when implementing your own smart pointer, [<code>core::ptr::drop_in_place</code>] can be used.</p>
 <p>몇 가지 예제:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -268,29 +266,25 @@ let mut partial_move = (PrintOnDrop("first"), PrintOnDrop("잊힘(forgotten)"));
 core::mem::forget(partial_move.1);
 // partial_move의 스코프가 끝나면 첫 번째 필드만 드롭됩니다.
 <span class="boring">}</span></code></pre></pre>
-<div class="rule" id="r-destructors.scope"><a class="rule-link" href="#r-destructors.scope" title="destructors.scope"><span>[destructors<wbr>.scope]<span/></a></div>
+<p>r[destructors.scope]</p>
 <h2 id="드롭-스코프"><a class="header" href="#드롭-스코프">드롭 스코프</a></h2>
-<div class="rule" id="r-destructors.scope.intro"><a class="rule-link" href="#r-destructors.scope.intro" title="destructors.scope.intro"><span>[destructors<wbr>.scope<wbr>.intro]<span/></a></div>
-<p>각 변수나 임시 값은 _드롭 스코프(drop scope)_와 연관됩니다. 제어 흐름이 드롭 스코프를 벗어나면 해당 스코프와 연관된 모든 변수는 선언된 역순으로, 임시 값은 생성된 역순으로 드롭됩니다.</p>
-<div class="rule" id="r-destructors.scope.desugaring"><a class="rule-link" href="#r-destructors.scope.desugaring" title="destructors.scope.desugaring"><span>[destructors<wbr>.scope<wbr>.desugaring]<span/></a></div>
-<p>드롭 스코프는 <a href="expressions/loop-expr.html#iterator-loops"><code>for</code></a>, <a href="expressions/if-expr.html#if-let-expressions"><code>if let</code></a>, <a href="expressions/loop-expr.html#predicate-pattern-loops"><code>while let</code></a> 표현식을 <a href="expressions/match-expr.html"><code>match</code></a>를 사용한 등가의 표현식으로 대체한 후에 결정됩니다.</p>
-<div class="rule" id="r-destructors.scope.operators"><a class="rule-link" href="#r-destructors.scope.operators" title="destructors.scope.operators"><span>[destructors<wbr>.scope<wbr>.operators]<span/></a></div>
-<p>오버로드된 연산자는 내장 연산자와 구별되지 않으며, <a href="patterns.html#binding-modes">바인딩 모드(binding modes)</a>는 고려되지 않습니다.</p>
-<div class="rule" id="r-destructors.scope.list"><a class="rule-link" href="#r-destructors.scope.list" title="destructors.scope.list"><span>[destructors<wbr>.scope<wbr>.list]<span/></a></div>
-<p>함수 또는 클로저가 주어지면, 다음과 같은 것들에 대한 드롭 스코프가 존재합니다.</p>
-<div class="rule" id="r-destructors.scope.function"><a class="rule-link" href="#r-destructors.scope.function" title="destructors.scope.function"><span>[destructors<wbr>.scope<wbr>.function]<span/></a></div>
+<p>r[destructors.scope.intro] Each variable or temporary is associated to a <em>drop scope</em>. When control flow leaves a drop scope all variables associated to that scope are dropped in reverse order of declaration (for variables) or creation (for temporaries).</p>
+<p>r[destructors.scope.desugaring] Drop scopes can be determined by replacing <a href="expressions/loop-expr.html#iterator-loops"><code>for</code></a>, <a href="expressions/if-expr.html#if-expressions"><code>if</code></a>, and <a href="expressions/loop-expr.html#predicate-loops"><code>while</code></a> expressions with equivalent expressions using <a href="expressions/match-expr.html"><code>match</code></a>, <a href="expressions/loop-expr.html#infinite-loops"><code>loop</code></a> and <code>break</code>.</p>
+<p>r[destructors.scope.operators] Overloaded operators are not distinguished from built-in operators and <a href="patterns.html#binding-modes">binding modes</a> are not considered.</p>
+<p>r[destructors.scope.list] Given a function, or closure, there are drop scopes for:</p>
+<p>r[destructors.scope.function]</p>
 <ul>
 <li>함수 전체</li>
 </ul>
-<div class="rule" id="r-destructors.scope.statement"><a class="rule-link" href="#r-destructors.scope.statement" title="destructors.scope.statement"><span>[destructors<wbr>.scope<wbr>.statement]<span/></a></div>
+<p>r[destructors.scope.statement]</p>
 <ul>
 <li>각 <a href="statements.html">구문(statement)</a></li>
 </ul>
-<div class="rule" id="r-destructors.scope.expression"><a class="rule-link" href="#r-destructors.scope.expression" title="destructors.scope.expression"><span>[destructors<wbr>.scope<wbr>.expression]<span/></a></div>
+<p>r[destructors.scope.expression]</p>
 <ul>
 <li>각 <a href="expressions.html">표현식(expression)</a></li>
 </ul>
-<div class="rule" id="r-destructors.scope.block"><a class="rule-link" href="#r-destructors.scope.block" title="destructors.scope.block"><span>[destructors<wbr>.scope<wbr>.block]<span/></a></div>
+<p>r[destructors.scope.block]</p>
 <ul>
 <li>함수 본문을 포함한 각 블록
 <ul>
@@ -298,49 +292,48 @@ core::mem::forget(partial_move.1);
 </ul>
 </li>
 </ul>
-<div class="rule" id="r-destructors.scope.match-arm"><a class="rule-link" href="#r-destructors.scope.match-arm" title="destructors.scope.match-arm"><span>[destructors<wbr>.scope<wbr>.match-arm]<span/></a></div>
+<p>r[destructors.scope.match-arm]</p>
 <ul>
 <li><code>match</code> 표현식의 각 암(arm)</li>
 </ul>
-<div class="rule" id="r-destructors.scope.nesting"><a class="rule-link" href="#r-destructors.scope.nesting" title="destructors.scope.nesting"><span>[destructors<wbr>.scope<wbr>.nesting]<span/></a></div>
-<p>드롭 스코프들은 다음과 같이 서로 중첩됩니다. 함수에서 반환될 때와 같이 여러 스코프를 한꺼번에 벗어날 때, 변수들은 안쪽에서 바깥쪽 순서로 드롭됩니다.</p>
-<div class="rule" id="r-destructors.scope.nesting.function"><a class="rule-link" href="#r-destructors.scope.nesting.function" title="destructors.scope.nesting.function"><span>[destructors<wbr>.scope<wbr>.nesting<wbr>.function]<span/></a></div>
+<p>r[destructors.scope.nesting] Drop scopes are nested within one another as follows. When multiple scopes are left at once, such as when returning from a function, variables are dropped from the inside outwards.</p>
+<p>r[destructors.scope.nesting.function]</p>
 <ul>
 <li>함수 전체 스코프가 최외곽 스코프입니다.</li>
 </ul>
-<div class="rule" id="r-destructors.scope.nesting.function-body"><a class="rule-link" href="#r-destructors.scope.nesting.function-body" title="destructors.scope.nesting.function-body"><span>[destructors<wbr>.scope<wbr>.nesting<wbr>.function-body]<span/></a></div>
+<p>r[destructors.scope.nesting.function-body]</p>
 <ul>
 <li>함수 본문 블록은 함수 전체 스코프 내에 포함됩니다.</li>
 </ul>
-<div class="rule" id="r-destructors.scope.nesting.expr-statement"><a class="rule-link" href="#r-destructors.scope.nesting.expr-statement" title="destructors.scope.nesting.expr-statement"><span>[destructors<wbr>.scope<wbr>.nesting<wbr>.expr-statement]<span/></a></div>
+<p>r[destructors.scope.nesting.expr-statement]</p>
 <ul>
 <li>표현식 구문 내 표현식의 부모는 해당 구문의 스코프입니다.</li>
 </ul>
-<div class="rule" id="r-destructors.scope.nesting.let-initializer"><a class="rule-link" href="#r-destructors.scope.nesting.let-initializer" title="destructors.scope.nesting.let-initializer"><span>[destructors<wbr>.scope<wbr>.nesting<wbr>.let-initializer]<span/></a></div>
+<p>r[destructors.scope.nesting.let-initializer]</p>
 <ul>
 <li><a href="statements.html#let-statements"><code>let</code> 구문(let statement)</a>의 초기화식의 부모는 해당 <code>let</code> 구문의 스코프입니다.</li>
 </ul>
-<div class="rule" id="r-destructors.scope.nesting.statement"><a class="rule-link" href="#r-destructors.scope.nesting.statement" title="destructors.scope.nesting.statement"><span>[destructors<wbr>.scope<wbr>.nesting<wbr>.statement]<span/></a></div>
+<p>r[destructors.scope.nesting.statement]</p>
 <ul>
 <li>구문 스코프의 부모는 해당 구문을 포함하는 블록의 스코프입니다.</li>
 </ul>
-<div class="rule" id="r-destructors.scope.nesting.match-guard"><a class="rule-link" href="#r-destructors.scope.nesting.match-guard" title="destructors.scope.nesting.match-guard"><span>[destructors<wbr>.scope<wbr>.nesting<wbr>.match-guard]<span/></a></div>
+<p>r[destructors.scope.nesting.match-guard]</p>
 <ul>
 <li><code>match</code> 가드(guard) 표현식의 부모는 해당 가드가 속한 매치 암의 스코프입니다.</li>
 </ul>
-<div class="rule" id="r-destructors.scope.nesting.match-arm"><a class="rule-link" href="#r-destructors.scope.nesting.match-arm" title="destructors.scope.nesting.match-arm"><span>[destructors<wbr>.scope<wbr>.nesting<wbr>.match-arm]<span/></a></div>
+<p>r[destructors.scope.nesting.match-arm]</p>
 <ul>
 <li><code>match</code> 표현식에서 <code>=&gt;</code> 뒤에 오는 표현식의 부모는 그것이 속한 매치 암의 스코프입니다.</li>
 </ul>
-<div class="rule" id="r-destructors.scope.nesting.match"><a class="rule-link" href="#r-destructors.scope.nesting.match" title="destructors.scope.nesting.match"><span>[destructors<wbr>.scope<wbr>.nesting<wbr>.match]<span/></a></div>
+<p>r[destructors.scope.nesting.match]</p>
 <ul>
 <li>매치 암 스코프의 부모는 그것이 속한 <code>match</code> 표현식의 스코프입니다.</li>
 </ul>
-<div class="rule" id="r-destructors.scope.nesting.other"><a class="rule-link" href="#r-destructors.scope.nesting.other" title="destructors.scope.nesting.other"><span>[destructors<wbr>.scope<wbr>.nesting<wbr>.other]<span/></a></div>
+<p>r[destructors.scope.nesting.other]</p>
 <ul>
 <li>그 외 모든 스코프의 부모는 그것을 직접 감싸고 있는 표현식의 스코프입니다.</li>
 </ul>
-<div class="rule" id="r-destructors.scope.params"><a class="rule-link" href="#r-destructors.scope.params" title="destructors.scope.params"><span>[destructors<wbr>.scope<wbr>.params]<span/></a></div>
+<p>r[destructors.scope.params]</p>
 <h3 id="함수-매개변수의-스코프"><a class="header" href="#함수-매개변수의-스코프">함수 매개변수의 스코프</a></h3>
 <p>모든 함수 매개변수는 함수 본문 전체의 스코프에 속하므로, 함수가 평가될 때 가장 마지막에 드롭됩니다. 각 실제 함수 매개변수는 해당 매개변수의 패턴에서 도입된 모든 바인딩이 드롭된 후에 드롭됩니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
@@ -363,10 +356,9 @@ patterns_in_parameters(
     (PrintOnDrop("2"), PrintOnDrop("3")),
 );
 <span class="boring">}</span></code></pre></pre>
-<div class="rule" id="r-destructors.scope.bindings"><a class="rule-link" href="#r-destructors.scope.bindings" title="destructors.scope.bindings"><span>[destructors<wbr>.scope<wbr>.bindings]<span/></a></div>
+<p>r[destructors.scope.bindings]</p>
 <h3 id="지역-변수의-스코프"><a class="header" href="#지역-변수의-스코프">지역 변수의 스코프</a></h3>
-<div class="rule" id="r-destructors.scope.bindings.intro"><a class="rule-link" href="#r-destructors.scope.bindings.intro" title="destructors.scope.bindings.intro"><span>[destructors<wbr>.scope<wbr>.bindings<wbr>.intro]<span/></a></div>
-<p><code>let</code> 구문에서 선언된 지역 변수는 해당 <code>let</code> 구문을 포함하는 블록의 스코프와 연관됩니다. <code>match</code> 표현식에서 선언된 지역 변수는 그것이 선언된 <code>match</code> 암의 암 스코프와 연관됩니다.</p>
+<p>r[destructors.scope.bindings.intro] Local variables declared in a <code>let</code> statement are associated to the scope of the block that contains the <code>let</code> statement. Local variables declared in a <code>match</code> expression are associated to the arm scope of the <code>match</code> arm that they are declared in.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct PrintOnDrop(&amp;'static str);
@@ -381,36 +373,86 @@ patterns_in_parameters(
 }
 let declared_last = PrintOnDrop("바깥쪽 스코프에서 먼저 드롭됨");
 <span class="boring">}</span></code></pre></pre>
-<div class="rule" id="r-destructors.scope.bindings.match-pattern-order"><a class="rule-link" href="#r-destructors.scope.bindings.match-pattern-order" title="destructors.scope.bindings.match-pattern-order"><span>[destructors<wbr>.scope<wbr>.bindings<wbr>.match-pattern-order]<span/></a></div>
-<p><code>match</code> 표현식의 동일한 암(arm)에서 여러 패턴이 사용되는 경우, 지정되지 않은 패턴 중 하나가 드롭 순서를 결정하는 데 사용됩니다.</p>
-<div class="rule" id="r-destructors.scope.temporary"><a class="rule-link" href="#r-destructors.scope.temporary" title="destructors.scope.temporary"><span>[destructors<wbr>.scope<wbr>.temporary]<span/></a></div>
+<p>r[destructors.scope.bindings.patterns] Variables in patterns are dropped in reverse order of declaration within the pattern.</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">struct PrintOnDrop(&amp;'static str);
+</span><span class="boring">impl Drop for PrintOnDrop {
+</span><span class="boring">    fn drop(&amp;mut self) {
+</span><span class="boring">        println!("드롭({})", self.0);
+</span><span class="boring">    }
+</span><span class="boring">}
+</span>let (declared_first, declared_last) = (
+    PrintOnDrop("Dropped last"),
+    PrintOnDrop("Dropped first"),
+);
+<span class="boring">}</span></code></pre></pre>
+<p>r[destructors.scope.bindings.or-patterns] For the purpose of drop order, <a href="patterns.html#or-patterns">or-patterns</a> declare bindings in the order given by the first subpattern.</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">struct PrintOnDrop(&amp;'static str);
+</span><span class="boring">impl Drop for PrintOnDrop {
+</span><span class="boring">    fn drop(&amp;mut self) {
+</span><span class="boring">        println!("드롭({})", self.0);
+</span><span class="boring">    }
+</span><span class="boring">}
+</span>// Drops `x` before `y`.
+fn or_pattern_drop_order&lt;T&gt;(
+    (Ok([x, y]) | Err([y, x])): Result&lt;[T; 2], [T; 2]&gt;
+//   ^^^^^^^^^^   ^^^^^^^^^^^ This is the second subpattern.
+//   |
+//   This is the first subpattern.
+//
+//   In the first subpattern, `x` is declared before `y`. Since it is
+//   the first subpattern, that is the order used even if the second
+//   subpattern, where the bindings are declared in the opposite
+//   order, is matched.
+) {}
+
+// Here we match the first subpattern, and the drops happen according
+// to the declaration order in the first subpattern.
+or_pattern_drop_order(Ok([
+    PrintOnDrop("Declared first, dropped last"),
+    PrintOnDrop("Declared last, dropped first"),
+]));
+
+// Here we match the second subpattern, and the drops still happen
+// according to the declaration order in the first subpattern.
+or_pattern_drop_order(Err([
+    PrintOnDrop("Declared last, dropped first"),
+    PrintOnDrop("Declared first, dropped last"),
+]));
+<span class="boring">}</span></code></pre></pre>
+<p>r[destructors.scope.temporary]</p>
 <h3 id="임시-스코프"><a class="header" href="#임시-스코프">임시 스코프</a></h3>
-<div class="rule" id="r-destructors.scope.temporary.intro"><a class="rule-link" href="#r-destructors.scope.temporary.intro" title="destructors.scope.temporary.intro"><span>[destructors<wbr>.scope<wbr>.temporary<wbr>.intro]<span/></a></div>
-<p>어떤 표현식의 _임시 스코프(temporary scope)_는 해당 표현식이 <a href="expressions.html#place-expressions-and-value-expressions">장소 컨텍스트(place context)</a>에서 사용될 때 그 결과를 보관하는 임시 변수에 사용되는 스코프입니다. 다만 해당 표현식이 <a href="destructors.html#constant-promotion">승격(promoted)</a>된 경우는 제외합니다.</p>
-<div class="rule" id="r-destructors.scope.temporary.enclosing"><a class="rule-link" href="#r-destructors.scope.temporary.enclosing" title="destructors.scope.temporary.enclosing"><span>[destructors<wbr>.scope<wbr>.temporary<wbr>.enclosing]<span/></a></div>
-<p>라이프타임 확장을 제외하면, 표현식의 임시 스코프는 해당 표현식을 포함하는 가장 작은 스코프이며 다음 중 하나입니다.</p>
+<p>r[destructors.scope.temporary.intro] The <em>temporary scope</em> of an expression is the scope that is used for the temporary variable that holds the result of that expression when used in a <a href="expressions.html#place-expressions-and-value-expressions">place context</a>, unless it is <a href="destructors.html#constant-promotion">promoted</a>.</p>
+<p>r[destructors.scope.temporary.enclosing] Apart from lifetime extension, the temporary scope of an expression is the smallest scope that contains the expression and is one of the following:</p>
 <ul>
 <li>함수 전체.</li>
 <li>구문(statement).</li>
 <li><a href="expressions/if-expr.html#if-expressions"><code>if</code></a>, <a href="expressions/loop-expr.html#predicate-loops"><code>while</code></a> 또는 <a href="expressions/loop-expr.html#infinite-loops"><code>loop</code></a> 표현식의 본문.</li>
 <li><code>if</code> 표현식의 <code>else</code> 블록.</li>
-<li><code>if</code> 또는 <code>while</code> 표현식의 조건식, 혹은 <code>match</code> 가드(guard).</li>
+<li>The non-pattern matching condition expression of an <code>if</code> or <code>while</code> expression, or a <code>match</code> guard.</li>
 <li>매치 암의 본문 표현식.</li>
 <li><a href="expressions/operator-expr.html#lazy-boolean-operators">지연 불리언 표현식(lazy boolean expression)</a>의 각 피연산자.</li>
-<li><a href="expressions/if-expr.html#if-let-expressions"><code>if let</code></a>의 패턴 매칭 조건과 그에 따른 본문 (<a href="destructors.html#r-destructors.scope.temporary.edition2024">destructors.scope.temporary.edition2024</a>).</li>
-<li>블록 꼬리 표현식(tail expression)의 전체 (<a href="destructors.html#r-destructors.scope.temporary.edition2024">destructors.scope.temporary.edition2024</a>).</li>
+<li>The pattern-matching condition(s) and consequent body of <a href="expressions/if-expr.html#if-expressions"><code>if</code></a> ([destructors.scope.temporary.edition2024]).</li>
+<li>The pattern-matching condition and loop body of <a href="expressions/loop-expr.html#predicate-loops"><code>while</code></a>.</li>
+<li>The entirety of the tail expression of a block ([destructors.scope.temporary.edition2024]).</li>
 </ul>
 <blockquote>
-<p><strong>참고</strong>:</p>
-<p><code>match</code> 표현식의 <a href="glossary.html#scrutinee">스크루티니(scrutinee)</a>는 임시 스코프가 아니므로, 스크루티니 내의 임시 값들은 <code>match</code> 표현식 이후에 드롭될 수 있습니다. 예를 들어, <code>match 1 { ref mut z =&gt; z };</code>에서 <code>1</code>을 위한 임시 값은 구문이 끝날 때까지 유지됩니다.</p>
+<p>[!NOTE] The <a href="glossary.html#scrutinee">scrutinee</a> of a <code>match</code> expression is not a temporary scope, so temporaries in the scrutinee can be dropped after the <code>match</code> expression. For example, the temporary for <code>1</code> in <code>match 1 { ref mut z =&gt; z };</code> lives until the end of the statement.</p>
 </blockquote>
-<div class="rule" id="r-destructors.scope.temporary.edition2024"><a class="rule-link" href="#r-destructors.scope.temporary.edition2024" title="destructors.scope.temporary.edition2024"><span>[destructors<wbr>.scope<wbr>.temporary<wbr>.edition2024]<span/></a></div>
 <blockquote>
-<p><strong>에디션 차이</strong>: 2024 에디션에는 두 가지 새로운 임시 스코프 축소 규칙이 추가되었습니다. <code>if let</code> 임시 값은 <code>else</code> 블록 이전에 드롭되며, 블록 꼬리 표현식의 임시 값은 꼬리 표현식이 평가된 직후에 드롭됩니다.</p>
+<p>[!NOTE] The desugaring of a <a href="expr.assign.destructure">destructuring assignment</a> restricts the temporary scope of its assigned value operand (the RHS). For details, see [expr.assign.destructure.tmp-scopes].</p>
+</blockquote>
+<p>r[destructors.scope.temporary.edition2024]</p>
+<blockquote>
+<p>[!EDITION-2024] The 2024 edition added two new temporary scope narrowing rules: <code>if let</code> temporaries are dropped before the <code>else</code> block, and temporaries of tail expressions of blocks are dropped immediately after the tail expression is evaluated.</p>
 </blockquote>
 <p>몇 가지 예제:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
+</span><span class="boring">#![allow(irrefutable_let_patterns)]
 </span><span class="boring">struct PrintOnDrop(&amp;'static str);
 </span><span class="boring">impl Drop for PrintOnDrop {
 </span><span class="boring">    fn drop(&amp;mut self) {
@@ -437,6 +479,13 @@ else {
     // `if let else`가 여기서 드롭됨
 };
 
+while let x = PrintOnDrop("while let scrutinee").0 {
+    PrintOnDrop("while let loop body").0;
+    break;
+    // `while let loop body` dropped here.
+    // `while let scrutinee` dropped here.
+}
+
 // 첫 번째 || 이전에 드롭됨
 (PrintOnDrop("첫 번째 피연산자").0 == ""
 // ) 이전에 드롭됨
@@ -452,9 +501,9 @@ match PrintOnDrop("최종 표현식의 매치된 값") {
     _ =&gt; (),
 }
 <span class="boring">}</span></code></pre></pre>
-<div class="rule" id="r-destructors.scope.operands"><a class="rule-link" href="#r-destructors.scope.operands" title="destructors.scope.operands"><span>[destructors<wbr>.scope<wbr>.operands]<span/></a></div>
+<p>r[destructors.scope.operands]</p>
 <h3 id="피연산자"><a class="header" href="#피연산자">피연산자</a></h3>
-<p>다른 피연산자가 평가되는 동안 표현식의 피연산자 결과를 보관하기 위해 임시 값이 생성되기도 합니다. 이러한 임시 값은 해당 피연산자가 속한 표현식의 스코프와 연관됩니다. 표현식이 평가되면 임시 값으로부터 데이터가 이동하므로, 표현식의 피연산자 중 하나가 표현식을 벗어나거나(break), 반환되거나(return), 패닉(panic)이 발생하지 않는 한 이들을 드롭하는 것은 아무런 효과가 없습니다.</p>
+<p>Temporaries are also created to hold the result of operands to an expression while the other operands are evaluated. The temporaries are associated to the scope of the expression with that operand. Since the temporaries are moved from once the expression is evaluated, dropping them has no effect unless one of the operands to an expression breaks out of the expression, returns, or <a href="panic.html">panics</a>.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct PrintOnDrop(&amp;'static str);
@@ -477,24 +526,22 @@ match PrintOnDrop("최종 표현식의 매치된 값") {
     );
 }
 <span class="boring">}</span></code></pre></pre>
-<div class="rule" id="r-destructors.scope.const-promotion"><a class="rule-link" href="#r-destructors.scope.const-promotion" title="destructors.scope.const-promotion"><span>[destructors<wbr>.scope<wbr>.const-promotion]<span/></a></div>
+<p>r[destructors.scope.const-promotion]</p>
 <h3 id="상수-승격"><a class="header" href="#상수-승격">상수 승격</a></h3>
 <p>값 표현식을 <code>'static</code> 슬롯으로 승격시키는 것은, 해당 표현식을 상수로 작성하여 차용할 수 있고, 그 차용을 원래 표현식이 작성된 위치에서 런타임 동작의 변경 없이 역참조할 수 있을 때 발생합니다. 즉, 승격된 표현식은 컴파일 타임에 평가될 수 있어야 하며, 그 결과값은 <a href="interior-mutability.html">내부 가변성(interior mutability)</a>이나 <a href="destructors.html">소멸자(destructors)</a>를 포함하지 않아야 합니다 (이러한 속성들은 가능한 경우 값을 기반으로 결정됩니다. 예를 들어, <code>&amp;None</code>은 허용되지 않는 것을 아무것도 포함하지 않으므로 항상 <code>&amp;'static Option&lt;_&gt;</code> 타입을 가집니다).</p>
-<div class="rule" id="r-destructors.scope.lifetime-extension"><a class="rule-link" href="#r-destructors.scope.lifetime-extension" title="destructors.scope.lifetime-extension"><span>[destructors<wbr>.scope<wbr>.lifetime-extension]<span/></a></div>
+<p>r[destructors.scope.lifetime-extension]</p>
 <h3 id="임시-라이프타임-확장"><a class="header" href="#임시-라이프타임-확장">임시 라이프타임 확장</a></h3>
 <blockquote>
-<p><strong>참고</strong>: 임시 라이프타임 확장의 정확한 규칙은 변경될 수 있습니다. 여기서는 현재의 동작만을 설명합니다.</p>
+<p>[!NOTE] The exact rules for temporary lifetime extension are subject to change. This is describing the current behavior only.</p>
 </blockquote>
-<div class="rule" id="r-destructors.scope.lifetime-extension.let"><a class="rule-link" href="#r-destructors.scope.lifetime-extension.let" title="destructors.scope.lifetime-extension.let"><span>[destructors<wbr>.scope<wbr>.lifetime-extension<wbr>.let]<span/></a></div>
-<p><code>let</code> 구문의 표현식에 대한 임시 스코프는 때때로 <code>let</code> 구문을 포함하는 블록의 스코프로 _확장(extended)_되기도 합니다. 이는 특정한 구문 규칙에 따라 일반적인 임시 스코프가 너무 작을 때 수행됩니다. 예를 들어:</p>
+<p>r[destructors.scope.lifetime-extension.let] The temporary scopes for expressions in <code>let</code> statements are sometimes <em>extended</em> to the scope of the block containing the <code>let</code> statement. This is done when the usual temporary scope would be too small, based on certain syntactic rules. For example:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let x = &amp;mut 0;
 // 보통이라면 임시 값은 지금쯤 드롭되었겠지만, `0`을 위한 임시 값은 블록 끝까지 유지됩니다.
 println!("{}", x);
 <span class="boring">}</span></code></pre></pre>
-<div class="rule" id="r-destructors.scope.lifetime-extension.static"><a class="rule-link" href="#r-destructors.scope.lifetime-extension.static" title="destructors.scope.lifetime-extension.static"><span>[destructors<wbr>.scope<wbr>.lifetime-extension<wbr>.static]<span/></a></div>
-<p>라이프타임 확장은 <code>static</code> 및 <code>const</code> 아이템에도 적용되어, 임시 값이 프로그램이 종료될 때까지 유지되게 합니다. 예를 들어:</p>
+<p>r[destructors.scope.lifetime-extension.static] Lifetime extension also applies to <code>static</code> and <code>const</code> items, where it makes temporaries live until the end of the program. For example:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>const C: &amp;Vec&lt;i32&gt; = &amp;Vec::new();
@@ -502,66 +549,221 @@ println!("{}", x);
 // 대신 차용(borrow)이 라이프타임 확장되어 사실상 `'static` 라이프타임을 갖게 됩니다.
 println!("{:?}", C);
 <span class="boring">}</span></code></pre></pre>
-<div class="rule" id="r-destructors.scope.lifetime-extension.sub-expressions"><a class="rule-link" href="#r-destructors.scope.lifetime-extension.sub-expressions" title="destructors.scope.lifetime-extension.sub-expressions"><span>[destructors<wbr>.scope<wbr>.lifetime-extension<wbr>.sub-expressions]<span/></a></div>
-<p><a href="expressions/operator-expr.html#borrow-operators">차용(borrow)</a>, <a href="expressions/operator-expr.html#the-dereference-operator">역참조(dereference)</a>, <a href="expressions/field-expr.html">필드(field)</a>, 또는 <a href="expressions/tuple-expr.html#tuple-indexing-expressions">튜플 인덱싱 표현식(tuple indexing expression)</a>이 연장된 임시 스코프를 갖는다면 그 피연산자도 마찬가지입니다. 만약 <a href="expressions/array-expr.html#array-and-slice-indexing-expressions">인덱싱 표현식(indexing expression)</a>이 연장된 임시 스코프를 갖는다면 인덱싱되는 표현식도 연장된 임시 스코프를 갖습니다.</p>
-<div class="rule" id="r-destructors.scope.lifetime-extension.patterns"><a class="rule-link" href="#r-destructors.scope.lifetime-extension.patterns" title="destructors.scope.lifetime-extension.patterns"><span>[destructors<wbr>.scope<wbr>.lifetime-extension<wbr>.patterns]<span/></a></div>
+<p>r[destructors.scope.lifetime-extension.sub-expressions] If a <a href="expr.operator.borrow">borrow</a>, <a href="expressions/operator-expr.html#the-dereference-operator">dereference</a>, <a href="expressions/field-expr.html">field</a>, or <a href="expressions/tuple-expr.html#tuple-indexing-expressions">tuple indexing expression</a> has an extended temporary scope, then so does its operand. If an <a href="expressions/array-expr.html#array-and-slice-indexing-expressions">indexing expression</a> has an extended temporary scope, then the indexed expression also has an extended temporary scope.</p>
+<p>r[destructors.scope.lifetime-extension.patterns]</p>
 <h4 id="패턴에-기반한-연장"><a class="header" href="#패턴에-기반한-연장">패턴에 기반한 연장</a></h4>
-<div class="rule" id="r-destructors.scope.lifetime-extension.patterns.extending"><a class="rule-link" href="#r-destructors.scope.lifetime-extension.patterns.extending" title="destructors.scope.lifetime-extension.patterns.extending"><span>[destructors<wbr>.scope<wbr>.lifetime-extension<wbr>.patterns<wbr>.extending]<span/></a></div>
-<p>_연장 패턴(extending pattern)_은 다음 중 하나입니다.</p>
+<p>r[destructors.scope.lifetime-extension.patterns.extending] An <em>extending pattern</em> is either:</p>
 <ul>
-<li>참조 또는 가변 참조로 바인딩하는 <a href="patterns.html#identifier-patterns">식별자 패턴(identifier pattern)</a>.</li>
-<li>직접적인 하위 패턴 중 적어도 하나가 연장 패턴인 <a href="patterns.html#struct-patterns">구조체(struct)</a>, <a href="patterns.html#tuple-patterns">튜플(tuple)</a>, <a href="patterns.html#tuple-struct-patterns">튜플 구조체(tuple struct)</a>, 또는 <a href="patterns.html#slice-patterns">슬라이스(slice)</a> 패턴.</li>
-</ul>
-<p>따라서 <code>ref x</code>, <code>V(ref x)</code>, <code>[ref x, y]</code>는 모두 연장 패턴이지만, <code>x</code>, <code>&amp;ref x</code>, <code>&amp;(ref x,)</code>는 그렇지 않습니다.</p>
-<div class="rule" id="r-destructors.scope.lifetime-extension.patterns.let"><a class="rule-link" href="#r-destructors.scope.lifetime-extension.patterns.let" title="destructors.scope.lifetime-extension.patterns.let"><span>[destructors<wbr>.scope<wbr>.lifetime-extension<wbr>.patterns<wbr>.let]<span/></a></div>
-<p><code>let</code> 구문의 패턴이 연장 패턴이면 초기화식 표현식의 임시 스코프가 연장됩니다.</p>
-<div class="rule" id="r-destructors.scope.lifetime-extension.exprs"><a class="rule-link" href="#r-destructors.scope.lifetime-extension.exprs" title="destructors.scope.lifetime-extension.exprs"><span>[destructors<wbr>.scope<wbr>.lifetime-extension<wbr>.exprs]<span/></a></div>
-<h4 id="표현식에-기반한-연장"><a class="header" href="#표현식에-기반한-연장">표현식에 기반한 연장</a></h4>
-<p>초기화식이 있는 let 구문의 경우, _연장 표현식(extending expression)_은 다음 중 하나인 표현식입니다.</p>
-<ul>
-<li>초기화식 표현식.</li>
-<li>연장 <a href="expressions/operator-expr.html#borrow-operators">차용 표현식(borrow expression)</a>의 피연산자.</li>
-<li>연장 <a href="expressions/array-expr.html#array-expressions">배열(array)</a>, <a href="expressions/operator-expr.html#type-cast-expressions">캐스트(cast)</a>, <a href="expressions/struct-expr.html">중괄호 구조체(braced struct)</a>, 또는 <a href="expressions/tuple-expressions">튜플(tuple)</a> 표현식의 피연산자(들).</li>
-<li>모든 연장 <a href="expressions/block-expr.html">블록 표현식(block expression)</a>의 최종 표현식.</li>
-</ul>
-<p>따라서 <code>&amp;mut 0</code>, <code>(&amp;1, &amp;mut 2)</code>, <code>Some { 0: &amp;mut 3 }</code>에 있는 차용 표현식은 모두 연장 표현식입니다. <code>&amp;0 + &amp;1</code>과 <code>Some(&amp;mut 0)</code>에 있는 차용은 연장 표현식이 아닙니다. 후자는 구문론적으로 함수 호출 표현식이기 때문입니다.</p>
-<p>모든 연장 차용 표현식의 피연산자는 그 임시 스코프가 연장됩니다.</p>
-<h4 id="예시"><a class="header" href="#예시">예시</a></h4>
-<p>다음은 표현식이 연장된 임시 스코프를 갖는 몇 가지 예입니다.</p>
+<li>
+<p>참조 또는 가변 참조로 바인딩하는 <a href="patterns.html#identifier-patterns">식별자 패턴(identifier pattern)</a>.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">fn temp() {}
-</span><span class="boring">trait Use { fn use_temp(&amp;self) -&gt; &amp;Self { self } }
-</span><span class="boring">impl Use for () {}
-</span>// 이 경우 `temp()`의 결과를 저장하는 임시 값은
-// x와 동일한 스코프 동안 유지됩니다.
-let x = &amp;temp();
-let x = &amp;temp() as &amp;dyn Send;
-let x = (&amp;*&amp;temp(),);
-let x = { [Some { 0: &amp;temp(), }] };
-let ref x = temp();
-let ref x = *&amp;temp();
+</span>let ref x = temp(); // Binds by reference.
+<span class="boring">x;
+</span>let ref mut x = temp(); // Binds by mutable reference.
 <span class="boring">x;
 </span><span class="boring">}</span></code></pre></pre>
+</li>
+<li>
+<p>A <a href="patterns.html#struct-patterns">struct</a>, <a href="patterns.html#tuple-patterns">tuple</a>, <a href="patterns.html#tuple-struct-patterns">tuple struct</a>, <a href="patterns.html#slice-patterns">slice</a>, or <a href="patterns.html#or-patterns">or-pattern</a> where at least one of the direct subpatterns is an extending pattern.</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use core::sync::atomic::{AtomicU64, Ordering::Relaxed};
+</span><span class="boring">static X: AtomicU64 = AtomicU64::new(0);
+</span>struct W&lt;T&gt;(T);
+<span class="boring">impl&lt;T&gt; Drop for W&lt;T&gt; { fn drop(&amp;mut self) { X.fetch_add(1, Relaxed); } }
+</span>let W { 0: ref x } = W(()); // Struct pattern.
+<span class="boring">x;
+</span>let W(ref x) = W(()); // Tuple struct pattern.
+<span class="boring">x;
+</span>let (W(ref x),) = (W(()),); // Tuple pattern.
+<span class="boring">x;
+</span>let [W(ref x), ..] = [W(())]; // Slice pattern.
+<span class="boring">x;
+</span>let (Ok(W(ref x)) | Err(&amp;ref x)) = Ok(W(())); // Or pattern.
+<span class="boring">x;
+</span>//
+// All of the temporaries above are still live here.
+<span class="boring">assert_eq!(0, X.load(Relaxed));
+</span><span class="boring">}</span></code></pre></pre>
+</li>
+</ul>
+<p>따라서 <code>ref x</code>, <code>V(ref x)</code>, <code>[ref x, y]</code>는 모두 연장 패턴이지만, <code>x</code>, <code>&amp;ref x</code>, <code>&amp;(ref x,)</code>는 그렇지 않습니다.</p>
+<p>r[destructors.scope.lifetime-extension.patterns.let] If the pattern in a <code>let</code> statement is an extending pattern then the temporary scope of the initializer expression is extended.</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">fn temp() {}
+</span>// This is an extending pattern, so the temporary scope is extended.
+let ref x = *&amp;temp(); // OK
+<span class="boring">x;
+</span><span class="boring">}</span></code></pre></pre>
+<pre><pre class="playground"><code class="language-rust compile_fail E0716 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">fn temp() {}
+</span>// This is neither an extending pattern nor an extending expression,
+// so the temporary is dropped at the semicolon.
+let &amp;ref x = *&amp;&amp;temp(); // 오류
+<span class="boring">x;
+</span><span class="boring">}</span></code></pre></pre>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">fn temp() {}
+</span>// This is not an extending pattern but it is an extending expression,
+// so the temporary lives beyond the `let` statement.
+let &amp;ref x = &amp;*&amp;temp(); // OK
+<span class="boring">x;
+</span><span class="boring">}</span></code></pre></pre>
+<p>r[destructors.scope.lifetime-extension.exprs]</p>
+<h4 id="표현식에-기반한-연장"><a class="header" href="#표현식에-기반한-연장">표현식에 기반한 연장</a></h4>
+<p>r[destructors.scope.lifetime-extension.exprs.extending] For a let statement with an initializer, an <em>extending expression</em> is an expression which is one of the following:</p>
+<ul>
+<li>초기화식 표현식.</li>
+<li>The operand of an extending <a href="expr.operator.borrow">borrow</a> expression.</li>
+<li>The <a href="expr.super-macros">super operands</a> of an extending <a href="expr.super-macros">super macro call</a> expression.</li>
+<li>연장 <a href="expressions/array-expr.html#array-expressions">배열(array)</a>, <a href="expressions/operator-expr.html#type-cast-expressions">캐스트(cast)</a>, <a href="expressions/struct-expr.html">중괄호 구조체(braced struct)</a>, 또는 <a href="expressions/tuple-expressions">튜플(tuple)</a> 표현식의 피연산자(들).</li>
+<li>The arguments to an extending <a href="type.struct.tuple">tuple struct</a> or <a href="type.enum.declaration">tuple enum variant</a> constructor expression.</li>
+<li>The final expression of an extending <a href="expressions/block-expr.html">block expression</a> except for an <a href="expr.block.async">async block expression</a>.</li>
+<li>The final expression of an extending <a href="expressions/if-expr.html#if-expressions"><code>if</code></a> expression’s consequent, <code>else if</code>, or <code>else</code> block.</li>
+<li>An arm expression of an extending <a href="expressions/match-expr.html"><code>match</code></a> expression.</li>
+</ul>
+<blockquote>
+<p>[!NOTE] The desugaring of a <a href="expr.assign.destructure">destructuring assignment</a> makes its assigned value operand (the RHS) an extending expression within a newly-introduced block. For details, see [expr.assign.destructure.tmp-ext].</p>
+</blockquote>
+<p>So the borrow expressions in <code>&amp;mut 0</code>, <code>(&amp;1, &amp;mut 2)</code>, and <code>Some(&amp;mut 3)</code> are all extending expressions. The borrows in <code>&amp;0 + &amp;1</code> and <code>f(&amp;mut 0)</code> are not.</p>
+<p>r[destructors.scope.lifetime-extension.exprs.borrows] The operand of an extending <a href="expr.operator.borrow">borrow</a> expression has its <a href="destructors.scope.temporary">temporary scope</a> <a href="destructors.scope.lifetime-extension">extended</a>.</p>
+<p>r[destructors.scope.lifetime-extension.exprs.super-macros] The <a href="expr.super-macros">super temporaries</a> of an extending <a href="expr.super-macros">super macro call</a> expression have their <a href="destructors.scope.temporary">scopes</a> <a href="destructors.scope.lifetime-extension">extended</a>.</p>
+<blockquote>
+<p>[!NOTE] <code>rustc</code> does not treat <a href="expr.array.repeat-operand">array repeat operands</a> of extending <a href="types/array.html">array</a> expressions as extending expressions. Whether it should is an open question.</p>
+<p>For details, see <a href="https://github.com/rust-lang/rust/issues/146092">Rust issue #146092</a>.</p>
+</blockquote>
+<h4 id="예시"><a class="header" href="#예시">예시</a></h4>
+<p>다음은 표현식이 연장된 임시 스코프를 갖는 몇 가지 예입니다.</p>
+<pre><pre class="playground"><code class="language-rust edition2024 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use core::pin::pin;
+</span><span class="boring">use core::sync::atomic::{AtomicU64, Ordering::Relaxed};
+</span><span class="boring">static X: AtomicU64 = AtomicU64::new(0);
+</span><span class="boring">#[derive(Debug)] struct S;
+</span><span class="boring">impl Drop for S { fn drop(&amp;mut self) { X.fetch_add(1, Relaxed); } }
+</span><span class="boring">const fn temp() -&gt; S { S }
+</span>let x = &amp;temp(); // Operand of borrow.
+<span class="boring">x;
+</span>let x = &amp;raw const *&amp;temp(); // Operand of raw borrow.
+<span class="boring">assert_eq!(X.load(Relaxed), 0);
+</span>let x = &amp;temp() as &amp;dyn Send; // Operand of cast.
+<span class="boring">x;
+</span>let x = (&amp;*&amp;temp(),); // Operand of tuple constructor.
+<span class="boring">x;
+</span>struct W&lt;T&gt;(T);
+let x = W(&amp;temp()); // Argument to tuple struct constructor.
+<span class="boring">x;
+</span>let x = Some(&amp;temp()); // Argument to tuple enum variant constructor.
+<span class="boring">x;
+</span>let x = { [Some(&amp;temp())] }; // Final expr of block.
+<span class="boring">x;
+</span>let x = const { &amp;temp() }; // Final expr of `const` block.
+<span class="boring">x;
+</span>let x = unsafe { &amp;temp() }; // Final expr of `unsafe` block.
+<span class="boring">x;
+</span>let x = if true { &amp;temp() } else { &amp;temp() };
+//              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//           Final exprs of `if`/`else` blocks.
+<span class="boring">x;
+</span>let x = match () { _ =&gt; &amp;temp() }; // `match` arm expression.
+<span class="boring">x;
+</span>let x = pin!(temp()); // Super operand of super macro call expression.
+<span class="boring">x;
+</span>let x = pin!({ &amp;mut temp() }); // As above.
+<span class="boring">x;
+</span>let x = format_args!("{:?}", temp()); // As above.
+<span class="boring">x;
+</span>//
+// All of the temporaries above are still live here.
+<span class="boring">assert_eq!(0, X.load(Relaxed));
+</span><span class="boring">}</span></code></pre></pre>
 <p>다음은 표현식이 연장된 임시 스코프를 갖지 않는 몇 가지 예입니다.</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust compile_fail E0716 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">fn temp() {}
+</span>// Arguments to function calls are not extending expressions. The
+// temporary is dropped at the semicolon.
+let x = core::convert::identity(&amp;temp()); // 오류
+<span class="boring">x;
+</span><span class="boring">}</span></code></pre></pre>
+<pre><pre class="playground"><code class="language-rust compile_fail E0716 edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">fn temp() {}
 </span><span class="boring">trait Use { fn use_temp(&amp;self) -&gt; &amp;Self { self } }
 </span><span class="boring">impl Use for () {}
-</span>// 이 경우 `temp()`의 결과를 저장하는 임시 값은
-// let 구문이 끝날 때까지만 유지됩니다.
-
-let x = Some(&amp;temp());         // 오류
-let x = (&amp;temp()).use_temp();  // 오류
+</span>// Receivers of method calls are not extending expressions.
+let x = (&amp;temp()).use_temp(); // 오류
 <span class="boring">x;
 </span><span class="boring">}</span></code></pre></pre>
-<div class="rule" id="r-destructors.forget"><a class="rule-link" href="#r-destructors.forget" title="destructors.forget"><span>[destructors<wbr>.forget]<span/></a></div>
+<pre><pre class="playground"><code class="language-rust compile_fail E0716 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">fn temp() {}
+</span>// Scrutinees of match expressions are not extending expressions.
+let x = match &amp;temp() { x =&gt; x }; // 오류
+<span class="boring">x;
+</span><span class="boring">}</span></code></pre></pre>
+<pre><pre class="playground"><code class="language-rust compile_fail E0515 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">fn temp() {}
+</span>// Final expressions of `async` blocks are not extending expressions.
+let x = async { &amp;temp() }; // 오류
+<span class="boring">x;
+</span><span class="boring">}</span></code></pre></pre>
+<pre><pre class="playground"><code class="language-rust compile_fail E0515 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">fn temp() {}
+</span>// Final expressions of closures are not extending expressions.
+let x = || &amp;temp(); // 오류
+<span class="boring">x;
+</span><span class="boring">}</span></code></pre></pre>
+<pre><pre class="playground"><code class="language-rust compile_fail E0716 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">fn temp() {}
+</span>// Operands of loop breaks are not extending expressions.
+let x = loop { break &amp;temp() }; // 오류
+<span class="boring">x;
+</span><span class="boring">}</span></code></pre></pre>
+<pre><pre class="playground"><code class="language-rust compile_fail E0716 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">fn temp() {}
+</span>// Operands of breaks to labels are not extending expressions.
+let x = 'a: { break 'a &amp;temp() }; // 오류
+<span class="boring">x;
+</span><span class="boring">}</span></code></pre></pre>
+<pre><pre class="playground"><code class="language-rust edition2024 compile_fail E0716 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use core::pin::pin;
+</span><span class="boring">fn temp() {}
+</span>// The argument to `pin!` is only an extending expression if the call
+// is an extending expression. Since it's not, the inner block is not
+// an extending expression, so the temporaries in its trailing
+// expression are dropped immediately.
+pin!({ &amp;temp() }); // 오류
+<span class="boring">}</span></code></pre></pre>
+<pre><pre class="playground"><code class="language-rust edition2024 compile_fail E0716 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">fn temp() {}
+</span>// As above.
+format_args!("{:?}", { &amp;temp() }); // 오류
+<span class="boring">}</span></code></pre></pre>
+<p>r[destructors.forget]</p>
 <h2 id="소멸자를-실행하지-않는-경우"><a class="header" href="#소멸자를-실행하지-않는-경우">소멸자를 실행하지 않는 경우</a></h2>
-<p><a href="../core/mem/fn.forget.html"><code>std::mem::forget</code></a>은 변수의 소멸자가 실행되는 것을 방지하기 위해 사용될 수 있으며, <a href="../core/mem/manually_drop/struct.ManuallyDrop.html"><code>std::mem::ManuallyDrop</code></a>은 변수나 필드가 자동으로 드롭되는 것을 방지하는 래퍼를 제공합니다.</p>
+<p>r[destructors.manually-suppressing]</p>
+<h3 id="manually-suppressing-destructors"><a class="header" href="#manually-suppressing-destructors">Manually suppressing destructors</a></h3>
+<p>[<code>core::mem::forget</code>] can be used to prevent the destructor of a variable from being run, and [<code>core::mem::ManuallyDrop</code>] provides a wrapper to prevent a variable or field from being dropped automatically.</p>
 <blockquote>
-<p>참고: <a href="../core/mem/fn.forget.html"><code>std::mem::forget</code></a> 또는 다른 수단을 통해 소멸자가 실행되는 것을 방지하는 것은 해당 타입이 <code>'static</code>이 아니더라도 안전합니다. 이 문서에서 정의된 소멸자 실행이 보장되는 장소들 외에, 타입들은 건전성(soundness)을 위해 소멸자가 실행되는 것에 안전하게 의존할 수 <em>없을</em> 수도 있습니다.</p>
+<p>[!NOTE] Preventing a destructor from being run via [<code>core::mem::forget</code>] or other means is safe even if it has a type that isn’t <code>'static</code>. Besides the places where destructors are guaranteed to run as defined by this document, types may <em>not</em> safely rely on a destructor being run for soundness.</p>
 </blockquote>
+<p>r[destructors.process-termination]</p>
+<h3 id="process-termination-without-unwinding"><a class="header" href="#process-termination-without-unwinding">Process termination without unwinding</a></h3>
+<p>There are some ways to terminate the process without <a href="panic.html#unwinding">unwinding</a>, in which case destructors will not be run.</p>
+<p>The standard library provides [<code>std::process::exit</code>] and [<code>std::process::abort</code>] to do this explicitly. Additionally, if the [panic handler][panic.panic_handler.std] is set to <code>abort</code>, panicking will always terminate the process without destructors being run.</p>
+<p>There is one additional case to be aware of: when a panic reaches a <a href="items/functions.html#unwinding">non-unwinding ABI boundary</a>, either no destructors will run, or all destructors up until the ABI boundary will run.</p>
 
                     </main>
 

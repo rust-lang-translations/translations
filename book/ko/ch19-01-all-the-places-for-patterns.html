@@ -220,106 +220,47 @@
 <p>패턴은 러스트의 여러 곳에서 나타나며, 여러분은 자신도 모르는 사이에 패턴을 많이 사용해 왔습니다! 이 섹션에서는 패턴이 유효한 모든 장소들에 대해 논의합니다.</p>
 <h3 id="match-가지arms"><a class="header" href="#match-가지arms"><code>match</code> 가지(Arms)</a></h3>
 <p>6장에서 논의했듯이, 우리는 <code>match</code> 표현식의 가지에서 패턴을 사용합니다. 공식적으로 <code>match</code> 표현식은 <code>match</code> 키워드, 매칭할 값, 그리고 하나 이상의 매치 가지들로 정의됩니다. 매치 가지는 패턴과, 값이 해당 가지의 패턴과 매치될 경우 실행할 표현식으로 구성됩니다. 다음과 같은 식이죠.</p>
-<pre><code class="language-text">match VALUE {
-    PATTERN =&gt; EXPRESSION,
-    PATTERN =&gt; EXPRESSION,
-    PATTERN =&gt; EXPRESSION,
-}
-</code></pre>
-<p>예를 들어, 변수 <code>x</code>에 담긴 <code>Option&lt;i32&gt;</code> 값을 매칭하는 목록 6-5의 <code>match</code> 표현식은 다음과 같습니다.</p>
+<!--
+  Manually formatted rather than using Markdown intentionally: Markdown does not
+  support italicizing code in the body of a block like this!
+-->
+<pre><code>match <em>VALUE</em> {
+    <em>PATTERN</em> => <em>EXPRESSION</em>,
+    <em>PATTERN</em> => <em>EXPRESSION</em>,
+    <em>PATTERN</em> => <em>EXPRESSION</em>,
+}</code></pre>
+<p>For example, here’s the <code>match</code> expression from Listing 6-5 that matches on an <code>Option&lt;i32&gt;</code> value in the variable <code>x</code>:</p>
 <pre><code class="language-rust ignore">match x {
     None =&gt; None,
     Some(i) =&gt; Some(i + 1),
 }</code></pre>
-<p>이 <code>match</code> 표현식에서 패턴은 각 화살표 왼쪽의 <code>None</code>과 <code>Some(i)</code>입니다.</p>
-<p><code>match</code> 표현식의 한 가지 요구사항은 _포괄적(exhaustive)_이어야 한다는 것입니다. 즉, <code>match</code> 표현식에 들어오는 값의 모든 가능성이 고려되어야 합니다. 모든 가능성을 보장하는 한 가지 방법은 마지막 가지에 모든 것을 매칭하는(catch-all) 패턴을 두는 것입니다. 예를 들어, 어떤 값에도 매치되는 변수 이름은 결코 실패하지 않으므로 남은 모든 경우를 처리합니다.</p>
-<p>특수한 패턴인 <code>_</code>는 모든 것에 매치되지만 결코 변수에 바인딩되지 않으므로, 흔히 마지막 매치 가지에 사용됩니다. 예를 들어 명시되지 않은 모든 값을 무시하고 싶을 때 <code>_</code> 패턴이 유용할 수 있습니다. <code>_</code> 패턴에 대해서는 이번 장 뒷부분의 <a href="ch19-03-pattern-syntax.html#ignoring-values-in-a-pattern">“패턴에서 값 무시하기”</a><!-- ignore --> 섹션에서 더 자세히 다룰 것입니다.</p>
-<h3 id="조건부-if-let-표현식"><a class="header" href="#조건부-if-let-표현식">조건부 <code>if let</code> 표현식</a></h3>
-<p>6장에서 우리는 주로 단 하나의 경우만 매칭하는 <code>match</code>와 동일한 코드를 더 짧게 쓰기 위한 방법으로 <code>if let</code> 표현식을 사용하는 법을 논의했습니다. 선택적으로 <code>if let</code>은 그에 대응하는 <code>else</code>를 가질 수 있으며, 여기에는 <code>if let</code>의 패턴이 매치되지 않을 때 실행할 코드를 담습니다.</p>
-<p>목록 19-1은 <code>if let</code>, <code>else if</code>, <code>else if let</code> 표현식들을 섞어서 사용하는 것도 가능함을 보여줍니다. 이렇게 하면 패턴과 비교할 값을 단 하나만 표현할 수 있는 <code>match</code> 표현식보다 더 많은 유연성을 얻을 수 있습니다. 또한 러스트는 일련의 <code>if let</code>, <code>else if</code>, <code>else if let</code> 가지들의 조건들이 서로 관련되어 있을 것을 요구하지 않습니다.</p>
-<p>목록 19-1의 코드는 여러 조건에 대한 일련의 검사를 바탕으로 배경색을 무엇으로 할지 결정합니다. 이 예제를 위해, 실제 프로그램이라면 사용자 입력으로부터 받았을 법한 값들을 하드코딩된 변수로 만들었습니다.</p>
-<Listing number="19-1" file-name="src/main.rs" caption="Mixing `if let`, `else if`, `else if let`, and `else`">
-<pre><pre class="playground"><code class="language-rust edition2021">fn main() {
-    let favorite_color: Option&lt;&amp;str&gt; = None;
-    let is_tuesday = false;
-    let age: Result&lt;u8, _&gt; = "34".parse();
-
-    if let Some(color) = favorite_color {
-        println!("좋아하는 색상 {color}을 배경색으로 사용합니다");
-    } else if is_tuesday {
-        println!("화요일은 초록의 날입니다!");
-    } else if let Ok(age) = age {
-        if age &gt; 30 {
-            println!("보라색을 배경색으로 사용합니다");
-        } else {
-            println!("오렌지색을 배경색으로 사용합니다");
-        }
-    } else {
-        println!("파란색을 배경색으로 사용합니다");
-    }
-}</code></pre></pre>
-</Listing>
-<p>사용자가 좋아하는 색상을 지정하면 그 색상이 배경으로 사용됩니다. 좋아하는 색상이 지정되지 않았고 오늘이 화요일이라면 배경색은 초록색이 됩니다. 그렇지 않고 사용자가 나이를 문자열로 지정했으며 이를 숫자로 성공적으로 파싱할 수 있다면, 숫자의 값에 따라 보라색이나 오렌지색이 됩니다. 이 조건들 중 어느 것도 해당하지 않는다면 배경색은 파란색이 됩니다.</p>
-<p>이러한 조건 구조를 통해 복잡한 요구사항을 지원할 수 있습니다. 여기에 있는 하드코딩된 값들을 사용하면, 이 예제는 <code>보라색을 배경색으로 사용합니다</code>를 출력할 것입니다.</p>
-<p><code>match</code> 가지에서와 마찬가지로 <code>if let</code>도 기존 변수를 섀도잉하는 새로운 변수를 도입할 수 있음을 볼 수 있습니다. <code>if let Ok(age) = age</code> 라인은 <code>Ok</code> 변형 내부의 값을 담는 새로운 <code>age</code> 변수를 도입하여 기존의 <code>age</code> 변수를 섀도잉합니다. 이는 <code>if age &gt; 30</code> 조건을 해당 블록 내부에 두어야 함을 의미합니다. 이 두 조건을 <code>if let Ok(age) = age &amp;&amp; age &gt; 30</code>으로 결합할 수는 없습니다. 30과 비교하고자 하는 새로운 <code>age</code>는 중괄호와 함께 새로운 스코프가 시작되기 전까지는 유효하지 않기 때문입니다.</p>
-<p><code>if let</code> 표현식을 사용하는 것의 단점은 컴파일러가 포괄성(exhaustiveness)을 검사하지 않는다는 점입니다. 반면 <code>match</code> 표현식은 검사합니다. 만약 우리가 마지막 <code>else</code> 블록을 생략하여 일부 경우를 놓치더라도, 컴파일러는 잠재적인 로직 버그에 대해 경고해 주지 않을 것입니다.</p>
-<h3 id="while-let-조건부-루프"><a class="header" href="#while-let-조건부-루프"><code>while let</code> 조건부 루프</a></h3>
-<p><code>if let</code>과 구조가 유사한 <code>while let</code> 조건부 루프는 패턴이 계속 매치되는 한 <code>while</code> 루프를 실행할 수 있게 해줍니다. 우리는 17장에서 스트림이 새로운 값을 생성하는 동안 계속 루프를 돌기 위해 <code>while let</code> 루프를 처음 보았습니다. 이와 비슷하게, 목록 19-2에서는 스레드 간에 전송된 메시지를 기다리는 <code>while let</code> 루프를 보여주는데, 이번에는 <code>Option</code> 대신 <code>Result</code>를 검사합니다.</p>
-<Listing number="19-2" caption="Using a `while let` loop to print values for as long as `rx.recv()` returns `Ok`">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
-</span>    let (tx, rx) = std::sync::mpsc::channel();
-    std::thread::spawn(move || {
-        for val in [1, 2, 3] {
-            tx.send(val).unwrap();
-        }
-    });
-
-    while let Ok(value) = rx.recv() {
-        println!("{value}");
-    }
-<span class="boring">}</span></code></pre></pre>
-</Listing>
-<p>이 예제는 1, 2, 3을 출력합니다. 16장에서 <code>recv</code>를 보았을 때 우리는 에러를 직접 언랩하거나 <code>for</code> 루프를 사용하여 반복자로 상호작용했습니다. 하지만 목록 19-2에서 보여주듯 <code>while let</code>도 사용할 수 있습니다. <code>recv</code> 메서드는 송신자가 메시지를 보내는 동안 <code>Ok</code>를 반환하고, 송신 측이 연결을 끊으면 <code>Err</code>를 발생시키기 때문입니다.</p>
-<h3 id="for-루프"><a class="header" href="#for-루프"><code>for</code> 루프</a></h3>
-<p><code>for</code> 루프에서 <code>for</code> 키워드 바로 뒤에 오는 값은 패턴입니다. 예를 들어, <code>for x in y</code>에서 <code>x</code>가 패턴입니다. 목록 19-3은 튜플을 구조분해(destructure) 하거나 해체하기 위해 <code>for</code> 루프에서 패턴을 사용하는 방법을 보여줍니다.</p>
-<Listing number="19-3" caption="Using a pattern in a `for` loop to destructure a tuple">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
-</span>    let v = vec!['a', 'b', 'c'];
-
-    for (index, value) in v.iter().enumerate() {
-        println!("{value}는 인덱스 {index}에 있습니다");
-    }
-<span class="boring">}</span></code></pre></pre>
-</Listing>
-<p>목록 19-3의 코드는 다음과 같이 출력할 것입니다.</p>
-<pre><code class="language-console">$ cargo run
-   Compiling patterns v0.1.0 (file:///projects/patterns)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.52s
-     Running `target/debug/patterns`
-a는 인덱스 0에 있습니다
-b는 인덱스 1에 있습니다
-c는 인덱스 2에 있습니다
-</code></pre>
-<p>우리는 <code>enumerate</code> 메서드를 사용하여 반복자가 값과 그 값의 인덱스를 한 쌍의 튜플로 생성하도록 조정합니다. 처음 생성된 값은 튜플 <code>(0, 'a')</code>입니다. 이 값이 패턴 <code>(index, value)</code>와 매치되면 <code>index</code>는 <code>0</code>이 되고 <code>value</code>는 <code>'a'</code>가 되어 출력의 첫 번째 줄을 출력하게 됩니다.</p>
+<p>The patterns in this <code>match</code> expression are the <code>None</code> and <code>Some(i)</code> to the left of each arrow.</p>
+<p>One requirement for <code>match</code> expressions is that they need to be exhaustive in the sense that all possibilities for the value in the <code>match</code> expression must be accounted for. One way to ensure that you’ve covered every possibility is to have a catch-all pattern for the last arm: For example, a variable name matching any value can never fail and thus covers every remaining case.</p>
+<p>The particular pattern <code>_</code> will match anything, but it never binds to a variable, so it’s often used in the last match arm. The <code>_</code> pattern can be useful when you want to ignore any value not specified, for example. We’ll cover the <code>_</code> pattern in more detail in <a href="ch19-03-pattern-syntax.html#ignoring-values-in-a-pattern">“Ignoring Values in a Pattern”</a><!-- ignore --> later in this chapter.</p>
 <h3 id="let-문"><a class="header" href="#let-문"><code>let</code> 문</a></h3>
 <p>이번 장 이전까지 우리는 오직 <code>match</code>와 <code>if let</code>에서 패턴을 사용하는 것에 대해서만 명시적으로 논의했었지만, 사실 우리는 <code>let</code> 문을 포함하여 다른 곳에서도 패턴을 사용해 왔습니다. 예를 들어, <code>let</code>을 사용한 간단한 변수 할당을 생각해 봅시다.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let x = 5;
 <span class="boring">}</span></code></pre></pre>
-<p>여러분이 이런 식의 <code>let</code> 문을 사용할 때마다 여러분은 패턴을 사용해 왔던 것입니다. 비록 깨닫지 못했을 수도 있겠지만요! 좀 더 공식적으로, <code>let</code> 문은 다음과 같이 생겼습니다.</p>
-<pre><code class="language-text">let PATTERN = EXPRESSION;
-</code></pre>
-<p><code>PATTERN</code> 자리에 변수 이름이 있는 <code>let x = 5;</code>와 같은 문장에서, 변수 이름은 단지 매우 단순한 형태의 패턴일 뿐입니다. 러스트는 표현식을 패턴과 비교하고 발견된 모든 이름에 값을 할당합니다. 따라서 <code>let x = 5;</code> 예제에서 <code>x</code>는 "여기에 매치되는 것을 변수 <code>x</code>에 바인딩하라"는 의미의 패턴입니다. 이름 <code>x</code>가 패턴의 전부이므로, 이 패턴은 사실상 "값이 무엇이든 모든 것을 변수 <code>x</code>에 바인딩하라"는 의미가 됩니다.</p>
-<p><code>let</code>의 패턴 매칭 측면을 좀 더 명확히 보기 위해, <code>let</code>과 함께 패턴을 사용하여 튜플을 구조분해하는 목록 19-4를 살펴봅시다.</p>
-<Listing number="19-4" caption="Using a pattern to destructure a tuple and create three variables at once">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+<p>Every time you’ve used a <code>let</code> statement like this you’ve been using patterns, although you might not have realized it! More formally, a <code>let</code> statement looks like this:</p>
+<!--
+  Manually formatted rather than using Markdown intentionally: Markdown does not
+  support italicizing code in the body of a block like this!
+-->
+<pre>
+<code>let <em>PATTERN</em> = <em>EXPRESSION</em>;</code>
+</pre>
+<p>In statements like <code>let x = 5;</code> with a variable name in the PATTERN slot, the variable name is just a particularly simple form of a pattern. Rust compares the expression against the pattern and assigns any names it finds. So, in the <code>let x = 5;</code> example, <code>x</code> is a pattern that means “bind what matches here to the variable <code>x</code>.” Because the name <code>x</code> is the whole pattern, this pattern effectively means “bind everything to the variable <code>x</code>, whatever the value is.”</p>
+<p>To see the pattern-matching aspect of <code>let</code> more clearly, consider Listing 19-1, which uses a pattern with <code>let</code> to destructure a tuple.</p>
+<Listing number="19-1" caption="Using a pattern to destructure a tuple and create three variables at once">
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span>    let (x, y, z) = (1, 2, 3);
 <span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>여기서 우리는 튜플을 패턴에 매칭합니다. 러스트는 값 <code>(1, 2, 3)</code>을 패턴 <code>(x, y, z)</code>와 비교하고 값이 패턴에 매치됨을 확인합니다. 그래서 러스트는 <code>1</code>을 <code>x</code>에, <code>2</code>를 <code>y</code>에, <code>3</code>을 <code>z</code>에 바인딩합니다. 이 튜플 패턴은 내부에 세 개의 개별적인 변수 패턴이 중첩된 것으로 생각할 수 있습니다.</p>
-<p>만약 패턴의 요소 개수가 튜플의 요소 개수와 일치하지 않는다면, 전체 타입이 일치하지 않게 되어 컴파일러 에러가 발생할 것입니다. 예를 들어, 목록 19-5는 세 개의 요소를 가진 튜플을 두 개의 변수로 구조분해하려는 시도를 보여주는데, 이는 작동하지 않습니다.</p>
-<Listing number="19-5" caption="Incorrectly constructing a pattern whose variables don’t match the number of elements in the tuple">
+<p>Here, we match a tuple against a pattern. Rust compares the value <code>(1, 2, 3)</code> to the pattern <code>(x, y, z)</code> and sees that the value matches the pattern—that is, it sees that the number of elements is the same in both—so Rust binds <code>1</code> to <code>x</code>, <code>2</code> to <code>y</code>, and <code>3</code> to <code>z</code>. You can think of this tuple pattern as nesting three individual variable patterns inside it.</p>
+<p>If the number of elements in the pattern doesn’t match the number of elements in the tuple, the overall type won’t match and we’ll get a compiler error. For example, Listing 19-2 shows an attempt to destructure a tuple with three elements into two variables, which won’t work.</p>
+<Listing number="19-2" caption="Incorrectly constructing a pattern whose variables don’t match the number of elements in the tuple">
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">fn main() {
 </span>    let (x, y) = (1, 2, 3);
 <span class="boring">}</span></code></pre>
@@ -341,11 +282,78 @@ error[E0308]: mismatched types
 이 에러에 대한 더 자세한 정보를 원하시면 `rustc --explain E0308`을 시도해 보세요.
 에러: 1개의 이전 에러로 인해 `patterns` (바이너리 "patterns")를 컴파일할 수 없습니다
 </code></pre>
-<p>에러를 고치려면, 이번 장의 <a href="ch19-03-pattern-syntax.html#ignoring-values-in-a-pattern">“패턴에서 값 무시하기”</a><!-- ignore --> 섹션에서 보게 될 <code>_</code>나 <code>..</code>를 사용하여 튜플의 하나 이상의 값을 무시할 수 있습니다. 만약 문제가 패턴에 너무 많은 변수가 있는 것이라면, 변수의 개수가 튜플의 요소 개수와 같아지도록 변수를 제거하여 타입을 일치시키는 것이 해결책입니다.</p>
+<p>To fix the error, we could ignore one or more of the values in the tuple using <code>_</code> or <code>..</code>, as you’ll see in the <a href="ch19-03-pattern-syntax.html#ignoring-values-in-a-pattern">“Ignoring Values in a Pattern”</a><!-- ignore --> section. If the problem is that we have too many variables in the pattern, the solution is to make the types match by removing variables so that the number of variables equals the number of elements in the tuple.</p>
+<h3 id="조건부-if-let-표현식"><a class="header" href="#조건부-if-let-표현식">조건부 <code>if let</code> 표현식</a></h3>
+<p>In Chapter 6, we discussed how to use <code>if let</code> expressions mainly as a shorter way to write the equivalent of a <code>match</code> that only matches one case. Optionally, <code>if let</code> can have a corresponding <code>else</code> containing code to run if the pattern in the <code>if let</code> doesn’t match.</p>
+<p>Listing 19-3 shows that it’s also possible to mix and match <code>if let</code>, <code>else if</code>, and <code>else if let</code> expressions. Doing so gives us more flexibility than a <code>match</code> expression in which we can express only one value to compare with the patterns. Also, Rust doesn’t require that the conditions in a series of <code>if let</code>, <code>else if</code>, and <code>else if let</code> arms relate to each other.</p>
+<p>The code in Listing 19-3 determines what color to make your background based on a series of checks for several conditions. For this example, we’ve created variables with hardcoded values that a real program might receive from user input.</p>
+<Listing number="19-3" file-name="src/main.rs" caption="Mixing `if let`, `else if`, `else if let`, and `else`">
+<pre><pre class="playground"><code class="language-rust edition2024">fn main() {
+    let favorite_color: Option&lt;&amp;str&gt; = None;
+    let is_tuesday = false;
+    let age: Result&lt;u8, _&gt; = "34".parse();
+
+    if let Some(color) = favorite_color {
+        println!("좋아하는 색상 {color}을 배경색으로 사용합니다");
+    } else if is_tuesday {
+        println!("화요일은 초록의 날입니다!");
+    } else if let Ok(age) = age {
+        if age &gt; 30 {
+            println!("보라색을 배경색으로 사용합니다");
+        } else {
+            println!("오렌지색을 배경색으로 사용합니다");
+        }
+    } else {
+        println!("파란색을 배경색으로 사용합니다");
+    }
+}</code></pre></pre>
+</Listing>
+<p>사용자가 좋아하는 색상을 지정하면 그 색상이 배경으로 사용됩니다. 좋아하는 색상이 지정되지 않았고 오늘이 화요일이라면 배경색은 초록색이 됩니다. 그렇지 않고 사용자가 나이를 문자열로 지정했으며 이를 숫자로 성공적으로 파싱할 수 있다면, 숫자의 값에 따라 보라색이나 오렌지색이 됩니다. 이 조건들 중 어느 것도 해당하지 않는다면 배경색은 파란색이 됩니다.</p>
+<p>이러한 조건 구조를 통해 복잡한 요구사항을 지원할 수 있습니다. 여기에 있는 하드코딩된 값들을 사용하면, 이 예제는 <code>보라색을 배경색으로 사용합니다</code>를 출력할 것입니다.</p>
+<p>You can see that <code>if let</code> can also introduce new variables that shadow existing variables in the same way that <code>match</code> arms can: The line <code>if let Ok(age) = age</code> introduces a new <code>age</code> variable that contains the value inside the <code>Ok</code> variant, shadowing the existing <code>age</code> variable. This means we need to place the <code>if age &gt; 30</code> condition within that block: We can’t combine these two conditions into <code>if let Ok(age) = age &amp;&amp; age &gt; 30</code>. The new <code>age</code> we want to compare to 30 isn’t valid until the new scope starts with the curly bracket.</p>
+<p><code>if let</code> 표현식을 사용하는 것의 단점은 컴파일러가 포괄성(exhaustiveness)을 검사하지 않는다는 점입니다. 반면 <code>match</code> 표현식은 검사합니다. 만약 우리가 마지막 <code>else</code> 블록을 생략하여 일부 경우를 놓치더라도, 컴파일러는 잠재적인 로직 버그에 대해 경고해 주지 않을 것입니다.</p>
+<h3 id="while-let-조건부-루프"><a class="header" href="#while-let-조건부-루프"><code>while let</code> 조건부 루프</a></h3>
+<p>Similar in construction to <code>if let</code>, the <code>while let</code> conditional loop allows a <code>while</code> loop to run for as long as a pattern continues to match. In Listing 19-4, we show a <code>while let</code> loop that waits on messages sent between threads, but in this case checking a <code>Result</code> instead of an <code>Option</code>.</p>
+<Listing number="19-4" caption="Using a `while let` loop to print values for as long as `rx.recv()` returns `Ok`">
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
+</span>    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        for val in [1, 2, 3] {
+            tx.send(val).unwrap();
+        }
+    });
+
+    while let Ok(value) = rx.recv() {
+        println!("{value}");
+    }
+<span class="boring">}</span></code></pre></pre>
+</Listing>
+<p>This example prints <code>1</code>, <code>2</code>, and then <code>3</code>. The <code>recv</code> method takes the first message out of the receiver side of the channel and returns an <code>Ok(value)</code>. When we first saw <code>recv</code> back in Chapter 16, we unwrapped the error directly, or we interacted with it as an iterator using a <code>for</code> loop. As Listing 19-4 shows, though, we can also use <code>while let</code>, because the <code>recv</code> method returns an <code>Ok</code> each time a message arrives, as long as the sender exists, and then produces an <code>Err</code> once the sender side disconnects.</p>
+<h3 id="for-루프"><a class="header" href="#for-루프"><code>for</code> 루프</a></h3>
+<p>In a <code>for</code> loop, the value that directly follows the keyword <code>for</code> is a pattern. For example, in <code>for x in y</code>, the <code>x</code> is the pattern. Listing 19-5 demonstrates how to use a pattern in a <code>for</code> loop to destructure, or break apart, a tuple as part of the <code>for</code> loop.</p>
+<Listing number="19-5" caption="Using a pattern in a `for` loop to destructure a tuple">
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
+</span>    let v = vec!['a', 'b', 'c'];
+
+    for (index, value) in v.iter().enumerate() {
+        println!("{value}는 인덱스 {index}에 있습니다");
+    }
+<span class="boring">}</span></code></pre></pre>
+</Listing>
+<p>The code in Listing 19-5 will print the following:</p>
+<pre><code class="language-console">$ cargo run
+   Compiling patterns v0.1.0 (file:///projects/patterns)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.52s
+     Running `target/debug/patterns`
+a는 인덱스 0에 있습니다
+b는 인덱스 1에 있습니다
+c는 인덱스 2에 있습니다
+</code></pre>
+<p>We adapt an iterator using the <code>enumerate</code> method so that it produces a value and the index for that value, placed into a tuple. The first value produced is the tuple <code>(0, 'a')</code>. When this value is matched to the pattern <code>(index, value)</code>, index will be <code>0</code> and value will be <code>'a'</code>, printing the first line of the output.</p>
 <h3 id="함수-매개변수"><a class="header" href="#함수-매개변수">함수 매개변수</a></h3>
 <p>함수 매개변수 또한 패턴이 될 수 있습니다. <code>i32</code> 타입의 <code>x</code>라는 매개변수를 하나 받는 <code>foo</code>라는 함수를 선언하는 목록 19-6의 코드는 이제 익숙해 보일 것입니다.</p>
-<Listing number="19-6" caption="A function signature uses patterns in the parameters">
-<pre><pre class="playground"><code class="language-rust edition2021">fn foo(x: i32) {
+<Listing number="19-6" caption="A function signature using patterns in the parameters">
+<pre><pre class="playground"><code class="language-rust edition2024">fn foo(x: i32) {
     // 코드가 여기에 들어갑니다
 }
 <span class="boring">
@@ -353,7 +361,7 @@ error[E0308]: mismatched types
 </Listing>
 <p><code>x</code> 부분이 바로 패턴입니다! <code>let</code>에서 했던 것처럼, 함수의 인수에서 튜플을 패턴에 매칭할 수 있습니다. 목록 19-7은 튜플을 함수에 전달할 때 그 안의 값들을 쪼개어 받습니다.</p>
 <Listing number="19-7" file-name="src/main.rs" caption="A function with parameters that destructure a tuple">
-<pre><pre class="playground"><code class="language-rust edition2021">fn print_coordinates(&amp;(x, y): &amp;(i32, i32)) {
+<pre><pre class="playground"><code class="language-rust edition2024">fn print_coordinates(&amp;(x, y): &amp;(i32, i32)) {
     println!("현재 위치: ({x}, {y})");
 }
 
@@ -363,8 +371,8 @@ fn main() {
 }</code></pre></pre>
 </Listing>
 <p>이 코드는 <code>현재 위치: (3, 5)</code>를 출력합니다. 값 <code>&amp;(3, 5)</code>가 패턴 <code>&amp;(x, y)</code>와 매치되므로, <code>x</code>는 <code>3</code>이 되고 <code>y</code>는 <code>5</code>가 됩니다.</p>
-<p>13장에서 논의했듯이 클로저는 함수와 유사하므로, 함수 매개변수 리스트에서와 동일한 방식으로 클로저 매개변수 리스트에서도 패턴을 사용할 수 있습니다.</p>
-<p>지금까지 여러분은 패턴을 사용하는 여러 가지 방법들을 보았습니다. 하지만 패턴이 사용되는 모든 곳에서 동일하게 작동하는 것은 아닙니다. 어떤 곳에서는 패턴이 반드시 반박 불가능(irrefutable)해야 하며, 다른 상황에서는 반박 가능(refutable) 할 수도 있습니다. 다음으로 이 두 가지 개념에 대해 논의해 보겠습니다.</p>
+<p>We can also use patterns in closure parameter lists in the same way as in function parameter lists because closures are similar to functions, as discussed in Chapter 13.</p>
+<p>At this point, you’ve seen several ways to use patterns, but patterns don’t work the same in every place we can use them. In some places, the patterns must be irrefutable; in other circumstances, they can be refutable. We’ll discuss these two concepts next.</p>
 
                     </main>
 

@@ -89,6 +89,7 @@
         <link rel="stylesheet" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/cargo.css">
         <link rel="stylesheet" href="../theme/language-picker.css">
 
 
@@ -298,7 +299,9 @@ exact version to depend on.</p>
 <p><span id="multiple-requirements"></span></p>
 <h3 id="multiple-version-requirements"><a class="header" href="#multiple-version-requirements">Multiple version requirements</a></h3>
 <p>As shown in the examples above, multiple version requirements can be
-separated with a comma, e.g., <code>&gt;= 1.2, &lt; 1.5</code>.</p>
+separated with a comma, e.g., <code>&gt;= 1.2, &lt; 1.5</code>.
+All requirements must be satisfied,
+so non-overlapping requirements like <code>&lt;1.2, ^1.2.2</code> result in no matching versions.</p>
 <h3 id="pre-releases"><a class="header" href="#pre-releases">Pre-releases</a></h3>
 <p>Version requirements exclude <a href="manifest.html#the-version-field">pre-release versions</a>, such as <code>1.0.0-alpha</code>,
 unless specifically asked for.
@@ -339,18 +342,19 @@ dependency” when <a href="resolver.html">resolving dependency versions</a>  (s
 <a href="https://github.com/rust-lang/cargo/issues/10599">#10599</a>).</p>
 <p>Avoid constraining the upper bound of a version to be anything less than the
 next semver incompatible version
-(e.g. avoid <code>"&gt;=2.0, &lt;2.4"</code>) as other packages in the dependency tree may
+(e.g. avoid <code>"&gt;=2.0, &lt;2.4"</code>, <code>"2.0.*"</code>, or <code>~2.0</code>),
+as other packages in the dependency tree may
 require a newer version, leading to an unresolvable error (see <a href="https://github.com/rust-lang/cargo/issues/9029">#9029</a>).
 Consider whether controlling the version in your <a href="../guide/cargo-toml-vs-cargo-lock.html"><code>Cargo.lock</code></a> would be more
 appropriate.</p>
 <p>In some instances this won’t matter or the benefits might outweigh the cost, including:</p>
 <ul>
-<li>When no one else depends on your package e.g. it only has a <code>[[bin]]</code></li>
+<li>When no one else depends on your package; e.g. it only has a <code>[[bin]]</code></li>
 <li>When depending on a pre-release package and wishing to avoid breaking
-changes then a fully specified <code>"=1.2.3-alpha.3"</code> might be warranted (see
+changes, then a fully specified <code>"=1.2.3-alpha.3"</code> might be warranted (see
 <a href="https://github.com/rust-lang/cargo/issues/2222">#2222</a>)</li>
 <li>When a library re-exports a proc-macro but the proc-macro generates code that
-calls into the re-exporting library then a fully specified <code>=1.2.3</code> might be
+calls into the re-exporting library, then a fully specified <code>=1.2.3</code> might be
 warranted to ensure the proc-macro isn’t newer than the re-exporting library
 and generating code that uses parts of the API that don’t exist within the
 current version</li>
@@ -441,6 +445,13 @@ dependencies on code published outside of <a href="https://crates.io/">crates.io
 locations</a> section for a fallback alternative for <code>git</code>
 and <code>path</code> dependencies.</p>
 </blockquote>
+<h3 id="git-submodules"><a class="header" href="#git-submodules">Git submodules</a></h3>
+<p>When cloning a <code>git</code> dependency,
+Cargo automatically fetches its submodules recursively
+so that all required code is available for the build.</p>
+<p>To skip fetching submodules unrelated to the build,
+you can set <a href="https://git-scm.com/docs/gitmodules#Documentation/gitmodules.txt-submodulenameupdate"><code>submodule.&lt;name&gt;.update = none</code></a> in the dependency repo’s <code>.gitmodules</code>.
+This requires write access to the repo and will disable submodule updates more generally.</p>
 <h3 id="accessing-private-git-repositories"><a class="header" href="#accessing-private-git-repositories">Accessing private Git repositories</a></h3>
 <p>See <a href="../appendix/git-authentication.html">Git Authentication</a> for help with Git authentication for private repos.</p>
 <h2 id="specifying-path-dependencies"><a class="header" href="#specifying-path-dependencies">Specifying path dependencies</a></h2>
@@ -702,24 +713,6 @@ cc.workspace = true
 [dev-dependencies]
 rand = { workspace = true, optional = true }
 </code></pre>
-<script>
-(function() {
-    var fragments = {
-        "#overriding-dependencies": "overriding-dependencies.html",
-        "#testing-a-bugfix": "overriding-dependencies.html#testing-a-bugfix",
-        "#working-with-an-unpublished-minor-version": "overriding-dependencies.html#working-with-an-unpublished-minor-version",
-        "#overriding-repository-url": "overriding-dependencies.html#overriding-repository-url",
-        "#prepublishing-a-breaking-change": "overriding-dependencies.html#prepublishing-a-breaking-change",
-        "#overriding-with-local-dependencies": "overriding-dependencies.html#paths-overrides",
-    };
-    var target = fragments[window.location.hash];
-    if (target) {
-        var url = window.location.toString();
-        var base = url.substring(0, url.lastIndexOf('/'));
-        window.location.replace(base + "/" + target);
-    }
-})();
-</script>
 
                     </main>
 

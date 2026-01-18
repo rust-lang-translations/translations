@@ -224,20 +224,20 @@ to match. Patterns that can fail to match for some possible value are
 <em>refutable</em>. An example would be <code>Some(x)</code> in the expression <code>if let Some(x) = a_value</code> because if the value in the <code>a_value</code> variable is <code>None</code> rather than
 <code>Some</code>, the <code>Some(x)</code> pattern will not match.</p>
 <p>Function parameters, <code>let</code> statements, and <code>for</code> loops can only accept
-irrefutable patterns, because the program cannot do anything meaningful when
+irrefutable patterns because the program cannot do anything meaningful when
 values don’t match. The <code>if let</code> and <code>while let</code> expressions and the
-<code>let</code>-<code>else</code> statement accept refutable and irrefutable patterns, but the
-compiler warns against irrefutable patterns because by definition they’re
-intended to handle possible failure: the functionality of a conditional is in
+<code>let...else</code> statement accept refutable and irrefutable patterns, but the
+compiler warns against irrefutable patterns because, by definition, they’re
+intended to handle possible failure: The functionality of a conditional is in
 its ability to perform differently depending on success or failure.</p>
 <p>In general, you shouldn’t have to worry about the distinction between refutable
 and irrefutable patterns; however, you do need to be familiar with the concept
-of refutability so you can respond when you see it in an error message. In
+of refutability so that you can respond when you see it in an error message. In
 those cases, you’ll need to change either the pattern or the construct you’re
 using the pattern with, depending on the intended behavior of the code.</p>
 <p>Let’s look at an example of what happens when we try to use a refutable pattern
 where Rust requires an irrefutable pattern and vice versa. Listing 19-8 shows a
-<code>let</code> statement, but for the pattern we’ve specified <code>Some(x)</code>, a refutable
+<code>let</code> statement, but for the pattern, we’ve specified <code>Some(x)</code>, a refutable
 pattern. As you might expect, this code will not compile.</p>
 <Listing number="19-8" caption="Attempting to use a refutable pattern with `let`">
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">fn main() {
@@ -245,7 +245,7 @@ pattern. As you might expect, this code will not compile.</p>
 </span>    let Some(x) = some_option_value;
 <span class="boring">}</span></code></pre>
 </Listing>
-<p>If <code>some_option_value</code> was a <code>None</code> value, it would fail to match the pattern
+<p>If <code>some_option_value</code> were a <code>None</code> value, it would fail to match the pattern
 <code>Some(x)</code>, meaning the pattern is refutable. However, the <code>let</code> statement can
 only accept an irrefutable pattern because there is nothing valid the code can
 do with a <code>None</code> value. At compile time, Rust will complain that we’ve tried to
@@ -259,7 +259,7 @@ error[E0005]: refutable pattern in local binding
   |         ^^^^^^^ pattern `None` not covered
   |
   = note: `let` bindings require an "irrefutable pattern", like a `struct` or an `enum` with only one variant
-  = note: for more information, visit https://doc.rust-lang.org/book/ch18-02-refutability.html
+  = note: for more information, visit https://doc.rust-lang.org/book/ch19-02-refutability.html
   = note: the matched value is of type `Option&lt;i32&gt;`
 help: you might want to use `let else` to handle the variant that isn't matched
   |
@@ -272,47 +272,46 @@ error: could not compile `patterns` (bin "patterns") due to 1 previous error
 <p>Because we didn’t cover (and couldn’t cover!) every valid value with the
 pattern <code>Some(x)</code>, Rust rightfully produces a compiler error.</p>
 <p>If we have a refutable pattern where an irrefutable pattern is needed, we can
-fix it by changing the code that uses the pattern: instead of using <code>let</code>, we
-can use <code>if let</code>. Then if the pattern doesn’t match, the code will just skip
-the code in the curly brackets, giving it a way to continue validly. Listing
-19-9 shows how to fix the code in Listing 19-8.</p>
-<Listing number="19-9" caption="Using `if let` and a block with refutable patterns instead of `let`">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+fix it by changing the code that uses the pattern: Instead of using <code>let</code>, we
+can use <code>let...else</code>. Then, if the pattern doesn’t match, the code in the curly
+brackets will handle the value. Listing 19-9 shows how to fix the code in
+Listing 19-8.</p>
+<Listing number="19-9" caption="Using `let...else` and a block with refutable patterns instead of `let`">
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span><span class="boring">    let some_option_value: Option&lt;i32&gt; = None;
-</span>    if let Some(x) = some_option_value {
-        println!("{x}");
-    }
-<span class="boring">}</span></code></pre></pre>
-</Listing>
-<p>We’ve given the code an out! This code is perfectly valid now. However,
-if we give <code>if let</code> an irrefutable pattern (a pattern that will always
-match), such as <code>x</code>, as shown in Listing 19-10, the compiler will give a
-warning.</p>
-<Listing number="19-10" caption="Attempting to use an irrefutable pattern with `if let`">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
-</span>    if let x = 5 {
-        println!("{x}");
+</span>    let Some(x) = some_option_value else {
+        return;
     };
 <span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>Rust complains that it doesn’t make sense to use <code>if let</code> with an irrefutable
-pattern:</p>
+<p>We’ve given the code an out! This code is perfectly valid, although it means we
+cannot use an irrefutable pattern without receiving a warning. If we give
+<code>let...else</code> a pattern that will always match, such as <code>x</code>, as shown in Listing
+19-10, the compiler will give a warning.</p>
+<Listing number="19-10" caption="Attempting to use an irrefutable pattern with `let...else`">
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
+</span>    let x = 5 else {
+        return;
+    };
+<span class="boring">}</span></code></pre></pre>
+</Listing>
+<p>Rust complains that it doesn’t make sense to use <code>let...else</code> with an
+irrefutable pattern:</p>
 <pre><code class="language-console">$ cargo run
    Compiling patterns v0.1.0 (file:///projects/patterns)
-warning: irrefutable `if let` pattern
- --&gt; src/main.rs:2:8
+warning: irrefutable `let...else` pattern
+ --&gt; src/main.rs:2:5
   |
-2 |     if let x = 5 {
-  |        ^^^^^^^^^
+2 |     let x = 5 else {
+  |     ^^^^^^^^^
   |
-  = note: this pattern will always match, so the `if let` is useless
-  = help: consider replacing the `if let` with a `let`
+  = note: this pattern will always match, so the `else` clause is useless
+  = help: consider removing the `else` clause
   = note: `#[warn(irrefutable_let_patterns)]` on by default
 
 warning: `patterns` (bin "patterns") generated 1 warning
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.39s
      Running `target/debug/patterns`
-5
 </code></pre>
 <p>For this reason, match arms must use refutable patterns, except for the last
 arm, which should match any remaining values with an irrefutable pattern. Rust

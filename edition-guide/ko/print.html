@@ -734,7 +734,7 @@ fn function2() -&gt; Box&lt;dyn Trait&gt; {
 <div style="break-before: page; page-break-before: always;"></div><h1 id="rust-2021"><a class="header" href="#rust-2021">Rust 2021</a></h1>
 <div class="table-wrapper"><table><thead><tr><th>정보</th><th></th></tr></thead><tbody>
 <tr><td>RFC</td><td><a href="https://github.com/rust-lang/rfcs/pull/3085">#3085</a></td></tr>
-<tr><td>릴리스 버전</td><td>1.56.0</td></tr>
+<tr><td>릴리스 버전</td><td><a href="https://blog.rust-lang.org/2021/10/21/Rust-1.56.0/">1.56.0</a></td></tr>
 </tbody></table>
 </div>
 <p>Rust 2021 에디션에는 언어에 새로운 기능과 일관성을 더하고 향후 확장을 위한 공간을 여는 몇 가지 변경 사항이 포함되어 있습니다. 다음 장에서는 각 변경 사항의 세부 정보를 자세히 살펴보고 기존 코드를 마이그레이션하는 방법에 대한 지침을 포함합니다.</p>
@@ -1351,7 +1351,7 @@ assert_eq!(cr"C:\foo", c"C:\\foo");
 <div style="break-before: page; page-break-before: always;"></div><h1 id="rust-2024"><a class="header" href="#rust-2024">Rust 2024</a></h1>
 <div class="table-wrapper"><table><thead><tr><th>정보</th><th></th></tr></thead><tbody>
 <tr><td>RFC</td><td><a href="https://rust-lang.github.io/rfcs/3501-edition-2024.html">#3501</a></td></tr>
-<tr><td>릴리스 버전</td><td>1.85.0</td></tr>
+<tr><td>릴리스 버전</td><td><a href="https://blog.rust-lang.org/2025/02/20/Rust-1.85.0/">1.85.0</a></td></tr>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><h1 id="언어"><a class="header" href="#언어">언어</a></h1>
 <p>The following chapters detail changes to the language in the 2024 Edition.</p>
@@ -1567,7 +1567,7 @@ fn f&lt;'a, T&gt;(x: &amp;'a (), y: T) -&gt; impl Sized + Captures&lt;(&amp;'a (
 // The hidden type is `(&amp;'a (), T)`.
 }
 <span class="boring">}</span></code></pre></pre>
-<p>This trick was less baroque than the <code>Captures</code> trick, but also less correct.  As we can see in the example above, even though any lifetime components within <code>T</code> are independent from the lifetime <code>'a</code>, we're required to add a <code>T: 'a</code> bound in order to make the trick work.  This created undue and surprising restrictions on callers.</p>
+<p>This trick was less baroque than the <code>Captures</code> trick, but also less correct.  As we can see in the example above, even though any lifetime components within <code>T</code> are independent of the lifetime <code>'a</code>, we're required to add a <code>T: 'a</code> bound in order to make the trick work.  This created undue and surprising restrictions on callers.</p>
 <p>Using precise capturing, you can write the above instead, in all editions, as:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -1672,12 +1672,36 @@ fn f(value: &amp;RwLock&lt;Option&lt;bool&gt;&gt;) {
 </span>// Add this to the root of your crate to do a manual migration.
 #![warn(if_let_rescope)]
 <span class="boring">}</span></code></pre></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="꼬리-표현식-임시-스코프"><a class="header" href="#꼬리-표현식-임시-스코프">꼬리 표현식 임시 스코프</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="let-chains-in-if-and-while"><a class="header" href="#let-chains-in-if-and-while"><code>let</code> chains in <code>if</code> and <code>while</code></a></h1>
 <h2 id="요약-17"><a class="header" href="#요약-17">요약</a></h2>
+<ul>
+<li>Allow chaining of <code>let</code> expressions in the condition operand of <code>if</code> and <code>while</code>.</li>
+</ul>
+<h2 id="세부-정보-14"><a class="header" href="#세부-정보-14">세부 정보</a></h2>
+<p>Starting with the 2024 Edition, it is now allowed to have chaining of <code>let</code> expressions inside <code>if</code> and <code>while</code> condition operands, where chaining refers to <code>&amp;&amp;</code> chains. The <code>let</code> expressions still have to appear at the top level, so <code>if (let Some(hi) = foo || let Some(hi) = bar)</code> is not allowed.</p>
+<p>Before 2024, the <code>let</code> had to appear directly after the <code>if</code> or <code>while</code>, forming a <code>if let</code> or <code>while let</code> special variant. Now, <code>if</code> and <code>while</code> allow chains of one or more <code>let</code> expressions, possibly mixed with expressions that are <code>bool</code> typed.</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn sum_first_two(nums: &amp;[u8]) -&gt; Option&lt;u8&gt; {
+    let mut iter = nums.iter();
+    if let Some(first) = iter.next()
+        &amp;&amp; let Some(second) = iter.next()
+    {
+        first.checked_add(*second)
+    } else {
+        None
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p>The feature is edition gated due to requiring <a href="rust-2024/temporary-if-let-scope.html">if let rescoping</a>, which is a Edition 2024 change.</p>
+<h2 id="마이그레이션-12"><a class="header" href="#마이그레이션-12">마이그레이션</a></h2>
+<p>The switch to Edition 2024 doesn't neccessitate any migrations due to this feature, as it creates a true extension of the set of allowed Rust programs.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="꼬리-표현식-임시-스코프"><a class="header" href="#꼬리-표현식-임시-스코프">꼬리 표현식 임시 스코프</a></h1>
+<h2 id="요약-18"><a class="header" href="#요약-18">요약</a></h2>
 <ul>
 <li>Temporary values generated in evaluation of the tail expression of a <a href="rust-2024/../../reference/items/functions.html">function</a> or closure body, or a <a href="rust-2024/../../reference/expressions/block-expr.html">block</a> may now be dropped before local variables, and are sometimes not extended to the next larger temporary scope.</li>
 </ul>
-<h2 id="세부-정보-14"><a class="header" href="#세부-정보-14">세부 정보</a></h2>
+<h2 id="세부-정보-15"><a class="header" href="#세부-정보-15">세부 정보</a></h2>
 <p>The 2024 Edition changes the drop order of <a href="rust-2024/../../reference/expressions.html#temporaries">temporary values</a> in tail expressions. It often comes as a surprise that, before the 2024 Edition, temporary values in tail expressions can live longer than the block itself, and are dropped later than the local variable bindings, as in the following example:</p>
 <pre><pre class="playground"><code class="language-rust edition2021 compile_fail E0597"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -1716,7 +1740,7 @@ For more information about this error, try `rustc --explain E0597`.
 </code></pre>
 <p>In 2021 the local variable <code>c</code> is dropped before the temporary created by <code>c.borrow()</code>. The 2024 Edition changes this so that the temporary value <code>c.borrow()</code> is dropped first, followed by dropping the local variable <code>c</code>, allowing the code to compile as expected.</p>
 <h3 id="temporary-scope-may-be-narrowed"><a class="header" href="#temporary-scope-may-be-narrowed">Temporary scope may be narrowed</a></h3>
-<p>When a temporary is created in order to evaluate an expression, the temporary is dropped based on the <a href="rust-2024/../../reference/destructors.html#temporary-scopes">temporary scope rules</a>. Those rules define how long the temporary will be kept alive. Before 2024, temporaries from tail expressions of a block would be extended outside of the block to the next temporary scope boundary. In many cases this would be the end of a statement or function body. In 2024, the temporaries of the tail expression may now be dropped immediately at the end of the block (before any local variables in the block).</p>
+<p>When a temporary is created in order to evaluate an expression, the temporary is dropped based on the <a href="rust-2024/../../reference/destructors.html#temporary-scopes">temporary scope rules</a>. Those rules define how long the temporary will be kept alive. Before 2024, temporaries from tail expressions of a block would be extended outside the block to the next temporary scope boundary. In many cases this would be the end of a statement or function body. In 2024, the temporaries of the tail expression may now be dropped immediately at the end of the block (before any local variables in the block).</p>
 <p>This narrowing of the temporary scope may cause programs to fail to compile in 2024. For example:</p>
 <pre><pre class="playground"><code class="language-rust edition2024 E0716 compile_fail">// This example works in 2021, but fails to compile in 2024.
 fn main() {
@@ -1730,7 +1754,7 @@ fn main() {
 }</code></pre></pre>
 <p>This particular example takes advantage of <a href="rust-2024/../../reference/destructors.html#temporary-lifetime-extension">temporary lifetime extension</a>. Temporary lifetime extension is a set of specific rules which allow temporaries to live longer than they normally would. Because the <code>String</code> temporary is behind a reference, the <code>String</code> temporary is extended long enough for the next statement to call <code>len()</code> on it.</p>
 <p>See the <a href="rust-2024/temporary-if-let-scope.html"><code>if let</code> temporary scope</a> chapter for a similar change made to temporary scopes of <code>if let</code> expressions.</p>
-<h2 id="마이그레이션-12"><a class="header" href="#마이그레이션-12">마이그레이션</a></h2>
+<h2 id="마이그레이션-13"><a class="header" href="#마이그레이션-13">마이그레이션</a></h2>
 <p>Unfortunately, there are no semantics-preserving rewrites to shorten the lifetime for temporary values in tail expressions<sup class="footnote-reference"><a href="#RFC3606">1</a></sup>. The <a href="rust-2024/../../rustc/lints/listing/allowed-by-default.html#tail-expr-drop-order"><code>tail_expr_drop_order</code></a> lint detects if a temporary value with a custom, non-trivial <code>Drop</code> destructor is generated in a tail expression. Warnings from this lint will appear when running <code>cargo fix --edition</code>, but will otherwise not automatically make any changes. It is recommended to manually inspect the warnings and determine whether or not you need to make any adjustments.</p>
 <p>If you want to manually inspect these warnings without performing the edition migration, you can enable the lint with:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1742,7 +1766,7 @@ fn main() {
 <p>Details are documented at <a href="https://github.com/rust-lang/rfcs/pull/3606">RFC 3606</a></p>
 </div>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="매치-인체공학-예약"><a class="header" href="#매치-인체공학-예약">매치 인체공학 예약</a></h1>
-<h2 id="요약-18"><a class="header" href="#요약-18">요약</a></h2>
+<h2 id="요약-19"><a class="header" href="#요약-19">요약</a></h2>
 <ul>
 <li>Writing <code>mut</code>, <code>ref</code>, or <code>ref mut</code> on a binding is only allowed within a pattern when the pattern leading up to that binding is fully explicit (i.e. when it does not use match ergonomics).
 <ul>
@@ -1755,7 +1779,7 @@ fn main() {
 </ul>
 </li>
 </ul>
-<h2 id="세부-정보-15"><a class="header" href="#세부-정보-15">세부 정보</a></h2>
+<h2 id="세부-정보-16"><a class="header" href="#세부-정보-16">세부 정보</a></h2>
 <h3 id="background"><a class="header" href="#background">Background</a></h3>
 <p>Within <code>match</code>, <code>let</code>, and other constructs, we match a <em>pattern</em> against a <em>scrutinee</em>.  E.g.:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1821,7 +1845,7 @@ fn main() {
 </span><span class="boring">fn main() {
 </span>let &amp;[&amp;x, ref y] = &amp;[&amp;(), &amp;()];
 <span class="boring">}</span></code></pre></pre>
-<h2 id="마이그레이션-13"><a class="header" href="#마이그레이션-13">마이그레이션</a></h2>
+<h2 id="마이그레이션-14"><a class="header" href="#마이그레이션-14">마이그레이션</a></h2>
 <p>The <a href="rust-2024/../../rustc/lints/listing/allowed-by-default.html#rust-2024-incompatible-pat"><code>rust_2024_incompatible_pat</code></a> lint flags patterns that are not allowed in Rust 2024.  This lint is part of the <code>rust-2024-compatibility</code> lint group which is automatically applied when running <code>cargo fix --edition</code>.  This lint will automatically convert affected patterns to fully explicit patterns that work correctly in Rust 2024 and in all prior editions.</p>
 <p>To migrate your code to be compatible with Rust 2024, run:</p>
 <pre><code class="language-sh">cargo fix --edition
@@ -1847,11 +1871,11 @@ let &amp;[&amp;x, ref y] = &amp;[&amp;(), &amp;()];
 #![warn(rust_2024_incompatible_pat)]
 <span class="boring">}</span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="안전하지-않은-extern-블록"><a class="header" href="#안전하지-않은-extern-블록">안전하지 않은 <code>extern</code> 블록</a></h1>
-<h2 id="요약-19"><a class="header" href="#요약-19">요약</a></h2>
+<h2 id="요약-20"><a class="header" href="#요약-20">요약</a></h2>
 <ul>
 <li><a href="rust-2024/../../reference/items/external-blocks.html"><code>extern</code> blocks</a> must now be marked with the <code>unsafe</code> keyword.</li>
 </ul>
-<h2 id="세부-정보-16"><a class="header" href="#세부-정보-16">세부 정보</a></h2>
+<h2 id="세부-정보-17"><a class="header" href="#세부-정보-17">세부 정보</a></h2>
 <p>Rust 1.82 added the ability in all editions to mark <a href="rust-2024/../../reference/items/external-blocks.html"><code>extern</code> blocks</a> with the <code>unsafe</code> keyword.<sup class="footnote-reference"><a href="#RFC3484">1</a></sup> Adding the <code>unsafe</code> keyword helps to emphasize that it is the responsibility of the author of the <code>extern</code> block to ensure that the signatures are correct. If the signatures are not correct, then it may result in undefined behavior.</p>
 <p>The syntax for an unsafe <code>extern</code> block looks like this:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1875,7 +1899,7 @@ let &amp;[&amp;x, ref y] = &amp;[&amp;(), &amp;()];
 <div class="footnote-definition" id="RFC3484"><sup class="footnote-definition-label">1</sup>
 <p>See <a href="https://github.com/rust-lang/rfcs/blob/master/text/3484-unsafe-extern-blocks.md">RFC 3484</a> for the original proposal.</p>
 </div>
-<h2 id="마이그레이션-14"><a class="header" href="#마이그레이션-14">마이그레이션</a></h2>
+<h2 id="마이그레이션-15"><a class="header" href="#마이그레이션-15">마이그레이션</a></h2>
 <p>The <a href="rust-2024/../../rustc/lints/listing/allowed-by-default.html#missing-unsafe-on-extern"><code>missing_unsafe_on_extern</code></a> lint can update <code>extern</code> blocks to add the <code>unsafe</code> keyword. The lint is part of the <code>rust-2024-compatibility</code> lint group which is included in the automatic edition migration. In order to migrate your code to be Rust 2024 Edition compatible, run:</p>
 <pre><code class="language-sh">cargo fix --edition
 </code></pre>
@@ -1887,7 +1911,7 @@ let &amp;[&amp;x, ref y] = &amp;[&amp;(), &amp;()];
 #![warn(missing_unsafe_on_extern)]
 <span class="boring">}</span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="안전하지-않은-속성"><a class="header" href="#안전하지-않은-속성">안전하지 않은 속성</a></h1>
-<h2 id="요약-20"><a class="header" href="#요약-20">요약</a></h2>
+<h2 id="요약-21"><a class="header" href="#요약-21">요약</a></h2>
 <ul>
 <li>The following attributes must now be marked as <code>unsafe</code>:
 <ul>
@@ -1897,7 +1921,7 @@ let &amp;[&amp;x, ref y] = &amp;[&amp;(), &amp;()];
 </ul>
 </li>
 </ul>
-<h2 id="세부-정보-17"><a class="header" href="#세부-정보-17">세부 정보</a></h2>
+<h2 id="세부-정보-18"><a class="header" href="#세부-정보-18">세부 정보</a></h2>
 <p>Rust 1.82 added the ability in all editions to mark certain attributes as <code>unsafe</code> to indicate that they have soundness requirements that must be upheld.<sup class="footnote-reference"><a href="#RFC3325">1</a></sup> The syntax for an unsafe attribute looks like this:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -1929,7 +1953,7 @@ fn arduino_loop() {
     // ...
 }
 <span class="boring">}</span></code></pre></pre>
-<h2 id="마이그레이션-15"><a class="header" href="#마이그레이션-15">마이그레이션</a></h2>
+<h2 id="마이그레이션-16"><a class="header" href="#마이그레이션-16">마이그레이션</a></h2>
 <p>The <a href="rust-2024/../../rustc/lints/listing/allowed-by-default.html#unsafe-attr-outside-unsafe"><code>unsafe_attr_outside_unsafe</code></a> lint can update these attributes to use the <code>unsafe(...)</code> format. The lint is part of the <code>rust-2024-compatibility</code> lint group which is included in the automatic edition migration. In order to migrate your code to be Rust 2024 Edition compatible, run:</p>
 <pre><code class="language-sh">cargo fix --edition
 </code></pre>
@@ -1941,11 +1965,11 @@ fn arduino_loop() {
 #![warn(unsafe_attr_outside_unsafe)]
 <span class="boring">}</span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="unsafe_op_in_unsafe_fn-경고"><a class="header" href="#unsafe_op_in_unsafe_fn-경고">unsafe_op_in_unsafe_fn 경고</a></h1>
-<h2 id="요약-21"><a class="header" href="#요약-21">요약</a></h2>
+<h2 id="요약-22"><a class="header" href="#요약-22">요약</a></h2>
 <ul>
 <li>The <a href="rust-2024/../../rustc/lints/listing/allowed-by-default.html#unsafe-op-in-unsafe-fn"><code>unsafe_op_in_unsafe_fn</code></a> lint now warns by default. This warning detects calls to unsafe operations in unsafe functions without an explicit unsafe block.</li>
 </ul>
-<h2 id="세부-정보-18"><a class="header" href="#세부-정보-18">세부 정보</a></h2>
+<h2 id="세부-정보-19"><a class="header" href="#세부-정보-19">세부 정보</a></h2>
 <p>The <a href="rust-2024/../../rustc/lints/listing/allowed-by-default.html#unsafe-op-in-unsafe-fn"><code>unsafe_op_in_unsafe_fn</code></a> lint will fire if there are <a href="rust-2024/../../reference/unsafety.html">unsafe operations</a> in an unsafe function without an explicit <a href="rust-2024/../../reference/expressions/block-expr.html#unsafe-blocks"><code>unsafe {}</code> block</a>.</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -1964,7 +1988,7 @@ fn arduino_loop() {
 <span class="boring">}</span></code></pre></pre>
 <p>This change is intended to help protect against accidental use of unsafe operations in an unsafe function. The <code>unsafe</code> function keyword was performing two roles. One was to declare that <em>calling</em> the function requires unsafe, and that the caller is responsible to uphold additional safety requirements. The other role was to allow the use of unsafe operations inside of the function. This second role was determined to be too risky without explicit <code>unsafe</code> blocks.</p>
 <p>More information and motivation may be found in <a href="https://rust-lang.github.io/rfcs/2585-unsafe-block-in-unsafe-fn.html">RFC #2585</a>.</p>
-<h2 id="마이그레이션-16"><a class="header" href="#마이그레이션-16">마이그레이션</a></h2>
+<h2 id="마이그레이션-17"><a class="header" href="#마이그레이션-17">마이그레이션</a></h2>
 <p>The <a href="rust-2024/../../rustc/lints/listing/allowed-by-default.html#unsafe-op-in-unsafe-fn"><code>unsafe_op_in_unsafe_fn</code></a> lint is part of the <code>rust-2024-compatibility</code> lint group. In order to migrate your code to be Rust 2024 Edition compatible, run:</p>
 <pre><code class="language-sh">cargo fix --edition
 </code></pre>
@@ -1975,11 +1999,11 @@ fn arduino_loop() {
 #![warn(unsafe_op_in_unsafe_fn)]
 <span class="boring">}</span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="static-mut에-대한-참조-금지"><a class="header" href="#static-mut에-대한-참조-금지">static mut에 대한 참조 금지</a></h1>
-<h2 id="요약-22"><a class="header" href="#요약-22">요약</a></h2>
+<h2 id="요약-23"><a class="header" href="#요약-23">요약</a></h2>
 <ul>
 <li>The <a href="rust-2024/../../rustc/lints/listing/warn-by-default.html#static-mut-refs"><code>static_mut_refs</code></a> lint level is now <code>deny</code> by default. This checks for taking a shared or mutable reference to a <code>static mut</code>.</li>
 </ul>
-<h2 id="세부-정보-19"><a class="header" href="#세부-정보-19">세부 정보</a></h2>
+<h2 id="세부-정보-20"><a class="header" href="#세부-정보-20">세부 정보</a></h2>
 <p>The <a href="rust-2024/../../rustc/lints/listing/warn-by-default.html#static-mut-refs"><code>static_mut_refs</code></a> lint detects taking a reference to a <a href="rust-2024/../../reference/items/static-items.html#mutable-statics"><code>static mut</code></a>. In the 2024 Edition, this lint is now <code>deny</code> by default to emphasize that you should avoid making these references.</p>
 <!-- edition2024 -->
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -2240,15 +2264,15 @@ fn set_value(value: i32) {
 <!-- TODO: Should we prefer one or the other here? -->
 <h4 id="short-lived-references"><a class="header" href="#short-lived-references">Short-lived references</a></h4>
 <p>If you must create a reference to a <code>static mut</code>, then it is recommended to minimize the scope of how long that reference exists. Avoid squirreling the reference away somewhere, or keeping it alive through a large section of code. Keeping it short-lived helps with auditing, and verifying that exclusive access is maintained for the duration. Using pointers should be your default unit, and only convert the pointer to a reference on demand when absolutely required.</p>
-<h2 id="마이그레이션-17"><a class="header" href="#마이그레이션-17">마이그레이션</a></h2>
+<h2 id="마이그레이션-18"><a class="header" href="#마이그레이션-18">마이그레이션</a></h2>
 <p>There is no automatic migration to fix these references to <code>static mut</code>. To avoid undefined behavior you must rewrite your code to use a different approach as recommended in the <a href="rust-2024/static-mut-references.html#alternatives">Alternatives</a> section.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="never-타입-폴백-변경"><a class="header" href="#never-타입-폴백-변경">Never 타입 폴백 변경</a></h1>
-<h2 id="요약-23"><a class="header" href="#요약-23">요약</a></h2>
+<h2 id="요약-24"><a class="header" href="#요약-24">요약</a></h2>
 <ul>
 <li>Never type (<code>!</code>) to any type ("never-to-any") coercions fall back to never type (<code>!</code>) rather than to unit type (<code>()</code>).</li>
-<li>The <a href="rust-2024/../../rustc/lints/listing/warn-by-default.html#never-type-fallback-flowing-into-unsafe"><code>never_type_fallback_flowing_into_unsafe</code></a> lint is now <code>deny</code> by default.</li>
+<li>The <a href="rust-2024/../../rustc/lints/listing/deny-by-default.html#never-type-fallback-flowing-into-unsafe"><code>never_type_fallback_flowing_into_unsafe</code></a> lint is now <code>deny</code> by default.</li>
 </ul>
-<h2 id="세부-정보-20"><a class="header" href="#세부-정보-20">세부 정보</a></h2>
+<h2 id="세부-정보-21"><a class="header" href="#세부-정보-21">세부 정보</a></h2>
 <p>When the compiler sees a value of type <code>!</code> (never) in a <a href="rust-2024/../../reference/type-coercions.html#coercion-sites">coercion site</a>, it implicitly inserts a coercion to allow the type checker to infer any type:</p>
 <pre><pre class="playground"><code class="language-rust should_panic"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2287,8 +2311,8 @@ fn absurd&lt;T&gt;(x: !) -&gt; T { x }
 <p>In the 2024 edition, the fallback type is now <code>!</code>.  (We plan to make this change across all editions at a later date.)  This makes things work more intuitively.  Now when you pass <code>!</code> and there is no reason to coerce it to something else, it is kept as <code>!</code>.</p>
 <p>In some cases your code might depend on the fallback type being <code>()</code>, so this can cause compilation errors or changes in behavior.</p>
 <h3 id="never_type_fallback_flowing_into_unsafe"><a class="header" href="#never_type_fallback_flowing_into_unsafe"><code>never_type_fallback_flowing_into_unsafe</code></a></h3>
-<p>The default level of the <a href="rust-2024/../../rustc/lints/listing/warn-by-default.html#never-type-fallback-flowing-into-unsafe"><code>never_type_fallback_flowing_into_unsafe</code></a> lint has been raised from <code>warn</code> to <code>deny</code> in the 2024 Edition. This lint helps detect a particular interaction with the fallback to <code>!</code> and <code>unsafe</code> code which may lead to undefined behavior. See the link for a complete description.</p>
-<h2 id="마이그레이션-18"><a class="header" href="#마이그레이션-18">마이그레이션</a></h2>
+<p>The default level of the <a href="rust-2024/../../rustc/lints/listing/deny-by-default.html#never-type-fallback-flowing-into-unsafe"><code>never_type_fallback_flowing_into_unsafe</code></a> lint has been raised from <code>warn</code> to <code>deny</code> in the 2024 Edition. This lint helps detect a particular interaction with the fallback to <code>!</code> and <code>unsafe</code> code which may lead to undefined behavior. See the link for a complete description.</p>
+<h2 id="마이그레이션-19"><a class="header" href="#마이그레이션-19">마이그레이션</a></h2>
 <p>There is no automatic fix, but there is automatic detection of code that will be broken by the edition change.  While still on a previous edition you will see warnings if your code will be broken.</p>
 <p>The fix is to specify the type explicitly so that the fallback type is not used.  Unfortunately, it might not be trivial to see which type needs to be specified.</p>
 <p>One of the most common patterns broken by this change is using <code>f()?;</code> where <code>f</code> is generic over the <code>Ok</code>-part of the return type:</p>
@@ -2374,12 +2398,12 @@ if true {
 };
 <span class="boring">}</span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="macro-fragment-specifiers"><a class="header" href="#macro-fragment-specifiers">Macro Fragment Specifiers</a></h1>
-<h2 id="요약-24"><a class="header" href="#요약-24">요약</a></h2>
+<h2 id="요약-25"><a class="header" href="#요약-25">요약</a></h2>
 <ul>
 <li>The <code>expr</code> <a href="rust-2024/../../reference/macros-by-example.html#metavariables">fragment specifier</a> now also supports <code>const</code> and <code>_</code> expressions.</li>
 <li>The <code>expr_2021</code> fragment specifier has been added for backwards compatibility.</li>
 </ul>
-<h2 id="세부-정보-21"><a class="header" href="#세부-정보-21">세부 정보</a></h2>
+<h2 id="세부-정보-22"><a class="header" href="#세부-정보-22">세부 정보</a></h2>
 <p>As new syntax is added to Rust, existing <code>macro_rules</code> fragment specifiers are sometimes not allowed to match on the new syntax in order to retain backwards compatibility. Supporting the new syntax in the old fragment specifiers is sometimes deferred until the next edition, which provides an opportunity to update them.</p>
 <p>Indeed this happened with <a href="rust-2024/../../reference/expressions/block-expr.html#const-blocks"><code>const</code> expressions</a> added in 1.79 and <a href="rust-2024/../../reference/expressions/underscore-expr.html"><code>_</code> expressions</a> added in 1.59. In the 2021 Edition and earlier, the <code>expr</code> fragment specifier does <em>not</em> match those expressions. This is because you may have a scenario like:</p>
 <pre><pre class="playground"><code class="language-rust edition2021">macro_rules! example {
@@ -2392,7 +2416,7 @@ fn main() {
 }</code></pre></pre>
 <p>Here, in the 2021 Edition, the macro will match the <em>second</em> rule. If earlier editions had changed <code>expr</code> to match the newly introduced <code>const</code> expressions, then it would match the <em>first</em> rule, which would be a breaking change.</p>
 <p>In the 2024 Edition, <code>expr</code> specifiers now also match <code>const</code> and <code>_</code> expressions. To support the old behavior, the <code>expr_2021</code> fragment specifier has been added which does <em>not</em> match the new expressions.</p>
-<h2 id="마이그레이션-19"><a class="header" href="#마이그레이션-19">마이그레이션</a></h2>
+<h2 id="마이그레이션-20"><a class="header" href="#마이그레이션-20">마이그레이션</a></h2>
 <p>The <a href="rust-2024/../../rustc/lints/listing/allowed-by-default.html#edition-2024-expr-fragment-specifier"><code>edition_2024_expr_fragment_specifier</code></a> lint will change all uses of the <code>expr</code> specifier to <code>expr_2021</code> to ensure that the behavior of existing macros does not change. The lint is part of the <code>rust-2024-compatibility</code> lint group which is included in the automatic edition migration. In order to migrate your code to be Rust 2024 Edition compatible, run:</p>
 <pre><code class="language-sh">cargo fix --edition
 </code></pre>
@@ -2404,12 +2428,15 @@ fn main() {
 #![warn(edition_2024_expr_fragment_specifier)]
 <span class="boring">}</span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="누락된-매크로-프래그먼트-지정자"><a class="header" href="#누락된-매크로-프래그먼트-지정자">누락된 매크로 프래그먼트 지정자</a></h1>
-<h2 id="요약-25"><a class="header" href="#요약-25">요약</a></h2>
+<blockquote>
+<p><strong>NOTE</strong>: This was originally made a hard error only for the 2024 Edition. In Rust 1.89, released after Rust 2024, the lint was made into a hard error in all editions.</p>
+</blockquote>
+<h2 id="요약-26"><a class="header" href="#요약-26">요약</a></h2>
 <ul>
-<li>The <a href="rust-2024/../../rustc/lints/listing/deny-by-default.html#missing-fragment-specifier"><code>missing_fragment_specifier</code></a> lint is now a hard error.</li>
+<li>The <code>missing_fragment_specifier</code> lint is now a hard error.</li>
 </ul>
-<h2 id="세부-정보-22"><a class="header" href="#세부-정보-22">세부 정보</a></h2>
-<p>The <a href="rust-2024/../../rustc/lints/listing/deny-by-default.html#missing-fragment-specifier"><code>missing_fragment_specifier</code></a> lint detects a situation when an <strong>unused</strong> pattern in a <code>macro_rules!</code> macro definition has a meta-variable (e.g. <code>$e</code>) that is not followed by a fragment specifier (e.g. <code>:expr</code>). This is now a hard error in the 2024 Edition.</p>
+<h2 id="세부-정보-23"><a class="header" href="#세부-정보-23">세부 정보</a></h2>
+<p>The <code>missing_fragment_specifier</code> lint detected a situation when an <strong>unused</strong> pattern in a <code>macro_rules!</code> macro definition had a meta-variable (e.g. <code>$e</code>) that was not followed by a fragment specifier (e.g. <code>:expr</code>). This was made into a hard error in the 2024 Edition.</p>
 <pre><pre class="playground"><code class="language-rust compile_fail">macro_rules! foo {
    () =&gt; {};
    ($name) =&gt; { }; // ERROR: missing fragment specifier
@@ -2418,22 +2445,18 @@ fn main() {
 fn main() {
    foo!();
 }</code></pre></pre>
-<p>Calling the macro with arguments that would match a rule with a missing specifier (e.g., <code>foo!($name)</code>) is a hard error in all editions. However, simply defining a macro with missing fragment specifiers is not, though we did add a lint in Rust 1.17.</p>
-<p>We'd like to make this a hard error in all editions, but there would be too much breakage right now. So we're starting by making this a hard error in Rust 2024.<sup class="footnote-reference"><a href="#future-incompat">1</a></sup></p>
-<div class="footnote-definition" id="future-incompat"><sup class="footnote-definition-label">1</sup>
-<p>The lint is marked as a "future-incompatible" warning to indicate that it may become a hard error in all editions in a future release. See <a href="https://github.com/rust-lang/rust/issues/40107">#40107</a> for more information.</p>
-</div>
-<h2 id="마이그레이션-20"><a class="header" href="#마이그레이션-20">마이그레이션</a></h2>
-<p>To migrate your code to the 2024 Edition, remove the unused matcher rule from the macro. The <a href="rust-2024/../../rustc/lints/listing/deny-by-default.html#missing-fragment-specifier"><code>missing_fragment_specifier</code></a> lint is on by default in all editions, and should alert you to macros with this issue.</p>
-<p>There is no automatic migration for this change. We expect that this style of macro is extremely rare. The lint has been a future-incompatibility lint since Rust 1.17, a deny-by-default lint since Rust 1.20, and since Rust 1.82, it has warned about dependencies that are using this pattern.</p>
+<p>Calling the macro with arguments that would match a rule with a missing specifier (e.g., <code>foo!($name)</code>) was a hard error in all editions. However, simply defining a macro with missing fragment specifiers was not, though we did add a lint in Rust 1.17.</p>
+<h2 id="마이그레이션-21"><a class="header" href="#마이그레이션-21">마이그레이션</a></h2>
+<p>To migrate your code to the 2024 Edition, remove the unused matcher rule from the macro.</p>
+<p>There is no automatic migration for this change. We expect that this style of macro is extremely rare. The lint was a future-incompatibility lint since Rust 1.17, a deny-by-default lint since Rust 1.20, since Rust 1.82 it warned about dependencies using this pattern, and in Rust 1.89 it became a hard error.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="gen-키워드"><a class="header" href="#gen-키워드"><code>gen</code> 키워드</a></h1>
-<h2 id="요약-26"><a class="header" href="#요약-26">요약</a></h2>
+<h2 id="요약-27"><a class="header" href="#요약-27">요약</a></h2>
 <ul>
 <li><code>gen</code> is a <a href="rust-2024/../../reference/keywords.html#reserved-keywords">reserved keyword</a>.</li>
 </ul>
-<h2 id="세부-정보-23"><a class="header" href="#세부-정보-23">세부 정보</a></h2>
+<h2 id="세부-정보-24"><a class="header" href="#세부-정보-24">세부 정보</a></h2>
 <p>The <code>gen</code> keyword has been reserved as part of <a href="https://rust-lang.github.io/rfcs/3513-gen-blocks.html">RFC #3513</a> to introduce "gen blocks" in a future release of Rust. <code>gen</code> blocks will provide a way to make it easier to write certain kinds of iterators. Reserving the keyword now will make it easier to stabilize <code>gen</code> blocks before the next edition.</p>
-<h2 id="마이그레이션-21"><a class="header" href="#마이그레이션-21">마이그레이션</a></h2>
+<h2 id="마이그레이션-22"><a class="header" href="#마이그레이션-22">마이그레이션</a></h2>
 <p>Introducing the <code>gen</code> keyword can cause a problem for any identifiers that are already called <code>gen</code>. For example, any variable or function name called <code>gen</code> would clash with the new keyword. To overcome this, Rust supports the <code>r#</code> prefix for a <a href="rust-2024/../../reference/identifiers.html#raw-identifiers">raw identifier</a>, which allows identifiers to overlap with keywords.</p>
 <p>The <a href="rust-2024/../../rustc/lints/listing/allowed-by-default.html#keyword-idents-2024"><code>keyword_idents_2024</code></a> lint will automatically modify any identifier named <code>gen</code> to be <code>r#gen</code> so that code continues to work on both editions. This lint is part of the <code>rust-2024-compatibility</code> lint group, which will automatically be applied when running <code>cargo fix --edition</code>. To migrate your code to be Rust 2024 Edition compatible, run:</p>
 <pre><code class="language-sh">cargo fix --edition
@@ -2461,12 +2484,12 @@ fn main() {
 #![warn(keyword_idents_2024)]
 <span class="boring">}</span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="예약된-구문-1"><a class="header" href="#예약된-구문-1">예약된 구문</a></h1>
-<h2 id="요약-27"><a class="header" href="#요약-27">요약</a></h2>
+<h2 id="요약-28"><a class="header" href="#요약-28">요약</a></h2>
 <ul>
 <li>Unprefixed guarded strings of the form <code>#"foo"#</code> are reserved for future use.</li>
 <li>Two or more <code>#</code> characters are reserved for future use.</li>
 </ul>
-<h2 id="세부-정보-24"><a class="header" href="#세부-정보-24">세부 정보</a></h2>
+<h2 id="세부-정보-25"><a class="header" href="#세부-정보-25">세부 정보</a></h2>
 <p><a href="https://rust-lang.github.io/rfcs/3593-unprefixed-guarded-strings.html">RFC 3593</a> reserved syntax in the 2024 Edition for guarded string literals that do not have a prefix to make room for possible future language changes. The 2021 Edition <a href="rust-2024/../rust-2021/reserved-syntax.html">reserved syntax</a> for guarded strings with a prefix, such as <code>ident##"foo"##</code>. The 2024 Edition extends that to also reserve strings without the <code>ident</code> prefix.</p>
 <p>There are two reserved syntaxes:</p>
 <ul>
@@ -2493,7 +2516,7 @@ three tokens
 three tokens
 </code></pre>
 <p>Starting in the 2024 Edition, the <code>#"foo"#</code> line and the <code>###</code> line now generates a compile error because those forms are now reserved.</p>
-<h2 id="마이그레이션-22"><a class="header" href="#마이그레이션-22">마이그레이션</a></h2>
+<h2 id="마이그레이션-23"><a class="header" href="#마이그레이션-23">마이그레이션</a></h2>
 <p>The <a href="rust-2024/../../rustc/lints/listing/allowed-by-default.html#rust-2024-guarded-string-incompatible-syntax"><code>rust_2024_guarded_string_incompatible_syntax</code></a> lint will identify any tokens that match the reserved syntax, and will suggest a modification to insert spaces where necessary to ensure the tokens continue to be parsed separately.</p>
 <p>The lint is part of the <code>rust-2024-compatibility</code> lint group which is included in the automatic edition migration. In order to migrate your code to be Rust 2024 Edition compatible, run:</p>
 <pre><code class="language-sh">cargo fix --edition
@@ -2507,12 +2530,12 @@ three tokens
 <div style="break-before: page; page-break-before: always;"></div><h1 id="표준-라이브러리"><a class="header" href="#표준-라이브러리">표준 라이브러리</a></h1>
 <p>The following chapters detail changes to the standard library in the 2024 Edition.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="프렐루드-변경사항"><a class="header" href="#프렐루드-변경사항">프렐루드 변경사항</a></h1>
-<h2 id="요약-28"><a class="header" href="#요약-28">요약</a></h2>
+<h2 id="요약-29"><a class="header" href="#요약-29">요약</a></h2>
 <ul>
 <li>The <a href="rust-2024/../../std/future/trait.Future.html"><code>Future</code></a> and <a href="rust-2024/../../std/future/trait.IntoFuture.html"><code>IntoFuture</code></a> traits are now part of the prelude.</li>
 <li>이로 인해 트레이트 메서드 호출이 모호해져 일부 코드가 컴파일되지 않을 수 있습니다.</li>
 </ul>
-<h2 id="세부-정보-25"><a class="header" href="#세부-정보-25">세부 정보</a></h2>
+<h2 id="세부-정보-26"><a class="header" href="#세부-정보-26">세부 정보</a></h2>
 <p>The <a href="rust-2024/../../std/prelude/index.html">prelude of the standard library</a> is the module containing everything that is automatically imported in every module. It contains commonly used items such as <code>Option</code>, <code>Vec</code>, <code>drop</code>, and <code>Clone</code>.</p>
 <p>Rust 컴파일러는 프렐루드에 추가된 항목이 기존 코드를 깨뜨리지 않도록 하기 위해 프렐루드의 항목보다 수동으로 가져온 항목을 우선시합니다. 예를 들어, <code>pub struct Option;</code>을 포함하는 <code>example</code>이라는 크레이트나 모듈이 있는 경우 <code>use example::*;</code>은 <code>Option</code>이 표준 라이브러리의 것이 아니라 <code>example</code>의 것을 명확하게 참조하도록 합니다.</p>
 <p>However, adding a <em>trait</em> to the prelude can break existing code in a subtle way. For example, a call to <code>x.poll()</code> which comes from a <code>MyPoller</code> trait might fail to compile if <code>std</code>'s <code>Future</code> is also imported, because the call to <code>poll</code> is now ambiguous and could come from either trait.</p>
@@ -2525,7 +2548,7 @@ three tokens
 </ul>
 </li>
 </ul>
-<h2 id="마이그레이션-23"><a class="header" href="#마이그레이션-23">마이그레이션</a></h2>
+<h2 id="마이그레이션-24"><a class="header" href="#마이그레이션-24">마이그레이션</a></h2>
 <h3 id="충돌하는-트레이트-메서드-1"><a class="header" href="#충돌하는-트레이트-메서드-1">충돌하는 트레이트 메서드</a></h3>
 <p>범위에 있는 두 트레이트의 메서드 이름이 같으면 어떤 트레이트 메서드를 사용해야 할지 모호합니다. 예를 들어:</p>
 <pre><pre class="playground"><code class="language-rust edition2021">trait MyPoller {
@@ -2558,13 +2581,13 @@ fn main() {
 #![warn(rust_2024_prelude_collisions)]
 <span class="boring">}</span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="boxt에-대한-intoiterator-추가"><a class="header" href="#boxt에-대한-intoiterator-추가"><code>Box&lt;[T]&gt;</code>에 대한 <code>IntoIterator</code> 추가</a></h1>
-<h2 id="요약-29"><a class="header" href="#요약-29">요약</a></h2>
+<h2 id="요약-30"><a class="header" href="#요약-30">요약</a></h2>
 <ul>
 <li>Boxed slices implement <a href="rust-2024/../../std/iter/trait.IntoIterator.html"><code>IntoIterator</code></a> in <em>all</em> editions.</li>
 <li>Calls to <a href="rust-2024/../../std/iter/trait.IntoIterator.html#tymethod.into_iter"><code>IntoIterator::into_iter</code></a> are <em>hidden</em> in editions prior to 2024 when using method call syntax (i.e., <code>boxed_slice.into_iter()</code>). So, <code>boxed_slice.into_iter()</code> still resolves to <code>(&amp;(*boxed_slice)).into_iter()</code> as it has before.</li>
 <li><code>boxed_slice.into_iter()</code> changes meaning to call <a href="rust-2024/../../std/iter/trait.IntoIterator.html#tymethod.into_iter"><code>IntoIterator::into_iter</code></a> in Rust 2024.</li>
 </ul>
-<h2 id="세부-정보-26"><a class="header" href="#세부-정보-26">세부 정보</a></h2>
+<h2 id="세부-정보-27"><a class="header" href="#세부-정보-27">세부 정보</a></h2>
 <p>Until Rust 1.80, <code>IntoIterator</code> was not implemented for boxed slices. In prior versions, if you called <code>.into_iter()</code> on a boxed slice, the method call would automatically dereference from <code>Box&lt;[T]&gt;</code> to <code>&amp;[T]</code>, and return an iterator that yielded references of <code>&amp;T</code>. For example, the following worked in prior versions:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2595,7 +2618,7 @@ for x in my_boxed_slice.into_iter() {
     // x is now type u32 in Edition 2024
 }
 <span class="boring">}</span></code></pre></pre>
-<h2 id="마이그레이션-24"><a class="header" href="#마이그레이션-24">마이그레이션</a></h2>
+<h2 id="마이그레이션-25"><a class="header" href="#마이그레이션-25">마이그레이션</a></h2>
 <p>The <a href="rust-2024/../../rustc/lints/listing/warn-by-default.html#boxed-slice-into-iter"><code>boxed_slice_into_iter</code></a> lint will automatically modify any calls to <code>.into_iter()</code> on boxed slices to call <code>.iter()</code> instead to retain the old behavior of yielding references. This lint is part of the <code>rust-2024-compatibility</code> lint group, which will automatically be applied when running <code>cargo fix --edition</code>. To migrate your code to be Rust 2024 Edition compatible, run:</p>
 <pre><code class="language-sh">cargo fix --edition
 </code></pre>
@@ -2615,7 +2638,7 @@ for x in my_boxed_slice.into_iter() {
 }</code></pre></pre>
 <p>The <a href="rust-2024/../../rustc/lints/listing/warn-by-default.html#boxed-slice-into-iter"><code>boxed_slice_into_iter</code></a> lint is defaulted to warn on all editions, so unless you have manually silenced the lint, you should already see it before you migrate.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="unsafe-functions"><a class="header" href="#unsafe-functions">Unsafe functions</a></h1>
-<h2 id="요약-30"><a class="header" href="#요약-30">요약</a></h2>
+<h2 id="요약-31"><a class="header" href="#요약-31">요약</a></h2>
 <ul>
 <li>The following functions are now marked <a href="rust-2024/../../reference/unsafe-keyword.html#unsafe-functions-unsafe-fn"><code>unsafe</code></a>:
 <ul>
@@ -2625,16 +2648,16 @@ for x in my_boxed_slice.into_iter() {
 </ul>
 </li>
 </ul>
-<h2 id="세부-정보-27"><a class="header" href="#세부-정보-27">세부 정보</a></h2>
+<h2 id="세부-정보-28"><a class="header" href="#세부-정보-28">세부 정보</a></h2>
 <p>Over time it has become evident that certain functions in the standard library should have been marked as <code>unsafe</code>. However, adding <code>unsafe</code> to a function can be a breaking change since it requires existing code to be placed in an <code>unsafe</code> block. To avoid the breaking change, these functions are marked as <code>unsafe</code> starting in the 2024 Edition, while not requiring <code>unsafe</code> in previous editions.</p>
 <h3 id="stdenvset_var-remove_var"><a class="header" href="#stdenvset_var-remove_var"><code>std::env::{set_var, remove_var}</code></a></h3>
-<p>It can be unsound to call <a href="rust-2024/../../std/env/fn.set_var.html"><code>std::env::set_var</code></a> or <a href="rust-2024/../../std/env/fn.remove_var.html"><code>std::env::remove_var</code></a> in a multi-threaded program due to safety limitations of the way the process environment is handled on some platforms. The standard library originally defined these as safe functions, but it was later determined that was not correct.</p>
+<p>It can be unsound to call <a href="rust-2024/../../std/env/fn.set_var.html"><code>std::env::set_var</code></a> or <a href="rust-2024/../../std/env/fn.remove_var.html"><code>std::env::remove_var</code></a> in a multithreaded program due to safety limitations of the way the process environment is handled on some platforms. The standard library originally defined these as safe functions, but it was later determined that was not correct.</p>
 <p>It is important to ensure that these functions are not called when any other thread might be running. See the <a href="rust-2024/../../std/env/fn.set_var.html#safety">Safety</a> section of the function documentation for more details.</p>
 <h3 id="stdosunixprocesscommandextbefore_exec"><a class="header" href="#stdosunixprocesscommandextbefore_exec"><code>std::os::unix::process::CommandExt::before_exec</code></a></h3>
 <p>The <a href="rust-2024/../../std/os/unix/process/trait.CommandExt.html#method.before_exec"><code>std::os::unix::process::CommandExt::before_exec</code></a> function is a unix-specific function which provides a way to run a closure before calling <code>exec</code>. This function was deprecated in the 1.37 release, and replaced with <a href="rust-2024/../../std/os/unix/process/trait.CommandExt.html#tymethod.pre_exec"><code>pre_exec</code></a> which does the same thing, but is marked as <code>unsafe</code>.</p>
 <p>Even though <code>before_exec</code> is deprecated, it is now correctly marked as <code>unsafe</code> starting in the 2024 Edition. This should help ensure that any legacy code which has not already migrated to <code>pre_exec</code> to require an <code>unsafe</code> block.</p>
 <p>There are very strict safety requirements for the <code>before_exec</code> closure to satisfy. See the <a href="rust-2024/../../std/os/unix/process/trait.CommandExt.html#notes-and-safety">Safety section</a> for more details.</p>
-<h2 id="마이그레이션-25"><a class="header" href="#마이그레이션-25">마이그레이션</a></h2>
+<h2 id="마이그레이션-26"><a class="header" href="#마이그레이션-26">마이그레이션</a></h2>
 <p>To make your code compile in both the 2021 and 2024 editions, you will need to make sure that these functions are called only from within <code>unsafe</code> blocks.</p>
 <p><strong>⚠ Caution</strong>: It is important that you manually inspect the calls to these functions and possibly rewrite your code to satisfy the preconditions of those functions. In particular, <code>set_var</code> and <code>remove_var</code> should not be called if there might be multiple threads running. You may need to elect to use a different mechanism other than environment variables to manage your use case.</p>
 <p>The <a href="rust-2024/../../rustc/lints/listing/allowed-by-default.html#deprecated-safe-2024"><code>deprecated_safe_2024</code></a> lint will automatically modify any use of these functions to be wrapped in an <code>unsafe</code> block so that it can compile on both editions. This lint is part of the <code>rust-2024-compatibility</code> lint group, which will automatically be applied when running <code>cargo fix --edition</code>. To migrate your code to be Rust 2024 Edition compatible, run:</p>
@@ -2659,20 +2682,20 @@ for x in my_boxed_slice.into_iter() {
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cargo"><a class="header" href="#cargo">Cargo</a></h1>
 <p>The following chapters detail changes to Cargo in the 2024 Edition.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cargo-rust-버전-인식-해결자"><a class="header" href="#cargo-rust-버전-인식-해결자">Cargo: Rust 버전 인식 해결자</a></h1>
-<h2 id="요약-31"><a class="header" href="#요약-31">요약</a></h2>
+<h2 id="요약-32"><a class="header" href="#요약-32">요약</a></h2>
 <ul>
 <li><code>edition = "2024"</code> implies <code>resolver = "3"</code> in <code>Cargo.toml</code> which enables a Rust-version aware dependency resolver.</li>
 </ul>
-<h2 id="세부-정보-28"><a class="header" href="#세부-정보-28">세부 정보</a></h2>
+<h2 id="세부-정보-29"><a class="header" href="#세부-정보-29">세부 정보</a></h2>
 <p>Since Rust 1.84.0, Cargo has opt-in support for compatibility with <a href="rust-2024/../../cargo/reference/rust-version.html"><code>package.rust-version</code></a> to be considered when selecting dependency versions by setting <a href="rust-2024/../../cargo/reference/config.html#resolverincompatible-rust-versions"><code>resolver.incompatible-rust-version = "fallback"</code></a> in <code>.cargo/config.toml</code>.</p>
 <p>Starting in Rust 2024, this will be the default. That is, writing <code>edition = "2024"</code> in <code>Cargo.toml</code> will imply <code>resolver = "3"</code> which will imply <a href="rust-2024/../../cargo/reference/config.html#resolverincompatible-rust-versions"><code>resolver.incompatible-rust-version = "fallback"</code></a>.</p>
-<p>해석기는 <a href="rust-2024/../../cargo/reference/workspaces.html">작업 공간</a>에 대한 전역 설정이며 종속성에서는 설정이 무시됩니다. 이 설정은 작업 공간의 최상위 패키지에만 적용됩니다. <a href="rust-2024/../../cargo/reference/workspaces.html#virtual-workspace">가상 작업 공간</a>을 사용하는 경우 새 해석기를 옵트인하려면 <code>[workspace]</code> 정의에서 <a href="rust-2024/../../cargo/reference/resolver.html#resolver-versions"><code>resolver</code> 필드</a>를 명시적으로 설정해야 합니다.</p>
+<p>The resolver is a global setting for a <a href="rust-2024/../../cargo/reference/workspaces.html">workspace</a>, and the setting is ignored in dependencies. The setting is only honored for the top-level package of the workspace. If you are using a <a href="rust-2024/../../cargo/reference/workspaces.html#virtual-workspace">virtual workspace</a>, you will still need to explicitly set the <a href="rust-2024/../../cargo/reference/resolver.html#resolver-versions"><code>resolver</code> field</a> in the <code>[workspace]</code> definition if you want to opt in to the new resolver.</p>
 <p>For more details on how Rust-version aware dependency resolution works, see <a href="rust-2024/../../cargo/reference/resolver.html#rust-version">the Cargo book</a>.</p>
-<h2 id="마이그레이션-26"><a class="header" href="#마이그레이션-26">마이그레이션</a></h2>
+<h2 id="마이그레이션-27"><a class="header" href="#마이그레이션-27">마이그레이션</a></h2>
 <p>There are no automated migration tools for updating for the new resolver.</p>
 <p>We recommend projects <a href="rust-2024/../../cargo/guide/continuous-integration.html#verifying-latest-dependencies">verify against the latest dependencies in CI</a> to catch bugs in dependencies as soon as possible.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cargo-테이블-및-키-이름-일관성"><a class="header" href="#cargo-테이블-및-키-이름-일관성">Cargo: 테이블 및 키 이름 일관성</a></h1>
-<h2 id="요약-32"><a class="header" href="#요약-32">요약</a></h2>
+<h2 id="요약-33"><a class="header" href="#요약-33">요약</a></h2>
 <ul>
 <li>Several table and key names in <code>Cargo.toml</code> have been removed where there were previously two ways to specify the same thing.
 <ul>
@@ -2685,7 +2708,7 @@ for x in my_boxed_slice.into_iter() {
 </ul>
 </li>
 </ul>
-<h2 id="세부-정보-29"><a class="header" href="#세부-정보-29">세부 정보</a></h2>
+<h2 id="세부-정보-30"><a class="header" href="#세부-정보-30">세부 정보</a></h2>
 <p>Several table and keys names are no longer allowed in the 2024 Edition. There were two ways to specify these tables or keys, and this helps ensure there is only one way to specify them.</p>
 <p>Some were due to a change in decisions over time, and some were inadvertent implementation artifacts. In order to avoid confusion, and to enforce a single style for specifying these tables and keys, only one variant is now allowed.</p>
 <p>예를 들어:</p>
@@ -2697,15 +2720,15 @@ rand = { version = "0.8.5", default_features = false }
 rand = { version = "0.8.5", default-features = false }
 </code></pre>
 <p>Notice that the underscores were changed to dashes for <code>dev_dependencies</code> and <code>default_features</code>.</p>
-<h2 id="마이그레이션-27"><a class="header" href="#마이그레이션-27">마이그레이션</a></h2>
+<h2 id="마이그레이션-28"><a class="header" href="#마이그레이션-28">마이그레이션</a></h2>
 <p>When using <code>cargo fix --edition</code>, Cargo will automatically update your <code>Cargo.toml</code> file to use the preferred table and key names.</p>
-<p>If you would prefer to update your <code>Cargo.toml</code> manually, be sure to go through the list above and make sure only the new forms are used.</p>
+<p>If you prefer to update your <code>Cargo.toml</code> manually, be sure to go through the list above and make sure only the new forms are used.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cargo-사용되지-않는-상속된-기본-기능-거부"><a class="header" href="#cargo-사용되지-않는-상속된-기본-기능-거부">Cargo: 사용되지 않는 상속된 기본 기능 거부</a></h1>
-<h2 id="요약-33"><a class="header" href="#요약-33">요약</a></h2>
+<h2 id="요약-34"><a class="header" href="#요약-34">요약</a></h2>
 <ul>
 <li><code>default-features = false</code> is no longer allowed in an inherited workspace dependency if the workspace dependency specifies <code>default-features = true</code> (or does not specify <code>default-features</code>).</li>
 </ul>
-<h2 id="세부-정보-30"><a class="header" href="#세부-정보-30">세부 정보</a></h2>
+<h2 id="세부-정보-31"><a class="header" href="#세부-정보-31">세부 정보</a></h2>
 <p><a href="rust-2024/../../cargo/reference/specifying-dependencies.html#inheriting-a-dependency-from-a-workspace">Workspace inheritance</a> allows you to specify dependencies in one place (the workspace), and then to refer to those workspace dependencies from within a package. There was an inadvertent interaction with how <code>default-features</code> is specified that is no longer allowed in the 2024 Edition.</p>
 <p>Unless the workspace specifies <code>default-features = false</code>, it is no longer allowed to specify <code>default-features = false</code> in an inherited package dependency. For example, with a workspace that specifies:</p>
 <pre><code class="language-toml">[workspace.dependencies]
@@ -2722,9 +2745,9 @@ regex = { workspace = true, default-features = false }  # ERROR
 </code></pre>
 <p>The reason for this change is to avoid confusion when specifying <code>default-features = false</code> when the default feature is already enabled, since it has no effect.</p>
 <p>If you want the flexibility of deciding whether or not a dependency enables the default-features of a dependency, be sure to set <code>default-features = false</code> in the workspace definition. Just beware that if you build multiple workspace members at the same time, the features will be unified so that if one member sets <code>default-features = true</code> (which is the default if not explicitly set), the default-features will be enabled for all members using that dependency.</p>
-<h2 id="마이그레이션-28"><a class="header" href="#마이그레이션-28">마이그레이션</a></h2>
+<h2 id="마이그레이션-29"><a class="header" href="#마이그레이션-29">마이그레이션</a></h2>
 <p>When using <code>cargo fix --edition</code>, Cargo will automatically update your <code>Cargo.toml</code> file to remove <code>default-features = false</code> in this situation.</p>
-<p>If you would prefer to update your <code>Cargo.toml</code> manually, check for any warnings when running a build and remove the corresponding entries. Previous editions should display something like:</p>
+<p>If you prefer to update your <code>Cargo.toml</code> manually, check for any warnings when running a build and remove the corresponding entries. Previous editions should display something like:</p>
 <pre><code class="language-text">warning: /home/project/Cargo.toml: `default-features` is ignored for regex,
 since `default-features` was not specified for `workspace.dependencies.regex`,
 this could become a hard error in the future
@@ -2732,12 +2755,12 @@ this could become a hard error in the future
 <div style="break-before: page; page-break-before: always;"></div><h1 id="rustdoc"><a class="header" href="#rustdoc">Rustdoc</a></h1>
 <p>The following chapters detail changes to Rustdoc in the 2024 Edition.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="rustdoc-통합-테스트"><a class="header" href="#rustdoc-통합-테스트">Rustdoc 통합 테스트</a></h1>
-<h2 id="요약-34"><a class="header" href="#요약-34">요약</a></h2>
+<h2 id="요약-35"><a class="header" href="#요약-35">요약</a></h2>
 <ul>
 <li><a href="rust-2024/../../rustdoc/write-documentation/documentation-tests.html">Doctests</a> are now combined into a single binary which should result in a significant performance improvement.</li>
 </ul>
-<h2 id="세부-정보-31"><a class="header" href="#세부-정보-31">세부 정보</a></h2>
-<p>Prior the the 2024 Edition, rustdoc's "test" mode would compile each code block in your documentation as a separate executable. Although this was relatively simple to implement, it resulted in a significant performance burden when there were a large number of documentation tests. Starting with the 2024 Edition, rustdoc will attempt to combine documentation tests into a single binary, significantly reducing the overhead for compiling doctests.</p>
+<h2 id="세부-정보-32"><a class="header" href="#세부-정보-32">세부 정보</a></h2>
+<p>Prior to the 2024 Edition, rustdoc's "test" mode would compile each code block in your documentation as a separate executable. Although this was relatively simple to implement, it resulted in a significant performance burden when there were a large number of documentation tests. Starting with the 2024 Edition, rustdoc will attempt to combine documentation tests into a single binary, significantly reducing the overhead for compiling doctests.</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>/// Adds two numbers
@@ -2791,7 +2814,7 @@ pub fn subtract(left: u64, right: u64) -&gt; u64 {
 <div class="footnote-definition" id="edition-tag"><sup class="footnote-definition-label">2</sup>
 <p>rustdoc은 전체 크레이트가 2024 에디션 이상인 경우에만 테스트를 결합합니다. 이전 에디션에서 <code>edition2024</code> 태그를 사용해도 해당 테스트가 결합되지 않습니다.</p>
 </div>
-<h2 id="마이그레이션-29"><a class="header" href="#마이그레이션-29">마이그레이션</a></h2>
+<h2 id="마이그레이션-30"><a class="header" href="#마이그레이션-30">마이그레이션</a></h2>
 <p><code>standalone_crate</code> 태그로 주석을 달아야 하는 doctest를 결정하는 자동 마이그레이션은 없습니다. 마이그레이션할 때 주어진 doctest가 올바르게 작동하지 않을 가능성은 매우 낮습니다. 크레이트를 2024 에디션으로 업데이트한 다음 문서 테스트를 실행하여 실패하는 것이 있는지 확인하는 것이 좋습니다. 실패하는 것이 있다면 결합된 접근 방식과 호환되도록 다시 작성할 수 있는지 분석하거나, 또는 이전 동작을 유지하기 위해 <code>standalone_crate</code> 태그를 추가해야 합니다.</p>
 <p>주의하고 피해야 할 몇 가지 사항은 다음과 같습니다.</p>
 <ul>
@@ -2799,9 +2822,9 @@ pub fn subtract(left: u64, right: u64) -&gt; u64 {
 <li>이제 다른 모듈 경로를 갖는 <a href="https://doc.rust-lang.org/std/any/fn.type_name.html"><code>std::any::type_name</code></a>의 값을 확인합니다.</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="rustdoc-중첩-include-변경"><a class="header" href="#rustdoc-중첩-include-변경">Rustdoc 중첩 <code>include!</code> 변경</a></h1>
-<h2 id="요약-35"><a class="header" href="#요약-35">요약</a></h2>
+<h2 id="요약-36"><a class="header" href="#요약-36">요약</a></h2>
 <p><code>include_str!</code>로 doctest가 포함될 때, 해당 doctest 자체도 <code>include!</code>, <code>include_str!</code>, 또는 <code>include_bytes!</code>를 사용하는 경우 경로는 Rust 소스 파일이 아닌 Markdown 파일에 상대적으로 해결됩니다.</p>
-<h2 id="세부-정보-32"><a class="header" href="#세부-정보-32">세부 정보</a></h2>
+<h2 id="세부-정보-33"><a class="header" href="#세부-정보-33">세부 정보</a></h2>
 <p>Prior to the 2024 edition, adding documentation with <code>#[doc=include_str!("path/file.md")]</code> didn't carry span information into any doctests in that file. As a result, if the Markdown file was in a different directory than the source, any paths included had to be specified relative to the source file.</p>
 <p>예를 들어, 다음과 같은 파일이 있는 라이브러리 크레이트를 고려해 보십시오.</p>
 <ul>
@@ -2831,7 +2854,7 @@ let _ = include_bytes!("../examples/data.bin");
 let _ = include_bytes!("examples/data.bin");
 ```
 </code></pre>
-<h2 id="마이그레이션-30"><a class="header" href="#마이그레이션-30">마이그레이션</a></h2>
+<h2 id="마이그레이션-31"><a class="header" href="#마이그레이션-31">마이그레이션</a></h2>
 <p>영향을 받는 doctest의 경로를 변환하는 자동 마이그레이션은 없습니다. doctest 중 하나가 영향을 받는 경우 새 에디션으로 마이그레이션한 후 테스트를 빌드할 때 다음과 같은 오류가 표시됩니다.</p>
 <pre><code class="language-text">error: couldn't read `../examples/data.bin`: No such file or directory (os error 2)
  --&gt; src/../README.md:2:24
@@ -2848,9 +2871,9 @@ help: there is a file with the same name in a different directory
 <div style="break-before: page; page-break-before: always;"></div><h1 id="rustfmt"><a class="header" href="#rustfmt">Rustfmt</a></h1>
 <p>다음 장에서는 2024 에디션의 Rustfmt 변경 사항을 자세히 설명합니다.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="rustfmt-스타일-에디션"><a class="header" href="#rustfmt-스타일-에디션">Rustfmt: 스타일 에디션</a></h1>
-<h2 id="요약-36"><a class="header" href="#요약-36">요약</a></h2>
+<h2 id="요약-37"><a class="header" href="#요약-37">요약</a></h2>
 <p>이제 사용자는 <code>rustfmt</code>와 함께 사용할 스타일 에디션을 제어할 수 있습니다.</p>
-<h2 id="세부-정보-33"><a class="header" href="#세부-정보-33">세부 정보</a></h2>
+<h2 id="세부-정보-34"><a class="header" href="#세부-정보-34">세부 정보</a></h2>
 <p>Rustfmt가 생성하는 기본 형식은 <a href="rust-2024/../../style-guide/index.html">Rust 스타일 가이드</a>의 규칙에 따라 결정됩니다.</p>
 <p>또한 Rustfmt는 Rust 툴체인을 업데이트할 때 사용자에게 시끄러운 형식 변경을 유발하지 않도록 하는 형식 안정성 보장을 제공합니다. 이 안정성 보장은 본질적으로 최신 버전의 Rustfmt가 이전 버전의 Rustfmt가 생성한 <em>성공적으로 형식화된</em> 출력을 수정할 수 없음을 의미합니다.</p>
 <p>이 두 가지 제약 조건의 조합은 역사적으로 스타일 가이드와 Rustfmt의 기본 형식 지정 동작을 모두 고정시켰습니다. 이러한 교착 상태는 스타일 개선을 반복할 수 없게 하고, Rustfmt가 오래 전에 폐기된 레거시 형식 지정 특성(예: 중첩 튜플 액세스)을 유지하도록 요구하는 등 다양한 문제를 야기했습니다.</p>
@@ -2864,7 +2887,7 @@ help: there is a file with the same name in a different directory
 <p>또는 <code>rustfmt</code>를 에디션 <code>2024</code>로 직접 실행하여 구문 분석과 스타일 가이드의 2024 에디션 모두에 2024 에디션을 사용하십시오.</p>
 <pre><code class="language-sh">rustfmt lib.rs --edition 2024
 </code></pre>
-<p>스타일 에디션은 <code>rustfmt.toml</code> 구성 파일에서도 설정할 수 있습니다.</p>
+<p>The style edition can also be set in a <code>rustfmt.toml</code> or <code>.rustfmt.toml</code> configuration file:</p>
 <pre><code class="language-toml">style_edition = "2024"
 </code></pre>
 <p>그런 다음 <code>rustfmt</code>를 직접 실행할 때 사용됩니다.</p>
@@ -2873,16 +2896,16 @@ help: there is a file with the same name in a different directory
 <p>또는 <code>rustfmt</code> 옵션에서 직접 스타일 에디션을 지정할 수 있습니다.</p>
 <pre><code class="language-sh">rustfmt lib.rs --style-edition 2024
 </code></pre>
-<h2 id="마이그레이션-31"><a class="header" href="#마이그레이션-31">마이그레이션</a></h2>
+<h2 id="마이그레이션-32"><a class="header" href="#마이그레이션-32">마이그레이션</a></h2>
 <p>2024 에디션 또는 스타일 에디션으로 <code>cargo fmt</code> 또는 <code>rustfmt</code>를 실행하면 형식이 2024 스타일 에디션 형식으로 자동 마이그레이션됩니다.</p>
-<p>편집기의 저장 시 형식 지정 기능을 활용할 수 있는 기여자가 있는 프로젝트는 해당 프로젝트 내에서 사용되는 해당 <code>style_edition</code>을 포함하는 <code>.rustfmt.toml</code> 파일을 프로젝트에 추가하거나, 사용자가 로컬 편집기의 저장 시 형식 지정 기능이 동일한 <code>style_edition</code>을 사용하도록 구성되었는지 확인하도록 권장합니다.</p>
+<p>Projects who have contributors that may utilize their editor's format-on-save features are also strongly encouraged to add a <code>rustfmt.toml</code> file to their project that includes the corresponding <code>style_edition</code> utilized within their project, or to encourage their users to ensure their local editor format-on-save feature is configured to use that same <code>style_edition</code>.</p>
 <p>이는 편집기의 저장 시 형식 지정 출력이 개발자가 수동으로 <code>cargo fmt</code>를 실행하거나 프로젝트의 CI 프로세스(많은 편집기는 기본적으로 2015 에디션을 사용하는 <code>rustfmt</code>를 직접 실행하는 반면, <code>cargo fmt</code>는 <code>Cargo.toml</code> 파일에 지정된 에디션을 사용함)의 출력과 일치하도록 보장하기 위함입니다.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="rustfmt-포매팅-수정"><a class="header" href="#rustfmt-포매팅-수정">Rustfmt: 포매팅 수정</a></h1>
-<h2 id="요약-37"><a class="header" href="#요약-37">요약</a></h2>
+<h2 id="요약-38"><a class="header" href="#요약-38">요약</a></h2>
 <ul>
 <li>다양한 형식 지정 시나리오에 대한 수정 사항.</li>
 </ul>
-<h2 id="세부-정보-34"><a class="header" href="#세부-정보-34">세부 정보</a></h2>
+<h2 id="세부-정보-35"><a class="header" href="#세부-정보-35">세부 정보</a></h2>
 <p>2024 스타일 에디션은 다양한 형식 지정 시나리오에 대한 여러 수정 사항을 도입합니다.</p>
 <h3 id="항목-뒤-또는-블록-끝에-관련-없는-후행-주석을-정렬하지-마십시오"><a class="header" href="#항목-뒤-또는-블록-끝에-관련-없는-후행-주석을-정렬하지-마십시오">항목 뒤 또는 블록 끝에 관련 없는 후행 주석을 정렬하지 마십시오.</a></h3>
 <!--
@@ -3320,12 +3343,12 @@ https://github.com/rust-lang/rustfmt/pull/6148
         _ =&gt; None,
     }
 }</code></pre>
-<h2 id="마이그레이션-32"><a class="header" href="#마이그레이션-32">마이그레이션</a></h2>
+<h2 id="마이그레이션-33"><a class="header" href="#마이그레이션-33">마이그레이션</a></h2>
 <p>The change can be applied automatically by running <code>cargo fmt</code> or <code>rustfmt</code> with the 2024 Edition. See the <a href="rust-2024/rustfmt-style-edition.html">Style edition</a> chapter for more information on migrating and how style editions work.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="rustfmt-원시-식별자-정렬"><a class="header" href="#rustfmt-원시-식별자-정렬">Rustfmt: 원시 식별자 정렬</a></h1>
-<h2 id="요약-38"><a class="header" href="#요약-38">요약</a></h2>
+<h2 id="요약-39"><a class="header" href="#요약-39">요약</a></h2>
 <p><code>rustfmt</code> now properly sorts <a href="rust-2024/../../reference/identifiers.html#raw-identifiers">raw identifiers</a>.</p>
-<h2 id="세부-정보-35"><a class="header" href="#세부-정보-35">세부 정보</a></h2>
+<h2 id="세부-정보-36"><a class="header" href="#세부-정보-36">세부 정보</a></h2>
 <p>The <a href="rust-2024/../../style-guide/index.html">Rust Style Guide</a> includes <a href="rust-2024/../../style-guide/index.html#sorting">rules for sorting</a> that <code>rustfmt</code> applies in various contexts, such as on imports.</p>
 <p>Prior to the 2024 Edition, when sorting rustfmt would use the leading <code>r#</code> token instead of the ident which led to unwanted results. For example:</p>
 <pre><code class="language-rust ignore">use websocket::client::ClientBuilder;
@@ -3335,12 +3358,12 @@ use websocket::result::WebSocketError;</code></pre>
 <pre><code class="language-rust ignore">use websocket::r#async::futures::Stream;
 use websocket::client::ClientBuilder;
 use websocket::result::WebSocketError;</code></pre>
-<h2 id="마이그레이션-33"><a class="header" href="#마이그레이션-33">마이그레이션</a></h2>
+<h2 id="마이그레이션-34"><a class="header" href="#마이그레이션-34">마이그레이션</a></h2>
 <p>The change can be applied automatically by running <code>cargo fmt</code> or <code>rustfmt</code> with the 2024 Edition. See the <a href="rust-2024/rustfmt-style-edition.html">Style edition</a> chapter for more information on migrating and how style editions work.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="rustfmt-버전-정렬"><a class="header" href="#rustfmt-버전-정렬">Rustfmt: 버전 정렬</a></h1>
-<h2 id="요약-39"><a class="header" href="#요약-39">요약</a></h2>
+<h2 id="요약-40"><a class="header" href="#요약-40">요약</a></h2>
 <p><code>rustfmt</code> utilizes a new sorting algorithm.</p>
-<h2 id="세부-정보-36"><a class="header" href="#세부-정보-36">세부 정보</a></h2>
+<h2 id="세부-정보-37"><a class="header" href="#세부-정보-37">세부 정보</a></h2>
 <p>The <a href="rust-2024/../../style-guide/index.html">Rust Style Guide</a> includes <a href="rust-2024/../../style-guide/index.html#sorting">rules for sorting</a> that <code>rustfmt</code> applies in various contexts, such as on imports.</p>
 <p>Previous versions of the Style Guide and Rustfmt generally used an "ASCIIbetical" based approach. In the 2024 Edition this is changed to use a version-sort like algorithm that compares Unicode characters lexicographically and provides better results in ASCII digit comparisons.</p>
 <p>For example with a given (unsorted) input:</p>
@@ -3352,7 +3375,7 @@ use std::num::{NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8};</code></pre>
 <p>In the 2024 Edition, <code>rustfmt</code> now produces:</p>
 <pre><code class="language-rust ignore">use std::io::{self, Read, Write, stdout};
 use std::num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64};</code></pre>
-<h2 id="마이그레이션-34"><a class="header" href="#마이그레이션-34">마이그레이션</a></h2>
+<h2 id="마이그레이션-35"><a class="header" href="#마이그레이션-35">마이그레이션</a></h2>
 <p>The change can be applied automatically by running <code>cargo fmt</code> or <code>rustfmt</code> with the 2024 Edition. See the <a href="rust-2024/rustfmt-style-edition.html">Style edition</a> chapter for more information on migrating and how style editions work.</p>
 
                     </main>

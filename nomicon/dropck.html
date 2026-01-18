@@ -247,7 +247,7 @@ are dropped manually via pure-library code the borrow checker doesn't
 understand.</p>
 <p>So why do we care? We care because if the type system isn't careful, it could
 accidentally make dangling pointers. Consider the following simple program:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">struct Inspector&lt;'a&gt;(&amp;'a u8);
+<pre><pre class="playground"><code class="language-rust edition2024">struct Inspector&lt;'a&gt;(&amp;'a u8);
 
 struct World&lt;'a&gt; {
     inspector: Option&lt;Inspector&lt;'a&gt;&gt;,
@@ -265,7 +265,7 @@ fn main() {
 strictly outlive <code>inspector</code> doesn't matter. As long as the <code>inspector</code> is
 alive, so is <code>days</code>.</p>
 <p>However if we add a destructor, the program will no longer compile!</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021">struct Inspector&lt;'a&gt;(&amp;'a u8);
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024">struct Inspector&lt;'a&gt;(&amp;'a u8);
 
 impl&lt;'a&gt; Drop for Inspector&lt;'a&gt; {
     fn drop(&amp;mut self) {
@@ -324,7 +324,7 @@ the specific drop order and the borrowed data is still fine even if the borrow
 checker doesn't know that.</p>
 <p>For example, this variant of the above <code>Inspector</code> example will never
 access borrowed data:</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021">struct Inspector&lt;'a&gt;(&amp;'a u8, &amp;'static str);
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024">struct Inspector&lt;'a&gt;(&amp;'a u8, &amp;'static str);
 
 impl&lt;'a&gt; Drop for Inspector&lt;'a&gt; {
     fn drop(&amp;mut self) {
@@ -348,7 +348,7 @@ fn main() {
     // borrowed `days`.
 }</code></pre></pre>
 <p>Likewise, this variant will also never access borrowed data:</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021">struct Inspector&lt;T&gt;(T, &amp;'static str);
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024">struct Inspector&lt;T&gt;(T, &amp;'static str);
 
 impl&lt;T&gt; Drop for Inspector&lt;T&gt; {
     fn drop(&amp;mut self) {
@@ -383,7 +383,7 @@ strictly outlive that value.</p>
 <h2 id="an-escape-hatch"><a class="header" href="#an-escape-hatch">An Escape Hatch</a></h2>
 <p>The precise rules that govern drop checking may be less restrictive in
 the future.</p>
-<p>The current analysis is deliberately conservative and trivial; it forces all
+<p>The current analysis is deliberately conservative; it forces all
 borrowed data in a value to outlive that value, which is certainly sound.</p>
 <p>Future versions of the language may make the analysis more precise, to
 reduce the number of cases where sound code is rejected as unsafe.
@@ -395,7 +395,7 @@ not access any expired data, even if its type gives it the capability
 to do so.</p>
 <p>That attribute is called <code>may_dangle</code> and was introduced in <a href="https://github.com/rust-lang/rfcs/blob/master/text/1327-dropck-param-eyepatch.md">RFC 1327</a>.
 To deploy it on the <code>Inspector</code> from above, we would write:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">#![feature(dropck_eyepatch)]
+<pre><pre class="playground"><code class="language-rust edition2024">#![feature(dropck_eyepatch)]
 
 struct Inspector&lt;'a&gt;(&amp;'a u8, &amp;'static str);
 
@@ -425,7 +425,7 @@ the following example, we assert that we access no data behind a reference of
 lifetime <code>'b</code> and that the only uses of <code>T</code> will be moves or drops, but omit
 the attribute from <code>'a</code> and <code>U</code>, because we do access data with that lifetime
 and that type:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span>#![feature(dropck_eyepatch)]
 <span class="boring">fn main() {
 </span>use std::fmt::Display;
@@ -448,7 +448,7 @@ occur indirectly. Examples of such indirect access are:</p>
 <p>(Future changes to the language, such as impl specialization, may add
 other avenues for such indirect access.)</p>
 <p>Here is an example of invoking a callback:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Inspector&lt;T&gt;(T, &amp;'static str, Box&lt;for &lt;'r&gt; fn(&amp;'r T) -&gt; String&gt;);
 
@@ -461,7 +461,7 @@ impl&lt;T&gt; Drop for Inspector&lt;T&gt; {
 }
 <span class="boring">}</span></code></pre></pre>
 <p>Here is an example of a trait method call:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::fmt;
 

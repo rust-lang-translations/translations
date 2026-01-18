@@ -215,7 +215,7 @@
                     <main>
                         <h1 id="팬텀-데이터"><a class="header" href="#팬텀-데이터">팬텀 데이터</a></h1>
 <p>unsafe 코드로 작업할 때, 타입이나 수명이 구조체와 논리적으로 연관되어 있지만 실제로는 필드의 일부가 아닌 상황에 처할 때가 많습니다. 이는 수명에서 가장 흔히 발생합니다. 예를 들어, <code>&amp;'a [T]</code>에 대한 <code>Iter</code>는 (대략) 다음과 같이 정의됩니다:</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Iter&lt;'a, T: 'a&gt; {
     ptr: *const T,
@@ -225,7 +225,7 @@
 <p>하지만 <code>'a</code>가 구조체 본문 내에서 사용되지 않기 때문에, 이것은 _무한(unbounded)_합니다. <a href="https://rust-lang.github.io/rfcs/0738-variance.html#the-corner-case-unused-parameters-and-parameters-that-are-only-used-unsafely">이것이 역사적으로 일으킨 문제들 때문에</a>, 구조체 정의에서 무한한 수명과 타입은 _금지_됩니다. 따라서 우리는 어떤 식으로든 본문에서 이 타입들을 참조해야 합니다. 이를 올바르게 하는 것은 올바른 공변성(variance)과 드롭 검사를 위해 필수적입니다.</p>
 <p>우리는 특별한 마커 타입인 <code>PhantomData</code>를 사용하여 이 작업을 수행합니다. <code>PhantomData</code>는 공간을 차지하지 않지만, 정적 분석을 목적으로 주어진 타입의 필드를 시뮬레이션합니다. 이는 타입 시스템에 원하는 공변성 종류를 명시적으로 알려주는 것보다 에러가 덜 발생한다고 간주되며, 동시에 오토 트레잇(auto traits)이나 드롭 검사에 필요한 정보와 같은 다른 유용한 것들도 제공합니다.</p>
 <p><code>Iter</code>는 논리적으로 여러 개의 <code>&amp;'a T</code>를 포함하므로, 이것이 바로 우리가 <code>PhantomData</code>에게 시뮬레이션하라고 지시하는 것입니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::marker;
 
@@ -241,7 +241,7 @@ struct Iter&lt;'a, T: 'a&gt; {
 <p>이 문서 자체에서도 예전에는 다음과 같이 말했습니다:</p>
 <blockquote>
 <p>또 다른 중요한 예는 <code>Vec</code>인데, 이는 (대략) 다음과 같이 정의됩니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Vec&lt;T&gt; {
     data: *const T, // 공변성을 위한 *const!
@@ -253,7 +253,7 @@ struct Iter&lt;'a, T: 'a&gt; {
 <p>아니요.</p>
 <p>드롭 검사기는 관대하게도 <code>Vec&lt;T&gt;</code>가 <code>T</code> 타입의 어떤 값도 소유하지 않는다고 판단할 것입니다. 이는 결국 드롭 검사 건전성을 판단할 때 <code>Vec</code>의 소멸자에서 <code>T</code>를 드롭하는 것에 대해 걱정할 필요가 없다는 결론으로 이어집니다. 이는 다시 사람들이 <code>Vec</code>의 소멸자를 사용해 불건전성(unsoundness)을 만들어낼 수 있게 허용하게 됩니다.</p>
 <p>우리가 <code>T</code> 타입의 값을 <em>실제로</em> 소유하고 있으며, 따라서 <em>우리가</em> 드롭될 때 일부 <code>T</code>들을 드롭할 수 있다는 것을 드롭 검사기에게 알리기 위해서는, 정확히 그 사실을 명시하는 추가적인 <code>PhantomData</code>를 더해야 합니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::marker;
 
@@ -267,7 +267,7 @@ struct Vec&lt;T&gt; {
 </blockquote>
 <p>하지만 <a href="https://rust-lang.github.io/rfcs/1238-nonparametric-dropck.html">RFC 1238</a> 이후로, <strong>이것은 더 이상 사실이 아니며 필요하지도 않습니다</strong>.</p>
 <p>만약 여러분이 다음과 같이 작성한다면:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Vec&lt;T&gt; {
     data: *const T, // 공변성을 위한 `*const`!
@@ -289,7 +289,7 @@ struct Vec&lt;T&gt; {
 <p>자신만의 라이브러리 코드만 작성한다면 이 섹션은 건너뛰어도 됩니다. 하지만 실제 <code>Vec</code> 정의에서 표준 라이브러리가 무엇을 하는지 궁금하다면, 건전성을 위해 여전히 <code>_owns_T: PhantomData&lt;T&gt;</code> 필드를 사용해야 한다는 것을 눈치챌 것입니다.</p>
 <details><summary>Click here to see why</summary>
 <p>다음 예제를 고려해 봅시다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024">fn main() {
     let mut v: Vec&lt;&amp;str&gt; = Vec::new();
     let s: String = "Short-lived".into();
     v.push(&amp;s);
@@ -310,7 +310,7 @@ struct Vec&lt;T&gt; {
 <p>실제로 <code>Drop for Vec&lt;T&gt;</code>는 배후 버퍼를 해제하기 전에, 각 <code>T</code> 아이템이 드롭 글루를 가지고 있다면 그것들을 전이적으로(transitively) 드롭해야 합니다. <code>PrintOnDrop&lt;'s&gt;</code>의 경우, <code>Drop for Vec&lt;PrintOnDrop&lt;'s&gt;&gt;</code>는 버퍼 해제 전에 <code>PrintOnDrop&lt;'s&gt;</code> 요소들을 전이적으로 드롭해야 함을 의미합니다.</p>
 <p>따라서 우리가 <code>'s</code>가 <code>#[may_dangle]</code>하다고 말한 것은 지나치게 느슨한 표현이었습니다. 우리는 차라리 이렇게 말하고 싶을 것입니다: "<code>'s</code>는 전이적인 드롭 글루에 관여하지 않는 한 댕글링될 수 있다". 또는 더 일반적으로, "<code>T</code>는 전이적인 드롭 글루에 관여하지 않는 한 댕글링될 수 있다". 이 "예외의 예외"는 우리가 <strong><code>T</code>를 소유하고 있을 때</strong>마다 발생하는 만연한 상황입니다. 이것이 바로 러스트의 <code>#[may_dangle]</code>이 이러한 예외 상황을 알 만큼 충분히 똑똑한 이유이며, 따라서 <em>제네릭 매개변수가 구조체의 필드에 의해 소유되는 방식(owned fashion)으로 유지될 때</em> 이 기능은 비활성화될 것입니다.</p>
 <p>그렇기 때문에 표준 라이브러리는 결국 다음과 같은 형태가 됩니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">#[cfg(any())]
 </span>// 우리는 `Vec`을 드롭할 때 `T`를 사용하지 않겠다고 새끼손가락 걸고 약속합니다...

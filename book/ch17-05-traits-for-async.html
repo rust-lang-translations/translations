@@ -216,22 +216,23 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="a-closer-look-at-the-traits-for-async"><a class="header" href="#a-closer-look-at-the-traits-for-async">A Closer Look at the Traits for Async</a></h2>
-<!-- Old headings. Do not remove or links may break. -->
+                        <!-- Old headings. Do not remove or links may break. -->
 <p><a id="digging-into-the-traits-for-async"></a></p>
-<p>Throughout the chapter, we’ve used the <code>Future</code>, <code>Pin</code>, <code>Unpin</code>, <code>Stream</code>, and
-<code>StreamExt</code> traits in various ways. So far, though, we’ve avoided getting too
-far into the details of how they work or how they fit together, which is fine
-most of the time for your day-to-day Rust work. Sometimes, though, you’ll
-encounter situations where you’ll need to understand a few more of these
-details. In this section, we’ll dig in just enough to help in those scenarios,
-still leaving the <em>really</em> deep dive for other documentation.</p>
+<h2 id="a-closer-look-at-the-traits-for-async"><a class="header" href="#a-closer-look-at-the-traits-for-async">A Closer Look at the Traits for Async</a></h2>
+<p>Throughout the chapter, we’ve used the <code>Future</code>, <code>Stream</code>, and <code>StreamExt</code>
+traits in various ways. So far, though, we’ve avoided getting too far into the
+details of how they work or how they fit together, which is fine most of the
+time for your day-to-day Rust work. Sometimes, though, you’ll encounter
+situations where you’ll need to understand a few more of these traits’ details,
+along with the <code>Pin</code> type and the <code>Unpin</code> trait. In this section, we’ll dig in
+just enough to help in those scenarios, still leaving the <em>really</em> deep dive
+for other documentation.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="future"></a></p>
 <h3 id="the-future-trait"><a class="header" href="#the-future-trait">The <code>Future</code> Trait</a></h3>
 <p>Let’s start by taking a closer look at how the <code>Future</code> trait works. Here’s how
 Rust defines it:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::pin::Pin;
 use std::task::{Context, Poll};
@@ -246,27 +247,27 @@ pub trait Future {
 haven’t seen before, so let’s walk through the definition piece by piece.</p>
 <p>First, <code>Future</code>’s associated type <code>Output</code> says what the future resolves to.
 This is analogous to the <code>Item</code> associated type for the <code>Iterator</code> trait.
-Second, <code>Future</code> also has the <code>poll</code> method, which takes a special <code>Pin</code>
-reference for its <code>self</code> parameter and a mutable reference to a <code>Context</code> type,
-and returns a <code>Poll&lt;Self::Output&gt;</code>. We’ll talk more about <code>Pin</code> and
-<code>Context</code> in a moment. For now, let’s focus on what the method returns,
-the <code>Poll</code> type:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+Second, <code>Future</code> has the <code>poll</code> method, which takes a special <code>Pin</code> reference
+for its <code>self</code> parameter and a mutable reference to a <code>Context</code> type, and
+returns a <code>Poll&lt;Self::Output&gt;</code>. We’ll talk more about <code>Pin</code> and <code>Context</code> in a
+moment. For now, let’s focus on what the method returns, the <code>Poll</code> type:</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>enum Poll&lt;T&gt; {
+</span>pub enum Poll&lt;T&gt; {
     Ready(T),
     Pending,
 }
 <span class="boring">}</span></code></pre></pre>
 <p>This <code>Poll</code> type is similar to an <code>Option</code>. It has one variant that has a value,
-<code>Ready(T)</code>, and one which does not, <code>Pending</code>. <code>Poll</code> means something quite
+<code>Ready(T)</code>, and one that does not, <code>Pending</code>. <code>Poll</code> means something quite
 different from <code>Option</code>, though! The <code>Pending</code> variant indicates that the future
 still has work to do, so the caller will need to check again later. The <code>Ready</code>
-variant indicates that the future has finished its work and the <code>T</code> value is
+variant indicates that the <code>Future</code> has finished its work and the <code>T</code> value is
 available.</p>
 <blockquote>
-<p>Note: With most futures, the caller should not call <code>poll</code> again after the
-future has returned <code>Ready</code>. Many futures will panic if polled again after
+<p>Note: It’s rare to need to call <code>poll</code> directly, but if you do need to, keep
+in mind that with most futures, the caller should not call <code>poll</code> again after
+the future has returned <code>Ready</code>. Many futures will panic if polled again after
 becoming ready. Futures that are safe to poll again will say so explicitly in
 their documentation. This is similar to how <code>Iterator::next</code> behaves.</p>
 </blockquote>
@@ -299,44 +300,116 @@ loop {
     }
 }</code></pre>
 <p>If Rust compiled it to exactly that code, though, every <code>await</code> would be
-blocking—exactly the opposite of what we were going for! Instead, Rust makes
-sure that the loop can hand off control to something that can pause work on this
+blocking—exactly the opposite of what we were going for! Instead, Rust ensures
+that the loop can hand off control to something that can pause work on this
 future to work on other futures and then check this one again later. As we’ve
 seen, that something is an async runtime, and this scheduling and coordination
 work is one of its main jobs.</p>
-<p>Earlier in the chapter, we described waiting on <code>rx.recv</code>. The <code>recv</code> call
-returns a future, and awaiting the future polls it. We noted that a runtime will
-pause the future until it’s ready with either <code>Some(message)</code> or <code>None</code> when the
-channel closes. With our deeper understanding of the <code>Future</code> trait, and
-specifically <code>Future::poll</code>, we can see how that works. The runtime knows the
-future isn’t ready when it returns <code>Poll::Pending</code>. Conversely, the runtime
-knows the future <em>is</em> ready and advances it when <code>poll</code> returns
-<code>Poll::Ready(Some(message))</code> or <code>Poll::Ready(None)</code>.</p>
+<p>In the <a href="ch17-02-concurrency-with-async.html#sending-data-between-two-tasks-using-message-passing">“Sending Data Between Two Tasks Using Message
+Passing”</a><!-- ignore --> section, we described waiting on
+<code>rx.recv</code>. The <code>recv</code> call returns a future, and awaiting the future polls it.
+We noted that a runtime will pause the future until it’s ready with either
+<code>Some(message)</code> or <code>None</code> when the channel closes. With our deeper
+understanding of the <code>Future</code> trait, and specifically <code>Future::poll</code>, we can
+see how that works. The runtime knows the future isn’t ready when it returns
+<code>Poll::Pending</code>. Conversely, the runtime knows the future <em>is</em> ready and
+advances it when <code>poll</code> returns <code>Poll::Ready(Some(message))</code> or
+<code>Poll::Ready(None)</code>.</p>
 <p>The exact details of how a runtime does that are beyond the scope of this book,
 but the key is to see the basic mechanics of futures: a runtime <em>polls</em> each
 future it is responsible for, putting the future back to sleep when it is not
 yet ready.</p>
 <!-- Old headings. Do not remove or links may break. -->
-<p><a id="pinning-and-the-pin-and-unpin-traits"></a></p>
-<h3 id="the-pin-and-unpin-traits"><a class="header" href="#the-pin-and-unpin-traits">The <code>Pin</code> and <code>Unpin</code> Traits</a></h3>
-<p>When we introduced the idea of pinning in Listing 17-16, we ran into a very
-gnarly error message. Here is the relevant part of it again:</p>
+<p><a id="pinning-and-the-pin-and-unpin-traits"></a>
+<a id="the-pin-and-unpin-traits"></a></p>
+<h3 id="the-pin-type-and-the-unpin-trait"><a class="header" href="#the-pin-type-and-the-unpin-trait">The <code>Pin</code> Type and the <code>Unpin</code> Trait</a></h3>
+<p>Back in Listing 17-13, we used the <code>trpl::join!</code> macro to await three
+futures. However, it’s common to have a collection such as a vector containing
+some number futures that won’t be known until runtime. Let’s change Listing
+17-13 to the code in Listing 17-23 that puts the three futures into a vector
+and calls the <code>trpl::join_all</code> function instead, which won’t compile yet.</p>
+<Listing number="17-23" caption="Awaiting futures in a collection"  file-name="src/main.rs">
+<pre><code class="language-rust ignore does_not_compile"><span class="boring">extern crate trpl; // required for mdbook test
+</span><span class="boring">
+</span><span class="boring">use std::time::Duration;
+</span><span class="boring">
+</span><span class="boring">fn main() {
+</span><span class="boring">    trpl::block_on(async {
+</span><span class="boring">        let (tx, mut rx) = trpl::channel();
+</span><span class="boring">
+</span><span class="boring">        let tx1 = tx.clone();
+</span><span class="boring">        let tx1_fut = async move {
+</span><span class="boring">            let vals = vec![
+</span><span class="boring">                String::from("hi"),
+</span><span class="boring">                String::from("from"),
+</span><span class="boring">                String::from("the"),
+</span><span class="boring">                String::from("future"),
+</span><span class="boring">            ];
+</span><span class="boring">
+</span><span class="boring">            for val in vals {
+</span><span class="boring">                tx1.send(val).unwrap();
+</span><span class="boring">                trpl::sleep(Duration::from_secs(1)).await;
+</span><span class="boring">            }
+</span><span class="boring">        };
+</span><span class="boring">
+</span><span class="boring">        let rx_fut = async {
+</span><span class="boring">            while let Some(value) = rx.recv().await {
+</span><span class="boring">                println!("received '{value}'");
+</span><span class="boring">            }
+</span><span class="boring">        };
+</span><span class="boring">
+</span>        let tx_fut = async move {
+            // --snip--
+<span class="boring">            let vals = vec![
+</span><span class="boring">                String::from("more"),
+</span><span class="boring">                String::from("messages"),
+</span><span class="boring">                String::from("for"),
+</span><span class="boring">                String::from("you"),
+</span><span class="boring">            ];
+</span><span class="boring">
+</span><span class="boring">            for val in vals {
+</span><span class="boring">                tx.send(val).unwrap();
+</span><span class="boring">                trpl::sleep(Duration::from_secs(1)).await;
+</span><span class="boring">            }
+</span>        };
+
+        let futures: Vec&lt;Box&lt;dyn Future&lt;Output = ()&gt;&gt;&gt; =
+            vec![Box::new(tx1_fut), Box::new(rx_fut), Box::new(tx_fut)];
+
+        trpl::join_all(futures).await;
+<span class="boring">    });
+</span><span class="boring">}</span></code></pre>
+</Listing>
+<p>We put each future within a <code>Box</code> to make them into <em>trait objects</em>, just as
+we did in the “Returning Errors from <code>run</code>” section in Chapter 12. (We’ll cover
+trait objects in detail in Chapter 18.) Using trait objects lets us treat each
+of the anonymous futures produced by these types as the same type, because all
+of them implement the <code>Future</code> trait.</p>
+<p>This might be surprising. After all, none of the async blocks returns anything,
+so each one produces a <code>Future&lt;Output = ()&gt;</code>. Remember that <code>Future</code> is a
+trait, though, and that the compiler creates a unique enum for each async
+block, even when they have identical output types. Just as you can’t put two
+different handwritten structs in a <code>Vec</code>, you can’t mix compiler-generated
+enums.</p>
+<p>Then we pass the collection of futures to the <code>trpl::join_all</code> function and
+await the result. However, this doesn’t compile; here’s the relevant part of
+the error messages.</p>
 <!-- manual-regeneration
-cd listings/ch17-async-await/listing-17-16
+cd listings/ch17-async-await/listing-17-23
 cargo build
 copy *only* the final `error` block from the errors
 -->
-<pre><code class="language-text">error[E0277]: `{async block@src/main.rs:10:23: 10:33}` cannot be unpinned
+<pre><code class="language-text">error[E0277]: `dyn Future&lt;Output = ()&gt;` cannot be unpinned
   --&gt; src/main.rs:48:33
    |
 48 |         trpl::join_all(futures).await;
-   |                                 ^^^^^ the trait `Unpin` is not implemented for `{async block@src/main.rs:10:23: 10:33}`, which is required by `Box&lt;{async block@src/main.rs:10:23: 10:33}&gt;: Future`
+   |                                 ^^^^^ the trait `Unpin` is not implemented for `dyn Future&lt;Output = ()&gt;`
    |
    = note: consider using the `pin!` macro
            consider using `Box::pin` if you need to access the pinned value outside of the current scope
-   = note: required for `Box&lt;{async block@src/main.rs:10:23: 10:33}&gt;` to implement `Future`
+   = note: required for `Box&lt;dyn Future&lt;Output = ()&gt;&gt;` to implement `Future`
 note: required by a bound in `futures_util::future::join_all::JoinAll`
-  --&gt; file:///home/.cargo/registry/src/index.crates.io-6f17d22bba15001f/futures-util-0.3.30/src/future/join_all.rs:29:8
+  --&gt; file:///home/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.30/src/future/join_all.rs:29:8
    |
 27 | pub struct JoinAll&lt;F&gt;
    |            ------- required by a bound in this struct
@@ -344,21 +417,24 @@ note: required by a bound in `futures_util::future::join_all::JoinAll`
 29 |     F: Future,
    |        ^^^^^^ required by this bound in `JoinAll`
 </code></pre>
-<p>This error message tells us not only that we need to pin the values but also why
-pinning is required. The <code>trpl::join_all</code> function returns a struct called
-<code>JoinAll</code>. That struct is generic over a type <code>F</code>, which is constrained to
-implement the <code>Future</code> trait. Directly awaiting a future with <code>await</code> pins the
-future implicitly. That’s why we don’t need to use <code>pin!</code> everywhere we want to
-await futures.</p>
+<p>The note in this error message tells us that we should use the <code>pin!</code> macro to
+<em>pin</em> the values, which means putting them inside the <code>Pin</code> type that
+guarantees the values won’t be moved in memory. The error message says pinning
+is required because <code>dyn Future&lt;Output = ()&gt;</code> needs to implement the <code>Unpin</code>
+trait and it currently does not.</p>
+<p>The <code>trpl::join_all</code> function returns a struct called <code>JoinAll</code>. That struct is
+generic over a type <code>F</code>, which is constrained to implement the <code>Future</code> trait.
+Directly awaiting a future with <code>await</code> pins the future implicitly. That’s why
+we don’t need to use <code>pin!</code> everywhere we want to await futures.</p>
 <p>However, we’re not directly awaiting a future here. Instead, we construct a new
-future, <code>JoinAll</code>, by passing a collection of futures to the <code>join_all</code>
-function. The signature for <code>join_all</code> requires that the types of the items in
-the collection all implement the <code>Future</code> trait, and <code>Box&lt;T&gt;</code> implements
-<code>Future</code> only if the <code>T</code> it wraps is a future that implements the <code>Unpin</code> trait.</p>
+future, JoinAll, by passing a collection of futures to the <code>join_all</code> function.
+The signature for <code>join_all</code> requires that the types of the items in the
+collection all implement the <code>Future</code> trait, and <code>Box&lt;T&gt;</code> implements <code>Future</code>
+only if the <code>T</code> it wraps is a future that implements the <code>Unpin</code> trait.</p>
 <p>That’s a lot to absorb! To really understand it, let’s dive a little further
-into how the <code>Future</code> trait actually works, in particular around <em>pinning</em>.</p>
-<p>Look again at the definition of the <code>Future</code> trait:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+into how the <code>Future</code> trait actually works, in particular around pinning. Look
+again at the definition of the <code>Future</code> trait:</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::pin::Pin;
 use std::task::{Context, Poll};
@@ -376,17 +452,13 @@ of how that works are beyond the scope of this chapter, and you generally only
 need to think about this when writing a custom <code>Future</code> implementation. We’ll
 focus instead on the type for <code>self</code>, as this is the first time we’ve seen a
 method where <code>self</code> has a type annotation. A type annotation for <code>self</code> works
-like type annotations for other function parameters, but with two key
+like type annotations for other function parameters but with two key
 differences:</p>
 <ul>
-<li>
-<p>It tells Rust what type <code>self</code> must be for the method to be called.</p>
-</li>
-<li>
-<p>It can’t be just any type. It’s restricted to the type on which the method is
+<li>It tells Rust what type <code>self</code> must be for the method to be called.</li>
+<li>It can’t be just any type. It’s restricted to the type on which the method is
 implemented, a reference or smart pointer to that type, or a <code>Pin</code> wrapping a
-reference to that type.</p>
-</li>
+reference to that type.</li>
 </ul>
 <p>We’ll see more on this syntax in <a href="ch18-00-oop.html">Chapter 18</a><!-- ignore -->. For now,
 it’s enough to know that if we want to poll a future to check whether it is
@@ -394,27 +466,27 @@ it’s enough to know that if we want to poll a future to check whether it is
 type.</p>
 <p><code>Pin</code> is a wrapper for pointer-like types such as <code>&amp;</code>, <code>&amp;mut</code>, <code>Box</code>, and <code>Rc</code>.
 (Technically, <code>Pin</code> works with types that implement the <code>Deref</code> or <code>DerefMut</code>
-traits, but this is effectively equivalent to working only with pointers.) <code>Pin</code>
-is not a pointer itself and doesn’t have any behavior of its own like <code>Rc</code> and
-<code>Arc</code> do with reference counting; it’s purely a tool the compiler can use to
-enforce constraints on pointer usage.</p>
+traits, but this is effectively equivalent to working only with references and
+smart pointers.) <code>Pin</code> is not a pointer itself and doesn’t have any behavior of
+its own like <code>Rc</code> and <code>Arc</code> do with reference counting; it’s purely a tool the
+compiler can use to enforce constraints on pointer usage.</p>
 <p>Recalling that <code>await</code> is implemented in terms of calls to <code>poll</code> starts to
 explain the error message we saw earlier, but that was in terms of <code>Unpin</code>, not
 <code>Pin</code>. So how exactly does <code>Pin</code> relate to <code>Unpin</code>, and why does <code>Future</code> need
 <code>self</code> to be in a <code>Pin</code> type to call <code>poll</code>?</p>
-<p>Remember from earlier in this chapter a series of await points in a future get
-compiled into a state machine, and the compiler makes sure that state machine
-follows all of Rust’s normal rules around safety, including borrowing and
-ownership. To make that work, Rust looks at what data is needed between one
+<p>Remember from earlier in this chapter that a series of await points in a future
+get compiled into a state machine, and the compiler makes sure that state
+machine follows all of Rust’s normal rules around safety, including borrowing
+and ownership. To make that work, Rust looks at what data is needed between one
 await point and either the next await point or the end of the async block. It
-then creates a corresponding variant in the compiled state machine. Each variant
-gets the access it needs to the data that will be used in that section of the
-source code, whether by taking ownership of that data or by getting a mutable or
-immutable reference to it.</p>
-<p>So far, so good: if we get anything wrong about the ownership or references in a
-given async block, the borrow checker will tell us. When we want to move around
-the future that corresponds to that block—like moving it into a <code>Vec</code> to pass to
-<code>join_all</code>—things get trickier.</p>
+then creates a corresponding variant in the compiled state machine. Each
+variant gets the access it needs to the data that will be used in that section
+of the source code, whether by taking ownership of that data or by getting a
+mutable or immutable reference to it.</p>
+<p>So far, so good: if we get anything wrong about the ownership or references in
+a given async block, the borrow checker will tell us. When we want to move
+around the future that corresponds to that block—like moving it into a <code>Vec</code> to
+pass to <code>join_all</code>—things get trickier.</p>
 <p>When we move a future—whether by pushing it into a data structure to use as an
 iterator with <code>join_all</code> or by returning it from a function—that actually means
 moving the state machine Rust creates for us. And unlike most other types in
@@ -422,7 +494,7 @@ Rust, the futures Rust creates for async blocks can end up with references to
 themselves in the fields of any given variant, as shown in the simplified illustration in Figure 17-4.</p>
 <figure>
 <img alt="A single-column, three-row table representing a future, fut1, which has data values 0 and 1 in the first two rows and an arrow pointing from the third row back to the second row, representing an internal reference within the future." src="img/trpl17-04.svg" class="center" />
-<figcaption>Figure 17-4: A self-referential data type.</figcaption>
+<figcaption>Figure 17-4: A self-referential data type</figcaption>
 </figure>
 <p>By default, though, any object that has a reference to itself is unsafe to move,
 because references always point to the actual memory address of whatever they
@@ -440,7 +512,7 @@ up reading completely unrelated data later.</p>
 object whenever it gets moved, but that could add a lot of performance overhead,
 especially if a whole web of references needs updating. If we could instead make
 sure the data structure in question <em>doesn’t move in memory</em>, we wouldn’t have
-to update any references. This is exactly what Rust’s borrow checker requires:
+to update any references. This is exactly what Rust’s borrow checker is for:
 in safe code, it prevents you from moving any item with an active reference to
 it.</p>
 <p><code>Pin</code> builds on that to give us the exact guarantee we need. When we <em>pin</em> a
@@ -448,30 +520,30 @@ value by wrapping a pointer to that value in <code>Pin</code>, it can no longer 
 if you have <code>Pin&lt;Box&lt;SomeType&gt;&gt;</code>, you actually pin the <code>SomeType</code> value, <em>not</em>
 the <code>Box</code> pointer. Figure 17-6 illustrates this process.</p>
 <figure>
-<img alt="Three boxes laid out side by side. The first is labeled “Pin”, the second “b1”, and the third “pinned”. Within “pinned” is a table labeled “fut”, with a single column; it represents a future with cells for each part of the data structure. Its first cell has the value “0”, its second cell has an arrow coming out of it and pointing to the fourth and final cell, which has the value “1” in it, and the third cell has dashed lines and an ellipsis to indicate there may be other parts to the data structure. All together, the “fut” table represents a future which is self-referential. An arrow leaves the box labeled “Pin”, goes through the box labeled “b1” and has terminates inside the “pinned” box at the “fut” table." src="img/trpl17-06.svg" class="center" />
-<figcaption>Figure 17-6: Pinning a `Box` that points to a self-referential future type.</figcaption>
+<img alt="Three boxes laid out side by side. The first is labeled “Pin”, the second “b1”, and the third “pinned”. Within “pinned” is a table labeled “fut”, with a single column; it represents a future with cells for each part of the data structure. Its first cell has the value “0”, its second cell has an arrow coming out of it and pointing to the fourth and final cell, which has the value “1” in it, and the third cell has dashed lines and an ellipsis to indicate there may be other parts to the data structure. All together, the “fut” table represents a future which is self-referential. An arrow leaves the box labeled “Pin”, goes through the box labeled “b1” and terminates inside the “pinned” box at the “fut” table." src="img/trpl17-06.svg" class="center" />
+<figcaption>Figure 17-6: Pinning a `Box` that points to a self-referential future type</figcaption>
 </figure>
 <p>In fact, the <code>Box</code> pointer can still move around freely. Remember: we care about
 making sure the data ultimately being referenced stays in place. If a pointer
-moves around, <em>but the data it points to is in the same place</em>, as in Figure
-17-7, there’s no potential problem. As an independent exercise, look at the docs
+moves around, <em>but the data it points to</em> is in the same place, as in Figure
+17-7, there’s no potential problem. (As an independent exercise, look at the docs
 for the types as well as the <code>std::pin</code> module and try to work out how you’d do
 this with a <code>Pin</code> wrapping a <code>Box</code>.) The key is that the self-referential type
 itself cannot move, because it is still pinned.</p>
 <figure>
 <img alt="Four boxes laid out in three rough columns, identical to the previous diagram with a change to the second column. Now there are two boxes in the second column, labeled “b1” and “b2”, “b1” is grayed out, and the arrow from “Pin” goes through “b2” instead of “b1”, indicating that the pointer has moved from “b1” to “b2”, but the data in “pinned” has not moved." src="img/trpl17-07.svg" class="center" />
-<figcaption>Figure 17-7: Moving a `Box` which points to a self-referential future type.</figcaption>
+<figcaption>Figure 17-7: Moving a `Box` which points to a self-referential future type</figcaption>
 </figure>
 <p>However, most types are perfectly safe to move around, even if they happen to be
 behind a <code>Pin</code> pointer. We only need to think about pinning when items have
 internal references. Primitive values such as numbers and Booleans are safe
-since they obviously don’t have any internal references, so they’re obviously
-safe. Neither do most types you normally work with in Rust. You can move around
-a <code>Vec</code>, for example, without worrying. Given only what we have seen so far, if
+because they obviously don’t have any internal references.
+Neither do most types you normally work with in Rust. You can move around
+a <code>Vec</code>, for example, without worrying. Given what we have seen so far, if
 you have a <code>Pin&lt;Vec&lt;String&gt;&gt;</code>, you’d have to do everything via the safe but
 restrictive APIs provided by <code>Pin</code>, even though a <code>Vec&lt;String&gt;</code> is always safe
 to move if there are no other references to it. We need a way to tell the
-compiler that it’s fine to move items around in cases like this—and there’s
+compiler that it’s fine to move items around in cases like this—and that’s
 where <code>Unpin</code> comes into play.</p>
 <p><code>Unpin</code> is a marker trait, similar to the <code>Send</code> and <code>Sync</code> traits we saw in
 Chapter 16, and thus has no functionality of its own. Marker traits exist only
@@ -500,24 +572,86 @@ characters that make it up. We can wrap a <code>String</code> in <code>Pin</code
 17-8. However, <code>String</code> automatically implements <code>Unpin</code>, as do most other types
 in Rust.</p>
 <figure>
-<img alt="Concurrent work flow" src="img/trpl17-08.svg" class="center" />
-<figcaption>Figure 17-8: Pinning a `String`; the dotted line indicates that the `String` implements the `Unpin` trait, and thus is not pinned.</figcaption>
+<img alt="A box labeled “Pin” on the left with an arrow going from it to a box labeled “String” on the right. The “String” box contains the data 5usize, representing the length of the string, and the letters “h”, “e”, “l”, “l”, and “o” representing the characters of the string “hello” stored in this String instance. A dotted rectangle surrounds the “String” box and its label, but not the “Pin” box." src="img/trpl17-08.svg" class="center" />
+<figcaption>Figure 17-8: Pinning a `String`; the dotted line indicates that the `String` implements the `Unpin` trait and thus is not pinned</figcaption>
 </figure>
 <p>As a result, we can do things that would be illegal if <code>String</code> implemented
 <code>!Unpin</code> instead, such as replacing one string with another at the exact same
 location in memory as in Figure 17-9. This doesn’t violate the <code>Pin</code> contract,
-because <code>String</code> has no internal references that make it unsafe to move around!
+because <code>String</code> has no internal references that make it unsafe to move around.
 That is precisely why it implements <code>Unpin</code> rather than <code>!Unpin</code>.</p>
 <figure>
-<img alt="Concurrent work flow" src="img/trpl17-09.svg" class="center" />
-<figcaption>Figure 17-9: Replacing the `String` with an entirely different `String` in memory.</figcaption>
+<img alt="The same “hello” string data from the previous example, now labeled “s1” and grayed out. The “Pin” box from the previous example now points to a different String instance, one that is labeled “s2”, is valid, has a length of 7usize, and contains the characters of the string “goodbye”. s2 is surrounded by a dotted rectangle because it, too, implements the Unpin trait." src="img/trpl17-09.svg" class="center" />
+<figcaption>Figure 17-9: Replacing the `String` with an entirely different `String` in memory</figcaption>
 </figure>
 <p>Now we know enough to understand the errors reported for that <code>join_all</code> call
-from back in Listing 17-17. We originally tried to move the futures produced by
+from back in Listing 17-23. We originally tried to move the futures produced by
 async blocks into a <code>Vec&lt;Box&lt;dyn Future&lt;Output = ()&gt;&gt;&gt;</code>, but as we’ve seen,
-those futures may have internal references, so they don’t implement <code>Unpin</code>.
-They need to be pinned, and then we can pass the <code>Pin</code> type into the <code>Vec</code>,
-confident that the underlying data in the futures will <em>not</em> be moved.</p>
+those futures may have internal references, so they don’t automatically
+implement <code>Unpin</code>. Once we pin them, we can pass the resulting <code>Pin</code> type into
+the <code>Vec</code>, confident that the underlying data in the futures will <em>not</em> be
+moved. Listing 17-24 shows how to fix the code by calling the <code>pin!</code> macro
+where each of the three futures are defined and adjusting the trait object type.</p>
+<Listing number="17-24" caption="Pinning the futures to enable moving them into the vector">
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">extern crate trpl; // required for mdbook test
+</span><span class="boring">
+</span>use std::pin::{Pin, pin};
+
+// --snip--
+
+<span class="boring">use std::time::Duration;
+</span><span class="boring">
+</span><span class="boring">fn main() {
+</span><span class="boring">    trpl::block_on(async {
+</span><span class="boring">        let (tx, mut rx) = trpl::channel();
+</span><span class="boring">
+</span><span class="boring">        let tx1 = tx.clone();
+</span>        let tx1_fut = pin!(async move {
+            // --snip--
+<span class="boring">            let vals = vec![
+</span><span class="boring">                String::from("hi"),
+</span><span class="boring">                String::from("from"),
+</span><span class="boring">                String::from("the"),
+</span><span class="boring">                String::from("future"),
+</span><span class="boring">            ];
+</span><span class="boring">
+</span><span class="boring">            for val in vals {
+</span><span class="boring">                tx1.send(val).unwrap();
+</span><span class="boring">                trpl::sleep(Duration::from_secs(1)).await;
+</span><span class="boring">            }
+</span>        });
+
+        let rx_fut = pin!(async {
+            // --snip--
+<span class="boring">            while let Some(value) = rx.recv().await {
+</span><span class="boring">                println!("received '{value}'");
+</span><span class="boring">            }
+</span>        });
+
+        let tx_fut = pin!(async move {
+            // --snip--
+<span class="boring">            let vals = vec![
+</span><span class="boring">                String::from("more"),
+</span><span class="boring">                String::from("messages"),
+</span><span class="boring">                String::from("for"),
+</span><span class="boring">                String::from("you"),
+</span><span class="boring">            ];
+</span><span class="boring">
+</span><span class="boring">            for val in vals {
+</span><span class="boring">                tx.send(val).unwrap();
+</span><span class="boring">                trpl::sleep(Duration::from_secs(1)).await;
+</span><span class="boring">            }
+</span>        });
+
+        let futures: Vec&lt;Pin&lt;&amp;mut dyn Future&lt;Output = ()&gt;&gt;&gt; =
+            vec![tx1_fut, rx_fut, tx_fut];
+<span class="boring">
+</span><span class="boring">        trpl::join_all(futures).await;
+</span><span class="boring">    });
+</span><span class="boring">}</span></code></pre></pre>
+</Listing>
+<p>This example now compiles and runs, and we could add or remove futures from the
+vector at runtime and join them all.</p>
 <p><code>Pin</code> and <code>Unpin</code> are mostly important for building lower-level libraries, or
 when you’re building a runtime itself, rather than for day-to-day Rust code.
 When you see these traits in error messages, though, now you’ll have a better
@@ -532,23 +666,25 @@ them in other contexts, too.</p>
 to uphold, are covered extensively in the API documentation for <code>std::pin</code>, so
 if you’re interested in learning more, that’s a great place to start.</p>
 <p>If you want to understand how things work under the hood in even more detail,
-see Chapters <a href="https://rust-lang.github.io/async-book/02_execution/01_chapter.html">2</a> and <a href="https://rust-lang.github.io/async-book/04_pinning/01_chapter.html">4</a> of <a href="https://rust-lang.github.io/async-book/"><em>Asynchronous
-Programming in Rust</em></a>.</p>
+see Chapters <a href="https://rust-lang.github.io/async-book/02_execution/01_chapter.html">2</a><!-- ignore --> and
+<a href="https://rust-lang.github.io/async-book/04_pinning/01_chapter.html">4</a><!-- ignore --> of
+<a href="https://rust-lang.github.io/async-book/"><em>Asynchronous Programming in Rust</em></a>.</p>
 </blockquote>
 <h3 id="the-stream-trait"><a class="header" href="#the-stream-trait">The <code>Stream</code> Trait</a></h3>
 <p>Now that you have a deeper grasp on the <code>Future</code>, <code>Pin</code>, and <code>Unpin</code> traits, we
 can turn our attention to the <code>Stream</code> trait. As you learned earlier in the
 chapter, streams are similar to asynchronous iterators. Unlike <code>Iterator</code> and
-<code>Future</code>, however, <code>Stream</code> has no definition in the standard library as of this
-writing, but there <em>is</em> a very common definition from the <code>futures</code> crate used
-throughout the ecosystem.</p>
+<code>Future</code>, however, <code>Stream</code> has no definition in the standard library as of
+this writing, but there <em>is</em> a very common definition from the <code>futures</code> crate
+used throughout the ecosystem.</p>
 <p>Let’s review the definitions of the <code>Iterator</code> and <code>Future</code> traits before
 looking at how a <code>Stream</code> trait might merge them together. From <code>Iterator</code>, we
-have the idea of a sequence: its <code>next</code> method provides an <code>Option&lt;Self::Item&gt;</code>.
-From <code>Future</code>, we have the idea of readiness over time: its <code>poll</code> method
-provides a <code>Poll&lt;Self::Output&gt;</code>. To represent a sequence of items that become
-ready over time, we define a <code>Stream</code> trait that puts those features together:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+have the idea of a sequence: its <code>next</code> method provides an
+<code>Option&lt;Self::Item&gt;</code>. From <code>Future</code>, we have the idea of readiness over time:
+its <code>poll</code> method provides a <code>Poll&lt;Self::Output&gt;</code>. To represent a sequence of
+items that become ready over time, we define a <code>Stream</code> trait that puts those
+features together:</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::pin::Pin;
 use std::task::{Context, Poll};
@@ -574,15 +710,16 @@ checked for readiness, just as a future does. The inner type is <code>Option</co
 because it needs to signal whether there are more messages, just as an iterator
 does.</p>
 <p>Something very similar to this definition will likely end up as part of Rust’s
-standard library. In the meantime, it’s part of the toolkit of most runtimes, so
-you can rely on it, and everything we cover next should generally apply!</p>
-<p>In the example we saw in the section on streaming, though, we didn’t use
-<code>poll_next</code> <em>or</em> <code>Stream</code>, but instead used <code>next</code> and <code>StreamExt</code>. We <em>could</em>
-work directly in terms of the <code>poll_next</code> API by hand-writing our own <code>Stream</code>
-state machines, of course, just as we <em>could</em> work with futures directly via
-their <code>poll</code> method. Using <code>await</code> is much nicer, though, and the <code>StreamExt</code>
-trait supplies the <code>next</code> method so we can do just that:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+standard library. In the meantime, it’s part of the toolkit of most runtimes,
+so you can rely on it, and everything we cover next should generally apply!</p>
+<p>In the examples we saw in the <a href="ch17-04-streams.html">“Streams: Futures in Sequence”</a><!--
+ignore --> section, though, we didn’t use <code>poll_next</code> <em>or</em> <code>Stream</code>, but
+instead used <code>next</code> and <code>StreamExt</code>. We <em>could</em> work directly in terms of the
+<code>poll_next</code> API by hand-writing our own <code>Stream</code> state machines, of course,
+just as we <em>could</em> work with futures directly via their <code>poll</code> method. Using
+<code>await</code> is much nicer, though, and the <code>StreamExt</code> trait supplies the <code>next</code>
+method so we can do just that:</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use std::pin::Pin;
 </span><span class="boring">use std::task::{Context, Poll};

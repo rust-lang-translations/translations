@@ -230,7 +230,7 @@
 <p><code>Rc</code>와 <code>UnsafeCell</code>은 매우 근본적으로 스레드에 안전하지 않습니다. 이들은 동기화되지 않은 공유 가변 상태를 가능하게 합니다. 하지만 엄밀히 말하면 원시 포인터는 일종의 _린트(lint)_로서 스레드에 안전하지 않다고 표시된 것입니다. 원시 포인터로 유용한 작업을 하려면 역참조가 필요한데, 이는 이미 안전하지 않습니다. 그런 의미에서, 원시 포인터를 스레드 세이프하다고 표시해도 "괜찮다"고 주장할 수도 있습니다.</p>
 <p>하지만 원시 포인터를 포함하는 타입들이 자동으로 스레드 세이프하다고 표시되는 것을 방지하기 위해 이들이 스레드에 안전하지 않은 것이 중요합니다. 이러한 타입들은 사소하지 않은 추적되지 않는 소유권을 가지고 있으며, 작성자가 반드시 스레드 안전성에 대해 깊이 고민했을 것 같지는 않습니다. <code>Rc</code>의 경우, <code>*mut</code>를 포함하며 확실히 스레드 세이프하지 않은 타입의 좋은 예입니다.</p>
 <p>자동으로 파생되지 않는 타입들도 원한다면 간단히 이들을 구현할 수 있습니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct MyBox(*mut u8);
 
@@ -238,7 +238,7 @@ unsafe impl Send for MyBox {}
 unsafe impl Sync for MyBox {}
 <span class="boring">}</span></code></pre></pre>
 <p>어떤 타입이 부적절하게 <code>Send</code>나 <code>Sync</code>로 자동 파생되는 <em>믿을 수 없을 정도로 드문</em> 경우에는, <code>Send</code>와 <code>Sync</code> 구현을 제거할 수도 있습니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span>#![feature(negative_impls)]
 
 <span class="boring">fn main() {
@@ -253,13 +253,13 @@ impl !Sync for SpecialThreadToken {}
 <h2 id="예제"><a class="header" href="#예제">예제</a></h2>
 <p><a href="https://doc.rust-lang.org/std/boxed/struct.Box.html"><code>Box</code></a>는 <a href="https://manishearth.github.io/blog/2017/01/10/rust-tidbits-box-is-special/">여러 이유</a>로 인해 컴파일러에 의해 자체적인 특별한 내장 타입으로 구현되어 있지만, <code>Send</code>와 <code>Sync</code>를 구현하는 것이 언제 건전한지에 대한 예를 보기 위해 비슷한 동작을 하는 무언가를 직접 구현해 볼 수 있습니다. 이것을 <code>Carton</code>이라고 부르기로 합시다.</p>
 <p>스택에 할당된 값을 가져와 힙으로 전송하는 코드를 작성하는 것으로 시작합니다.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">pub mod libc {
 </span><span class="boring">   pub use ::std::os::raw::{c_int, c_void};
 </span><span class="boring">   #[allow(non_camel_case_types)]
 </span><span class="boring">   pub type size_t = usize;
-</span><span class="boring">   extern "C" { pub fn posix_memalign(memptr: *mut *mut c_void, align: size_t, size: size_t) -&gt; c_int; }
+</span><span class="boring">   unsafe extern "C" { pub fn posix_memalign(memptr: *mut *mut c_void, align: size_t, size: size_t) -&gt; c_int; }
 </span><span class="boring">}
 </span>use std::{
     mem::{align_of, size_of},
@@ -303,7 +303,7 @@ impl&lt;T&gt; Carton&lt;T&gt; {
 }
 <span class="boring">}</span></code></pre></pre>
 <p>이것은 별로 유용하지 않습니다. 사용자가 우리에게 값을 주면, 그들은 그것에 접근할 방법이 없기 때문입니다. <a href="https://doc.rust-lang.org/std/boxed/struct.Box.html"><code>Box</code></a>는 <a href="https://doc.rust-lang.org/core/ops/trait.Deref.html"><code>Deref</code></a>와 <a href="https://doc.rust-lang.org/core/ops/trait.DerefMut.html"><code>DerefMut</code></a>를 구현하여 내부 값에 접근할 수 있게 합니다. 우리도 그렇게 해봅시다.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::ops::{Deref, DerefMut};
 
@@ -338,7 +338,7 @@ impl&lt;T&gt; DerefMut for Carton&lt;T&gt; {
 }
 <span class="boring">}</span></code></pre></pre>
 <p>마지막으로, 우리의 <code>Carton</code>이 <code>Send</code>이고 <code>Sync</code>인지 생각해 봅시다. 배타적 접근을 강제하지 않으면서 다른 무언가와 가변 상태를 공유하지 않는 한, 어떤 것은 안전하게 <code>Send</code>가 될 수 있습니다. 각 <code>Carton</code>은 유일한 포인터를 가지고 있으므로 문제 없습니다.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct Carton&lt;T&gt;(std::ptr::NonNull&lt;T&gt;);
 </span>// 안전성: 우리 외에는 아무도 원시 포인터를 가지고 있지 않으므로,
@@ -346,7 +346,7 @@ impl&lt;T&gt; DerefMut for Carton&lt;T&gt; {
 unsafe impl&lt;T&gt; Send for Carton&lt;T&gt; where T: Send {}
 <span class="boring">}</span></code></pre></pre>
 <p><code>Sync</code>는 어떨까요? <code>Carton</code>이 <code>Sync</code>가 되려면, 다른 <code>&amp;Carton</code>에서 읽거나 쓰고 있는 동안 <code>&amp;Carton</code>에 저장된 무언가에 쓸 수 없도록 강제해야 합니다. 포인터에 쓰려면 <code>&amp;mut Carton</code>이 필요하고, 대여 검사기가 가변 참조의 배타성을 강제하므로, <code>Carton</code>을 <code>Sync</code>로 만드는 데에도 건전성 문제는 없습니다.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct Carton&lt;T&gt;(std::ptr::NonNull&lt;T&gt;);
 </span>// 안전성: 동기화되지 않은 방식(`Deref` 등)으로 `&amp;Carton&lt;T&gt;`에서 `&amp;T`로 가는
@@ -358,18 +358,18 @@ unsafe impl&lt;T&gt; Send for Carton&lt;T&gt; where T: Send {}
 unsafe impl&lt;T&gt; Sync for Carton&lt;T&gt; where T: Sync  {}
 <span class="boring">}</span></code></pre></pre>
 <p>우리의 타입이 <code>Send</code>이고 <code>Sync</code>라고 주장할 때, 우리는 보통 포함된 모든 타입이 <code>Send</code>이고 <code>Sync</code>임을 강제해야 합니다. 표준 라이브러리 타입처럼 동작하는 사용자 정의 타입을 작성할 때, 우리는 동일한 요구 사항을 갖는다고 주장할 수 있습니다. 예를 들어, 다음 코드는 동일한 종류의 <code>Box</code>가 <code>Send</code>라면 <code>Carton</code>도 <code>Send</code>라고 주장하는데, 이 경우 이는 <code>T</code>가 <code>Send</code>라는 말과 같습니다.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct Carton&lt;T&gt;(std::ptr::NonNull&lt;T&gt;);
 </span>unsafe impl&lt;T&gt; Send for Carton&lt;T&gt; where Box&lt;T&gt;: Send {}
 <span class="boring">}</span></code></pre></pre>
 <p>지금 <code>Carton&lt;T&gt;</code>는 할당한 메모리를 절대 해제하지 않으므로 메모리 누수가 있습니다. 이를 수정하면 <code>Send</code>가 되기 위해 충족해야 할 새로운 요구 사항이 생깁니다. 우리는 다른 스레드에서 수행된 할당으로 얻은 포인터에 대해 <code>free</code>를 호출할 수 있는지 알아야 합니다. <a href="https://linux.die.net/man/3/free"><code>libc::free</code></a> 문서에서 이것이 사실임을 확인할 수 있습니다.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct Carton&lt;T&gt;(std::ptr::NonNull&lt;T&gt;);
 </span><span class="boring">mod libc {
 </span><span class="boring">    pub use ::std::os::raw::c_void;
-</span><span class="boring">    extern "C" { pub fn free(p: *mut c_void); }
+</span><span class="boring">    unsafe extern "C" { pub fn free(p: *mut c_void); }
 </span><span class="boring">}
 </span>impl&lt;T&gt; Drop for Carton&lt;T&gt; {
     fn drop(&amp;mut self) {

@@ -218,15 +218,15 @@
                     <main>
                         <h1 id="Обобщённые-типы-трейты-и-времена-жизни"><a class="header" href="#Обобщённые-типы-трейты-и-времена-жизни">Обобщённые типы, трейты и времена жизни</a></h1>
 <p>Каждый язык программирования имеет в своём арсенале эффективные средства борьбы с дублированием кода. В Rust одним из таких инструментов являются <em>обобщения</em> — абстрактные заместители, на место которых возможно поставить какой-либо конкретный тип или другое свойство. Когда мы пишем код, мы можем выразить поведение обобщений или их связь с другими обобщениями, не зная, что будет использовано на их месте при компиляции и запуске кода.</p>
-<p>Функции могут принимать параметры некоторого обобщённого, а не конкретного типа (вроде <code>i32</code> или <code>String</code>), аналогично тому, что функция принимает параметры с неизвестными заранее значениями, чтобы выполнять одинаковые действия над различными конкретными значениями. На самом деле, мы уже использовали обобщённые типы данных в Главе 6 (<code>Option&lt;T&gt;</code>), в Главе 8 (<code>Vec&lt;T&gt;</code> и <code>HashMap&lt;K, V&gt;</code>) и в Главе 9 (<code>Result&lt;T, E&gt;</code>). В этой главе вы узнаете, как определять собственные обобщённые типы данных, функции и методы.</p>
-<p>Первым делом, мы рассмотрим как для уменьшения дублирования извлечь из кода некоторую общую функциональность. Далее, мы будем использовать тот же механизм для создания обобщённой функции из двух функций, которые отличаются только типами их параметров. Мы также объясним, как использовать обобщённые типы данных при определении структур и перечислений.</p>
-<p>После этого мы изучим, как использовать трейты для определения поведения в обобщённом виде. Можно комбинировать трейты с обобщёнными типами, чтобы обобщённый тип мог принимать только такие типы, которые имеют определённое поведение, а не все подряд.</p>
-<p>В конце мы обсудим <em>времена жизни</em> — разновидность обобщения, которая даёт компилятору информацию о том, как ссылки относятся друг к другу. Времена жизни позволяют нам указать дополнительную информацию о заимствованных значениях, которая позволит компилятору удостовериться в корректности используемых ссылок в тех ситуациях, когда компилятор не может сделать это автоматически.</p>
+<p>Functions can take parameters of some generic type, instead of a concrete type like <code>i32</code> or <code>String</code>, in the same way they take parameters with unknown values to run the same code on multiple concrete values. In fact, we already used generics in Chapter 6 with <code>Option&lt;T&gt;</code>, in Chapter 8 with <code>Vec&lt;T&gt;</code> and <code>HashMap&lt;K, V&gt;</code>, and in Chapter 9 with <code>Result&lt;T, E&gt;</code>. In this chapter, you’ll explore how to define your own types, functions, and methods with generics!</p>
+<p>First, we’ll review how to extract a function to reduce code duplication. We’ll then use the same technique to make a generic function from two functions that differ only in the types of their parameters. We’ll also explain how to use generic types in struct and enum definitions.</p>
+<p>Then, you’ll learn how to use traits to define behavior in a generic way. You can combine traits with generic types to constrain a generic type to accept only those types that have a particular behavior, as opposed to just any type.</p>
+<p>Finally, we’ll discuss <em>lifetimes</em>: a variety of generics that give the compiler information about how references relate to each other. Lifetimes allow us to give the compiler enough information about borrowed values so that it can ensure that references will be valid in more situations than it could without our help.</p>
 <h2 id="Избавление-от-дублирования-кода-с-помощью-выделения-общей-функциональности"><a class="header" href="#Избавление-от-дублирования-кода-с-помощью-выделения-общей-функциональности">Избавление от дублирования кода с помощью выделения общей функциональности</a></h2>
-<p>Обобщения позволяют нам заменять определённые типы заполнителями, представляющими множество типов, чтобы устранять дублирование кода. Прежде чем углубиться в синтаксис обобщений, давайте сначала рассмотрим, как устранить дублирование без использования обобщённых типов, а лишь извлекая функцию, которая заменяет определённые значения заполнителем, представляющим несколько значений. Затем мы применим ту же технику для извлечения обобщённой функции. Изучив, как распознавать повторяющийся код, который вы можете извлечь в функцию, вы начнёте распознавать повторяющийся код, в котором могут использоваться обобщения.</p>
+<p>Generics allow us to replace specific types with a placeholder that represents multiple types to remove code duplication. Before diving into generics syntax, let’s first look at how to remove duplication in a way that doesn’t involve generic types by extracting a function that replaces specific values with a placeholder that represents multiple values. Then, we’ll apply the same technique to extract a generic function! By looking at how to recognize duplicated code you can extract into a function, you’ll start to recognize duplicated code that can use generics.</p>
 <p>Начнём с короткой программы в Листинге 10-1, которая находит наибольшее число в списке.</p>
 <Listing number="10-1" file-name="src/main.rs" caption="Finding the largest number in a list of numbers">
-<pre><pre class="playground"><code class="language-rust edition2021">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024">fn main() {
     let number_list = vec![34, 50, 25, 100, 65];
 
     let mut largest = &amp;number_list[0];
@@ -244,7 +244,7 @@
 <p>Мы храним список целых чисел в переменной <code>number_list</code> и помещаем первое значение из списка в переменную <code>largest</code>. Далее, перебираем все элементы списка, и, если текущий элемент больше числа, сохранённого в переменной <code>largest</code>, заменяем им значение в этой переменной. Если текущий элемент меньше или равен наибольшему, найденному ранее, значение переменной оставлям прежним и переходим к следующему элементу списка. После перебора всех элементов списка переменная <code>largest</code> должна содержать наибольшее значение, которое в нашем случае будет равно 100.</p>
 <p>Теперь перед нами стоит задача найти наибольшее число в двух разных списках. Для этого мы можем дублировать код из Листинга 10-1 и использовать ту же логику в двух разных местах программы, как показано в Листинге 10-2.</p>
 <Listing number="10-2" file-name="src/main.rs" caption="Code to find the largest number in *two* lists of numbers">
-<pre><pre class="playground"><code class="language-rust edition2021">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024">fn main() {
     let number_list = vec![34, 50, 25, 100, 65];
 
     let mut largest = &amp;number_list[0];
@@ -270,11 +270,11 @@
     println!("Наибольшее число: {largest}");
 }</code></pre></pre>
 </Listing>
-<p>Несмотря на то, что код программы работает, дублирование кода утомительно и подвержено опечаткам. Кроме того, при внесении изменений мы должны не забыть обновить каждое место, где код дублируется.</p>
+<p>Although this code works, duplicating code is tedious and error-prone. We also have to remember to update the code in multiple places when we want to change it.</p>
 <p>Для устранения дублирования мы можем создать дополнительную абстракцию с помощью функции, которая сможет работать с любым списком целых чисел, переданным ей в качестве входного параметра, и находить для этого списка наибольшее число. Данное решение делает код более ясным и позволяет абстрактным образом реализовать алгоритм поиска наибольшего числа в списке.</p>
-<p>В Листинге 10-3 мы извлекаем код, который находит наибольшее число, в функцию <code>largest</code>. Затем мы вызываем функцию, чтобы найти наибольшее число в двух списках из Листинга 10-2. Мы также можем использовать эту функцию для любого другого списка значений <code>i32</code>, который может встретиться позже.</p>
+<p>In Listing 10-3, we extract the code that finds the largest number into a function named <code>largest</code>. Then, we call the function to find the largest number in the two lists from Listing 10-2. We could also use the function on any other list of <code>i32</code> values we might have in the future.</p>
 <Listing number="10-3" file-name="src/main.rs" caption="Abstracted code to find the largest number in two lists">
-<pre><pre class="playground"><code class="language-rust edition2021">fn largest(list: &amp;[i32]) -&gt; &amp;i32 {
+<pre><pre class="playground"><code class="language-rust edition2024">fn largest(list: &amp;[i32]) -&gt; &amp;i32 {
     let mut largest = &amp;list[0];
 
     for item in list {

@@ -223,7 +223,7 @@
 <p><strong>러스트 1.0에서는 이러한 동작을 방지할 수 있는 안정적인 방법이 없습니다.</strong></p>
 <p><code>&amp;mut self</code>를 받는다는 것은, 설령 재귀적 드롭을 억제할 수 있다 하더라도 러스트가 예를 들어 <code>self</code>에서 필드를 밖으로 이동시키는 행위 등을 방지할 것임을 의미합니다. 대부분의 타입에 대해서는 이것으로 충분히 괜찮습니다.</p>
 <p>예를 들어, <code>Box</code>의 커스텀 구현은 다음과 같이 <code>Drop</code>을 작성할 수 있습니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">#![feature(ptr_internals, allocator_api)]
+<pre><pre class="playground"><code class="language-rust edition2024">#![feature(ptr_internals, allocator_api)]
 
 use std::alloc::{Allocator, Global, GlobalAlloc, Layout};
 use std::mem;
@@ -243,7 +243,7 @@ impl&lt;T&gt; Drop for Box&lt;T&gt; {
 <span class="boring">fn main() {}</span></code></pre></pre>
 <p>그리고 이는 잘 작동합니다. 러스트가 <code>ptr</code> 필드를 드롭하러 갈 때, 실제 <code>Drop</code> 구현이 없는 <a href="phantom-data.html">Unique</a>만을 보게 되기 때문입니다. 마찬가지로 <code>drop</code>이 종료되면 <code>ptr</code>에 접근할 수 없게 되므로, 아무도 그것을 해제 후 사용(use-after-free)할 수 없습니다.</p>
 <p>하지만 다음과 같은 코드는 작동하지 않을 것입니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">#![feature(allocator_api, ptr_internals)]
+<pre><pre class="playground"><code class="language-rust edition2024">#![feature(allocator_api, ptr_internals)]
 
 use std::alloc::{Allocator, Global, GlobalAlloc, Layout};
 use std::ptr::{drop_in_place, Unique, NonNull};
@@ -276,7 +276,7 @@ impl&lt;T&gt; Drop for SuperBox&lt;T&gt; {
 <span class="boring">fn main() {}</span></code></pre></pre>
 <p><code>SuperBox</code>의 소멸자에서 <code>box</code>의 포인터를 해제한 후에도, 러스트는 기꺼이 <code>box</code>에게 스스로를 <code>Drop</code>하라고 지시할 것입니다. 그러면 모든 것이 해제 후 사용(use-after-frees) 및 이중 해제(double-frees)로 인해 폭발할 것입니다.</p>
 <p>재귀적 드롭 동작은 <code>Drop</code> 구현 여부와 관계없이 모든 구조체와 열거형에 적용된다는 점에 유의하세요. 따라서 다음과 같은 경우</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Boxy&lt;T&gt; {
     data1: Box&lt;T&gt;,
@@ -286,7 +286,7 @@ impl&lt;T&gt; Drop for SuperBox&lt;T&gt; {
 <span class="boring">}</span></code></pre></pre>
 <p>자체적으로 <code>Drop</code>을 구현하지 않았더라도, 그것이 드롭될 "상황"이 되면 <code>data1</code>과 <code>data2</code> 필드의 소멸자가 호출될 것입니다. 우리는 이러한 타입을 스스로가 <code>Drop</code>은 아닐지라도 <em>드롭이 필요한(needs Drop)</em> 타입이라고 부릅니다.</p>
 <p>마찬가지로,</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>enum Link {
     Next(Box&lt;Link&gt;),
@@ -296,7 +296,7 @@ impl&lt;T&gt; Drop for SuperBox&lt;T&gt; {
 <p>인스턴스가 <code>Next</code> 변형(variant)을 저장하고 있을 때만 내부의 <code>Box</code> 필드가 드롭될 것입니다.</p>
 <p>일반적으로 이는 데이터 레이아웃을 리팩토링할 때 드롭을 추가하거나 제거하는 것에 대해 걱정할 필요가 없게 해주므로 매우 훌륭하게 작동합니다. 하지만 소멸자를 사용해 더 까다로운 작업을 수행해야 하는 유효한 사용 사례들도 분명히 존재합니다.</p>
 <p>재귀적 드롭을 재정의하고 <code>drop</code> 중에 <code>Self</code>로부터 필드를 밖으로 이동시키는 것을 허용하는 전형적인 안전한 해결책은 <code>Option</code>을 사용하는 것입니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">#![feature(allocator_api, ptr_internals)]
+<pre><pre class="playground"><code class="language-rust edition2024">#![feature(allocator_api, ptr_internals)]
 
 use std::alloc::{Allocator, GlobalAlloc, Global, Layout};
 use std::ptr::{drop_in_place, Unique, NonNull};

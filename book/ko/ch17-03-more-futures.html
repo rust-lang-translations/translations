@@ -216,448 +216,19 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="임의의-수의-퓨처와-작업하기"><a class="header" href="#임의의-수의-퓨처와-작업하기">임의의 수의 퓨처와 작업하기</a></h2>
-<p>이전 섹션에서 두 개의 퓨처를 사용하다 세 개로 전환했을 때, <code>join</code>을 사용하는 대신 <code>join3</code>을 사용하도록 전환해야 했습니다. 조인하려는 퓨처의 개수를 변경할 때마다 다른 함수를 호출해야 한다면 번거로울 것입니다. 다행히도 우리는 임의의 수의 인수를 전달할 수 있는 매크로 형태의 <code>join</code>을 가지고 있습니다. 또한 이 매크로는 스스로 퓨처를 기다리는(await) 과정을 처리합니다. 따라서 목록 17-14에서와 같이 <code>join3</code> 대신 <code>join!</code>을 사용하도록 목록 17-13의 코드를 다시 작성할 수 있습니다.</p>
-<Listing number="17-14" caption="Using `join!` to wait for multiple futures" file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
-</span><span class="boring">
-</span><span class="boring">use std::time::Duration;
-</span><span class="boring">
-</span><span class="boring">fn main() {
-</span><span class="boring">    trpl::run(async {
-</span><span class="boring">        let (tx, mut rx) = trpl::channel();
-</span><span class="boring">
-</span><span class="boring">        let tx1 = tx.clone();
-</span><span class="boring">        let tx1_fut = async move {
-</span><span class="boring">            let vals = vec![
-</span><span class="boring">                String::from("안녕"),
-</span><span class="boring">                String::from("from"),
-</span><span class="boring">                String::from("the"),
-</span><span class="boring">                String::from("future"),
-</span><span class="boring">            ];
-</span><span class="boring">
-</span><span class="boring">            for val in vals {
-</span><span class="boring">                tx1.send(val).unwrap();
-</span><span class="boring">                trpl::sleep(Duration::from_secs(1)).await;
-</span><span class="boring">            }
-</span><span class="boring">        };
-</span><span class="boring">
-</span><span class="boring">        let rx_fut = async {
-</span><span class="boring">            while let Some(value) = rx.recv().await {
-</span><span class="boring">                println!("received '{value}'");
-</span><span class="boring">            }
-</span><span class="boring">        };
-</span><span class="boring">
-</span><span class="boring">        let tx_fut = async move {
-</span><span class="boring">            let vals = vec![
-</span><span class="boring">                String::from("more"),
-</span><span class="boring">                String::from("messages"),
-</span><span class="boring">                String::from("for"),
-</span><span class="boring">                String::from("you"),
-</span><span class="boring">            ];
-</span><span class="boring">
-</span><span class="boring">            for val in vals {
-</span><span class="boring">                tx.send(val).unwrap();
-</span><span class="boring">                trpl::sleep(Duration::from_secs(1)).await;
-</span><span class="boring">            }
-</span><span class="boring">        };
-</span><span class="boring">
-</span>        trpl::join!(tx1_fut, tx_fut, rx_fut);
-<span class="boring">    });
-</span><span class="boring">}</span></code></pre></pre>
-</Listing>
-<p><code>join</code>, <code>join3</code>, <code>join4</code> 등을 번갈아 가며 사용하는 것보다 확실히 개선된 방식입니다! 하지만 이 매크로 형태조차도 퓨처의 개수를 미리 알고 있을 때만 작동합니다. 하지만 실제 러스트에서는 퓨처를 컬렉션에 넣고 그 중 일부 또는 전부가 완료되기를 기다리는 것이 일반적인 패턴입니다.</p>
-<p>어떤 컬렉션에 있는 모든 퓨처를 확인하려면, 그것들을 반복(iterate)하고 <em>모두</em> 조인해야 합니다. <code>trpl::join_all</code> 함수는 13장의 <a href="ch13-02-iterators.html#the-iterator-trait-and-the-next-method">Iterator 트레이트와 next 메서드</a><!-- ignore -->에서 배운 <code>Iterator</code> 트레이트를 구현하는 모든 타입을 받아들이므로, 바로 우리가 찾던 것입니다. 목록 17-15와 같이 퓨처를 벡터에 넣고 <code>join!</code>을 <code>join_all</code>로 교체해 봅시다.</p>
-<Listing  number="17-15" caption="Storing anonymous futures in a vector and calling `join_all`">
-<pre><code class="language-rust ignore does_not_compile"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
-</span><span class="boring">
-</span><span class="boring">use std::time::Duration;
-</span><span class="boring">
-</span><span class="boring">fn main() {
-</span><span class="boring">    trpl::run(async {
-</span><span class="boring">        let (tx, mut rx) = trpl::channel();
-</span><span class="boring">
-</span><span class="boring">        let tx1 = tx.clone();
-</span><span class="boring">        let tx1_fut = async move {
-</span><span class="boring">            let vals = vec![
-</span><span class="boring">                String::from("안녕"),
-</span><span class="boring">                String::from("from"),
-</span><span class="boring">                String::from("the"),
-</span><span class="boring">                String::from("future"),
-</span><span class="boring">            ];
-</span><span class="boring">
-</span><span class="boring">            for val in vals {
-</span><span class="boring">                tx1.send(val).unwrap();
-</span><span class="boring">                trpl::sleep(Duration::from_secs(1)).await;
-</span><span class="boring">            }
-</span><span class="boring">        };
-</span><span class="boring">
-</span><span class="boring">        let rx_fut = async {
-</span><span class="boring">            while let Some(value) = rx.recv().await {
-</span><span class="boring">                println!("received '{value}'");
-</span><span class="boring">            }
-</span><span class="boring">        };
-</span><span class="boring">
-</span><span class="boring">        let tx_fut = async move {
-</span><span class="boring">            let vals = vec![
-</span><span class="boring">                String::from("more"),
-</span><span class="boring">                String::from("messages"),
-</span><span class="boring">                String::from("for"),
-</span><span class="boring">                String::from("you"),
-</span><span class="boring">            ];
-</span><span class="boring">
-</span><span class="boring">            for val in vals {
-</span><span class="boring">                tx.send(val).unwrap();
-</span><span class="boring">                trpl::sleep(Duration::from_secs(1)).await;
-</span><span class="boring">            }
-</span><span class="boring">        };
-</span><span class="boring">
-</span>        let futures = vec![tx1_fut, rx_fut, tx_fut];
-
-        trpl::join_all(futures).await;
-<span class="boring">    });
-</span><span class="boring">}</span></code></pre>
-</Listing>
-<p>불행히도 이 코드는 컴파일되지 않습니다. 대신 다음과 같은 에러가 발생합니다:</p>
-<!-- manual-regeneration
-cd listings/ch17-async-await/listing-17-15/
-cargo build
-copy just the compiler error
--->
-<pre><code class="language-text">error[E0308]: mismatched types
-  --&gt; src/main.rs:45:37
-   |
-10 |         let tx1_fut = async move {
-   |                       ---------- the expected `async` block
-...
-24 |         let rx_fut = async {
-   |                      ----- the found `async` block
-...
-45 |         let futures = vec![tx1_fut, rx_fut, tx_fut];
-   |                                     ^^^^^^ expected `async` block, found a 
-different `async` block
-   |
-   = note: expected `async` block `{async block@src/main.rs:10:23: 10:33}`
-              found `async` block `{async block@src/main.rs:24:22: 24:27}`
-   = note: no two async blocks, even if identical, have the same type
-   = help: consider pinning your async block and casting it to a trait object
-</code></pre>
-<p>이것은 놀라운 일일 수도 있습니다. 결국 어떤 비동기 블록도 아무것도 반환하지 않으므로, 각각은 <code>Future&lt;Output = ()&gt;</code>를 생성합니다. 하지만 <code>Future</code>는 트레이트이며, 컴파일러는 각 비동기 블록에 대해 고유한 열거형을 생성한다는 점을 기억하세요. 두 개의 서로 다른 수동 작성 구조체를 <code>Vec</code>에 넣을 수 없는 것처럼, 컴파일러가 생성한 서로 다른 열거형에도 동일한 규칙이 적용됩니다.</p>
-<p>이를 작동시키려면 12장의 <a href="ch12-03-improving-error-handling-and-modularity.html">“run 함수에서 에러 반환하기”</a><!-- ignore -->에서 했던 것처럼 _트레이트 객체(trait objects)_를 사용해야 합니다. (18장에서 트레이트 객체에 대해 자세히 다룰 것입니다.) 트레이트 객체를 사용하면 이러한 타입들에 의해 생성된 각각의 익명 퓨처들을 동일한 타입으로 취급할 수 있는데, 이는 그것들이 모두 <code>Future</code> 트레이트를 구현하기 때문입니다.</p>
-<blockquote>
-<p>참고: 8장의 <a href="ch12-03-improving-error-handling-and-modularity.html#returning-errors-from-the-run-function">열거형을 사용하여 여러 타입 저장하기</a><!-- ignore --> 섹션에서, 우리는 <code>Vec</code>에 여러 타입을 포함시키는 또 다른 방법인 벡터에 나타날 수 있는 각 타입을 나타내는 열거형을 사용하는 것에 대해 논의했습니다. 하지만 여기서는 그렇게 할 수 없습니다. 우선, 각 타입이 익명이기 때문에 이름을 지정할 방법이 없습니다. 또한, 우리가 애초에 벡터와 <code>join_all</code>을 사용하려 했던 이유는 출력 타입이 동일하다는 점만 중요하게 여기는 동적인 퓨처 컬렉션으로 작업할 수 있기 때문이었습니다.</p>
-</blockquote>
-<p>목록 17-16과 같이 <code>vec!</code> 안의 각 퓨처를 <code>Box::new</code>로 감싸는 것으로 시작합니다.</p>
-<Listing number="17-16" caption="Using `Box::new` to align the types of the futures in a `Vec`" file-name="src/main.rs">
-<pre><code class="language-rust ignore does_not_compile"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
-</span><span class="boring">
-</span><span class="boring">use std::time::Duration;
-</span><span class="boring">
-</span><span class="boring">fn main() {
-</span><span class="boring">    trpl::run(async {
-</span><span class="boring">        let (tx, mut rx) = trpl::channel();
-</span><span class="boring">
-</span><span class="boring">        let tx1 = tx.clone();
-</span><span class="boring">        let tx1_fut = async move {
-</span><span class="boring">            let vals = vec![
-</span><span class="boring">                String::from("안녕"),
-</span><span class="boring">                String::from("from"),
-</span><span class="boring">                String::from("the"),
-</span><span class="boring">                String::from("future"),
-</span><span class="boring">            ];
-</span><span class="boring">
-</span><span class="boring">            for val in vals {
-</span><span class="boring">                tx1.send(val).unwrap();
-</span><span class="boring">                trpl::sleep(Duration::from_secs(1)).await;
-</span><span class="boring">            }
-</span><span class="boring">        };
-</span><span class="boring">
-</span><span class="boring">        let rx_fut = async {
-</span><span class="boring">            while let Some(value) = rx.recv().await {
-</span><span class="boring">                println!("received '{value}'");
-</span><span class="boring">            }
-</span><span class="boring">        };
-</span><span class="boring">
-</span><span class="boring">        let tx_fut = async move {
-</span><span class="boring">            let vals = vec![
-</span><span class="boring">                String::from("more"),
-</span><span class="boring">                String::from("messages"),
-</span><span class="boring">                String::from("for"),
-</span><span class="boring">                String::from("you"),
-</span><span class="boring">            ];
-</span><span class="boring">
-</span><span class="boring">            for val in vals {
-</span><span class="boring">                tx.send(val).unwrap();
-</span><span class="boring">                trpl::sleep(Duration::from_secs(1)).await;
-</span><span class="boring">            }
-</span><span class="boring">        };
-</span><span class="boring">
-</span>        let futures =
-            vec![Box::new(tx1_fut), Box::new(rx_fut), Box::new(tx_fut)];
-
-        trpl::join_all(futures).await;
-<span class="boring">    });
-</span><span class="boring">}</span></code></pre>
-</Listing>
-<p>불행히도 이 코드는 여전히 컴파일되지 않습니다. 사실, 우리는 두 번째와 세 번째 <code>Box::new</code> 호출 모두에 대해 이전에 발생했던 것과 동일한 기본적인 에러와, <code>Unpin</code> 트레이트를 언급하는 새로운 에러를 받게 됩니다. <code>Unpin</code> 에러에 대해서는 잠시 후에 다시 다루겠습니다. 먼저, <code>futures</code> 변수의 타입을 명시적으로 어노테이션하여 <code>Box::new</code> 호출에 대한 타입 에러를 수정해 봅시다(목록 17-17 참조).</p>
-<Listing number="17-17" caption="Fixing the rest of the type mismatch errors by using an explicit type declaration" file-name="src/main.rs">
-<pre><code class="language-rust ignore does_not_compile"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
-</span><span class="boring">
-</span><span class="boring">use std::{future::Future, time::Duration};
-</span><span class="boring">
-</span><span class="boring">fn main() {
-</span><span class="boring">    trpl::run(async {
-</span><span class="boring">        let (tx, mut rx) = trpl::channel();
-</span><span class="boring">
-</span><span class="boring">        let tx1 = tx.clone();
-</span><span class="boring">        let tx1_fut = async move {
-</span><span class="boring">            let vals = vec![
-</span><span class="boring">                String::from("안녕"),
-</span><span class="boring">                String::from("from"),
-</span><span class="boring">                String::from("the"),
-</span><span class="boring">                String::from("future"),
-</span><span class="boring">            ];
-</span><span class="boring">
-</span><span class="boring">            for val in vals {
-</span><span class="boring">                tx1.send(val).unwrap();
-</span><span class="boring">                trpl::sleep(Duration::from_secs(1)).await;
-</span><span class="boring">            }
-</span><span class="boring">        };
-</span><span class="boring">
-</span><span class="boring">        let rx_fut = async {
-</span><span class="boring">            while let Some(value) = rx.recv().await {
-</span><span class="boring">                println!("received '{value}'");
-</span><span class="boring">            }
-</span><span class="boring">        };
-</span><span class="boring">
-</span><span class="boring">        let tx_fut = async move {
-</span><span class="boring">            let vals = vec![
-</span><span class="boring">                String::from("more"),
-</span><span class="boring">                String::from("messages"),
-</span><span class="boring">                String::from("for"),
-</span><span class="boring">                String::from("you"),
-</span><span class="boring">            ];
-</span><span class="boring">
-</span><span class="boring">            for val in vals {
-</span><span class="boring">                tx.send(val).unwrap();
-</span><span class="boring">                trpl::sleep(Duration::from_secs(1)).await;
-</span><span class="boring">            }
-</span><span class="boring">        };
-</span><span class="boring">
-</span>        let futures: Vec&lt;Box&lt;dyn Future&lt;Output = ()&gt;&gt;&gt; =
-            vec![Box::new(tx1_fut), Box::new(rx_fut), Box::new(tx_fut)];
-<span class="boring">
-</span><span class="boring">        trpl::join_all(futures).await;
-</span><span class="boring">    });
-</span><span class="boring">}</span></code></pre>
-</Listing>
-<p>이 타입 선언은 조금 복잡하므로, 하나씩 살펴봅시다:</p>
-<ol>
-<li>가장 안쪽의 타입은 퓨처 그 자체입니다. <code>Future&lt;Output = ()&gt;</code>라고 작성하여 퓨처의 출력이 유닛 타입 <code>()</code>임을 명시적으로 나타냅니다.</li>
-<li>그런 다음 트레이트에 <code>dyn</code>을 어노테이션하여 동적(dynamic)임을 표시합니다.</li>
-<li>전체 트레이트 참조는 <code>Box</code>로 감싸져 있습니다.</li>
-<li>마지막으로, <code>futures</code>가 이러한 항목들을 포함하는 <code>Vec</code>임을 명시적으로 선언합니다.</li>
-</ol>
-<p>그것만으로도 큰 차이가 생겼습니다. 이제 컴파일러를 실행하면 <code>Unpin</code>을 언급하는 에러만 발생합니다. 에러가 세 개나 되지만, 그 내용은 매우 유사합니다.</p>
-<!-- manual-regeneration
-cd listings/ch17-async-await/listing-17-16
-cargo build
-# copy *only* the errors
-# fix the paths
--->
-<p>29 |     F: Future, |        ^^^^^^ <code>JoinAll</code>의 이 바운드에 의해 요구됨</p>
-<pre><code></code></pre>
-<p>소화해야 할 내용이 꽤 많으므로, 하나씩 쪼개어 봅시다. 메시지의 첫 번째 부분은 첫 번째 비동기 블록(<code>src/main.rs:8:23: 20:10</code>)이 <code>Unpin</code> 트레이트를 구현하지 않았음을 알려주고, 이를 해결하기 위해 <code>pin!</code>이나 <code>Box::pin</code>을 사용할 것을 제안합니다. 이 장의 뒷부분에서 <code>Pin</code>과 <code>Unpin</code>에 대한 세부 사항을 좀 더 깊이 파헤쳐 볼 것입니다. 하지만 지금은 일단 막힌 부분을 뚫기 위해 컴파일러의 조언을 따르기로 합시다. 목록 17-18에서는 먼저 각 <code>Box</code>를 <code>Pin</code>으로 감싸도록 <code>futures</code>의 타입 어노테이션을 업데이트하는 것으로 시작합니다. 두 번째로, 퓨처 자체를 피닝하기 위해 <code>Box::pin</code>을 사용합니다.</p>
-<Listing number="17-18" caption="Using `Pin` and `Box::pin` to make the `Vec` type check" file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
-</span><span class="boring">
-</span><span class="boring">use std::{
-</span><span class="boring">    future::Future,
-</span><span class="boring">    pin::{pin, Pin},
-</span><span class="boring">    time::Duration,
-</span><span class="boring">};
-</span><span class="boring">
-</span><span class="boring">fn main() {
-</span><span class="boring">    trpl::run(async {
-</span><span class="boring">        let (tx, mut rx) = trpl::channel();
-</span><span class="boring">
-</span><span class="boring">        let tx1 = tx.clone();
-</span><span class="boring">        let tx1_fut = pin!(async move {
-</span><span class="boring">            let vals = vec![
-</span><span class="boring">                String::from("안녕"),
-</span><span class="boring">                String::from("from"),
-</span><span class="boring">                String::from("the"),
-</span><span class="boring">                String::from("future"),
-</span><span class="boring">            ];
-</span><span class="boring">
-</span><span class="boring">            for val in vals {
-</span><span class="boring">                tx1.send(val).unwrap();
-</span><span class="boring">                trpl::sleep(Duration::from_secs(1)).await;
-</span><span class="boring">            }
-</span><span class="boring">        });
-</span><span class="boring">
-</span><span class="boring">        let rx_fut = pin!(async {
-</span><span class="boring">            while let Some(value) = rx.recv().await {
-</span><span class="boring">                println!("received '{value}'");
-</span><span class="boring">            }
-</span><span class="boring">        });
-</span><span class="boring">
-</span><span class="boring">        let tx_fut = pin!(async move {
-</span><span class="boring">            let vals = vec![
-</span><span class="boring">                String::from("more"),
-</span><span class="boring">                String::from("messages"),
-</span><span class="boring">                String::from("for"),
-</span><span class="boring">                String::from("you"),
-</span><span class="boring">            ];
-</span><span class="boring">
-</span><span class="boring">            for val in vals {
-</span><span class="boring">                tx.send(val).unwrap();
-</span><span class="boring">                trpl::sleep(Duration::from_secs(1)).await;
-</span><span class="boring">            }
-</span><span class="boring">        });
-</span><span class="boring">
-</span>        let futures: Vec&lt;Pin&lt;Box&lt;dyn Future&lt;Output = ()&gt;&gt;&gt;&gt; =
-            vec![Box::pin(tx1_fut), Box::pin(rx_fut), Box::pin(tx_fut)];
-<span class="boring">
-</span><span class="boring">        trpl::join_all(futures).await;
-</span><span class="boring">    });
-</span><span class="boring">}</span></code></pre></pre>
-</Listing>
-<p>이를 컴파일하고 실행하면, 마침내 우리가 원하던 출력을 얻게 됩니다:</p>
-<!-- Not extracting output because changes to this output aren't significant;
-the changes are likely to be due to the threads running differently rather than
-changes in the compiler -->
-<pre><code class="language-text">received 'hi'
-received 'more'
-received 'from'
-received 'messages'
-received 'the'
-received 'for'
-received 'future'
-received 'you'
-</code></pre>
-<p>휴!</p>
-<p>여기서 더 탐구해 볼 내용이 좀 더 있습니다. 우선, <code>Pin&lt;Box&lt;T&gt;&gt;</code>를 사용하는 것은 이 퓨처들을 <code>Box</code>로 힙에 넣음으로써 약간의 오버헤드를 추가합니다. 그리고 우리는 단지 타입을 맞추기 위해 그렇게 하고 있는 것입니다. 결국 우리는 실제로 힙 할당이 필요하지 않습니다: 이 퓨처들은 이 특정 함수에 로컬인 것들이기 때문입니다. 앞에서 언급했듯이, <code>Pin</code> 자체도 래퍼 타입이므로, 힙 할당을 하지 않고도 <code>Vec</code>에 단일 타입을 가질 수 있는 이점(<code>Box</code>를 선택했던 원래 이유)을 얻을 수 있습니다. <code>std::pin::pin</code> 매크로를 사용하여 각 퓨처에 <code>Pin</code>을 직접 사용할 수 있습니다.</p>
-<p>하지만 피닝된 참조의 타입을 여전히 명시해야 합니다. 그렇지 않으면 러스트는 여전히 이것들을 <code>Vec</code>에 필요한 동적 트레이트 객체로 해석하는 방법을 알지 못할 것입니다. 따라서 목록 17-19와 같이 각 퓨처를 정의할 때 <code>pin!</code>을 수행하고, <code>futures</code>를 동적 퓨처 타입에 대한 피닝된 가변 참조를 포함하는 <code>Vec</code>으로 정의합니다.</p>
-<Listing number="17-19" caption="Using `Pin` directly with the `pin!` macro to avoid unnecessary heap allocations" file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
-</span><span class="boring">
-</span><span class="boring">use std::{
-</span><span class="boring">    future::Future,
-</span><span class="boring">    pin::{pin, Pin},
-</span><span class="boring">    time::Duration,
-</span><span class="boring">};
-</span><span class="boring">
-</span><span class="boring">fn main() {
-</span><span class="boring">    trpl::run(async {
-</span><span class="boring">        let (tx, mut rx) = trpl::channel();
-</span><span class="boring">
-</span><span class="boring">        let tx1 = tx.clone();
-</span>        let tx1_fut = pin!(async move {
-            // --생략--
-<span class="boring">            let vals = vec![
-</span><span class="boring">                String::from("안녕"),
-</span><span class="boring">                String::from("from"),
-</span><span class="boring">                String::from("the"),
-</span><span class="boring">                String::from("future"),
-</span><span class="boring">            ];
-</span><span class="boring">
-</span><span class="boring">            for val in vals {
-</span><span class="boring">                tx1.send(val).unwrap();
-</span><span class="boring">                trpl::sleep(Duration::from_secs(1)).await;
-</span><span class="boring">            }
-</span>        });
-
-        let rx_fut = pin!(async {
-            // --생략--
-<span class="boring">            while let Some(value) = rx.recv().await {
-</span><span class="boring">                println!("received '{value}'");
-</span><span class="boring">            }
-</span>        });
-
-        let tx_fut = pin!(async move {
-            // --생략--
-<span class="boring">            let vals = vec![
-</span><span class="boring">                String::from("more"),
-</span><span class="boring">                String::from("messages"),
-</span><span class="boring">                String::from("for"),
-</span><span class="boring">                String::from("you"),
-</span><span class="boring">            ];
-</span><span class="boring">
-</span><span class="boring">            for val in vals {
-</span><span class="boring">                tx.send(val).unwrap();
-</span><span class="boring">                trpl::sleep(Duration::from_secs(1)).await;
-</span><span class="boring">            }
-</span>        });
-
-        let futures: Vec&lt;Pin&lt;&amp;mut dyn Future&lt;Output = ()&gt;&gt;&gt; =
-            vec![tx1_fut, rx_fut, tx_fut];
-<span class="boring">
-</span><span class="boring">        trpl::join_all(futures).await;
-</span><span class="boring">    });
-</span><span class="boring">}</span></code></pre></pre>
-</Listing>
-<p>우리는 서로 다른 <code>Output</code> 타입을 가질 수 있다는 사실을 무시한 채 여기까지 왔습니다. 예를 들어, 목록 17-20에서 <code>a</code>에 대한 익명 퓨처는 <code>Future&lt;Output = u32&gt;</code>를 구현하고, <code>b</code>에 대한 익명 퓨처는 <code>Future&lt;Output = &amp;str&gt;</code>를 구현하며, <code>c</code>에 대한 익명 퓨처는 <code>Future&lt;Output = bool&gt;</code>를 구현합니다.</p>
-<Listing number="17-20" caption="Three futures with distinct types" file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
-</span><span class="boring">
-</span><span class="boring">fn main() {
-</span><span class="boring">    trpl::run(async {
-</span>        let a = async { 1u32 };
-        let b = async { "Hello!" };
-        let c = async { true };
-
-        let (a_result, b_result, c_result) = trpl::join!(a, b, c);
-        println!("{a_result}, {b_result}, {c_result}");
-<span class="boring">    });
-</span><span class="boring">}</span></code></pre></pre>
-</Listing>
-<p><code>trpl::join!</code>은 여러 퓨처 타입을 전달할 수 있게 해주고 그 타입들의 튜플을 생성하므로, 이를 사용하여 그것들을 기다릴 수 있습니다. <code>trpl::join_all</code>은 전달된 모든 퓨처가 동일한 타입을 가질 것을 요구하기 때문에 사용할 수 <em>없습니다</em>. 기억하세요, 그 에러가 바로 우리를 <code>Pin</code>과 함께하는 이 모험으로 이끌었던 것입니다!</p>
-<p>이것은 근본적인 트레이드오프입니다: 우리는 모든 퓨처가 동일한 타입을 가지고 있는 한 <code>join_all</code>로 동적인 수의 퓨처를 처리하거나, 타입이 다르더라도 <code>join</code> 함수들이나 <code>join!</code> 매크로를 사용하여 정해진 수의 퓨처를 처리할 수 있습니다. 이것은 러스트에서 다른 타입을 다룰 때 직면하게 되는 것과 동일한 시나리오입니다. 퓨처를 다루기 위한 몇 가지 멋진 문법이 있기는 하지만, 퓨처가 특별한 것은 아니며, 그것은 좋은 일입니다.</p>
-<h3 id="퓨처-경쟁시키기"><a class="header" href="#퓨처-경쟁시키기">퓨처 경쟁시키기</a></h3>
-<p>우리가 <code>join</code> 계열의 함수나 매크로로 퓨처들을 "조인"할 때는, 다음으로 넘어가기 전에 그것들이 <em>모두</em> 끝나기를 요구합니다. 하지만 가끔은 다음으로 넘어가기 전에 세트 중 <em>일부</em> 퓨처만 끝나면 되는 경우도 있는데, 이는 한 퓨처를 다른 퓨처와 경쟁시키는 것과 비슷합니다.</p>
-<p>목록 17-21에서 우리는 다시 한번 <code>trpl::race</code>를 사용하여 <code>slow</code>와 <code>fast</code>라는 두 개의 퓨처를 서로 경쟁시킵니다.</p>
-<Listing number="17-21" caption="Using `race` to get the result of whichever future finishes first" file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
-</span><span class="boring">
-</span><span class="boring">use std::time::Duration;
-</span><span class="boring">
-</span><span class="boring">fn main() {
-</span><span class="boring">    trpl::run(async {
-</span>        let slow = async {
-            println!("'slow' 시작됨.");
-            trpl::sleep(Duration::from_millis(100)).await;
-            println!("'slow' 완료됨.");
-        };
-
-        let fast = async {
-            println!("'fast' 시작됨.");
-            trpl::sleep(Duration::from_millis(50)).await;
-            println!("'fast' 완료됨.");
-        };
-
-        trpl::race(slow, fast).await;
-<span class="boring">    });
-</span><span class="boring">}</span></code></pre></pre>
-</Listing>
-<p>각 퓨처는 실행을 시작할 때 메시지를 출력하고, <code>sleep</code>을 호출하고 기다림으로써 일정 시간 동안 멈춘 뒤, 완료될 때 다른 메시지를 출력합니다. 그런 다음 <code>slow</code>와 <code>fast</code>를 모두 <code>trpl::race</code>에 전달하고 둘 중 하나가 끝날 때까지 기다립니다. (여기서 결과는 그리 놀랍지 않습니다: <code>fast</code>가 이깁니다.) <a href="ch17-01-futures-and-syntax.html#our-first-async-program">“첫 번째 비동기 프로그램”</a><!--
-ignore -->에서 <code>race</code>를 사용했을 때와 달리, 여기서는 반환되는 <code>Either</code> 인스턴스를 그냥 무시합니다. 모든 흥미로운 동작이 비동기 블록의 본문 내에서 발생하기 때문입니다.</p>
-<p><code>race</code>에 전달하는 인수의 순서를 뒤집으면, <code>fast</code> 퓨처가 항상 먼저 완료됨에도 불구하고 "started" 메시지의 순서가 바뀐다는 점에 주목하세요. 이는 이 특정 <code>race</code> 함수의 구현이 공정하지 않기 때문입니다. 이 함수는 항상 인수로 전달된 순서대로 퓨처를 실행합니다. 다른 구현들은 공정하며, 어떤 퓨처를 먼저 폴링할지 무작위로 선택합니다. 하지만 우리가 사용하는 <code>race</code> 구현이 공정한지 여부와 관계없이, 다른 태스크가 시작되기 전에 퓨처 중 _하나_는 본문의 첫 번째 <code>await</code>까지 실행됩니다.</p>
-<p><a href="ch17-01-futures-and-syntax.html#our-first-async-program">첫 번째 비동기 프로그램</a><!-- ignore -->에서 보았듯이, 각 await 지점에서 러스트는 기다리고 있는 퓨처가 준비되지 않은 경우 런타임에 태스크를 일시 중지하고 다른 태스크로 전환할 기회를 줍니다. 그 반대도 마찬가지입니다: 러스트는 <em>오직</em> await 지점에서만 비동기 블록을 일시 중지하고 런타임에 제어권을 돌려줍니다. await 지점 사이의 모든 것은 동기적입니다.</p>
-<p>이는 만약 여러분이 await 지점이 없는 비동기 블록에서 많은 작업을 수행한다면, 해당 퓨처가 다른 모든 퓨처의 진행을 차단하게 됨을 의미합니다. 때때로 이를 한 퓨처가 다른 퓨처를 <em>굶주리게(starving)</em> 한다고 표현하기도 합니다. 어떤 경우에는 큰 문제가 아닐 수도 있습니다. 하지만 비용이 많이 드는 설정이나 오래 걸리는 작업을 수행하거나, 특정 작업을 무기한 계속하는 퓨처가 있는 경우라면, 언제 어디서 런타임에 제어권을 넘겨줄지 생각해야 합니다.</p>
-<p>같은 맥락에서, 오래 걸리는 블로킹 작업이 있는 경우, 비동기는 프로그램의 서로 다른 부분들이 서로 관계를 맺는 방식을 제공하는 유용한 도구가 될 수 있습니다.</p>
-<p>하지만 그런 경우에 <em>어떻게</em> 런타임에 제어권을 넘겨줄 수 있을까요?</p>
-<!-- Old headings. Do not remove or links may break. -->
+                        <!-- Old headings. Do not remove or links may break. -->
 <p><a id="yielding"></a></p>
 <h3 id="런타임에-제어권-양보하기"><a class="header" href="#런타임에-제어권-양보하기">런타임에 제어권 양보하기</a></h3>
-<p>오래 걸리는 작업을 시뮬레이션해 봅시다. 목록 17-22는 <code>slow</code> 함수를 소개합니다.</p>
-<Listing number="17-22" caption="Using `thread::sleep` to simulate slow operations" file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
+<p>Recall from the <a href="ch17-01-futures-and-syntax.html#our-first-async-program">“Our First Async Program”</a><!-- ignore --> section that at each await point, Rust gives a runtime a chance to pause the task and switch to another one if the future being awaited isn’t ready. The inverse is also true: Rust <em>only</em> pauses async blocks and hands control back to a runtime at an await point. Everything between await points is synchronous.</p>
+<p>이는 만약 여러분이 await 지점이 없는 비동기 블록에서 많은 작업을 수행한다면, 해당 퓨처가 다른 모든 퓨처의 진행을 차단하게 됨을 의미합니다. 때때로 이를 한 퓨처가 다른 퓨처를 <em>굶주리게(starving)</em> 한다고 표현하기도 합니다. 어떤 경우에는 큰 문제가 아닐 수도 있습니다. 하지만 비용이 많이 드는 설정이나 오래 걸리는 작업을 수행하거나, 특정 작업을 무기한 계속하는 퓨처가 있는 경우라면, 언제 어디서 런타임에 제어권을 넘겨줄지 생각해야 합니다.</p>
+<p>Let’s simulate a long-running operation to illustrate the starvation problem, then explore how to solve it. Listing 17-14 introduces a <code>slow</code> function.</p>
+<Listing number="17-14" caption="Using `thread::sleep` to simulate slow operations" file-name="src/main.rs">
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
 </span><span class="boring">
 </span><span class="boring">use std::{thread, time::Duration};
 </span><span class="boring">
 </span><span class="boring">fn main() {
-</span><span class="boring">    trpl::run(async {
+</span><span class="boring">    trpl::block_on(async {
 </span><span class="boring">        // 나중에 여기서 `slow`를 호출할 것입니다
 </span><span class="boring">    });
 </span><span class="boring">}
@@ -668,14 +239,14 @@ ignore -->에서 <code>race</code>를 사용했을 때와 달리, 여기서는 �
 }</code></pre></pre>
 </Listing>
 <p>이 코드는 <code>trpl::sleep</code> 대신 <code>std::thread::sleep</code>을 사용하여 <code>slow</code>를 호출할 때 현재 스레드가 수 밀리초 동안 차단되도록 합니다. 우리는 <code>slow</code>를 사용하여 실행 시간이 길고 차단되는 실제 작업을 대신할 수 있습니다.</p>
-<p>목록 17-23에서 우리는 한 쌍의 퓨처에서 이런 종류의 CPU 바운드 작업을 수행하는 것을 흉내내기 위해 <code>slow</code>를 사용합니다.목록 17-23에서 우리는 한 쌍의 퓨처에서 이런 종류의 CPU 바운드 작업을 수행하는 것을 흉내내기 위해 <code>slow</code>를 사용합니다.</p>
-<Listing number="17-23" caption="Using `thread::sleep` to simulate slow operations" file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
+<p>In Listing 17-15, we use <code>slow</code> to emulate doing this kind of CPU-bound work in a pair of futures.</p>
+<Listing number="17-15" caption="Calling the `slow` function to simulate slow operations" file-name="src/main.rs">
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
 </span><span class="boring">
 </span><span class="boring">use std::{thread, time::Duration};
 </span><span class="boring">
 </span><span class="boring">fn main() {
-</span><span class="boring">    trpl::run(async {
+</span><span class="boring">    trpl::block_on(async {
 </span>        let a = async {
             println!("'a'가 시작되었습니다.");
             slow("a", 30);
@@ -695,7 +266,7 @@ ignore -->에서 <code>race</code>를 사용했을 때와 달리, 여기서는 �
             println!("'b' 완료됨.");
         };
 
-        trpl::race(a, b).await;
+        trpl::select(a, b).await;
 <span class="boring">    });
 </span><span class="boring">}
 </span><span class="boring">
@@ -704,9 +275,9 @@ ignore -->에서 <code>race</code>를 사용했을 때와 달리, 여기서는 �
 </span><span class="boring">    println!("' {name}'이 {ms}ms 동안 실행되었습니다");
 </span><span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>우선, 각 퓨처는 일련의 느린 작업을 수행한 <em>후에야</em> 런타임에 제어권을 돌려줍니다. 이 코드를 실행하면 다음과 같은 출력이 표시됩니다.</p>
+<p>Each future hands control back to the runtime only <em>after</em> carrying out a bunch of slow operations. If you run this code, you will see this output:</p>
 <!-- manual-regeneration
-cd listings/ch17-async-await/listing-17-23/
+cd listings/ch17-async-await/listing-17-15/
 cargo run
 copy just the output
 -->
@@ -721,15 +292,15 @@ copy just the output
 'b' ran for 350ms
 'a' finished.
 </code></pre>
-<p>이전 예제와 마찬가지로, <code>race</code>는 <code>a</code>가 끝나자마자 종료됩니다. 하지만 두 퓨처 사이에 교차 실행(interleaving)은 없습니다. <code>a</code> 퓨처는 <code>trpl::sleep</code> 호출이 기다려질 때(awaited)까지 모든 작업을 수행하고, 그 다음 <code>b</code> 퓨처가 자신의 <code>trpl::sleep</code> 호출이 기다려질 때까지 모든 작업을 수행하며, 마지막으로 <code>a</code> 퓨처가 완료됩니다. 두 퓨처가 느린 작업들 사이에서 번갈아 가며 진행되도록 하려면, 런타임에 제어권을 넘겨줄 수 있는 await 지점이 필요합니다. 즉, 우리가 기다릴 수 있는 무언가가 필요하다는 뜻입니다!</p>
-<p>우리는 이미 목록 17-23에서 이런 종류의 제어권 양도가 일어나는 것을 볼 수 있습니다: 만약 <code>a</code> 퓨처 끝에 있는 <code>trpl::sleep</code>을 제거했다면, <code>b</code> 퓨처가 <em>전혀</em> 실행되지 않은 채로 <code>a</code>가 완료되었을 것입니다. 목록 17-24와 같이, 작업들이 서로 교대로 진행되도록 하는 시작점으로 <code>sleep</code> 함수를 사용해 봅시다.</p>
-<Listing number="17-24" caption="Using `sleep` to let operations switch off making progress" file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
+<p>As with Listing 17-5 where we used <code>trpl::select</code> to race futures fetching two URLs, <code>select</code> still finishes as soon as <code>a</code> is done. There’s no interleaving between the calls to <code>slow</code> in the two futures, though. The <code>a</code> future does all of its work until the <code>trpl::sleep</code> call is awaited, then the <code>b</code> future does all of its work until its own <code>trpl::sleep</code> call is awaited, and finally the <code>a</code> future completes. To allow both futures to make progress between their slow tasks, we need await points so we can hand control back to the runtime. That means we need something we can await!</p>
+<p>We can already see this kind of handoff happening in Listing 17-15: if we removed the <code>trpl::sleep</code> at the end of the <code>a</code> future, it would complete without the <code>b</code> future running <em>at all</em>. Let’s try using the <code>trpl::sleep</code> function as a starting point for letting operations switch off making progress, as shown in Listing 17-16.</p>
+<Listing number="17-16" caption="Using `trpl::sleep` to let operations switch off making progress" file-name="src/main.rs">
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
 </span><span class="boring">
 </span><span class="boring">use std::{thread, time::Duration};
 </span><span class="boring">
 </span><span class="boring">fn main() {
-</span><span class="boring">    trpl::run(async {
+</span><span class="boring">    trpl::block_on(async {
 </span>        let one_ms = Duration::from_millis(1);
 
         let a = async {
@@ -751,12 +322,12 @@ copy just the output
             trpl::sleep(one_ms).await;
             slow("b", 15);
             trpl::sleep(one_ms).await;
-            slow("b", 35);
+            slow("b", 350);
             trpl::sleep(one_ms).await;
             println!("'b' 완료됨.");
         };
 <span class="boring">
-</span><span class="boring">        trpl::race(a, b).await;
+</span><span class="boring">        trpl::select(a, b).await;
 </span><span class="boring">    });
 </span><span class="boring">}
 </span><span class="boring">
@@ -765,9 +336,9 @@ copy just the output
 </span><span class="boring">    println!("' {name}'이 {ms}ms 동안 실행되었습니다");
 </span><span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>목록 17-24에서는 각 <code>slow</code> 호출 사이에 await 지점이 있는 <code>trpl::sleep</code> 호출을 추가합니다. 이제 두 퓨처의 작업이 교차되어 실행됩니다.</p>
+<p>We’ve added <code>trpl::sleep</code> calls with await points between each call to <code>slow</code>. Now the two futures’ work is interleaved:</p>
 <!-- manual-regeneration
-cd listings/ch17-async-await/listing-17-24
+cd listings/ch17-async-await/listing-17-16
 cargo run
 copy just the output
 -->
@@ -782,14 +353,14 @@ copy just the output
 'a' finished.
 </code></pre>
 <p><code>a</code> 퓨처는 <code>trpl::sleep</code>을 호출하기 전에 <code>slow</code>를 호출하므로 제어권을 <code>b</code>에 넘겨주기 전까지 잠시 동안 실행되지만, 그 이후로는 한 퓨처가 await 지점에 도달할 때마다 두 퓨처가 번갈아 가며 실행됩니다. 이 경우에는 모든 <code>slow</code> 호출 뒤에 그렇게 했지만, 우리에게 가장 적합한 방식으로 작업을 나눌 수 있습니다.<code>a</code> 퓨처는 <code>trpl::sleep</code>을 호출하기 전에 <code>slow</code>를 호출하므로 제어권을 <code>b</code>에 넘겨주기 전까지 잠시 동안 실행되지만, 그 이후로는 한 퓨처가 await 지점에 도달할 때마다 두 퓨처가 번갈아 가며 실행됩니다. 이 경우에는 모든 <code>slow</code> 호출 뒤에 그렇게 했지만, 우리에게 가장 적합한 방식으로 작업을 나눌 수 있습니다.</p>
-<p>하지만 여기서 정말로 <em>잠을 자고(sleep)</em> 싶은 것은 아닙니다: 우리는 가능한 한 빨리 작업을 진행하고 싶습니다. 단지 런타임에 제어권을 돌려주기만 하면 됩니다. <code>yield_now</code> 함수를 사용하여 이를 직접 수행할 수 있습니다. 목록 17-25에서는 모든 <code>sleep</code> 호출을 <code>yield_now</code>로 바꿉니다.</p>
-<Listing number="17-25" caption="Using `yield_now` to let operations switch off making progress" file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
+<p>We don’t really want to <em>sleep</em> here, though: we want to make progress as fast as we can. We just need to hand back control to the runtime. We can do that directly, using the <code>trpl::yield_now</code> function. In Listing 17-17, we replace all those <code>trpl::sleep</code> calls with <code>trpl::yield_now</code>.</p>
+<Listing number="17-17" caption="Using `yield_now` to let operations switch off making progress" file-name="src/main.rs">
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
 </span><span class="boring">
 </span><span class="boring">use std::{thread, time::Duration};
 </span><span class="boring">
 </span><span class="boring">fn main() {
-</span><span class="boring">    trpl::run(async {
+</span><span class="boring">    trpl::block_on(async {
 </span>        let a = async {
             println!("'a'가 시작되었습니다.");
             slow("a", 30);
@@ -809,12 +380,12 @@ copy just the output
             trpl::yield_now().await;
             slow("b", 15);
             trpl::yield_now().await;
-            slow("b", 35);
+            slow("b", 350);
             trpl::yield_now().await;
             println!("'b' 완료됨.");
         };
 <span class="boring">
-</span><span class="boring">        trpl::race(a, b).await;
+</span><span class="boring">        trpl::select(a, b).await;
 </span><span class="boring">    });
 </span><span class="boring">}
 </span><span class="boring">
@@ -824,63 +395,24 @@ copy just the output
 </span><span class="boring">}</span></code></pre></pre>
 </Listing>
 <p>이 코드는 실제 의도를 더 명확하게 나타낼 뿐만 아니라, <code>sleep</code>을 사용하는 것보다 상당히 빠를 수 있습니다. 왜냐하면 <code>sleep</code>에서 사용하는 것과 같은 타이머는 종종 정밀도에 한계가 있기 때문입니다. 예를 들어 우리가 사용하는 <code>sleep</code> 버전은 1나노초의 <code>Duration</code>을 전달하더라도 항상 최소 1밀리초 동안 잠을 잡니다. 다시 말하지만, 현대의 컴퓨터는 <em>빠릅니다</em>: 1밀리초 동안 많은 일을 할 수 있습니다!</p>
-<p>목록 17-26과 같은 간단한 벤치마크를 설정하여 이를 직접 확인할 수 있습니다. (이것이 특별히 엄격한 성능 테스트 방식은 아니지만, 여기에서 차이점을 보여주기에는 충분합니다.)</p>
-<Listing number="17-26" caption="Comparing the performance of `sleep` and `yield_now`" file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
-</span><span class="boring">
-</span><span class="boring">use std::time::{Duration, Instant};
-</span><span class="boring">
-</span><span class="boring">fn main() {
-</span><span class="boring">    trpl::run(async {
-</span>        let one_ns = Duration::from_nanos(1);
-        let start = Instant::now();
-        async {
-            for _ in 1..1000 {
-                trpl::sleep(one_ns).await;
-            }
-        }
-        .await;
-        let time = Instant::now() - start;
-        println!(
-            "'sleep' 버전이 {}초 후에 끝났습니다.",
-            time.as_secs_f32()
-        );
-
-        let start = Instant::now();
-        async {
-            for _ in 1..1000 {
-                trpl::yield_now().await;
-            }
-        }
-        .await;
-        let time = Instant::now() - start;
-        println!(
-            "'yield' 버전이 {}초 후에 끝났습니다.",
-            time.as_secs_f32()
-        );
-<span class="boring">    });
-</span><span class="boring">}</span></code></pre></pre>
-</Listing>
-<p>여기서는 모든 상태 출력을 건너뛰고, <code>trpl::sleep</code>에 1나노초의 <code>Duration</code>을 전달하고, 각 퓨처가 서로 전환 없이 개별적으로 실행되도록 합니다. 그런 다음 1,000번 반복 실행하여 <code>trpl::sleep</code>을 사용하는 퓨처가 <code>trpl::yield_now</code>를 사용하는 퓨처와 비교하여 얼마나 걸리는지 확인합니다.</p>
-<p><code>yield_now</code>를 사용한 버전이 <em>훨씬</em> 더 빠릅니다!</p>
-<p>이는 프로그램의 다른 부분이 수행하는 작업에 따라 비동기가 계산 위주의 작업(compute-bound tasks)에도 유용할 수 있음을 의미합니다. 프로그램의 서로 다른 부분 간의 관계를 구조화하는 유용한 도구를 제공하기 때문입니다. 이것은 각 퓨처가 await 지점을 통해 언제 제어권을 넘겨줄지 결정할 수 있는 _협력적 멀티태스킹(cooperative multitasking)_의 한 형태입니다. 따라서 각 퓨처는 너무 오랫동안 차단(blocking)되지 않도록 할 책임도 있습니다. 일부 러스트 기반 임베디드 운영 체제에서는 이것이 <em>유일한</em> 종류의 멀티태스킹입니다!</p>
+<p>This means that async can be useful even for compute-bound tasks, depending on what else your program is doing, because it provides a useful tool for structuring the relationships between different parts of the program (but at a cost of the overhead of the async state machine). This is a form of <em>cooperative multitasking</em>, where each future has the power to determine when it hands over control via await points. Each future therefore also has the responsibility to avoid blocking for too long. In some Rust-based embedded operating systems, this is the <em>only</em> kind of multitasking!</p>
 <p>물론 실제 코드에서는 모든 줄마다 함수 호출과 await 지점을 교대로 배치하지는 않을 것입니다. 이런 식으로 제어권을 양보하는 것이 상대적으로 비용이 적게 들긴 하지만, 공짜는 아닙니다. 많은 경우 계산 위주의 작업을 나누려고 시도하는 것이 작업을 상당히 느리게 만들 수 있으므로, 때로는 <em>전체적인</em> 성능을 위해 작업이 잠시 차단되도록 두는 것이 더 나을 수도 있습니다. 항상 여러분의 코드가 실제로 성능 병목 현상을 일으키는 부분이 어디인지 측정해 보세요. 하지만 만약 동시적으로 일어날 것이라고 예상했던 많은 작업들이 직렬로 일어나고 있는 것을 보고 있다면, 이러한 근본적인 역학 관계를 염두에 두는 것이 중요합니다!</p>
 <h3 id="우리만의-비동기-추상화-구축하기"><a class="header" href="#우리만의-비동기-추상화-구축하기">우리만의 비동기 추상화 구축하기</a></h3>
 <p>우리는 또한 퓨처들을 함께 조합하여 새로운 패턴을 만들 수도 있습니다. 예를 들어, 우리가 이미 가지고 있는 비동기 빌딩 블록들로 <code>timeout</code> 함수를 만들 수 있습니다. 작업을 마치면, 그 결과는 더 많은 비동기 추상화를 만드는 데 사용할 수 있는 또 다른 빌딩 블록이 될 것입니다.</p>
-<p>목록 17-27은 느린 퓨처에 대해 이 <code>timeout</code>이 어떻게 작동할 것으로 기대되는지 보여줍니다.</p>
-<Listing number="17-27" caption="Using our imagined `timeout` to run a slow operation with a time limit" file-name="src/main.rs">
-<pre><code class="language-rust ignore"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
+<p>Listing 17-18 shows how we would expect this <code>timeout</code> to work with a slow future.</p>
+<Listing number="17-18" caption="Using our imagined `timeout` to run a slow operation with a time limit" file-name="src/main.rs">
+<pre><code class="language-rust ignore does_not_compile"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
 </span><span class="boring">
 </span><span class="boring">use std::time::Duration;
 </span><span class="boring">
 </span><span class="boring">fn main() {
-</span><span class="boring">    trpl::run(async {
+</span><span class="boring">    trpl::block_on(async {
 </span>        let slow = async {
-            trpl::sleep(Duration::from_millis(100)).await;
-            "완료했습니다!"
+            trpl::sleep(Duration::from_secs(5)).await;
+            "마침내 완료됨"
         };
 
-        match timeout(slow, Duration::from_millis(10)).await {
+        match timeout(slow, Duration::from_secs(2)).await {
             Ok(message) =&gt; println!("' {message}'로 성공했습니다"),
             Err(duration) =&gt; {
                 println!({}초 후 실패했습니다, duration.as_secs())
@@ -896,21 +428,21 @@ copy just the output
 <li>두 번째 매개변수는 대기할 최대 시간입니다. <code>Duration</code>을 사용하면 <code>trpl::sleep</code>에 전달하기 쉬울 것입니다.</li>
 <li>이것은 <code>Result</code>를 반환해야 합니다. 만약 퓨처가 성공적으로 완료되면, <code>Result</code>는 퓨처가 생성한 값과 함께 <code>Ok</code>가 될 것입니다. 만약 타임아웃이 먼저 경과하면, <code>Result</code>는 타임아웃이 대기한 시간과 함께 <code>Err</code>가 될 것입니다.</li>
 </ul>
-<p>목록 17-28은 이러한 선언을 보여줍니다.</p>
+<p>Listing 17-19 shows this declaration.</p>
 <!-- This is not tested because it intentionally does not compile. -->
-<Listing number="17-28" caption="Defining the signature of `timeout`" file-name="src/main.rs">
-<pre><code class="language-rust ignore"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
+<Listing number="17-19" caption="Defining the signature of `timeout`" file-name="src/main.rs">
+<pre><code class="language-rust ignore does_not_compile"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
 </span><span class="boring">
-</span><span class="boring">use std::{future::Future, time::Duration};
+</span><span class="boring">use std::time::Duration;
 </span><span class="boring">
 </span><span class="boring">fn main() {
-</span><span class="boring">    trpl::run(async {
+</span><span class="boring">    trpl::block_on(async {
 </span><span class="boring">        let slow = async {
 </span><span class="boring">            trpl::sleep(Duration::from_secs(5)).await;
 </span><span class="boring">            "마침내 완료됨"
 </span><span class="boring">        };
 </span><span class="boring">
-</span><span class="boring">        match timeout(slow, Duration::from_millis(10)).await {
+</span><span class="boring">        match timeout(slow, Duration::from_secs(2)).await {
 </span><span class="boring">            Ok(message) =&gt; println!("' {message}'로 성공했습니다"),
 </span><span class="boring">            Err(duration) =&gt; {
 </span><span class="boring">                println!({}초 후 실패했습니다, duration.as_secs())
@@ -926,59 +458,51 @@ copy just the output
     // 여기에 우리의 구현이 들어갈 것입니다!
 }</code></pre>
 </Listing>
-<p>이것으로 타입에 대한 우리의 목표를 달성했습니다. 이제 우리가 필요한 _동작_에 대해 생각해 봅시다: 우리는 전달된 퓨처를 지정된 시간과 경쟁시키고 싶습니다. <code>trpl::sleep</code>을 사용하여 해당 시간으로부터 타이머 퓨처를 만들고, <code>trpl::race</code>를 사용하여 호출자가 전달한 퓨처와 그 타이머를 함께 실행할 수 있습니다.</p>
-<p>우리는 또한 <code>race</code>가 공정하지 않으며, 인수가 전달된 순서대로 폴링한다는 것을 알고 있습니다. 따라서 <code>max_time</code>이 매우 짧은 시간이라 하더라도 완료될 기회를 가질 수 있도록 <code>future_to_try</code>를 <code>race</code>에 먼저 전달합니다. 만약 <code>future_to_try</code>가 먼저 끝나면, <code>race</code>는 <code>future_to_try</code>의 출력과 함께 <code>Left</code>를 반환할 것입니다. 만약 <code>timer</code>가 먼저 끝나면, <code>race</code>는 타이머의 출력인 <code>()</code>와 함께 <code>Right</code>를 반환할 것입니다.</p>
-<p>목록 17-29에서 우리는 <code>trpl::race</code>를 기다린(await) 결과에 대해 매칭을 수행합니다.</p>
-<Listing number="17-29" caption="Defining `timeout` with `race` and `sleep`" file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
+<p>That satisfies our goals for the types. Now let’s think about the <em>behavior</em> we need: we want to race the future passed in against the duration. We can use <code>trpl::sleep</code> to make a timer future from the duration, and use <code>trpl::select</code> to run that timer with the future the caller passes in.</p>
+<p>In Listing 17-20, we implement <code>timeout</code> by matching on the result of awaiting <code>trpl::select</code>.</p>
+<Listing number="17-20" caption="Defining `timeout` with `select` and `sleep`" file-name="src/main.rs">
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
 </span><span class="boring">
-</span><span class="boring">use std::{future::Future, time::Duration};
+</span><span class="boring">use std::time::Duration;
 </span><span class="boring">
 </span>use trpl::Either;
 
 // --생략--
 
-fn main() {
-    trpl::run(async {
-        let slow = async {
-            trpl::sleep(Duration::from_secs(5)).await;
-            "마침내 완료됨"
-        };
-
-        match timeout(slow, Duration::from_secs(2)).await {
-            Ok(message) =&gt; println!("' {message}'로 성공했습니다"),
-            Err(duration) =&gt; {
-                println!({}초 후 실패했습니다, duration.as_secs())
-            }
-        }
-    });
-}
-
-async fn timeout&lt;F: Future&gt;(
+<span class="boring">fn main() {
+</span><span class="boring">    trpl::block_on(async {
+</span><span class="boring">        let slow = async {
+</span><span class="boring">            trpl::sleep(Duration::from_secs(5)).await;
+</span><span class="boring">            "마침내 완료됨"
+</span><span class="boring">        };
+</span><span class="boring">
+</span><span class="boring">        match timeout(slow, Duration::from_secs(2)).await {
+</span><span class="boring">            Ok(message) =&gt; println!("' {message}'로 성공했습니다"),
+</span><span class="boring">            Err(duration) =&gt; {
+</span><span class="boring">                println!({}초 후 실패했습니다, duration.as_secs())
+</span><span class="boring">            }
+</span><span class="boring">        }
+</span><span class="boring">    });
+</span><span class="boring">}
+</span><span class="boring">
+</span>async fn timeout&lt;F: Future&gt;(
     future_to_try: F,
     max_time: Duration,
 ) -&gt; Result&lt;F::Output, Duration&gt; {
-    match trpl::race(future_to_try, trpl::sleep(max_time)).await {
+    match trpl::select(future_to_try, trpl::sleep(max_time)).await {
         Either::Left(output) =&gt; Ok(output),
         Either::Right(_) =&gt; Err(max_time),
     }
-<span class="boring">}</span></code></pre></pre>
+}</code></pre></pre>
 </Listing>
+<p>The implementation of <code>trpl::select</code> is not fair: it always polls arguments in the order in which they are passed (other <code>select</code> implementations will randomly choose which argument to poll first). Thus, we pass <code>future_to_try</code> to <code>select</code> first so it gets a chance to complete even if <code>max_time</code> is a very short duration. If <code>future_to_try</code> finishes first, <code>select</code> will return <code>Left</code> with the output from <code>future_to_try</code>. If <code>timer</code> finishes first, <code>select</code> will return <code>Right</code> with the timer’s output of <code>()</code>.</p>
 <p>만약 <code>future_to_try</code>가 성공하여 <code>Left(output)</code>을 얻으면, <code>Ok(output)</code>을 반환합니다. 대신 슬립 타이머가 경과하여 <code>Right(())</code>를 얻으면, <code>_</code>로 <code>()</code>를 무시하고 대신 <code>Err(max_time)</code>을 반환합니다.</p>
 <p>이로써 우리는 다른 두 비동기 헬퍼로 구축된 작동하는 <code>timeout</code>을 갖게 되었습니다. 코드를 실행하면 타임아웃 후에 실패 모드가 출력될 것입니다.</p>
 <pre><code class="language-text">Failed after 2 seconds
 </code></pre>
-<p>퓨처는 다른 퓨처들과 결합될 수 있기 때문에, 더 작은 비동기 구성 요소를 사용하여 매우 강력한 도구를 구축할 수 있습니다. 예를 들어, 동일한 접근 방식을 사용하여 타임아웃과 재시도(retries)를 결합할 수 있으며, 이를 다시 네트워크 호출과 같은 작업(이 장의 시작 부분에 나온 예제 중 하나)에 사용할 수 있습니다.</p>
-<p>실제로 여러분은 대개 <code>async</code>와 <code>await</code>를 직접 사용하고, 보조적으로 <code>join</code>, <code>join_all</code>, <code>race</code> 등과 같은 함수 및 매크로를 사용하게 될 것입니다. 이러한 API들과 함께 퓨처를 사용하기 위해 이따금씩 <code>pin</code>이 필요할 뿐입니다.</p>
-<p>우리는 지금까지 동시에 여러 퓨처로 작업하는 여러 가지 방법을 보았습니다. 다음으로, 우리는 _스트림(streams)_을 통해 시간이 지남에 따라 순차적으로 여러 퓨처로 작업하는 방법을 살펴볼 것입니다. 하지만 그 전에 먼저 고려해 볼 만한 몇 가지 사항이 더 있습니다.</p>
-<ul>
-<li>
-<p>우리는 어떤 그룹의 모든 퓨처가 완료되기를 기다리기 위해 <code>join_all</code>과 함께 <code>Vec</code>을 사용했습니다. 대신 일련의 퓨처들을 순차적으로 처리하기 위해 <code>Vec</code>을 어떻게 사용할 수 있을까요? 그렇게 할 때의 트레이드오프는 무엇일까요?</p>
-</li>
-<li>
-<p><code>futures</code> 크레이트의 <code>futures::stream::FuturesUnordered</code> 타입을 살펴보세요. 이를 사용하는 것이 <code>Vec</code>을 사용하는 것과 어떻게 다를까요? (그것이 크레이트의 <code>stream</code> 부분에 있다는 사실에 대해서는 걱정하지 마세요. 그것은 어떤 퓨처 컬렉션과도 잘 작동합니다.)</p>
-</li>
-</ul>
+<p>Because futures compose with other futures, you can build really powerful tools using smaller async building blocks. For example, you can use this same approach to combine timeouts with retries, and in turn use those with operations such as network calls (such as those in Listing 17-5).</p>
+<p>In practice, you’ll usually work directly with <code>async</code> and <code>await</code>, and secondarily with functions such as <code>select</code> and macros such as the <code>join!</code> macro to control how the outermost futures are executed.</p>
+<p>We’ve now seen a number of ways to work with multiple futures at the same time. Up next, we’ll look at how we can work with multiple futures in a sequence over time with <em>streams</em>.</p>
 
                     </main>
 

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>if 및 if let 표현식 - The Rust Reference</title>
+        <title>If expressions - The Rust Reference</title>
 
 
         <!-- Custom HTML head -->
@@ -216,30 +216,42 @@
 
                 <div id="content" class="content">
                     <main>
-                        <div class="rule" id="r-expr.if"><a class="rule-link" href="#r-expr.if" title="expr.if"><span>[expr<wbr>.if]<span/></a></div>
-<h1 id="if-및-if-let-표현식"><a class="header" href="#if-및-if-let-표현식"><code>if</code> 및 <code>if let</code> 표현식</a></h1>
-<h2 id="if-표현식"><a class="header" href="#if-표현식"><code>if</code> 표현식</a></h2>
-<div class="rule" id="r-expr.if.syntax"><a class="rule-link" href="#r-expr.if.syntax" title="expr.if.syntax"><span>[expr<wbr>.if<wbr>.syntax]<span/></a></div>
-<blockquote>
-<p><strong><sup>구문</sup></strong><br />
-<em>If표현식</em> :<br />
-   <code>if</code> <a href="../expressions.html"><em>표현식</em></a><sub><em>구조체 표현식 제외</em></sub> <a href="block-expr.html"><em>블록표현식</em></a><br />
-   (<code>else</code> ( <a href="block-expr.html"><em>블록표현식</em></a> | <em>If표현식</em> | <em>IfLet표현식</em> ) )<sup>?</sup></p>
-</blockquote>
-<div class="rule" id="r-expr.if.intro"><a class="rule-link" href="#r-expr.if.intro" title="expr.if.intro"><span>[expr<wbr>.if<wbr>.intro]<span/></a></div>
-<p><code>if</code> 표현식은 프로그램 제어의 조건부 분기입니다. <code>if</code> 표현식의 구문은 조건 피연산자, 그 뒤에 오는 결과 블록, 임의의 수의 <code>else if</code> 조건 및 블록, 그리고 선택적 후행 <code>else</code> 블록입니다.</p>
-<div class="rule" id="r-expr.if.condition-bool"><a class="rule-link" href="#r-expr.if.condition-bool" title="expr.if.condition-bool"><span>[expr<wbr>.if<wbr>.condition-bool]<span/></a></div>
-<p>조건 피연산자는 <a href="../types/boolean.html">불리언 타입</a>이어야 합니다.</p>
-<div class="rule" id="r-expr.if.condition-true"><a class="rule-link" href="#r-expr.if.condition-true" title="expr.if.condition-true"><span>[expr<wbr>.if<wbr>.condition-true]<span/></a></div>
-<p>조건 피연산자가 <code>true</code>로 평가되면 결과 블록이 실행되고 후속 <code>else if</code> 또는 <code>else</code> 블록은 건너뜁니다.</p>
-<div class="rule" id="r-expr.if.else-if"><a class="rule-link" href="#r-expr.if.else-if" title="expr.if.else-if"><span>[expr<wbr>.if<wbr>.else-if]<span/></a></div>
-<p>조건 피연산자가 <code>false</code>로 평가되면 결과 블록은 건너뛰고 후속 <code>else if</code> 조건이 평가됩니다.</p>
-<div class="rule" id="r-expr.if.else"><a class="rule-link" href="#r-expr.if.else" title="expr.if.else"><span>[expr<wbr>.if<wbr>.else]<span/></a></div>
-<p>모든 <code>if</code> 및 <code>else if</code> 조건이 <code>false</code>로 평가되면 <code>else</code> 블록이 실행됩니다.</p>
-<div class="rule" id="r-expr.if.result"><a class="rule-link" href="#r-expr.if.result" title="expr.if.result"><span>[expr<wbr>.if<wbr>.result]<span/></a></div>
-<p>if 표현식은 실행된 블록과 동일한 값으로 평가되거나, 어떤 블록도 평가되지 않으면 <code>()</code>로 평가됩니다.</p>
-<div class="rule" id="r-expr.if.type"><a class="rule-link" href="#r-expr.if.type" title="expr.if.type"><span>[expr<wbr>.if<wbr>.type]<span/></a></div>
-<p><code>if</code> 표현식은 모든 상황에서 동일한 타입을 가져야 합니다.</p>
+                        <p>r[expr.if]</p>
+<h1 id="if-표현식"><a class="header" href="#if-표현식"><code>if</code> 표현식</a></h1>
+<p>r[expr.if.syntax]</p>
+<pre><code class="language-grammar expressions">IfExpression -&gt;
+    `if` Conditions BlockExpression
+    (`else` ( BlockExpression | IfExpression ) )?
+
+Conditions -&gt;
+      Expression _except [StructExpression]_
+    | LetChain
+
+LetChain -&gt; LetChainCondition ( `&amp;&amp;` LetChainCondition )*
+
+LetChainCondition -&gt;
+      Expression _except [ExcludedConditions]_
+    | OuterAttribute* `let` Pattern `=` Scrutinee _except [ExcludedConditions]_
+
+@root ExcludedConditions -&gt;
+      StructExpression
+    | LazyBooleanExpression
+    | RangeExpr
+    | RangeFromExpr
+    | RangeInclusiveExpr
+    | AssignmentExpression
+    | CompoundAssignmentExpression
+</code></pre>
+<!-- TODO: The struct exception above needs clarification, see https://github.com/rust-lang/reference/issues/1808
+     The chain grammar could use some work, see https://github.com/rust-lang/reference/issues/1811
+-->
+<p>r[expr.if.intro] The syntax of an <code>if</code> expression is a sequence of one or more condition operands separated by <code>&amp;&amp;</code>, followed by a consequent block, any number of <code>else if</code> conditions and blocks, and an optional trailing <code>else</code> block.</p>
+<p>r[expr.if.condition] Condition operands must be either an [Expression] with a <a href="../types/boolean.html">boolean type</a> or a conditional <code>let</code> match.</p>
+<p>r[expr.if.condition-true] If all of the condition operands evaluate to <code>true</code> and all of the <code>let</code> patterns successfully match their <a href="../glossary.html#scrutinee">scrutinee</a>s, the consequent block is executed and any subsequent <code>else if</code> or <code>else</code> block is skipped.</p>
+<p>r[expr.if.else-if] If any condition operand evaluates to <code>false</code> or any <code>let</code> pattern does not match its scrutinee, the consequent block is skipped and any subsequent <code>else if</code> condition is evaluated.</p>
+<p>r[expr.if.else] If all <code>if</code> and <code>else if</code> conditions evaluate to <code>false</code> then any <code>else</code> block is executed.</p>
+<p>r[expr.if.result] An <code>if</code> expression evaluates to the same value as the executed block, or <code>()</code> if no block is evaluated.</p>
+<p>r[expr.if.type] An <code>if</code> expression must have the same type in all situations.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">let x = 3;
@@ -251,6 +263,7 @@
     println!("x는 다른 것");
 }
 
+// `if` can be used as an expression.
 let y = if 12 * 15 &gt; 150 {
     "더 큼"
 } else {
@@ -258,28 +271,15 @@ let y = if 12 * 15 &gt; 150 {
 };
 assert_eq!(y, "더 큼");
 <span class="boring">}</span></code></pre></pre>
-<div class="rule" id="r-expr.if.let"><a class="rule-link" href="#r-expr.if.let" title="expr.if.let"><span>[expr<wbr>.if<wbr>.let]<span/></a></div>
-<h2 id="if-let-표현식"><a class="header" href="#if-let-표현식"><code>if let</code> 표현식</a></h2>
-<div class="rule" id="r-expr.if.let.syntax"><a class="rule-link" href="#r-expr.if.let.syntax" title="expr.if.let.syntax"><span>[expr<wbr>.if<wbr>.let<wbr>.syntax]<span/></a></div>
-<blockquote>
-<p><strong><sup>구문</sup></strong><br />
-<em>IfLet표현식</em> :<br />
-   <code>if</code> <code>let</code> <a href="../patterns.html"><em>패턴</em></a> <code>=</code> <a href="match-expr.html"><em>검사대상</em></a><sub><em>지연 불리언 연산자 표현식 제외</em></sub> <a href="block-expr.html"><em>블록표현식</em></a><br />
-   (<code>else</code> ( <a href="block-expr.html"><em>블록표현식</em></a> | <em>If표현식</em> | <em>IfLet표현식</em> ) )<sup>?</sup></p>
-</blockquote>
-<div class="rule" id="r-expr.if.let.intro"><a class="rule-link" href="#r-expr.if.let.intro" title="expr.if.let.intro"><span>[expr<wbr>.if<wbr>.let<wbr>.intro]<span/></a></div>
-<p><code>if let</code> 표현식은 의미상 <code>if</code> 표현식과 유사하지만, 조건 피연산자 대신 키워드 <code>let</code>, 그 뒤에 패턴, <code>=</code> 그리고 <a href="../glossary.html#scrutinee">검사 대상(scrutinee)</a> 피연산자가 옵니다.</p>
-<div class="rule" id="r-expr.if.let.pattern"><a class="rule-link" href="#r-expr.if.let.pattern" title="expr.if.let.pattern"><span>[expr<wbr>.if<wbr>.let<wbr>.pattern]<span/></a></div>
-<p>검사 대상의 값이 패턴과 일치하면 해당 블록이 실행됩니다.</p>
-<div class="rule" id="r-expr.if.let.else"><a class="rule-link" href="#r-expr.if.let.else" title="expr.if.let.else"><span>[expr<wbr>.if<wbr>.let<wbr>.else]<span/></a></div>
-<p>그렇지 않으면 흐름은 다음 <code>else</code> 블록(있는 경우)으로 진행됩니다.</p>
-<div class="rule" id="r-expr.if.let.result"><a class="rule-link" href="#r-expr.if.let.result" title="expr.if.let.result"><span>[expr<wbr>.if<wbr>.let<wbr>.result]<span/></a></div>
-<p><code>if</code> 표현식과 마찬가지로 <code>if let</code> 표현식은 평가되는 블록에 의해 결정되는 값을 가집니다.</p>
+<p>r[expr.if.let]</p>
+<h2 id="if-let-patterns"><a class="header" href="#if-let-patterns"><code>if let</code> patterns</a></h2>
+<p>r[expr.if.let.intro] <code>let</code> patterns in an <code>if</code> condition allow binding new variables into scope when the pattern matches successfully.</p>
+<p>The following examples illustrate bindings using <code>let</code> patterns:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let dish = ("햄", "달걀");
 
-// 패턴이 반박되므로 이 본문은 건너뜁니다
+// This body will be skipped because the pattern is refuted.
 if let ("베이컨", b) = dish {
     println!("베이컨은 {}와(과) 함께 제공됩니다", b);
 } else {
@@ -287,7 +287,7 @@ if let ("베이컨", b) = dish {
     println!("베이컨은 제공되지 않습니다");
 }
 
-// 이 본문이 실행됩니다
+// This body will execute.
 if let ("햄", b) = dish {
     println!("햄은 {}와(과) 함께 제공됩니다", b);
 }
@@ -296,38 +296,7 @@ if let _ = 5 {
     println!("반박할 수 없는 패턴은 항상 참입니다");
 }
 <span class="boring">}</span></code></pre></pre>
-<div class="rule" id="r-expr.if.let.else-if"><a class="rule-link" href="#r-expr.if.let.else-if" title="expr.if.let.else-if"><span>[expr<wbr>.if<wbr>.let<wbr>.else-if]<span/></a></div>
-<p><code>if</code> 및 <code>if let</code> 표현식을 섞어 쓸 수 있습니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let x = Some(3);
-let a = if let Some(1) = x {
-    1
-} else if x == Some(2) {
-    2
-} else if let Some(y) = x {
-    y
-} else {
-    -1
-};
-assert_eq!(a, 3);
-<span class="boring">}</span></code></pre></pre>
-<div class="rule" id="r-expr.if.let.desugaring"><a class="rule-link" href="#r-expr.if.let.desugaring" title="expr.if.let.desugaring"><span>[expr<wbr>.if<wbr>.let<wbr>.desugaring]<span/></a></div>
-<p><code>if let</code> 표현식은 다음과 같이 <a href="match-expr.html"><code>match</code> 표현식</a>과 동일합니다:</p>
-<!-- ignore: expansion example -->
-<pre><code class="language-rust ignore">if let PATS = EXPR {
-    /* 본문 */
-} else {
-    /* else */
-}</code></pre>
-<p>다음과 동일합니다.</p>
-<!-- ignore: expansion example -->
-<pre><code class="language-rust ignore">match EXPR {
-    PATS =&gt; { /* 본문 */ },
-    _ =&gt; { /* else */ },    // else가 없으면 ()
-}</code></pre>
-<div class="rule" id="r-expr.if.let.or-pattern"><a class="rule-link" href="#r-expr.if.let.or-pattern" title="expr.if.let.or-pattern"><span>[expr<wbr>.if<wbr>.let<wbr>.or-pattern]<span/></a></div>
-<p>여러 패턴을 <code>|</code> 연산자로 지정할 수 있습니다. 이는 <code>match</code> 표현식의 <code>|</code>와 동일한 의미를 갖습니다:</p>
+<p>r[expr.if.let.or-pattern] Multiple patterns may be specified with the <code>|</code> operator. This has the same semantics as with <code>|</code> in <a href="match-expr.html"><code>match</code> expressions</a>:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>enum E {
@@ -340,20 +309,53 @@ if let E::X(n) | E::Y(n) = v {
     assert_eq!(n, 12);
 }
 <span class="boring">}</span></code></pre></pre>
-<div class="rule" id="r-expr.if.let.lazy-bool"><a class="rule-link" href="#r-expr.if.let.lazy-bool" title="expr.if.let.lazy-bool"><span>[expr<wbr>.if<wbr>.let<wbr>.lazy-bool]<span/></a></div>
-<p>표현식은 <a href="operator-expr.html#lazy-boolean-operators">지연 불리언 연산자 표현식</a>이 될 수 없습니다. 지연 불리언 연산자의 사용은 언어의 계획된 기능 변경(if-let 체인의 구현 - <a href="https://github.com/rust-lang/rfcs/blob/master/text/2497-if-let-chains.md#rollout-plan-and-transitioning-to-rust-2018">eRFC 2947</a> 참조)과 모호합니다. 지연 불리언 연산자 표현식을 사용하려면 다음과 같이 괄호를 사용하여 달성할 수 있습니다:</p>
-<!-- ignore: pseudo code -->
-<pre><code class="language-rust ignore">// 전...
-if let PAT = EXPR &amp;&amp; EXPR { .. }
+<p>r[expr.if.chains]</p>
+<h2 id="chains-of-conditions"><a class="header" href="#chains-of-conditions">Chains of conditions</a></h2>
+<p>r[expr.if.chains.intro] Multiple condition operands can be separated with <code>&amp;&amp;</code>.</p>
+<p>r[expr.if.chains.order] Similar to a <code>&amp;&amp;</code> [LazyBooleanExpression], each operand is evaluated from left-to-right until an operand evaluates as <code>false</code> or a <code>let</code> match fails, in which case the subsequent operands are not evaluated.</p>
+<p>r[expr.if.chains.bindings] The bindings of each pattern are put into scope to be available for the next condition operand and the consequent block.</p>
+<p>The following is an example of chaining multiple expressions, mixing <code>let</code> bindings and boolean expressions, and with expressions able to reference pattern bindings from previous expressions:</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn single() {
+    let outer_opt = Some(Some(1i32));
 
-// 후...
-if let PAT = ( EXPR &amp;&amp; EXPR ) { .. }
+    if let Some(inner_opt) = outer_opt
+        &amp;&amp; let Some(number) = inner_opt
+        &amp;&amp; number == 1
+    {
+        println!("Peek a boo");
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p>The above is equivalent to the following without using chains of conditions:</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn nested() {
+    let outer_opt = Some(Some(1i32));
 
-// 전...
-if let PAT = EXPR || EXPR { .. }
-
-// 후...
-if let PAT = ( EXPR || EXPR ) { .. }</code></pre>
+    if let Some(inner_opt) = outer_opt {
+        if let Some(number) = inner_opt {
+            if number == 1 {
+                println!("Peek a boo");
+            }
+        }
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p>r[expr.if.chains.or] If any condition operand is a <code>let</code> pattern, then none of the condition operands can be a <code>||</code> [lazy boolean operator expression][expr.bool-logic] due to ambiguity and precedence with the <code>let</code> scrutinee. If a <code>||</code> expression is needed, then parentheses can be used. For example:</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">let foo = Some(123);
+</span><span class="boring">let condition1 = true;
+</span><span class="boring">let condition2 = false;
+</span>// Parentheses are required here.
+if let Some(x) = foo &amp;&amp; (condition1 || condition2) { /*...*/ }
+<span class="boring">}</span></code></pre></pre>
+<p>r[expr.if.edition2024]</p>
+<blockquote>
+<p>[!EDITION-2024] Before the 2024 edition, let chains are not supported. That is, the [LetChain] grammar is not allowed in an <code>if</code> expression.</p>
+</blockquote>
 
                     </main>
 

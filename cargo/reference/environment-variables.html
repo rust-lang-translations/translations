@@ -89,6 +89,7 @@
         <link rel="stylesheet" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/cargo.css">
         <link rel="stylesheet" href="../theme/language-picker.css">
 
 
@@ -293,7 +294,7 @@ compiler version information.</li>
 <li><code>HTTP_TIMEOUT</code> — The HTTP timeout in seconds, see <a href="config.html#httptimeout"><code>http.timeout</code></a> for more
 detail.</li>
 <li><code>TERM</code> — If this is set to <code>dumb</code>, it disables the progress bar.</li>
-<li><code>BROWSER</code> — The web browser to execute to open documentation with <a href="../commands/cargo-doc.html"><code>cargo doc</code></a>’s’ <code>--open</code> flag, see <a href="config.html#docbrowser"><code>doc.browser</code></a> for more details.</li>
+<li><code>BROWSER</code> — The web browser to execute to open documentation with <a href="../commands/cargo-doc.html"><code>cargo doc</code></a>’s <code>--open</code> flag, see <a href="config.html#docbrowser"><code>doc.browser</code></a> for more details.</li>
 <li><code>RUSTFMT</code> — Instead of running <code>rustfmt</code>,
 <a href="https://github.com/rust-lang/rustfmt"><code>cargo fmt</code></a> will execute this specified
 <code>rustfmt</code> instance instead.</li>
@@ -311,16 +312,19 @@ In summary, the supported environment variables are:</p>
 <li><code>CARGO_BUILD_RUSTDOC</code> — The <code>rustdoc</code> executable, see <a href="config.html#buildrustdoc"><code>build.rustdoc</code></a>.</li>
 <li><code>CARGO_BUILD_TARGET</code> — The default target platform, see <a href="config.html#buildtarget"><code>build.target</code></a>.</li>
 <li><code>CARGO_BUILD_TARGET_DIR</code> — The default output directory, see <a href="config.html#buildtarget-dir"><code>build.target-dir</code></a>.</li>
+<li><code>CARGO_BUILD_BUILD_DIR</code> — The default build directory, see <a href="config.html#buildbuild-dir"><code>build.build-dir</code></a>.</li>
 <li><code>CARGO_BUILD_RUSTFLAGS</code> — Extra <code>rustc</code> flags, see <a href="config.html#buildrustflags"><code>build.rustflags</code></a>.</li>
 <li><code>CARGO_BUILD_RUSTDOCFLAGS</code> — Extra <code>rustdoc</code> flags, see <a href="config.html#buildrustdocflags"><code>build.rustdocflags</code></a>.</li>
 <li><code>CARGO_BUILD_INCREMENTAL</code> — Incremental compilation, see <a href="config.html#buildincremental"><code>build.incremental</code></a>.</li>
 <li><code>CARGO_BUILD_DEP_INFO_BASEDIR</code> — Dep-info relative directory, see <a href="config.html#builddep-info-basedir"><code>build.dep-info-basedir</code></a>.</li>
+<li><code>CARGO_CACHE_AUTO_CLEAN_FREQUENCY</code> — Configures how often automatic cache cleaning runs, see <a href="config.html#cacheauto-clean-frequency"><code>cache.auto-clean-frequency</code></a>.</li>
 <li><code>CARGO_CARGO_NEW_VCS</code> — The default source control system with <a href="../commands/cargo-new.html"><code>cargo new</code></a>, see <a href="config.html#cargo-newvcs"><code>cargo-new.vcs</code></a>.</li>
 <li><code>CARGO_FUTURE_INCOMPAT_REPORT_FREQUENCY</code> — How often we should generate a future incompat report notification, see <a href="config.html#future-incompat-reportfrequency"><code>future-incompat-report.frequency</code></a>.</li>
 <li><code>CARGO_HTTP_DEBUG</code> — Enables HTTP debugging, see <a href="config.html#httpdebug"><code>http.debug</code></a>.</li>
 <li><code>CARGO_HTTP_PROXY</code> — Enables HTTP proxy, see <a href="config.html#httpproxy"><code>http.proxy</code></a>.</li>
 <li><code>CARGO_HTTP_TIMEOUT</code> — The HTTP timeout, see <a href="config.html#httptimeout"><code>http.timeout</code></a>.</li>
 <li><code>CARGO_HTTP_CAINFO</code> — The TLS certificate Certificate Authority file, see <a href="config.html#httpcainfo"><code>http.cainfo</code></a>.</li>
+<li><code>CARGO_HTTP_PROXY_CAINFO</code> — The proxy TLS certificate Certificate Authority file, see <a href="config.html#httpproxy-cainfo"><code>http.proxy-cainfo</code></a>.</li>
 <li><code>CARGO_HTTP_CHECK_REVOKE</code> — Disables TLS certificate revocation checks, see <a href="config.html#httpcheck-revoke"><code>http.check-revoke</code></a>.</li>
 <li><code>CARGO_HTTP_SSL_VERSION</code> — The TLS version to use, see <a href="config.html#httpssl-version"><code>http.ssl-version</code></a>.</li>
 <li><code>CARGO_HTTP_LOW_SPEED_LIMIT</code> — The HTTP low-speed limit, see <a href="config.html#httplow-speed-limit"><code>http.low-speed-limit</code></a>.</li>
@@ -393,7 +397,8 @@ Only set for <a href="cargo-targets.html#binaries">binaries</a> or binary <a hre
 file extension, such as <code>.exe</code>.</li>
 <li><code>OUT_DIR</code> — If the package has a build script, this is set to the folder
 where the build script should place its output. See below for more information.
-(Only set during compilation.)</li>
+(Only set during compilation.) Cargo does not guarantee that this directory
+is empty, and it is not cleaned between builds.</li>
 <li><code>CARGO_BIN_EXE_&lt;name&gt;</code> — The absolute path to a binary target’s executable.
 This is only set when building an <a href="cargo-targets.html#integration-tests">integration test</a> or benchmark. This may
 be used with the <a href="../../std/macro.env.html"><code>env</code> macro</a> to find the executable to run for testing
@@ -482,7 +487,7 @@ those defined in <code>RUSTFLAGS</code>). Some examples of what these variables 
 <li><code>CARGO_CFG_TARGET_ARCH=x86_64</code> — The CPU <a href="../../reference/conditional-compilation.html#target_arch">target architecture</a>.</li>
 <li><code>CARGO_CFG_TARGET_VENDOR=apple</code> — The <a href="../../reference/conditional-compilation.html#target_vendor">target vendor</a>.</li>
 <li><code>CARGO_CFG_TARGET_ENV=gnu</code> — The <a href="../../reference/conditional-compilation.html#target_env">target environment</a> ABI.</li>
-<li><code>CARGO_CFG_TARGET_ABI=sim</code> — The <a href="../../reference/conditional-compilation.html#target_abi">target ABI</a>.</li>
+<li><code>CARGO_CFG_TARGET_ABI=eabihf</code> — The <a href="../../reference/conditional-compilation.html#target_abi">target ABI</a>.</li>
 <li><code>CARGO_CFG_TARGET_POINTER_WIDTH=64</code> — The CPU <a href="../../reference/conditional-compilation.html#target_pointer_width">pointer width</a>.</li>
 <li><code>CARGO_CFG_TARGET_ENDIAN=little</code> — The CPU <a href="../../reference/conditional-compilation.html#target_endian">target endianness</a>.</li>
 <li><code>CARGO_CFG_TARGET_FEATURE=mmx,sse</code> — List of CPU <a href="../../reference/conditional-compilation.html#target_feature">target features</a> enabled.</li>
@@ -490,12 +495,15 @@ those defined in <code>RUSTFLAGS</code>). Some examples of what these variables 
 <blockquote>
 <p>Note that different <a href="../appendix/glossary.html#target">target triples</a> have different sets of <code>cfg</code> values,
 hence variables present in one target triple might not be available in the other.</p>
-<p>Some cfg values like <code>debug_assertions</code> and <code>test</code> are not available.</p>
+<p>Some cfg values like <code>test</code> are not available.</p>
 </blockquote>
 </li>
 <li><code>OUT_DIR</code> — the folder in which all output and intermediate artifacts should
 be placed. This folder is inside the build directory for the package being built,
-and it is unique for the package in question.</li>
+and it is unique for the package in question. Cargo does not clean or reset this
+directory between builds, and its contents may persist across rebuilds. Build
+scripts should not assume that <code>OUT_DIR</code> is empty, and are responsible for
+managing or cleaning up any files they create.</li>
 <li><code>TARGET</code> — the target triple that is being compiled for. Native code should be
 compiled for this triple. See the <a href="../appendix/glossary.html#target">Target Triple</a> description for more information.</li>
 <li><code>HOST</code> — the host triple of the Rust compiler.</li>
@@ -506,13 +514,14 @@ purposes this is still provided but recent versions of Cargo, for example, do
 not need to run <code>make -j</code>, and instead can set the <code>MAKEFLAGS</code> env var to the
 content of <code>CARGO_MAKEFLAGS</code> to activate the use of Cargo’s GNU Make compatible
 <a href="https://www.gnu.org/software/make/manual/html_node/Job-Slots.html">jobserver</a> for sub-make invocations.</li>
-<li><code>OPT_LEVEL</code>, <code>DEBUG</code> — values of the corresponding variables for the profile currently being built.</li>
+<li><code>DEBUG</code> — <code>true</code> if any <a href="profiles.html#debug"><code>debug</code></a> information will be generated and <code>false</code> otherwise.</li>
+<li><code>OPT_LEVEL</code> — values of the corresponding <a href="profiles.html#opt-level"><code>opt-level</code></a> variable for the profile currently being built.</li>
 <li><code>PROFILE</code> — <code>release</code> for release builds, <code>debug</code> for other builds. This is
 determined based on if the <a href="profiles.html">profile</a> inherits from the <a href="profiles.html#dev"><code>dev</code></a> or
 <a href="profiles.html#release"><code>release</code></a> profile. Using this environment variable is not recommended.
 Using other environment variables like <code>OPT_LEVEL</code> provide a more correct
 view of the actual settings being used.</li>
-<li><code>DEP_&lt;name&gt;_&lt;key&gt;</code> — For more information about this set of environment variables,
+<li><code>DEP_&lt;links&gt;_&lt;key&gt;</code> — For more information about this set of environment variables,
 see build script documentation about <a href="build-scripts.html#the-links-manifest-key"><code>links</code></a>.</li>
 <li><code>RUSTC</code>, <code>RUSTDOC</code> — the compiler and documentation generator that Cargo has
 resolved to use, passed to the build script so it might use it as well.</li>
@@ -528,6 +537,19 @@ separated by a <code>0x1f</code> character (ASCII Unit Separator). See
 <a href="config.html#buildrustflags"><code>build.rustflags</code></a>. Note that since Rust 1.55, <code>RUSTFLAGS</code> is removed from
 the environment; scripts should use <code>CARGO_ENCODED_RUSTFLAGS</code> instead.</li>
 <li><code>CARGO_PKG_&lt;var&gt;</code> — The package information variables, with the same names and values as are <a href="#environment-variables-cargo-sets-for-crates">provided during crate building</a>.</li>
+</ul>
+<h2 id="environment-variables-cargo-sets-for-cargo-test"><a class="header" href="#environment-variables-cargo-sets-for-cargo-test">Environment variables Cargo sets for <code>cargo test</code></a></h2>
+<p>Cargo sets several environment variables when tests are run.
+You can retrieve the values when the tests are run:</p>
+<pre><code class="language-rust ignore">use std::env;
+let out_dir = env::var("CARGO_BIN_EXE_foo").unwrap();</code></pre>
+<ul>
+<li><code>CARGO_BIN_EXE_&lt;name&gt;</code> — The absolute path to a binary target’s executable.
+This is only set when running an <a href="cargo-targets.html#integration-tests">integration test</a> or benchmark.
+The <code>&lt;name&gt;</code> is the name of the binary target, exactly as-is. For
+example, <code>CARGO_BIN_EXE_my-program</code> for a binary named <code>my-program</code>.
+Binaries are automatically built when the test is built, unless the binary
+has required features that are not enabled.</li>
 </ul>
 <h2 id="environment-variables-cargo-sets-for-3rd-party-subcommands"><a class="header" href="#environment-variables-cargo-sets-for-3rd-party-subcommands">Environment variables Cargo sets for 3rd party subcommands</a></h2>
 <p>Cargo exposes this environment variable to 3rd party subcommands

@@ -216,66 +216,89 @@
 
                 <div id="content" class="content">
                     <main>
-                        <div class="rule" id="r-expr.struct"><a class="rule-link" href="#r-expr.struct" title="expr.struct"><span>[expr<wbr>.struct]<span/></a></div>
+                        <p>r[expr.struct]</p>
 <h1 id="구조체-표현식"><a class="header" href="#구조체-표현식">구조체 표현식</a></h1>
-<div class="rule" id="r-expr.struct.syntax"><a class="rule-link" href="#r-expr.struct.syntax" title="expr.struct.syntax"><span>[expr<wbr>.struct<wbr>.syntax]<span/></a></div>
-<blockquote>
-<p><strong><sup>구문</sup></strong><br />
-<em>구조체표현식</em> :<br />
-      <em>구조체표현식구조체</em><br />
-   | <em>구조체표현식튜플</em><br />
-   | <em>구조체표현식유닛</em></p>
-<p><em>구조체표현식구조체</em> :<br />
-   <a href="../paths.html#paths-in-expressions"><em>표현식내경로</em></a> <code>{</code> (<em>구조체표현식필드</em> | <em>구조체베이스</em>)<sup>?</sup> <code>}</code></p>
-<p><em>구조체표현식필드</em> :<br />
-   <em>구조체표현식필드</em> (<code>,</code> <em>구조체표현식필드</em>)<sup>*</sup> (<code>,</code> <em>구조체베이스</em> | <code>,</code><sup>?</sup>)</p>
-<p><em>구조체표현식필드</em> :<br />
-   <a href="../attributes.html"><em>외부속성</em></a> <sup>*</sup><br />
-   (<br />
-         <a href="../identifiers.html">식별자</a><br />
-      | (<a href="../identifiers.html">식별자</a> | <a href="../tokens.html#tuple-index">튜플_인덱스</a>) <code>:</code> <a href="../expressions.html"><em>표현식</em></a><br />
-   )</p>
-<p><em>구조체베이스</em> :<br />
-   <code>..</code> <a href="../expressions.html"><em>표현식</em></a></p>
-<p><em>구조체표현식튜플</em> :<br />
-   <a href="../paths.html#paths-in-expressions"><em>표현식내경로</em></a> <code>(</code><br />
-      ( <a href="../expressions.html"><em>표현식</em></a> (<code>,</code> <a href="../expressions.html"><em>표현식</em></a>)<sup>*</sup> <code>,</code><sup>?</sup> )<sup>?</sup><br />
-   <code>)</code></p>
-<p><em>구조체표현식유닛</em> : <a href="../paths.html#paths-in-expressions"><em>표현식내경로</em></a></p>
-</blockquote>
-<div class="rule" id="r-expr.struct.intro"><a class="rule-link" href="#r-expr.struct.intro" title="expr.struct.intro"><span>[expr<wbr>.struct<wbr>.intro]<span/></a></div>
-<p>_구조체 표현식_은 구조체, 열거형 또는 공용체 값을 생성합니다. 이는 <a href="../items/structs.html">구조체</a>, <a href="../items/enumerations.html">열거형 변형</a> 또는 <a href="../items/unions.html">공용체</a> 아이템에 대한 경로와 그 뒤에 오는 아이템의 필드 값들로 구성됩니다. 구조체 표현식에는 구조체, 튜플, 유닛의 세 가지 형식이 있습니다.</p>
+<p>r[expr.struct.syntax]</p>
+<pre><code class="language-grammar expressions">StructExpression -&gt;
+    PathInExpression `{` (StructExprFields | StructBase)? `}`
+
+StructExprFields -&gt;
+    StructExprField (`,` StructExprField)* (`,` StructBase | `,`?)
+
+StructExprField -&gt;
+    OuterAttribute*
+    (
+        IDENTIFIER
+      | (IDENTIFIER | TUPLE_INDEX) `:` Expression
+    )
+
+StructBase -&gt; `..` Expression
+</code></pre>
+<p>r[expr.struct.intro] A <em>struct expression</em> creates a struct, enum, or union value. It consists of a path to a <a href="../items/structs.html">struct</a>, <a href="../items/enumerations.html">enum variant</a>, or <a href="../items/unions.html">union</a> item followed by the values for the fields of the item.</p>
 <p>다음은 구조체 표현식의 예입니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct Point { x: f64, y: f64 }
 </span><span class="boring">struct NothingInMe { }
-</span><span class="boring">struct TuplePoint(f64, f64);
 </span><span class="boring">mod game { pub struct User&lt;'a&gt; { pub name: &amp;'a str, pub age: u32, pub score: usize } }
-</span><span class="boring">struct Cookie; fn some_fn&lt;T&gt;(t: T) {}
+</span><span class="boring">enum Enum { Variant {} }
 </span>Point {x: 10.0, y: 20.0};
 NothingInMe {};
-TuplePoint(10.0, 20.0);
-TuplePoint { 0: 10.0, 1: 20.0 }; // 윗줄과 같은 결과를 가집니다
 let u = game::User {name: "Joe", age: 35, score: 100_000};
-some_fn::&lt;Cookie&gt;(Cookie);
+Enum::Variant {};
 <span class="boring">}</span></code></pre></pre>
-<div class="rule" id="r-expr.struct.field"><a class="rule-link" href="#r-expr.struct.field" title="expr.struct.field"><span>[expr<wbr>.struct<wbr>.field]<span/></a></div>
+<blockquote>
+<p>[!NOTE] Tuple structs and tuple enum variants are typically instantiated using a [call expression][expr.call] referring to the [constructor in the value namespace][items.struct.tuple]. These are distinct from a struct expression using curly braces referring to the constructor in the type namespace.</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>struct Position(i32, i32, i32);
+Position(0, 0, 0);  // 튜플 구조체를 생성하는 전형적인 방법.
+let c = Position;  // `c`는 3개의 인수를 받는 함수입니다.
+let pos = c(8, 6, 7);  // `Position` 값을 생성합니다.
+
+enum Version { Triple(i32, i32, i32) };
+Version::Triple(0, 0, 0);
+let f = Version::Triple;
+let ver = f(8, 6, 7);
+<span class="boring">}</span></code></pre></pre>
+<p>The last segment of the call path cannot refer to a type alias:</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>trait Tr { type T; }
+impl&lt;T&gt; Tr for T { type T = T; }
+
+struct Tuple();
+enum Enum { Tuple() }
+
+// &lt;Unit as Tr&gt;::T(); // causes an error -- `::T` is a type, not a value
+&lt;Enum as Tr&gt;::T::Tuple(); // OK
+<span class="boring">}</span></code></pre></pre>
+<hr />
+<p>Unit structs and unit enum variants are typically instantiated using a [path expression][expr.path] referring to the [constant in the value namespace][items.struct.unit].</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>struct Gamma;
+// Gamma unit value, referring to the const in the value namespace.
+let a = Gamma;
+// Exact same value as `a`, but constructed using a struct expression
+// referring to the type namespace.
+let b = Gamma {};
+
+enum ColorSpace { Oklch }
+let c = ColorSpace::Oklch;
+let d = ColorSpace::Oklch {};
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
+<p>r[expr.struct.field]</p>
 <h2 id="필드-구조체-표현식"><a class="header" href="#필드-구조체-표현식">필드 구조체 표현식</a></h2>
-<div class="rule" id="r-expr.struct.field.intro"><a class="rule-link" href="#r-expr.struct.field.intro" title="expr.struct.field.intro"><span>[expr<wbr>.struct<wbr>.field<wbr>.intro]<span/></a></div>
-<p>중괄호로 묶인 필드가 있는 구조체 표현식을 사용하면 각 개별 필드의 값을 순서에 관계없이 지정할 수 있습니다. 필드 이름은 콜론으로 값과 구분됩니다.</p>
-<div class="rule" id="r-expr.struct.field.union-constraint"><a class="rule-link" href="#r-expr.struct.field.union-constraint" title="expr.struct.field.union-constraint"><span>[expr<wbr>.struct<wbr>.field<wbr>.union-constraint]<span/></a></div>
-<p><a href="../items/unions.html">공용체</a> 타입의 값은 이 구문을 사용하여 생성할 수 있으며, 정확히 하나의 필드를 지정해야 합니다.</p>
-<div class="rule" id="r-expr.struct.update"><a class="rule-link" href="#r-expr.struct.update" title="expr.struct.update"><span>[expr<wbr>.struct<wbr>.update]<span/></a></div>
+<p>r[expr.struct.field.intro] A struct expression with fields enclosed in curly braces allows you to specify the value for each individual field in any order. The field name is separated from its value with a colon.</p>
+<p>r[expr.struct.field.union-constraint] A value of a <a href="../items/unions.html">union</a> type can only be created using this syntax, and it must specify exactly one field.</p>
+<p>r[expr.struct.update]</p>
 <h2 id="함수형-업데이트-구문"><a class="header" href="#함수형-업데이트-구문">함수형 업데이트 구문</a></h2>
-<div class="rule" id="r-expr.struct.update.intro"><a class="rule-link" href="#r-expr.struct.update.intro" title="expr.struct.update.intro"><span>[expr<wbr>.struct<wbr>.update<wbr>.intro]<span/></a></div>
-<p>구조체 타입의 값을 생성하는 구조체 표현식은 함수형 업데이트를 나타내기 위해 <code>..</code> 뒤에 표현식이 오는 구문으로 끝날 수 있습니다.</p>
-<div class="rule" id="r-expr.struct.update.base-same-type"><a class="rule-link" href="#r-expr.struct.update.base-same-type" title="expr.struct.update.base-same-type"><span>[expr<wbr>.struct<wbr>.update<wbr>.base-same-type]<span/></a></div>
-<p><code>..</code> 뒤에 오는 표현식(베이스)은 생성되는 새 구조체 타입과 동일한 구조체 타입을 가져야 합니다.</p>
-<div class="rule" id="r-expr.struct.update.fields"><a class="rule-link" href="#r-expr.struct.update.fields" title="expr.struct.update.fields"><span>[expr<wbr>.struct<wbr>.update<wbr>.fields]<span/></a></div>
-<p>전체 표현식은 지정된 필드에 대해 주어진 값을 사용하고 베이스 표현식에서 나머지 필드를 이동하거나 복사합니다.</p>
-<div class="rule" id="r-expr.struct.update.visibility-constraint"><a class="rule-link" href="#r-expr.struct.update.visibility-constraint" title="expr.struct.update.visibility-constraint"><span>[expr<wbr>.struct<wbr>.update<wbr>.visibility-constraint]<span/></a></div>
-<p>모든 구조체 표현식과 마찬가지로, 명시적으로 명명되지 않은 필드를 포함하여 구조체의 모든 필드는 <a href="../visibility-and-privacy.html">보여야</a> 합니다.</p>
+<p>r[expr.struct.update.intro] A struct expression that constructs a value of a struct type can terminate with the syntax <code>..</code> followed by an expression to denote a functional update.</p>
+<p>r[expr.struct.update.base-same-type] The expression following <code>..</code> (the base) must have the same struct type as the new struct type being formed.</p>
+<p>r[expr.struct.update.fields] The entire expression uses the given values for the fields that were specified and moves or copies the remaining fields from the base expression.</p>
+<p>r[expr.struct.update.visibility-constraint] As with all struct expressions, all of the fields of the struct must be <a href="../visibility-and-privacy.html">visible</a>, even those not explicitly named.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct Point3d { x: i32, y: i32, z: i32 }
@@ -284,10 +307,8 @@ let y_ref = &amp;mut base.y;
 Point3d {y: 0, z: 10, .. base}; // OK, base.x만 접근됩니다
 drop(y_ref);
 <span class="boring">}</span></code></pre></pre>
-<div class="rule" id="r-expr.struct.brace-restricted-positions"><a class="rule-link" href="#r-expr.struct.brace-restricted-positions" title="expr.struct.brace-restricted-positions"><span>[expr<wbr>.struct<wbr>.brace-restricted-positions]<span/></a></div>
-<p>중괄호가 있는 구조체 표현식은 <a href="loop-expr.html">loop</a> 또는 <a href="if-expr.html#if-expressions">if</a> 표현식의 헤드, 또는 <a href="if-expr.html#if-let-expressions">if let</a>이나 <a href="match-expr.html">match</a> 표현식의 <a href="../glossary.html#scrutinee">scrutinee</a>에서 직접 사용할 수 없습니다. 그러나 구조체 표현식이 다른 표현식 내에 있는 경우(예: <a href="grouped-expr.html">괄호</a> 내부), 이러한 상황에서 사용할 수 있습니다.</p>
-<div class="rule" id="r-expr.struct.tuple-field"><a class="rule-link" href="#r-expr.struct.tuple-field" title="expr.struct.tuple-field"><span>[expr<wbr>.struct<wbr>.tuple-field]<span/></a></div>
-<p>필드 이름은 십진 정수 값이 되어 튜플 구조체 생성 시 인덱스를 지정할 수 있습니다. 이것은 기본 구조체와 함께 사용하여 지정되지 않은 나머지 인덱스를 채우는 데 사용할 수 있습니다.</p>
+<p>r[expr.struct.brace-restricted-positions] Struct expressions can’t be used directly in a <a href="loop-expr.html">loop</a> or <a href="if-expr.html#if-expressions">if</a> expression’s head, or in the <a href="../glossary.html#scrutinee">scrutinee</a> of an <a href="if-expr.html#if-let-patterns">if let</a> or <a href="match-expr.html">match</a> expression. However, struct expressions can be used in these situations if they are within another expression, for example inside <a href="grouped-expr.html">parentheses</a>.</p>
+<p>r[expr.struct.tuple-field] The field names can be decimal integer values to specify indices for constructing tuple structs. This can be used with base structs to fill out the remaining indices not specified:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Color(u8, u8, u8);
@@ -295,7 +316,7 @@ let c1 = Color(0, 0, 0);  // 튜플 구조체를 생성하는 전형적인 방�
 let c2 = Color{0: 255, 1: 127, 2: 0};  // 인덱스로 필드 지정.
 let c3 = Color{1: 0, ..c2};  // 기본 구조체를 사용하여 다른 모든 필드를 채웁니다.
 <span class="boring">}</span></code></pre></pre>
-<div class="rule" id="r-expr.struct.field.named"><a class="rule-link" href="#r-expr.struct.field.named" title="expr.struct.field.named"><span>[expr<wbr>.struct<wbr>.field<wbr>.named]<span/></a></div>
+<p>r[expr.struct.field.named]</p>
 <h3 id="구조체-필드-초기화-단축형"><a class="header" href="#구조체-필드-초기화-단축형">구조체 필드 초기화 단축형</a></h3>
 <p>명명된(번호가 매겨지지 않은) 필드가 있는 데이터 구조(구조체, 열거형, 공용체)를 초기화할 때, <code>fieldname: fieldname</code>의 약어로 <code>fieldname</code>을 작성할 수 있습니다. 이를 통해 중복이 적은 간결한 구문을 사용할 수 있습니다. 예를 들면:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
@@ -306,25 +327,6 @@ let c3 = Color{1: 0, ..c2};  // 기본 구조체를 사용하여 다른 모든 �
 </span><span class="boring">let z = 0;
 </span>Point3d { x: x, y: y_value, z: z };
 Point3d { x, y: y_value, z };
-<span class="boring">}</span></code></pre></pre>
-<div class="rule" id="r-expr.struct.tuple"><a class="rule-link" href="#r-expr.struct.tuple" title="expr.struct.tuple"><span>[expr<wbr>.struct<wbr>.tuple]<span/></a></div>
-<h2 id="튜플-구조체-표현식"><a class="header" href="#튜플-구조체-표현식">튜플 구조체 표현식</a></h2>
-<p>괄호로 묶인 필드가 있는 구조체 표현식은 튜플 구조체를 생성합니다. 완전성을 위해 여기에 특정 표현식으로 나열되어 있지만, 이는 튜플 구조체의 생성자에 대한 <a href="call-expr.html">호출 표현식</a>과 동일합니다. 예를 들면:</p>
-<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>struct Position(i32, i32, i32);
-Position(0, 0, 0);  // 튜플 구조체를 생성하는 전형적인 방법.
-let c = Position;  // `c`는 3개의 인수를 받는 함수입니다.
-let pos = c(8, 6, 7);  // `Position` 값을 생성합니다.
-<span class="boring">}</span></code></pre></pre>
-<div class="rule" id="r-expr.struct.unit"><a class="rule-link" href="#r-expr.struct.unit" title="expr.struct.unit"><span>[expr<wbr>.struct<wbr>.unit]<span/></a></div>
-<h2 id="유닛-구조체-표현식"><a class="header" href="#유닛-구조체-표현식">유닛 구조체 표현식</a></h2>
-<p>유닛 구조체 표현식은 단순히 유닛 구조체 아이템에 대한 경로입니다. 이는 유닛 구조체 값의 암시적 상수를 나타냅니다. 유닛 구조체 값은 필드 없는 구조체 표현식으로도 생성할 수 있습니다. 예를 들면:</p>
-<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>struct Gamma;
-let a = Gamma;  // Gamma 유닛 값.
-let b = Gamma{};  // `a`와 정확히 같은 값.
 <span class="boring">}</span></code></pre></pre>
 
                     </main>

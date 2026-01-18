@@ -217,13 +217,16 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="the-slice-type"><a class="header" href="#the-slice-type">The Slice Type</a></h2>
-<p><em>Slices</em> let you reference a contiguous sequence of elements in a <a href="ch08-00-common-collections.html">collection</a> rather than the whole collection. A slice is a kind of reference, so it does not have ownership.</p>
-<p>Here’s a small programming problem: write a function that takes a string of words separated by spaces and returns the first word it finds in that string. If the function doesn’t find a space in the string, the whole string must be one word, so the entire string should be returned.</p>
+<p><em>Slices</em> let you reference a contiguous sequence of elements in a <a href="ch08-00-common-collections.html">collection</a><!-- ignore -->. A slice is a kind of reference, so it does not have ownership.</p>
+<p>Here’s a small programming problem: Write a function that takes a string of words separated by spaces and returns the first word it finds in that string. If the function doesn’t find a space in the string, the whole string must be one word, so the entire string should be returned.</p>
+<blockquote>
+<p>Note: For the purposes of introducing slices, we are assuming ASCII only in this section; a more thorough discussion of UTF-8 handling is in the <a href="ch08-02-strings.html#storing-utf-8-encoded-text-with-strings">“Storing UTF-8 Encoded Text with Strings”</a><!-- ignore --> section of Chapter 8.</p>
+</blockquote>
 <p>Let’s work through how we’d write the signature of this function without using slices, to understand the problem that slices will solve:</p>
 <pre><code class="language-rust ignore">fn first_word(s: &amp;String) -&gt; ?</code></pre>
-<p>The <code>first_word</code> function has a <code>&amp;String</code> as a parameter. We don’t need ownership, so this is fine. (In idiomatic Rust, functions do not take ownership of their arguments unless they need to, and the reasons for that will become clear as we keep going!) But what should we return? We don’t really have a way to talk about part of a string. However, we could return the index of the end of the word, indicated by a space. Let’s try that, as shown in Listing 4-7.</p>
+<p>The <code>first_word</code> function has a parameter of type <code>&amp;String</code>. We don’t need ownership, so this is fine. (In idiomatic Rust, functions do not take ownership of their arguments unless they need to, and the reasons for that will become clear as we keep going.) But what should we return? We don’t really have a way to talk about <em>part</em> of a string. However, we could return the index of the end of the word, indicated by a space. Let’s try that, as shown in Listing 4-7.</p>
 <Listing number="4-7" file-name="src/main.rs" caption="The `first_word` function that returns a byte index value into the `String` parameter">
-<pre><pre class="playground"><code class="language-rust edition2021">fn first_word(s: &amp;String) -&gt; usize {
+<pre><pre class="playground"><code class="language-rust edition2024">fn first_word(s: &amp;String) -&gt; usize {
     let bytes = s.as_bytes();
 
     for (i, &amp;item) in bytes.iter().enumerate() {
@@ -283,7 +286,7 @@
 </span><span class="boring">fn main() {}</span></code></pre>
 <p>We now have a way to find out the index of the end of the first word in the string, but there’s a problem. We’re returning a <code>usize</code> on its own, but it’s only a meaningful number in the context of the <code>&amp;String</code>. In other words, because it’s a separate value from the <code>String</code>, there’s no guarantee that it will still be valid in the future. Consider the program in Listing 4-8 that uses the <code>first_word</code> function from Listing 4-7.</p>
 <Listing number="4-8" file-name="src/main.rs" caption="Storing the result from calling the `first_word` function and then changing the `String` contents">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn first_word(s: &amp;String) -&gt; usize {
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn first_word(s: &amp;String) -&gt; usize {
 </span><span class="boring">    let bytes = s.as_bytes();
 </span><span class="boring">
 </span><span class="boring">    for (i, &amp;item) in bytes.iter().enumerate() {
@@ -302,34 +305,33 @@
 
     s.clear(); // this empties the String, making it equal to ""
 
-    // `word` still has the value `5` here, but `s` no longer has any content
-    // that we could meaningfully use with the value `5`, so `word` is now
-    // totally invalid!
+    // word still has the value 5 here, but s no longer has any content that we
+    // could meaningfully use with the value 5, so word is now totally invalid!
 }</code></pre></pre>
 </Listing>
 <p>This program compiles without any errors and would also do so if we used <code>word</code> after calling <code>s.clear()</code>. Because <code>word</code> isn’t connected to the state of <code>s</code> at all, <code>word</code> still contains the value <code>5</code>. We could use that value <code>5</code> with the variable <code>s</code> to try to extract the first word out, but this would be a bug because the contents of <code>s</code> have changed since we saved <code>5</code> in <code>word</code>.</p>
-<p>Having to worry about the index in <code>word</code> getting out of sync with the data in <code>s</code> is tedious and error prone! Managing these indices is even more brittle if we write a <code>second_word</code> function. Its signature would have to look like this:</p>
+<p>Having to worry about the index in <code>word</code> getting out of sync with the data in <code>s</code> is tedious and error-prone! Managing these indices is even more brittle if we write a <code>second_word</code> function. Its signature would have to look like this:</p>
 <pre><code class="language-rust ignore">fn second_word(s: &amp;String) -&gt; (usize, usize) {</code></pre>
 <p>Now we’re tracking a starting <em>and</em> an ending index, and we have even more values that were calculated from data in a particular state but aren’t tied to that state at all. We have three unrelated variables floating around that need to be kept in sync.</p>
 <p>Luckily, Rust has a solution to this problem: string slices.</p>
 <h3 id="string-slices"><a class="header" href="#string-slices">String Slices</a></h3>
-<p>A <em>string slice</em> is a reference to part of a <code>String</code>, and it looks like this:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+<p>A <em>string slice</em> is a reference to a contiguous sequence of the elements of a <code>String</code>, and it looks like this:</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span>    let s = String::from("hello world");
 
     let hello = &amp;s[0..5];
     let world = &amp;s[6..11];
 <span class="boring">}</span></code></pre></pre>
-<p>Rather than a reference to the entire <code>String</code>, <code>hello</code> is a reference to a portion of the <code>String</code>, specified in the extra <code>[0..5]</code> bit. We create slices using a range within brackets by specifying <code>[starting_index..ending_index]</code>, where <em><code>starting_index</code></em> is the first position in the slice and <em><code>ending_index</code></em> is one more than the last position in the slice. Internally, the slice data structure stores the starting position and the length of the slice, which corresponds to <em><code>ending_index</code></em> minus <em><code>starting_index</code></em>. So, in the case of <code>let world = &amp;s[6..11];</code>, <code>world</code> would be a slice that contains a pointer to the byte at index 6 of <code>s</code> with a length value of <code>5</code>.</p>
+<p>Rather than a reference to the entire <code>String</code>, <code>hello</code> is a reference to a portion of the <code>String</code>, specified in the extra <code>[0..5]</code> bit. We create slices using a range within square brackets by specifying <code>[starting_index..ending_index]</code>, where <em><code>starting_index</code></em> is the first position in the slice and <em><code>ending_index</code></em> is one more than the last position in the slice. Internally, the slice data structure stores the starting position and the length of the slice, which corresponds to <em><code>ending_index</code></em> minus <em><code>starting_index</code></em>. So, in the case of <code>let world = &amp;s[6..11];</code>, <code>world</code> would be a slice that contains a pointer to the byte at index 6 of <code>s</code> with a length value of <code>5</code>.</p>
 <p>Figure 4-7 shows this in a diagram.</p>
 <p><img alt="Three tables: a table representing the stack data of s, which points
 to the byte at index 0 in a table of the string data &quot;hello world&quot; on
-the heap. The third table rep-resents the stack data of the slice world, which
+the heap. The third table represents the stack data of the slice world, which
 has a length value of 5 and points to byte 6 of the heap data table."
 src="img/trpl04-07.svg" class="center" style="width: 50%;" /></p>
-<p><span class="caption">Figure 4-7: String slice referring to part of a <code>String</code></span></p>
+<p><span class="caption">Figure 4-7: A string slice referring to part of a <code>String</code></span></p>
 <p>With Rust’s <code>..</code> range syntax, if you want to start at index 0, you can drop the value before the two periods. In other words, these are equal:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let s = String::from("hello");
 
@@ -337,7 +339,7 @@ let slice = &amp;s[0..2];
 let slice = &amp;s[..2];
 <span class="boring">}</span></code></pre></pre>
 <p>By the same token, if your slice includes the last byte of the <code>String</code>, you can drop the trailing number. That means these are equal:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let s = String::from("hello");
 
@@ -346,8 +348,8 @@ let len = s.len();
 let slice = &amp;s[3..len];
 let slice = &amp;s[3..];
 <span class="boring">}</span></code></pre></pre>
-<p>You can also drop both values to take a slice of the entire string. So these are equal:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<p>You can also drop both values to take a slice of the entire string. So, these are equal:</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let s = String::from("hello");
 
@@ -357,11 +359,11 @@ let slice = &amp;s[0..len];
 let slice = &amp;s[..];
 <span class="boring">}</span></code></pre></pre>
 <blockquote>
-<p>Note: String slice range indices must occur at valid UTF-8 character boundaries. If you attempt to create a string slice in the middle of a multibyte character, your program will exit with an error. For the purposes of introducing string slices, we are assuming ASCII only in this section; a more thorough discussion of UTF-8 handling is in the <a href="ch08-02-strings.html#storing-utf-8-encoded-text-with-strings">“Storing UTF-8 Encoded Text with Strings”</a><!-- ignore --> section of Chapter 8.</p>
+<p>Note: String slice range indices must occur at valid UTF-8 character boundaries. If you attempt to create a string slice in the middle of a multibyte character, your program will exit with an error.</p>
 </blockquote>
 <p>With all this information in mind, let’s rewrite <code>first_word</code> to return a slice. The type that signifies “string slice” is written as <code>&amp;str</code>:</p>
 <Listing file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021">fn first_word(s: &amp;String) -&gt; &amp;str {
+<pre><pre class="playground"><code class="language-rust edition2024">fn first_word(s: &amp;String) -&gt; &amp;str {
     let bytes = s.as_bytes();
 
     for (i, &amp;item) in bytes.iter().enumerate() {
@@ -379,7 +381,7 @@ let slice = &amp;s[..];
 <p>Now when we call <code>first_word</code>, we get back a single value that is tied to the underlying data. The value is made up of a reference to the starting point of the slice and the number of elements in the slice.</p>
 <p>Returning a slice would also work for a <code>second_word</code> function:</p>
 <pre><code class="language-rust ignore">fn second_word(s: &amp;String) -&gt; &amp;str {</code></pre>
-<p>We now have a straightforward API that’s much harder to mess up because the compiler will ensure the references into the <code>String</code> remain valid. Remember the bug in the program in Listing 4-8, when we got the index to the end of the first word but then cleared the string so our index was invalid? That code was logically incorrect but didn’t show any immediate errors. The problems would show up later if we kept trying to use the first word index with an emptied string. Slices make this bug impossible and let us know we have a problem with our code much sooner. Using the slice version of <code>first_word</code> will throw a compile-time error:</p>
+<p>We now have a straightforward API that’s much harder to mess up because the compiler will ensure that the references into the <code>String</code> remain valid. Remember the bug in the program in Listing 4-8, when we got the index to the end of the first word but then cleared the string so our index was invalid? That code was logically incorrect but didn’t show any immediate errors. The problems would show up later if we kept trying to use the first word index with an emptied string. Slices make this bug impossible and let us know much sooner that we have a problem with our code. Using the slice version of <code>first_word</code> will throw a compile-time error:</p>
 <Listing file-name="src/main.rs">
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">fn first_word(s: &amp;String) -&gt; &amp;str {
 </span><span class="boring">    let bytes = s.as_bytes();
@@ -416,21 +418,21 @@ error[E0502]: cannot borrow `s` as mutable because it is also borrowed as immuta
    |     ^^^^^^^^^ mutable borrow occurs here
 19 |
 20 |     println!("the first word is: {word}");
-   |                                  ------ immutable borrow later used here
+   |                                   ---- immutable borrow later used here
 
 For more information about this error, try `rustc --explain E0502`.
 error: could not compile `ownership` (bin "ownership") due to 1 previous error
 </code></pre>
 <p>Recall from the borrowing rules that if we have an immutable reference to something, we cannot also take a mutable reference. Because <code>clear</code> needs to truncate the <code>String</code>, it needs to get a mutable reference. The <code>println!</code> after the call to <code>clear</code> uses the reference in <code>word</code>, so the immutable reference must still be active at that point. Rust disallows the mutable reference in <code>clear</code> and the immutable reference in <code>word</code> from existing at the same time, and compilation fails. Not only has Rust made our API easier to use, but it has also eliminated an entire class of errors at compile time!</p>
-<!-- Old heading. Do not remove or links may break. -->
+<!-- Old headings. Do not remove or links may break. -->
 <p><a id="string-literals-are-slices"></a></p>
 <h4 id="string-literals-as-slices"><a class="header" href="#string-literals-as-slices">String Literals as Slices</a></h4>
 <p>Recall that we talked about string literals being stored inside the binary. Now that we know about slices, we can properly understand string literals:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let s = "Hello, world!";
 <span class="boring">}</span></code></pre></pre>
-<p>The type of <code>s</code> here is <code>&amp;str</code>: it’s a slice pointing to that specific point of the binary. This is also why string literals are immutable; <code>&amp;str</code> is an immutable reference.</p>
+<p>The type of <code>s</code> here is <code>&amp;str</code>: It’s a slice pointing to that specific point of the binary. This is also why string literals are immutable; <code>&amp;str</code> is an immutable reference.</p>
 <h4 id="string-slices-as-parameters"><a class="header" href="#string-slices-as-parameters">String Slices as Parameters</a></h4>
 <p>Knowing that you can take slices of literals and <code>String</code> values leads us to one more improvement on <code>first_word</code>, and that’s its signature:</p>
 <pre><code class="language-rust ignore">fn first_word(s: &amp;String) -&gt; &amp;str {</code></pre>
@@ -470,10 +472,11 @@ error: could not compile `ownership` (bin "ownership") due to 1 previous error
 </span><span class="boring">    let word = first_word(my_string_literal);
 </span><span class="boring">}</span></code></pre>
 </Listing>
-<p>If we have a string slice, we can pass that directly. If we have a <code>String</code>, we can pass a slice of the <code>String</code> or a reference to the <code>String</code>. This flexibility takes advantage of <em>deref coercions</em>, a feature we will cover in the <a href="ch15-02-deref.html#implicit-deref-coercions-with-functions-and-methods">“Implicit Deref Coercions with Functions and Methods”</a><!--ignore--> section of Chapter 15.</p>
+<p>If we have a string slice, we can pass that directly. If we have a <code>String</code>, we can pass a slice of the <code>String</code> or a reference to the <code>String</code>. This flexibility takes advantage of deref coercions, a feature we will cover in the <a href="ch15-02-deref.html#using-deref-coercions-in-functions-and-methods">“Using Deref Coercions in Functions and Methods”</a><!--
+ignore --> section of Chapter 15.</p>
 <p>Defining a function to take a string slice instead of a reference to a <code>String</code> makes our API more general and useful without losing any functionality:</p>
 <Listing file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn first_word(s: &amp;str) -&gt; &amp;str {
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn first_word(s: &amp;str) -&gt; &amp;str {
 </span><span class="boring">    let bytes = s.as_bytes();
 </span><span class="boring">
 </span><span class="boring">    for (i, &amp;item) in bytes.iter().enumerate() {
@@ -509,12 +512,12 @@ error: could not compile `ownership` (bin "ownership") due to 1 previous error
 </Listing>
 <h3 id="other-slices"><a class="header" href="#other-slices">Other Slices</a></h3>
 <p>String slices, as you might imagine, are specific to strings. But there’s a more general slice type too. Consider this array:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let a = [1, 2, 3, 4, 5];
 <span class="boring">}</span></code></pre></pre>
 <p>Just as we might want to refer to part of a string, we might want to refer to part of an array. We’d do so like this:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let a = [1, 2, 3, 4, 5];
 
@@ -524,7 +527,7 @@ assert_eq!(slice, &amp;[2, 3]);
 <span class="boring">}</span></code></pre></pre>
 <p>This slice has the type <code>&amp;[i32]</code>. It works the same way as string slices do, by storing a reference to the first element and a length. You’ll use this kind of slice for all sorts of other collections. We’ll discuss these collections in detail when we talk about vectors in Chapter 8.</p>
 <h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
-<p>The concepts of ownership, borrowing, and slices ensure memory safety in Rust programs at compile time. The Rust language gives you control over your memory usage in the same way as other systems programming languages, but having the owner of data automatically clean up that data when the owner goes out of scope means you don’t have to write and debug extra code to get this control.</p>
+<p>The concepts of ownership, borrowing, and slices ensure memory safety in Rust programs at compile time. The Rust language gives you control over your memory usage in the same way as other systems programming languages. But having the owner of data automatically clean up that data when the owner goes out of scope means you don’t have to write and debug extra code to get this control.</p>
 <p>Ownership affects how lots of other parts of Rust work, so we’ll talk about these concepts further throughout the rest of the book. Let’s move on to Chapter 5 and look at grouping pieces of data together in a <code>struct</code>.</p>
 
                     </main>

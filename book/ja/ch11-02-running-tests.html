@@ -218,10 +218,10 @@
                     <main>
                         <h2 id="controlling-how-tests-are-run"><a class="header" href="#controlling-how-tests-are-run">Controlling How Tests Are Run</a></h2>
 <p>Just as <code>cargo run</code> compiles your code and then runs the resultant binary, <code>cargo test</code> compiles your code in test mode and runs the resultant test binary. The default behavior of the binary produced by <code>cargo test</code> is to run all the tests in parallel and capture output generated during test runs, preventing the output from being displayed and making it easier to read the output related to the test results. You can, however, specify command line options to change this default behavior.</p>
-<p>Some command line options go to <code>cargo test</code>, and some go to the resultant test binary. To separate these two types of arguments, you list the arguments that go to <code>cargo test</code> followed by the separator <code>--</code> and then the ones that go to the test binary. Running <code>cargo test --help</code> displays the options you can use with <code>cargo test</code>, and running <code>cargo test -- --help</code> displays the options you can use after the separator. Those options are also documented in <a href="https://doc.rust-lang.org/rustc/tests/index.html">the “Tests” section</a> of the <a href="https://doc.rust-lang.org/rustc/index.html">the rustc book</a>.</p>
+<p>Some command line options go to <code>cargo test</code>, and some go to the resultant test binary. To separate these two types of arguments, you list the arguments that go to <code>cargo test</code> followed by the separator <code>--</code> and then the ones that go to the test binary. Running <code>cargo test --help</code> displays the options you can use with <code>cargo test</code>, and running <code>cargo test -- --help</code> displays the options you can use after the separator. These options are also documented in <a href="https://doc.rust-lang.org/rustc/tests/index.html">the “Tests” section of <em>The <code>rustc</code> Book</em></a>.</p>
 <h3 id="running-tests-in-parallel-or-consecutively"><a class="header" href="#running-tests-in-parallel-or-consecutively">Running Tests in Parallel or Consecutively</a></h3>
-<p>When you run multiple tests, by default they run in parallel using threads, meaning they finish running faster and you get feedback quicker. Because the tests are running at the same time, you must make sure your tests don’t depend on each other or on any shared state, including a shared environment, such as the current working directory or environment variables.</p>
-<p>For example, say each of your tests runs some code that creates a file on disk named <em>test-output.txt</em> and writes some data to that file. Then each test reads the data in that file and asserts that the file contains a particular value, which is different in each test. Because the tests run at the same time, one test might overwrite the file in the time between another test writing and reading the file. The second test will then fail, not because the code is incorrect but because the tests have interfered with each other while running in parallel. One solution is to make sure each test writes to a different file; another solution is to run the tests one at a time.</p>
+<p>When you run multiple tests, by default they run in parallel using threads, meaning they finish running more quickly and you get feedback sooner. Because the tests are running at the same time, you must make sure your tests don’t depend on each other or on any shared state, including a shared environment, such as the current working directory or environment variables.</p>
+<p>For example, say each of your tests runs some code that creates a file on disk named <em>test-output.txt</em> and writes some data to that file. Then, each test reads the data in that file and asserts that the file contains a particular value, which is different in each test. Because the tests run at the same time, one test might overwrite the file in the time between when another test is writing and reading the file. The second test will then fail, not because the code is incorrect but because the tests have interfered with each other while running in parallel. One solution is to make sure each test writes to a different file; another solution is to run the tests one at a time.</p>
 <p>If you don’t want to run the tests in parallel or if you want more fine-grained control over the number of threads used, you can send the <code>--test-threads</code> flag and the number of threads you want to use to the test binary. Take a look at the following example:</p>
 <pre><code class="language-console">$ cargo test -- --test-threads=1
 </code></pre>
@@ -266,6 +266,7 @@ failures:
 
 ---- tests::this_test_will_fail stdout ----
 I got the value 8
+
 thread 'tests::this_test_will_fail' panicked at src/lib.rs:19:9:
 assertion `left == right` failed
   left: 10
@@ -307,6 +308,7 @@ failures:
 
 ---- tests::this_test_will_fail stdout ----
 I got the value 8
+
 thread 'tests::this_test_will_fail' panicked at src/lib.rs:19:9:
 assertion `left == right` failed
   left: 10
@@ -322,10 +324,10 @@ test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; 
 error: test failed, to rerun pass `--lib`
 </code></pre>
 <h3 id="running-a-subset-of-tests-by-name"><a class="header" href="#running-a-subset-of-tests-by-name">Running a Subset of Tests by Name</a></h3>
-<p>Sometimes, running a full test suite can take a long time. If you’re working on code in a particular area, you might want to run only the tests pertaining to that code. You can choose which tests to run by passing <code>cargo test</code> the name or names of the test(s) you want to run as an argument.</p>
+<p>Running a full test suite can sometimes take a long time. If you’re working on code in a particular area, you might want to run only the tests pertaining to that code. You can choose which tests to run by passing <code>cargo test</code> the name or names of the test(s) you want to run as an argument.</p>
 <p>To demonstrate how to run a subset of tests, we’ll first create three tests for our <code>add_two</code> function, as shown in Listing 11-11, and choose which ones to run.</p>
 <Listing number="11-11" file-name="src/lib.rs" caption="Three tests with three different names">
-<pre><code class="language-rust noplayground">pub fn add_two(a: usize) -&gt; usize {
+<pre><code class="language-rust noplayground">pub fn add_two(a: u64) -&gt; u64 {
     a + 2
 }
 
@@ -402,7 +404,9 @@ test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; fini
 
 </code></pre>
 <p>This command ran all tests with <code>add</code> in the name and filtered out the test named <code>one_hundred</code>. Also note that the module in which a test appears becomes part of the test’s name, so we can run all the tests in a module by filtering on the module’s name.</p>
-<h3 id="ignoring-some-tests-unless-specifically-requested"><a class="header" href="#ignoring-some-tests-unless-specifically-requested">Ignoring Some Tests Unless Specifically Requested</a></h3>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="ignoring-some-tests-unless-specifically-requested"></a></p>
+<h3 id="ignoring-tests-unless-specifically-requested"><a class="header" href="#ignoring-tests-unless-specifically-requested">Ignoring Tests Unless Specifically Requested</a></h3>
 <p>Sometimes a few specific tests can be very time-consuming to execute, so you might want to exclude them during most runs of <code>cargo test</code>. Rather than listing as arguments all tests you do want to run, you can instead annotate the time-consuming tests using the <code>ignore</code> attribute to exclude them, as shown here:</p>
 <p><span class="filename">Filename: src/lib.rs</span></p>
 <pre><code class="language-rust noplayground"><span class="boring">pub fn add(left: u64, right: u64) -&gt; u64 {
@@ -451,7 +455,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
      Running unittests src/lib.rs (target/debug/deps/adder-92948b65e88960b4)
 
 running 1 test
-test expensive_test ... ok
+test tests::expensive_test ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 

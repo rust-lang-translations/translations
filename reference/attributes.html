@@ -216,66 +216,75 @@
 
                 <div id="content" class="content">
                     <main>
-                        <script>
-(function() {
-    var fragments = {
-        "#cold-attribute": "attributes/codegen.html#the-cold-attribute",
-        "#conditional-compilation": "conditional-compilation.html",
-        "#deprecation": "attributes/diagnostics.html#the-deprecated-attribute",
-        "#derive": "attributes/derive.html",
-        "#documentation": "../rustdoc/the-doc-attribute.html",
-        "#ffi-attributes": "attributes.html#built-in-attributes-index",
-        "#inline-attribute": "attributes/codegen.html#the-inline-attribute",
-        "#lint-check-attributes": "attributes/diagnostics.html#lint-check-attributes",
-        "#macro-related-attributes": "attributes.html#built-in-attributes-index",
-        "#miscellaneous-attributes": "attributes.html#built-in-attributes-index",
-        "#must_use": "attributes/diagnostics.html#the-must_use-attribute",
-        "#optimization-hints": "attributes/codegen.html#optimization-hints",
-        "#path": "items/modules.html#the-path-attribute",
-        "#preludes": "crates-and-source-files.html#preludes-and-no_std",
-        "#testing": "attributes/testing.html",
-        "#tool-lint-attributes": "attributes/diagnostics.html#tool-lint-attributes",
-        "#crate-only-attributes": "attributes.html#built-in-attributes-index",
-    };
-    var target = fragments[window.location.hash];
-    if (target) {
-        var url = window.location.toString();
-        var base = url.substring(0, url.lastIndexOf('/'));
-        window.location.replace(base + "/" + target);
-    }
-})();
-</script>
+                        <p>r[attributes]</p>
 <h1 id="attributes"><a class="header" href="#attributes">Attributes</a></h1>
-<div class="rule" id="r-attributes.syntax"><a class="rule-link" href="#r-attributes.syntax" title="attributes.syntax"><span>[attributes<wbr>.syntax]<span/></a></div>
-<blockquote>
-<p><strong><sup>Syntax</sup></strong><br />
-<em>InnerAttribute</em> :<br />
-   <code>#</code> <code>!</code> <code>[</code> <em>Attr</em> <code>]</code></p>
-<p><em>OuterAttribute</em> :<br />
-   <code>#</code> <code>[</code> <em>Attr</em> <code>]</code></p>
-<p><em>Attr</em> :<br />
-      <a href="paths.html#simple-paths"><em>SimplePath</em></a> <em>AttrInput</em><sup>?</sup><br />
-   | <code>unsafe</code> <code>(</code> <a href="paths.html#simple-paths"><em>SimplePath</em></a> <em>AttrInput</em><sup>?</sup> <code>)</code></p>
-<p><em>AttrInput</em> :<br />
-      <a href="macros.html"><em>DelimTokenTree</em></a><br />
-   | <code>=</code> <a href="expressions.html"><em>Expression</em></a></p>
-</blockquote>
-<div class="rule" id="r-attributes.intro"><a class="rule-link" href="#r-attributes.intro" title="attributes.intro"><span>[attributes<wbr>.intro]<span/></a></div>
-<p>An <em>attribute</em> is a general, free-form metadatum that is interpreted according
+<p>r[attributes.syntax]</p>
+<pre><code class="language-grammar attributes">InnerAttribute -&gt; `#` `!` `[` Attr `]`
+
+OuterAttribute -&gt; `#` `[` Attr `]`
+
+Attr -&gt;
+      SimplePath AttrInput?
+    | `unsafe` `(` SimplePath AttrInput? `)`
+
+AttrInput -&gt;
+      DelimTokenTree
+    | `=` Expression
+</code></pre>
+<p>r[attributes.intro]
+An <em>attribute</em> is a general, free-form metadatum that is interpreted according
 to name, convention, language, and compiler version. Attributes are modeled
 on Attributes in <a href="https://www.ecma-international.org/publications-and-standards/standards/ecma-335/">ECMA-335</a>, with the syntax coming from <a href="https://www.ecma-international.org/publications-and-standards/standards/ecma-334/">ECMA-334</a> (C#).</p>
-<div class="rule" id="r-attributes.inner"><a class="rule-link" href="#r-attributes.inner" title="attributes.inner"><span>[attributes<wbr>.inner]<span/></a></div>
-<p><em>Inner attributes</em>, written with a bang (<code>!</code>) after the hash (<code>#</code>), apply to the
-item that the attribute is declared within. <em>Outer attributes</em>, written without
-the bang after the hash, apply to the thing that follows the attribute.</p>
-<div class="rule" id="r-attributes.input"><a class="rule-link" href="#r-attributes.input" title="attributes.input"><span>[attributes<wbr>.input]<span/></a></div>
-<p>The attribute consists of a path to the attribute, followed by an optional
+<p>r[attributes.inner]
+<em>Inner attributes</em>, written with a bang (<code>!</code>) after the hash (<code>#</code>), apply to the form that the attribute is declared within.</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// General metadata applied to the enclosing module or crate.
+#![crate_type = "lib"]
+
+// Inner attribute applies to the entire function.
+fn some_unused_variables() {
+  #![allow(unused_variables)]
+
+  let x = ();
+  let y = ();
+  let z = ();
+}
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
+<p>r[attributes.outer]
+<em>Outer attributes</em>, written without the bang after the hash, apply to the form that follows the attribute.</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// A function marked as a unit test
+#[test]
+fn test_foo() {
+    /* ... */
+}
+
+// A conditionally-compiled module
+#[cfg(target_os = "linux")]
+mod bar {
+    /* ... */
+}
+
+// A lint attribute used to suppress a warning/error
+#[allow(non_camel_case_types)]
+type int8_t = i8;
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
+<p>r[attributes.input]
+The attribute consists of a path to the attribute, followed by an optional
 delimited token tree whose interpretation is defined by the attribute.
 Attributes other than macro attributes also allow the input to be an equals
 sign (<code>=</code>) followed by an expression. See the <a href="#meta-item-attribute-syntax">meta item
 syntax</a> below for more details.</p>
-<div class="rule" id="r-attributes.safety"><a class="rule-link" href="#r-attributes.safety" title="attributes.safety"><span>[attributes<wbr>.safety]<span/></a></div>
-<p>An attribute may be unsafe to apply. To avoid undefined behavior when using
+<p>r[attributes.safety]
+An attribute may be unsafe to apply. To avoid undefined behavior when using
 these attributes, certain obligations that cannot be checked by the compiler
 must be met.  To assert these have been, the attribute is wrapped in
 <code>unsafe(..)</code>, e.g. <code>#[unsafe(no_mangle)]</code>.</p>
@@ -283,18 +292,19 @@ must be met.  To assert these have been, the attribute is wrapped in
 <ul>
 <li><a href="abi.html#the-export_name-attribute"><code>export_name</code></a></li>
 <li><a href="abi.html#the-link_section-attribute"><code>link_section</code></a></li>
+<li><a href="attributes/codegen.html#the-naked-attribute"><code>naked</code></a></li>
 <li><a href="abi.html#the-no_mangle-attribute"><code>no_mangle</code></a></li>
 </ul>
-<div class="rule" id="r-attributes.kind"><a class="rule-link" href="#r-attributes.kind" title="attributes.kind"><span>[attributes<wbr>.kind]<span/></a></div>
-<p>Attributes can be classified into the following kinds:</p>
+<p>r[attributes.kind]
+Attributes can be classified into the following kinds:</p>
 <ul>
 <li><a href="#built-in-attributes-index">Built-in attributes</a></li>
-<li><a href="procedural-macros.html#attribute-macros">Proc macro attributes</a></li>
+<li><a href="procedural-macros.html#the-proc_macro_attribute-attribute">Proc macro attributes</a></li>
 <li><a href="procedural-macros.html#derive-macro-helper-attributes">Derive macro helper attributes</a></li>
 <li><a href="#tool-attributes">Tool attributes</a></li>
 </ul>
-<div class="rule" id="r-attributes.allowed-position"><a class="rule-link" href="#r-attributes.allowed-position" title="attributes.allowed-position"><span>[attributes<wbr>.allowed-position]<span/></a></div>
-<p>Attributes may be applied to many things in the language:</p>
+<p>r[attributes.allowed-position]
+Attributes may be applied to many forms in the language:</p>
 <ul>
 <li>All <a href="items.html">item declarations</a> accept outer attributes while <a href="items/external-blocks.html">external blocks</a>,
 <a href="items/functions.html">functions</a>, <a href="items/implementations.html">implementations</a>, and <a href="items/modules.html">modules</a> accept inner attributes.</li>
@@ -311,62 +321,32 @@ Attributes</a> for details.</li>
 <li><a href="items/functions.html">Function</a>, <a href="expressions/closure-expr.html">closure</a> and <a href="types/function-pointer.html">function pointer</a>
 parameters accept outer attributes. This includes attributes on variadic parameters
 denoted with <code>...</code> in function pointers and <a href="items/external-blocks.html#variadic-functions">external blocks</a>.</li>
+<li><a href="inline-assembly.html">Inline assembly</a> template strings and operands accept outer attributes. Only certain attributes are accepted semantically; for details, see [asm.attributes.supported-attributes].</li>
 </ul>
-<p>Some examples of attributes:</p>
-<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// General metadata applied to the enclosing module or crate.
-#![crate_type = "lib"]
-
-// A function marked as a unit test
-#[test]
-fn test_foo() {
-    /* ... */
-}
-
-// A conditionally-compiled module
-#[cfg(target_os = "linux")]
-mod bar {
-    /* ... */
-}
-
-// A lint attribute used to suppress a warning/error
-#[allow(non_camel_case_types)]
-type int8_t = i8;
-
-// Inner attribute applies to the entire function.
-fn some_unused_variables() {
-  #![allow(unused_variables)]
-
-  let x = ();
-  let y = ();
-  let z = ();
-}
-<span class="boring">}</span></code></pre></pre>
-<div class="rule" id="r-attributes.meta"><a class="rule-link" href="#r-attributes.meta" title="attributes.meta"><span>[attributes<wbr>.meta]<span/></a></div>
-<h2 id="meta-item-attribute-syntax"><a class="header" href="#meta-item-attribute-syntax">Meta Item Attribute Syntax</a></h2>
-<div class="rule" id="r-attributes.meta.intro"><a class="rule-link" href="#r-attributes.meta.intro" title="attributes.meta.intro"><span>[attributes<wbr>.meta<wbr>.intro]<span/></a></div>
-<p>A “meta item” is the syntax used for the <em>Attr</em> rule by most <a href="#built-in-attributes-index">built-in
+<p>r[attributes.meta]</p>
+<h2 id="meta-item-attribute-syntax"><a class="header" href="#meta-item-attribute-syntax">Meta item attribute syntax</a></h2>
+<p>r[attributes.meta.intro]
+A “meta item” is the syntax used for the [Attr] rule by most <a href="#built-in-attributes-index">built-in
 attributes</a>. It has the following grammar:</p>
-<div class="rule" id="r-attributes.meta.syntax"><a class="rule-link" href="#r-attributes.meta.syntax" title="attributes.meta.syntax"><span>[attributes<wbr>.meta<wbr>.syntax]<span/></a></div>
-<blockquote>
-<p><strong><sup>Syntax</sup></strong><br />
-<em>MetaItem</em> :<br />
-      <a href="paths.html#simple-paths"><em>SimplePath</em></a><br />
-   | <a href="paths.html#simple-paths"><em>SimplePath</em></a> <code>=</code> <a href="expressions.html"><em>Expression</em></a><br />
-   | <a href="paths.html#simple-paths"><em>SimplePath</em></a> <code>(</code> <em>MetaSeq</em><sup>?</sup> <code>)</code></p>
-<p><em>MetaSeq</em> :<br />
-   <em>MetaItemInner</em> ( <code>,</code> MetaItemInner )<sup>*</sup> <code>,</code><sup>?</sup></p>
-<p><em>MetaItemInner</em> :<br />
-      <em>MetaItem</em><br />
-   | <a href="expressions.html"><em>Expression</em></a></p>
-</blockquote>
-<div class="rule" id="r-attributes.meta.literal-expr"><a class="rule-link" href="#r-attributes.meta.literal-expr" title="attributes.meta.literal-expr"><span>[attributes<wbr>.meta<wbr>.literal-expr]<span/></a></div>
-<p>Expressions in meta items must macro-expand to literal expressions, which must not
+<p>r[attributes.meta.syntax]</p>
+<pre><code class="language-grammar attributes">@root MetaItem -&gt;
+      SimplePath
+    | SimplePath `=` Expression
+    | SimplePath `(` MetaSeq? `)`
+
+MetaSeq -&gt;
+    MetaItemInner ( `,` MetaItemInner )* `,`?
+
+MetaItemInner -&gt;
+      MetaItem
+    | Expression
+</code></pre>
+<p>r[attributes.meta.literal-expr]
+Expressions in meta items must macro-expand to literal expressions, which must not
 include integer or float type suffixes. Expressions which are not literal expressions
 will be syntactically accepted (and can be passed to proc-macros), but will be rejected after parsing.</p>
-<div class="rule" id="r-attributes.meta.order"><a class="rule-link" href="#r-attributes.meta.order" title="attributes.meta.order"><span>[attributes<wbr>.meta<wbr>.order]<span/></a></div>
-<p>Note that if the attribute appears within another macro, it will be expanded
+<p>r[attributes.meta.order]
+Note that if the attribute appears within another macro, it will be expanded
 after that outer macro. For example, the following code will expand the
 <code>Serialize</code> proc-macro first, which must preserve the <code>include_str!</code> call in
 order for it to be expanded:</p>
@@ -375,59 +355,63 @@ struct Foo {
     #[doc = include_str!("x.md")]
     x: u32
 }</code></pre>
-<div class="rule" id="r-attributes.meta.order-macro"><a class="rule-link" href="#r-attributes.meta.order-macro" title="attributes.meta.order-macro"><span>[attributes<wbr>.meta<wbr>.order-macro]<span/></a></div>
-<p>Additionally, macros in attributes will be expanded only after all other attributes applied to the item:</p>
+<p>r[attributes.meta.order-macro]
+Additionally, macros in attributes will be expanded only after all other attributes applied to the item:</p>
 <pre><code class="language-rust ignore">#[macro_attr1] // expanded first
 #[doc = mac!()] // `mac!` is expanded fourth.
 #[macro_attr2] // expanded second
 #[derive(MacroDerive1, MacroDerive2)] // expanded third
 fn foo() {}</code></pre>
-<div class="rule" id="r-attributes.meta.builtin"><a class="rule-link" href="#r-attributes.meta.builtin" title="attributes.meta.builtin"><span>[attributes<wbr>.meta<wbr>.builtin]<span/></a></div>
-<p>Various built-in attributes use different subsets of the meta item syntax to
+<p>r[attributes.meta.builtin]
+Various built-in attributes use different subsets of the meta item syntax to
 specify their inputs. The following grammar rules show some commonly used
 forms:</p>
-<blockquote>
-<p><strong><sup>Syntax</sup></strong><br />
-<em>MetaWord</em>:<br />
-   <a href="identifiers.html">IDENTIFIER</a></p>
-<p><em>MetaNameValueStr</em>:<br />
-   <a href="identifiers.html">IDENTIFIER</a> <code>=</code> (<a href="tokens.html#string-literals">STRING_LITERAL</a> | <a href="tokens.html#raw-string-literals">RAW_STRING_LITERAL</a>)</p>
-<p><em>MetaListPaths</em>:<br />
-   <a href="identifiers.html">IDENTIFIER</a> <code>(</code> ( <a href="paths.html#simple-paths"><em>SimplePath</em></a> (<code>,</code> <a href="paths.html#simple-paths"><em>SimplePath</em></a>)* <code>,</code><sup>?</sup> )<sup>?</sup> <code>)</code></p>
-<p><em>MetaListIdents</em>:<br />
-   <a href="identifiers.html">IDENTIFIER</a> <code>(</code> ( <a href="identifiers.html">IDENTIFIER</a> (<code>,</code> <a href="identifiers.html">IDENTIFIER</a>)* <code>,</code><sup>?</sup> )<sup>?</sup> <code>)</code></p>
-<p><em>MetaListNameValueStr</em>:<br />
-   <a href="identifiers.html">IDENTIFIER</a> <code>(</code> ( <em>MetaNameValueStr</em> (<code>,</code> <em>MetaNameValueStr</em>)* <code>,</code><sup>?</sup> )<sup>?</sup> <code>)</code></p>
-</blockquote>
+<p>r[attributes.meta.builtin.syntax]</p>
+<pre><code class="language-grammar attributes">@root MetaWord -&gt;
+    IDENTIFIER
+
+MetaNameValueStr -&gt;
+    IDENTIFIER `=` (STRING_LITERAL | RAW_STRING_LITERAL)
+
+@root MetaListPaths -&gt;
+    IDENTIFIER `(` ( SimplePath (`,` SimplePath)* `,`? )? `)`
+
+@root MetaListIdents -&gt;
+    IDENTIFIER `(` ( IDENTIFIER (`,` IDENTIFIER)* `,`? )? `)`
+
+@root MetaListNameValueStr -&gt;
+    IDENTIFIER `(` ( MetaNameValueStr (`,` MetaNameValueStr)* `,`? )? `)`
+</code></pre>
 <p>Some examples of meta items are:</p>
 <div class="table-wrapper"><table><thead><tr><th>Style</th><th>Example</th></tr></thead><tbody>
-<tr><td><em>MetaWord</em></td><td><code>no_std</code></td></tr>
-<tr><td><em>MetaNameValueStr</em></td><td><code>doc = "example"</code></td></tr>
-<tr><td><em>MetaListPaths</em></td><td><code>allow(unused, clippy::inline_always)</code></td></tr>
-<tr><td><em>MetaListIdents</em></td><td><code>macro_use(foo, bar)</code></td></tr>
-<tr><td><em>MetaListNameValueStr</em></td><td><code>link(name = "CoreFoundation", kind = "framework")</code></td></tr>
+<tr><td>[MetaWord]</td><td><code>no_std</code></td></tr>
+<tr><td>[MetaNameValueStr]</td><td><code>doc = "example"</code></td></tr>
+<tr><td>[MetaListPaths]</td><td><code>allow(unused, clippy::inline_always)</code></td></tr>
+<tr><td>[MetaListIdents]</td><td><code>macro_use(foo, bar)</code></td></tr>
+<tr><td>[MetaListNameValueStr]</td><td><code>link(name = "CoreFoundation", kind = "framework")</code></td></tr>
 </tbody></table>
-</div><div class="rule" id="r-attributes.activity"><a class="rule-link" href="#r-attributes.activity" title="attributes.activity"><span>[attributes<wbr>.activity]<span/></a></div>
+</div>
+<p>r[attributes.activity]</p>
 <h2 id="active-and-inert-attributes"><a class="header" href="#active-and-inert-attributes">Active and inert attributes</a></h2>
-<div class="rule" id="r-attributes.activity.intro"><a class="rule-link" href="#r-attributes.activity.intro" title="attributes.activity.intro"><span>[attributes<wbr>.activity<wbr>.intro]<span/></a></div>
-<p>An attribute is either active or inert. During attribute processing, <em>active
-attributes</em> remove themselves from the thing they are on while <em>inert attributes</em>
+<p>r[attributes.activity.intro]
+An attribute is either active or inert. During attribute processing, <em>active
+attributes</em> remove themselves from the form they are on while <em>inert attributes</em>
 stay on.</p>
 <p>The <a href="conditional-compilation.html#the-cfg-attribute"><code>cfg</code></a> and <a href="conditional-compilation.html#the-cfg_attr-attribute"><code>cfg_attr</code></a> attributes are active.
-<a href="procedural-macros.html#attribute-macros">Attribute macros</a> are active. All other attributes are inert.</p>
-<div class="rule" id="r-attributes.tool"><a class="rule-link" href="#r-attributes.tool" title="attributes.tool"><span>[attributes<wbr>.tool]<span/></a></div>
+<a href="procedural-macros.html#the-proc_macro_attribute-attribute">Attribute macros</a> are active. All other attributes are inert.</p>
+<p>r[attributes.tool]</p>
 <h2 id="tool-attributes"><a class="header" href="#tool-attributes">Tool attributes</a></h2>
-<div class="rule" id="r-attributes.tool.intro"><a class="rule-link" href="#r-attributes.tool.intro" title="attributes.tool.intro"><span>[attributes<wbr>.tool<wbr>.intro]<span/></a></div>
-<p>The compiler may allow attributes for external tools where each tool resides
+<p>r[attributes.tool.intro]
+The compiler may allow attributes for external tools where each tool resides
 in its own module in the <a href="names/preludes.html#tool-prelude">tool prelude</a>. The first segment of the attribute
 path is the name of the tool, with one or more additional segments whose
 interpretation is up to the tool.</p>
-<div class="rule" id="r-attributes.tool.ignored"><a class="rule-link" href="#r-attributes.tool.ignored" title="attributes.tool.ignored"><span>[attributes<wbr>.tool<wbr>.ignored]<span/></a></div>
-<p>When a tool is not in use, the tool’s attributes are accepted without a
+<p>r[attributes.tool.ignored]
+When a tool is not in use, the tool’s attributes are accepted without a
 warning. When the tool is in use, the tool is responsible for processing and
 interpretation of its attributes.</p>
-<div class="rule" id="r-attributes.tool.prelude"><a class="rule-link" href="#r-attributes.tool.prelude" title="attributes.tool.prelude"><span>[attributes<wbr>.tool<wbr>.prelude]<span/></a></div>
-<p>Tool attributes are not available if the <a href="names/preludes.html#the-no_implicit_prelude-attribute"><code>no_implicit_prelude</code></a> attribute is
+<p>r[attributes.tool.prelude]
+Tool attributes are not available if the <a href="names/preludes.html#the-no_implicit_prelude-attribute"><code>no_implicit_prelude</code></a> attribute is
 used.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -441,10 +425,10 @@ struct S {
 pub fn f() {}
 <span class="boring">}</span></code></pre></pre>
 <blockquote>
-<p>Note: <code>rustc</code> currently recognizes the tools “clippy”, “rustfmt”, “diagnostic”,
-“miri” and “rust_analyzer”.</p>
+<p>[!NOTE]
+<code>rustc</code> currently recognizes the tools “clippy”, “rustfmt”, “diagnostic”, “miri”, and “rust_analyzer”.</p>
 </blockquote>
-<div class="rule" id="r-attributes.builtin"><a class="rule-link" href="#r-attributes.builtin" title="attributes.builtin"><span>[attributes<wbr>.builtin]<span/></a></div>
+<p>r[attributes.builtin]</p>
 <h2 id="built-in-attributes-index"><a class="header" href="#built-in-attributes-index">Built-in attributes index</a></h2>
 <p>The following is an index of all built-in attributes.</p>
 <ul>
@@ -474,12 +458,12 @@ pub fn f() {}
 <li>
 <p>Macros</p>
 <ul>
-<li><a href="macros-by-example.html#path-based-scope"><code>macro_export</code></a> — Exports a <code>macro_rules</code> macro for cross-crate usage.</li>
+<li><a href="macros-by-example.html#the-macro_export-attribute"><code>macro_export</code></a> — Exports a <code>macro_rules</code> macro for cross-crate usage.</li>
 <li><a href="macros-by-example.html#the-macro_use-attribute"><code>macro_use</code></a> — Expands macro visibility, or imports macros from other
 crates.</li>
-<li><a href="procedural-macros.html#function-like-procedural-macros"><code>proc_macro</code></a> — Defines a function-like macro.</li>
-<li><a href="procedural-macros.html#derive-macros"><code>proc_macro_derive</code></a> — Defines a derive macro.</li>
-<li><a href="procedural-macros.html#attribute-macros"><code>proc_macro_attribute</code></a> — Defines an attribute macro.</li>
+<li><a href="procedural-macros.html#the-proc_macro-attribute"><code>proc_macro</code></a> — Defines a function-like macro.</li>
+<li><a href="macro.proc.derive"><code>proc_macro_derive</code></a> — Defines a derive macro.</li>
+<li><a href="procedural-macros.html#the-proc_macro_attribute-attribute"><code>proc_macro_attribute</code></a> — Defines an attribute macro.</li>
 </ul>
 </li>
 <li>
@@ -520,10 +504,11 @@ object file.</li>
 <ul>
 <li><a href="attributes/codegen.html#the-inline-attribute"><code>inline</code></a> — Hint to inline code.</li>
 <li><a href="attributes/codegen.html#the-cold-attribute"><code>cold</code></a> — Hint that a function is unlikely to be called.</li>
+<li><a href="attributes/codegen.html#the-naked-attribute"><code>naked</code></a> — Prevent the compiler from emitting a function prologue and epilogue.</li>
 <li><a href="attributes/codegen.html#the-no_builtins-attribute"><code>no_builtins</code></a> — Disables use of certain built-in functions.</li>
 <li><a href="attributes/codegen.html#the-target_feature-attribute"><code>target_feature</code></a> — Configure platform-specific code generation.</li>
 <li><a href="attributes/codegen.html#the-track_caller-attribute"><code>track_caller</code></a> — Pass the parent call location to <code>std::panic::Location::caller()</code>.</li>
-<li><a href="attributes/codegen.html#the-instruction_set-attribute"><code>instruction_set</code></a> — Specify the instruction set used to generate a functions code</li>
+<li><a href="attributes/codegen.html#the-instruction_set-attribute"><code>instruction_set</code></a> — Specify the instruction set used to generate a function’s code.</li>
 </ul>
 </li>
 <li>
@@ -557,7 +542,7 @@ compile-time operations.</li>
 <li>
 <p>Runtime</p>
 <ul>
-<li><a href="runtime.html#the-panic_handler-attribute"><code>panic_handler</code></a> — Sets the function to handle panics.</li>
+<li><a href="panic.html#the-panic_handler-attribute"><code>panic_handler</code></a> — Sets the function to handle panics.</li>
 <li><a href="runtime.html#the-global_allocator-attribute"><code>global_allocator</code></a> — Sets the global memory allocator.</li>
 <li><a href="runtime.html#the-windows_subsystem-attribute"><code>windows_subsystem</code></a> — Specifies the windows subsystem to link with.</li>
 </ul>

@@ -214,9 +214,9 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="더-나은-오류-보고"><a class="header" href="#더-나은-오류-보고">더 나은 오류 보고</a></h1>
-<p>우리 모두는 오류가 발생할 것이라는 사실을 받아들일 수밖에 없습니다. 그리고 다른 많은 언어와 달리 Rust를 사용할 때 이 현실을 알아차리고 처리하지 않기가 매우 어렵습니다. 예외가 없기 때문에 모든 가능한 오류 상태는 종종 함수의 반환 유형에 인코딩됩니다.</p>
+<p>We all can do nothing but accept the fact that errors will occur. In contrast to many other languages, it’s very hard not to notice and deal with this reality when using Rust because it doesn’t have exceptions. All possible error states are often encoded in the return types of functions.</p>
 <h2 id="결과"><a class="header" href="#결과">결과</a></h2>
-<p><a href="https://doc.rust-lang.org/1.39.0/std/fs/fn.read_to_string.html"><code>read_to_string</code></a>와 같은 함수는 문자열을 반환하지 않습니다. 대신 <code>String</code> 또는 일부 유형의 오류(이 경우 <a href="https://doc.rust-lang.org/1.39.0/std/io/type.Result.html"><code>std::io::Error</code></a>)를 포함하는 <a href="https://doc.rust-lang.org/1.39.0/std/result/index.html"><code>Result</code></a>를 반환합니다.</p>
+<p>A function like <a href="https://doc.rust-lang.org/1.39.0/std/fs/fn.read_to_string.html"><code>read_to_string</code></a> doesn’t return a string. Instead, it returns a <a href="https://doc.rust-lang.org/1.39.0/std/result/index.html"><code>Result</code></a> that contains either a <code>String</code> or an error of some type. In this case, <a href="https://doc.rust-lang.org/1.39.0/std/io/type.Result.html"><code>std::io::Error</code></a>.</p>
 <p>어느 것인지 어떻게 알 수 있습니까? <code>Result</code>는 <code>enum</code>이므로 <code>match</code>를 사용하여 어떤 변형인지 확인할 수 있습니다.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -227,10 +227,10 @@ match result {
 }
 <span class="boring">}</span></code></pre></pre>
 <aside>
-<p><strong>참고:</strong> 열거형이 무엇인지 또는 Rust에서 어떻게 작동하는지 잘 모르시겠습니까? <a href="https://doc.rust-lang.org/1.39.0/book/ch06-00-enums.html">Rust 책의 이 장</a>을 확인하여 속도를 높이세요.</p>
+<p><strong>Note:</strong> Not sure what enums are or how they work in Rust? <a href="https://doc.rust-lang.org/1.39.0/book/ch06-00-enums.html">Check out this chapter of the Rust book</a> to get up to speed.</p>
 </aside>
 <h2 id="언래핑"><a class="header" href="#언래핑">언래핑</a></h2>
-<p>이제 파일 내용에 액세스할 수 있었지만 <code>match</code> 블록 이후에는 실제로 아무것도 할 수 없습니다. 이를 위해 오류 사례를 어떻게든 처리해야 합니다. 문제는 <code>match</code> 블록의 모든 암이 동일한 유형의 무언가를 반환해야 한다는 것입니다. 하지만 이를 해결할 수 있는 멋진 트릭이 있습니다.</p>
+<p>Now, we were able to access the content of the file, but we can’t really do anything with it after the <code>match</code> block. For this, we’ll need to deal with the error case. While it’s a challenge that all arms of a <code>match</code> block need to return something of the same type, there’s a neat trick to get around that:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let result = std::fs::read_to_string("test.txt");
@@ -240,14 +240,14 @@ let content = match result {
 };
 println!("file content: {}", content);
 <span class="boring">}</span></code></pre></pre>
-<p><code>match</code> 블록 뒤에 <code>content</code>의 문자열을 사용할 수 있습니다. <code>result</code>가 오류였다면 문자열이 존재하지 않았을 것입니다. 하지만 프로그램이 <code>content</code>를 사용하는 지점에 도달하기 전에 종료되므로 괜찮습니다.</p>
-<p>이것은 과감해 보일 수 있지만 매우 편리합니다. 프로그램이 해당 파일을 읽어야 하고 파일이 없으면 아무것도 할 수 없는 경우 종료하는 것이 유효한 전략입니다. <code>Result</code>에는 <code>unwrap</code>이라는 바로 가기 메서드도 있습니다.</p>
+<p>We can use the String in <code>content</code> after the match block, but if <code>result</code> were an error, the String wouldn’t exist. That’s fine because the program would exit before it ever reached a point where we use <code>content</code>.</p>
+<p>This may seem drastic, but it’s very convenient. If your program needs to read that file and can’t do anything if the file doesn’t exist, exiting is a valid strategy. There’s even a shortcut method on <a href="https://doc.rust-lang.org/1.39.0/std/result/index.html"><code>Result</code></a> called <code>unwrap</code>:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let content = std::fs::read_to_string("test.txt").unwrap();
 <span class="boring">}</span></code></pre></pre>
 <h2 id="패닉할-필요-없음"><a class="header" href="#패닉할-필요-없음">패닉할 필요 없음</a></h2>
-<p>물론 프로그램을 중단하는 것이 오류를 처리하는 유일한 방법은 아닙니다. <code>panic!</code> 대신 <code>return</code>을 쉽게 작성할 수도 있습니다.</p>
+<p>Of course, aborting the program is not the only way to deal with errors. Instead of using <code>panic!</code>, we can just use <code>return</code>:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 </span>let result = std::fs::read_to_string("test.txt");
 let content = match result {
@@ -256,7 +256,7 @@ let content = match result {
 };
 <span class="boring">Ok(())
 </span><span class="boring">}</span></code></pre></pre>
-<p>그러나 이것은 우리 함수에 필요한 반환 유형을 변경합니다. 실제로 이번에는 우리 예제에 숨겨진 것이 있었습니다. 이 코드가 있는 함수 서명입니다. 그리고 <code>return</code>이 있는 이 마지막 예제에서는 중요해집니다. 다음은 <em>전체</em> 예제입니다.</p>
+<p>However, this changes the return type in our function. There was something hidden in our examples all this time: The function signature this code lives in. And in this last example with <code>return</code>, it becomes important. Here’s the <em>full</em> example:</p>
 <pre><pre class="playground"><code class="language-rust no_run">fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     let result = std::fs::read_to_string("test.txt");
     let content = match result {
@@ -266,9 +266,9 @@ let content = match result {
     println!("file content: {}", content);
     Ok(())
 }</code></pre></pre>
-<p>우리의 반환 유형은 <code>Result</code>입니다! 이것이 두 번째 <code>match</code> 암에 <code>return Err(error);</code>를 쓸 수 있는 이유입니다. 맨 아래에 <code>Ok(())</code>가 있는 것을 보시겠습니까? 이것은 함수의 기본 반환 값이며 “결과가 정상이며 내용이 없습니다“를 의미합니다.</p>
+<p>Our return type is a <code>Result</code>! This is why we can write <code>return Err(error);</code> in the second match arm. See how there is an <code>Ok(())</code> at the bottom? It’s the default return value of the function and means: “Result is okay, and has no content”.</p>
 <aside>
-<p><strong>참고:</strong> 이것이 <code>return Ok(());</code>로 작성되지 않은 이유는 무엇입니까? 쉽게 그럴 수 있습니다. 이것도 완전히 유효합니다. Rust의 모든 블록의 마지막 표현식은 반환 값이며 불필요한 <code>return</code>을 생략하는 것이 일반적입니다.</p>
+<p><strong>Note:</strong> Why is this not written as <code>return Ok(());</code>? It easily could be – this is totally valid as well. The last expression of any block in Rust is its return value, and it is customary to omit a needless <code>return</code>.</p>
 </aside>
 <h2 id="물음표"><a class="header" href="#물음표">물음표</a></h2>
 <p><code>.unwrap()</code>를 호출하는 것이 오류 암에 <code>panic!</code>이 있는 <code>match</code>의 바로 가기인 것처럼, 오류 암에 <code>return</code>이 있는 <code>match</code>에 대한 또 다른 바로 가기가 있습니다. <code>?</code>입니다.</p>
@@ -281,15 +281,15 @@ let content = match result {
 }</code></pre></pre>
 <p>매우 간결합니다!</p>
 <aside>
-<p><strong>참고:</strong> 여기에는 이 작업을 이해하는 데 필요하지 않은 몇 가지 추가 사항이 있습니다. 예를 들어 <code>main</code> 함수의 오류 유형은 <code>Box&lt;dyn std::error::Error&gt;</code>입니다. 하지만 위에서 <code>read_to_string</code>이 <a href="https://doc.rust-lang.org/1.39.0/std/io/type.Result.html"><code>std::io::Error</code></a>를 반환하는 것을 보았습니다. 이것은 <code>?</code>가 오류 유형을 _변환_하는 코드로 확장되기 때문에 작동합니다.</p>
-<p><code>Box&lt;dyn std::error::Error&gt;</code>도 흥미로운 유형입니다. 표준 <a href="https://doc.rust-lang.org/1.39.0/std/error/trait.Error.html"><code>Error</code></a> 특성을 구현하는 <em>모든</em> 유형을 포함할 수 있는 <code>Box</code>입니다. 즉, 기본적으로 모든 오류를 이 상자에 넣을 수 있으므로 <code>Result</code>를 반환하는 모든 일반적인 함수에서 <code>?</code>를 사용할 수 있습니다.</p>
+<p><strong>Note:</strong> There are a few more things happening here that are not required to understand to work with this. For example, the error type in our <code>main</code> function is <code>Box&lt;dyn std::error::Error&gt;</code>, but we’ve seen above that <code>read_to_string</code> returns a <a href="https://doc.rust-lang.org/1.39.0/std/io/type.Result.html"><code>std::io::Error</code></a>. This works because <code>?</code> expands to code that  <em>converts</em> error types.</p>
+<p><code>Box&lt;dyn std::error::Error&gt;</code> is also an interesting type. It’s a <code>Box</code> that can contain <em>any</em> type that implements the standard <a href="https://doc.rust-lang.org/1.39.0/std/error/trait.Error.html"><code>Error</code></a> trait. This means that all errors can be put into this box, and we can use <code>?</code> on all of the usual functions that return a <code>Result</code>.</p>
 </aside>
 <h2 id="컨텍스트-제공"><a class="header" href="#컨텍스트-제공">컨텍스트 제공</a></h2>
-<p><code>main</code> 함수에서 <code>?</code>를 사용할 때 발생하는 오류는 괜찮지만 훌륭하지는 않습니다. 예를 들어 <code>std::fs::read_to_string("test.txt")?</code>를 실행하지만 <code>test.txt</code> 파일이 없으면 다음과 같은 출력이 표시됩니다.</p>
+<p>The errors you get when using <code>?</code> in your <code>main</code> function are okay, but they are not great. For example, when you run <code>std::fs::read_to_string("test.txt")?</code> and the file <code>test.txt</code> doesn’t exist, you get this output:</p>
 <pre><code class="language-text">Error: Os { code: 2, kind: NotFound, message: "No such file or directory" }
 </code></pre>
-<p>코드에 파일 이름이 문자 그대로 포함되지 않은 경우 어떤 파일이 <code>NotFound</code>인지 알기가 매우 어려울 것입니다. 이를 처리하는 방법에는 여러 가지가 있습니다.</p>
-<p>예를 들어, 자체 오류 유형을 만든 다음 이를 사용하여 사용자 지정 오류 메시지를 빌드할 수 있습니다.</p>
+<p>In cases where your code doesn’t actually contain the file name, it would be hard to tell which file was <code>NotFound</code>. There are multiple ways to deal with this.</p>
+<p>For one, we can create our own error type and use that to build a custom error message:</p>
 <pre><code class="language-rust ignore">#[derive(Debug)]
 struct CustomError(String);
 
@@ -300,13 +300,13 @@ fn main() -&gt; Result&lt;(), CustomError&gt; {
     println!("file content: {}", content);
     Ok(())
 }</code></pre>
-<p>이제 이것을 실행하면 사용자 지정 오류 메시지가 표시됩니다.</p>
+<p>Running this, we’ll get our custom error message:</p>
 <pre><code class="language-text">Error: CustomError("Error reading `test.txt`: No such file or directory (os error 2)")
 </code></pre>
-<p>별로 예쁘지는 않지만 나중에 우리 유형에 대한 디버그 출력을 쉽게 조정할 수 있습니다.</p>
-<p>이 패턴은 실제로 매우 일반적입니다. 하지만 한 가지 문제가 있습니다. 원래 오류는 저장하지 않고 문자열 표현만 저장합니다. 자주 사용되는 <a href="https://docs.rs/anyhow"><code>anyhow</code></a> 라이브러리에는 이에 대한 깔끔한 해결책이 있습니다. <code>CustomError</code> 유형과 유사하게 <a href="https://docs.rs/anyhow/1.0/anyhow/trait.Context.html"><code>Context</code></a> 특성을 사용하여 설명을 추가할 수 있습니다. 또한 원래 오류도 유지하므로 근본 원인을 지적하는 오류 메시지의 “체인“을 얻을 수 있습니다.</p>
+<p>Not very pretty, but we can adapt the debug output for our type later on.</p>
+<p>This pattern is very common. It has one problem though: We don’t store the original error, only its string representation. The popular <a href="https://docs.rs/anyhow"><code>anyhow</code></a> library has a neat solution for that: Its <a href="https://docs.rs/anyhow/1.0/anyhow/trait.Context.html"><code>Context</code></a> trait can be used to add a description similar to our <code>CustomError</code> type. Additionally, it keeps the original error, so we get a “chain” of error messages pointing to the root cause.</p>
 <p>먼저 <code>Cargo.toml</code> 파일의 <code>[dependencies]</code> 섹션에 <code>anyhow = "1.0"</code>을 추가하여 <code>anyhow</code> 크레이트를 가져옵니다.</p>
-<p>전체 예제는 다음과 같습니다.</p>
+<p>The full example will look like this:</p>
 <pre><code class="language-rust ignore">use anyhow::{Context, Result};
 
 fn main() -&gt; Result&lt;()&gt; {

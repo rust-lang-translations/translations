@@ -216,70 +216,65 @@
 
                 <div id="content" class="content">
                     <main>
-                        <div class="rule" id="r-comments.syntax"><a class="rule-link" href="#r-comments.syntax" title="comments.syntax"><span>[comments<wbr>.syntax]<span/></a></div>
+                        <p>r[comments]</p>
 <h1 id="comments"><a class="header" href="#comments">Comments</a></h1>
-<blockquote>
-<p><strong><sup>Lexer</sup></strong><br />
-LINE_COMMENT :<br />
-      <code>//</code> (~[<code>/</code> <code>!</code> <code>\n</code>] | <code>//</code>) ~<code>\n</code><sup>*</sup><br />
-   | <code>//</code></p>
-<p>BLOCK_COMMENT :<br />
-      <code>/*</code> (~[<code>*</code> <code>!</code>] | <code>**</code> | <em>BlockCommentOrDoc</em>)
-(<em>BlockCommentOrDoc</em> | ~<code>*/</code>)<sup>*</sup> <code>*/</code><br />
-   | <code>/**/</code><br />
-   | <code>/***/</code></p>
-<p>INNER_LINE_DOC :<br />
-   <code>//!</code> ~[<code>\n</code> <em>IsolatedCR</em>]<sup>*</sup></p>
-<p>INNER_BLOCK_DOC :<br />
-   <code>/*!</code> ( <em>BlockCommentOrDoc</em> | ~[<code>*/</code> <em>IsolatedCR</em>] )<sup>*</sup> <code>*/</code></p>
-<p>OUTER_LINE_DOC :<br />
-   <code>///</code> (~<code>/</code> ~[<code>\n</code> <em>IsolatedCR</em>]<sup>*</sup>)<sup>?</sup></p>
-<p>OUTER_BLOCK_DOC :<br />
-   <code>/**</code> (~<code>*</code> | <em>BlockCommentOrDoc</em> )
-(<em>BlockCommentOrDoc</em> | ~[<code>*/</code> <em>IsolatedCR</em>])<sup>*</sup> <code>*/</code></p>
-<p><em>BlockCommentOrDoc</em> :<br />
-      BLOCK_COMMENT<br />
-   | OUTER_BLOCK_DOC<br />
-   | INNER_BLOCK_DOC</p>
-<p><em>IsolatedCR</em> :<br />
-   \r</p>
-</blockquote>
-<div class="rule" id="r-comments.normal"><a class="rule-link" href="#r-comments.normal" title="comments.normal"><span>[comments<wbr>.normal]<span/></a></div>
+<p>r[comments.syntax]</p>
+<pre><code class="language-grammar lexer">@root LINE_COMMENT -&gt;
+      `//` (~[`/` `!` LF] | `//`) ~LF*
+    | `//`
+
+BLOCK_COMMENT -&gt;
+      `/*`
+        ( ~[`*` `!`] | `**` | BLOCK_COMMENT_OR_DOC )
+        ( BLOCK_COMMENT_OR_DOC | ~`*/` )*
+      `*/`
+    | `/**/`
+    | `/***/`
+
+@root INNER_LINE_DOC -&gt;
+    `//!` ~[LF CR]*
+
+INNER_BLOCK_DOC -&gt;
+    `/*!` ( BLOCK_COMMENT_OR_DOC | ~[`*/` CR] )* `*/`
+
+@root OUTER_LINE_DOC -&gt;
+    `///` (~`/` ~[LF CR]*)?
+
+OUTER_BLOCK_DOC -&gt;
+    `/**`
+      ( ~`*` | BLOCK_COMMENT_OR_DOC )
+      ( BLOCK_COMMENT_OR_DOC | ~[`*/` CR] )*
+    `*/`
+
+@root BLOCK_COMMENT_OR_DOC -&gt;
+      BLOCK_COMMENT
+    | OUTER_BLOCK_DOC
+    | INNER_BLOCK_DOC
+</code></pre>
+<p>r[comments.normal]</p>
 <h2 id="non-doc-comments"><a class="header" href="#non-doc-comments">Non-doc comments</a></h2>
-<p>Comments follow the general C++ style of line (<code>//</code>) and
-block (<code>/* ... */</code>) comment forms. Nested block comments are supported.</p>
-<div class="rule" id="r-comments.normal.tokenization"><a class="rule-link" href="#r-comments.normal.tokenization" title="comments.normal.tokenization"><span>[comments<wbr>.normal<wbr>.tokenization]<span/></a></div>
-<p>Non-doc comments are interpreted as a form of whitespace.</p>
-<div class="rule" id="r-comments.doc"><a class="rule-link" href="#r-comments.doc" title="comments.doc"><span>[comments<wbr>.doc]<span/></a></div>
+<p>Comments follow the general C++ style of line (<code>//</code>) and block (<code>/* ... */</code>) comment forms. Nested block comments are supported.</p>
+<p>r[comments.normal.tokenization]
+Non-doc comments are interpreted as a form of whitespace.</p>
+<p>r[comments.doc]</p>
 <h2 id="doc-comments"><a class="header" href="#doc-comments">Doc comments</a></h2>
-<div class="rule" id="r-comments.doc.syntax"><a class="rule-link" href="#r-comments.doc.syntax" title="comments.doc.syntax"><span>[comments<wbr>.doc<wbr>.syntax]<span/></a></div>
-<p>Line doc comments beginning with exactly <em>three</em> slashes (<code>///</code>), and block
-doc comments (<code>/** ... */</code>), both outer doc comments, are interpreted as a
-special syntax for <a href="../rustdoc/the-doc-attribute.html"><code>doc</code> attributes</a>.</p>
-<div class="rule" id="r-comments.doc.attributes"><a class="rule-link" href="#r-comments.doc.attributes" title="comments.doc.attributes"><span>[comments<wbr>.doc<wbr>.attributes]<span/></a></div>
-<p>That is, they are equivalent to writing
-<code>#[doc="..."]</code> around the body of the comment, i.e., <code>/// Foo</code> turns into
-<code>#[doc="Foo"]</code> and <code>/** Bar */</code> turns into <code>#[doc="Bar"]</code>. They must therefore
-appear before something that accepts an outer attribute.</p>
-<div class="rule" id="r-comments.doc.inner-syntax"><a class="rule-link" href="#r-comments.doc.inner-syntax" title="comments.doc.inner-syntax"><span>[comments<wbr>.doc<wbr>.inner-syntax]<span/></a></div>
-<p>Line comments beginning with <code>//!</code> and block comments <code>/*! ... */</code> are
-doc comments that apply to the parent of the comment, rather than the item
-that follows.</p>
-<div class="rule" id="r-comments.doc.inner-attributes"><a class="rule-link" href="#r-comments.doc.inner-attributes" title="comments.doc.inner-attributes"><span>[comments<wbr>.doc<wbr>.inner-attributes]<span/></a></div>
-<p>That is, they are equivalent to writing <code>#![doc="..."]</code> around
-the body of the comment. <code>//!</code> comments are usually used to document
-modules that occupy a source file.</p>
-<div class="rule" id="r-comments.doc.bare-crs"><a class="rule-link" href="#r-comments.doc.bare-crs" title="comments.doc.bare-crs"><span>[comments<wbr>.doc<wbr>.bare-crs]<span/></a></div>
-<p>The character <code>U+000D</code> (CR) is not allowed in doc comments.</p>
+<p>r[comments.doc.syntax]
+Line doc comments beginning with exactly <em>three</em> slashes (<code>///</code>), and block doc comments (<code>/** ... */</code>), both outer doc comments, are interpreted as a special syntax for <a href="../rustdoc/the-doc-attribute.html"><code>doc</code> attributes</a>.</p>
+<p>r[comments.doc.attributes]
+That is, they are equivalent to writing <code>#[doc="..."]</code> around the body of the comment, i.e., <code>/// Foo</code> turns into <code>#[doc="Foo"]</code> and <code>/** Bar */</code> turns into <code>#[doc="Bar"]</code>. They must therefore appear before something that accepts an outer attribute.</p>
+<p>r[comments.doc.inner-syntax]
+Line comments beginning with <code>//!</code> and block comments <code>/*! ... */</code> are doc comments that apply to the parent of the comment, rather than the item that follows.</p>
+<p>r[comments.doc.inner-attributes]
+That is, they are equivalent to writing <code>#![doc="..."]</code> around the body of the comment. <code>//!</code> comments are usually used to document modules that occupy a source file.</p>
+<p>r[comments.doc.bare-crs]
+The character <code>U+000D</code> (CR) is not allowed in doc comments.</p>
 <blockquote>
-<p><strong>Note</strong>: It is conventional for doc comments to contain Markdown, as expected by
-<code>rustdoc</code>. However, the comment syntax does not respect any internal Markdown.
-<code>/** `glob = "*/*.rs";` */</code> terminates the comment at the first <code>*/</code>, and the
-remaining code would cause a syntax error. This slightly limits the content of
-block doc comments compared to line doc comments.</p>
+<p>[!NOTE]
+It is conventional for doc comments to contain Markdown, as expected by <code>rustdoc</code>. However, the comment syntax does not respect any internal Markdown. <code>/** `glob = "*/*.rs";` */</code> terminates the comment at the first <code>*/</code>, and the remaining code would cause a syntax error. This slightly limits the content of block doc comments compared to line doc comments.</p>
 </blockquote>
 <blockquote>
-<p><strong>Note</strong>:  The sequence <code>U+000D</code> (CR) immediately followed by <code>U+000A</code> (LF) would have been previously transformed into a single <code>U+000A</code> (LF).</p>
+<p>[!NOTE]
+The sequence <code>U+000D</code> (CR) immediately followed by <code>U+000A</code> (LF) would have been previously transformed into a single <code>U+000A</code> (LF).</p>
 </blockquote>
 <h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]

@@ -218,10 +218,12 @@
                     <main>
                         <h2 id="라이프타임으로-참조-유효성-검증하기"><a class="header" href="#라이프타임으로-참조-유효성-검증하기">라이프타임으로 참조 유효성 검증하기</a></h2>
 <p>라이프타임은 우리가 이미 사용하고 있던 또 다른 종류의 제네릭입니다. 타입이 우리가 원하는 동작을 갖도록 보장하는 대신, 라이프타임은 참조가 필요한 만큼 오랫동안 유효하도록 보장합니다.</p>
-<p>4장의 <a href="ch04-02-references-and-borrowing.html#references-and-borrowing">“참조와 대여”</a><!-- ignore --> 섹션에서 논의하지 않은 한 가지 세부 사항은 러스트의 모든 참조에는 _라이프타임_이 있다는 것입니다. 이는 해당 참조가 유효한 스코프입니다. 대부분의 경우 타입이 추론되는 것처럼, 라이프타임도 대부분 암시적이고 추론됩니다. 여러 타입이 가능할 때만 타입을 명시해야 합니다. 마찬가지로, 참조의 라이프타임이 몇 가지 다른 방식으로 연관될 수 있을 때 라이프타임을 명시해야 합니다. 러스트는 런타임에 사용되는 실제 참조가 확실히 유효하도록 보장하기 위해 제네릭 라이프타임 매개변수를 사용하여 관계를 명시할 것을 요구합니다.</p>
-<p>라이프타임 명시는 대부분의 다른 프로그래밍 언어에는 없는 개념이므로 낯설게 느껴질 것입니다. 이 장에서 라이프타임 전체를 다루지는 않겠지만, 개념에 익숙해질 수 있도록 라이프타임 문법을 접할 수 있는 일반적인 방법을 논의할 것입니다.</p>
-<h3 id="라이프타임으로-댕글링-참조-방지하기"><a class="header" href="#라이프타임으로-댕글링-참조-방지하기">라이프타임으로 댕글링 참조 방지하기</a></h3>
-<p>라이프타임의 주된 목적은 _댕글링 참조(dangling references)_를 방지하는 것이며, 이는 프로그램이 의도한 데이터가 아닌 다른 데이터를 참조하게 만드는 원인이 됩니다. 외부 스코프와 내부 스코프가 있는 목록 10-16의 프로그램을 살펴보겠습니다.</p>
+<p>One detail we didn’t discuss in the <a href="ch04-02-references-and-borrowing.html#references-and-borrowing">“References and Borrowing”</a><!-- ignore --> section in Chapter 4 is that every reference in Rust has a lifetime, which is the scope for which that reference is valid. Most of the time, lifetimes are implicit and inferred, just like most of the time, types are inferred. We are only required to annotate types when multiple types are possible. In a similar way, we must annotate lifetimes when the lifetimes of references could be related in a few different ways. Rust requires us to annotate the relationships using generic lifetime parameters to ensure that the actual references used at runtime will definitely be valid.</p>
+<p>Annotating lifetimes is not even a concept most other programming languages have, so this is going to feel unfamiliar. Although we won’t cover lifetimes in their entirety in this chapter, we’ll discuss common ways you might encounter lifetime syntax so that you can get comfortable with the concept.</p>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="preventing-dangling-references-with-lifetimes"></a></p>
+<h3 id="댕글링-참조"><a class="header" href="#댕글링-참조">댕글링 참조</a></h3>
+<p>The main aim of lifetimes is to prevent dangling references, which, if they were allowed to exist, would cause a program to reference data other than the data it’s intended to reference. Consider the program in Listing 10-16, which has an outer scope and an inner scope.</p>
 <Listing number="10-16" caption="An attempt to use a reference whose value has gone out of scope">
 <pre><code class="language-rust ignore does_not_compile">fn main() {
     let r;
@@ -235,9 +237,9 @@
 }</code></pre>
 </Listing>
 <blockquote>
-<p>참고: 목록 10-16, 10-17, 그리고 10-23의 예제들은 초깃값을 주지 않고 변수를 선언하므로, 변수 이름이 외부 스코프에 존재합니다. 이는 언뜻 보기에 널(null) 값이 없는 러스트의 특성과 충돌하는 것처럼 보일 수 있습니다. 하지만 변수에 값을 할당하기 전에 사용하려고 하면 컴파일 타임 에러가 발생하며, 이는 러스트가 실제로 널 값을 허용하지 않는다는 것을 보여줍니다.</p>
+<p>Note: The examples in Listings 10-16, 10-17, and 10-23 declare variables without giving them an initial value, so the variable name exists in the outer scope. At first glance, this might appear to be in conflict with Rust having no null values. However, if we try to use a variable before giving it a value, we’ll get a compile-time error, which shows that indeed Rust does not allow null values.</p>
 </blockquote>
-<p>외부 스코프는 초깃값이 없는 <code>r</code>이라는 변수를 선언하고, 내부 스코프는 초깃값이 <code>5</code>인 <code>x</code>라는 변수를 선언합니다. 내부 스코프 안에서 <code>r</code>의 값을 <code>x</code>에 대한 참조로 설정하려고 시도합니다. 그런 다음 내부 스코프가 끝나고 <code>r</code>에 있는 값을 출력하려고 시도합니다. 이 코드는 <code>r</code>이 참조하고 있는 값이 사용하기 전에 스코프를 벗어났기 때문에 컴파일되지 않습니다. 에러 메시지는 다음과 같습니다:</p>
+<p>The outer scope declares a variable named <code>r</code> with no initial value, and the inner scope declares a variable named <code>x</code> with the initial value of <code>5</code>. Inside the inner scope, we attempt to set the value of <code>r</code> as a reference to <code>x</code>. Then, the inner scope ends, and we attempt to print the value in <code>r</code>. This code won’t compile, because the value that <code>r</code> is referring to has gone out of scope before we try to use it. Here is the error message:</p>
 <pre><code class="language-console">$ cargo run
    Compiling chapter10 v0.1.0 (file:///projects/chapter10)
 error[E0597]: `x` does not live long enough
@@ -251,12 +253,12 @@ error[E0597]: `x` does not live long enough
   |     - `x` dropped here while still borrowed
 8 |
 9 |     println!("r: {r}");
-  |                  --- borrow later used here
+  |                   - borrow later used here
 
 For more information about this error, try `rustc --explain E0597`.
 error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
 </code></pre>
-<p>에러 메시지는 변수 <code>x</code>가 “충분히 오래 살지 못한다(does not live long enough)”고 말합니다. 그 이유는 7행에서 내부 스코프가 끝날 때 <code>x</code>가 스코프를 벗어나기 때문입니다. 하지만 <code>r</code>은 여전히 외부 스코프에 대해 유효합니다. 스코프가 더 크기 때문에 우리는 그것이 “더 오래 산다”고 말합니다. 만약 러스트가 이 코드를 작동하도록 허용했다면, <code>r</code>은 <code>x</code>가 스코프를 벗어났을 때 해제된 메모리를 참조하게 될 것이고, <code>r</code>로 하려고 시도하는 모든 것이 올바르게 작동하지 않을 것입니다. 그렇다면 러스트는 이 코드가 유효하지 않다는 것을 어떻게 결정할까요? 바로 빌려주기 검사기(borrow checker)를 사용합니다.</p>
+<p>The error message says that the variable <code>x</code> “does not live long enough.” The reason is that <code>x</code> will be out of scope when the inner scope ends on line 7. But <code>r</code> is still valid for the outer scope; because its scope is larger, we say that it “lives longer.” If Rust allowed this code to work, <code>r</code> would be referencing memory that was deallocated when <code>x</code> went out of scope, and anything we tried to do with <code>r</code> wouldn’t work correctly. So, how does Rust determine that this code is invalid? It uses a borrow checker.</p>
 <h3 id="빌려주기-검사기"><a class="header" href="#빌려주기-검사기">빌려주기 검사기</a></h3>
 <p>러스트 컴파일러는 모든 대여가 유효한지 결정하기 위해 스코프를 비교하는 _빌려주기 검사기(borrow checker)_를 가지고 있습니다. 목록 10-17은 목록 10-16과 동일한 코드에 변수의 라이프타임을 보여주는 주석을 추가한 것입니다.</p>
 <Listing number="10-17" caption="Annotations of the lifetimes of `r` and `x`, named `'a` and `'b`, respectively">
@@ -271,10 +273,10 @@ error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
     println!("r: {r}");   //          |
 }                         // ---------+</code></pre>
 </Listing>
-<p>여기서 우리는 <code>r</code>의 라이프타임을 <code>'a</code>로, <code>x</code>의 라이프타임을 <code>'b</code>로 표시했습니다. 보시다시피, 안쪽의 <code>'b</code> 블록은 바깥쪽의 <code>'a</code> 라이프타임 블록보다 훨씬 작습니다. 컴파일 타임에 러스트는 두 라이프타임의 크기를 비교하고, <code>r</code>의 라이프타임은 <code>'a</code>이지만  라이프타임을 가진 메모리를 참조하고 있음을 확인합니다. <code>'b</code>가 <code>'a</code>보다 짧기 때문에 프로그램은 거부됩니다. 참조의 대상이 참조만큼 오래 살지 못하기 때문입니다.</p>
-<p>목록 10-18은 댕글링 참조가 발생하지 않도록 코드를 수정한 것으로, 에러 없이 컴파일됩니다.</p>
+<p>Here, we’ve annotated the lifetime of <code>r</code> with <code>'a</code> and the lifetime of <code>x</code> with <code>'b</code>. As you can see, the inner <code>'b</code> block is much smaller than the outer <code>'a</code> lifetime block. At compile time, Rust compares the size of the two lifetimes and sees that <code>r</code> has a lifetime of <code>'a</code> but that it refers to memory with a lifetime of <code>'b</code>. The program is rejected because <code>'b</code> is shorter than <code>'a</code>: The subject of the reference doesn’t live as long as the reference.</p>
+<p>Listing 10-18 fixes the code so that it doesn’t have a dangling reference and it compiles without any errors.</p>
 <Listing number="10-18" caption="A valid reference because the data has a longer lifetime than the reference">
-<pre><pre class="playground"><code class="language-rust edition2021">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024">fn main() {
     let x = 5;            // ----------+-- 'b
                           //           |
     let r = &amp;x;           // --+-- 'a  |
@@ -284,7 +286,7 @@ error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
 }                         // ----------+</code></pre></pre>
 </Listing>
 <p>여기서 <code>x</code>는 라이프타임 <code>'b</code>를 가지며, 이 경우에는 <code>'a</code>보다 큽니다. 이는 러스트가 <code>x</code>가 유효한 동안 <code>r</code>의 참조도 항상 유효하다는 것을 알기 때문에 <code>r</code>이 <code>x</code>를 참조할 수 있음을 의미합니다.</p>
-<p>참조의 라이프타임이 어디에 있는지, 그리고 러스트가 참조를 항상 유효하게 보장하기 위해 라이프타임을 어떻게 분석하는지 알게 되었으니, 이제 함수의 문맥에서 매개변수와 반환 값의 제네릭 라이프타임을 살펴보겠습니다.</p>
+<p>Now that you know where the lifetimes of references are and how Rust analyzes lifetimes to ensure that references will always be valid, let’s explore generic lifetimes in function parameters and return values.</p>
 <h3 id="함수에서의-제네릭-라이프타임"><a class="header" href="#함수에서의-제네릭-라이프타임">함수에서의 제네릭 라이프타임</a></h3>
 <p>두 문자열 슬라이스 중 더 긴 것을 반환하는 함수를 작성해 보겠습니다. 이 함수는 두 개의 문자열 슬라이스를 입력받아 하나의 문자열 슬라이스를 반환합니다. <code>longest</code> 함수를 구현한 후, 목록 10-19의 코드는 <code>The longest string is abcd</code>를 출력해야 합니다.</p>
 <Listing number="10-19" file-name="src/main.rs" caption="A `main` function that calls the `longest` function to find the longer of two string slices">
@@ -308,11 +310,7 @@ error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
 </span><span class="boring">}
 </span><span class="boring">
 </span>fn longest(x: &amp;str, y: &amp;str) -&gt; &amp;str {
-    if x.len() &gt; y.len() {
-        x
-    } else {
-        y
-    }
+    if x.len() &gt; y.len() { x } else { y }
 }</code></pre>
 </Listing>
 <p>대신 라이프타임에 관한 다음과 같은 에러가 발생합니다:</p>
@@ -334,20 +332,22 @@ For more information about this error, try `rustc --explain E0106`.
 error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
 </code></pre>
 <p>도움말 텍스트를 보면 반환되는 참조가 <code>x</code>인지 <code>y</code>인지 러스트가 알 수 없기 때문에 반환 타입에 제네릭 라이프타임 매개변수가 필요함을 알 수 있습니다. 사실 우리도 알 수 없는데, 이 함수의 본문에서 <code>if</code> 블록은 <code>x</code>에 대한 참조를 반환하고 <code>else</code> 블록은 <code>y</code>에 대한 참조를 반환하기 때문입니다!</p>
-<p>이 함수를 정의할 때 우리는 함수에 어떤 구체적인 값이 전달될지 알 수 없으므로, <code>if</code> 케이스가 실행될지 <code>else</code> 케이스가 실행될지 알 수 없습니다. 또한 전달될 참조들의 구체적인 라이프타임도 알 수 없으므로, 목록 10-17과 10-18에서 했던 것처럼 스코프를 살펴보고 우리가 반환하는 참조가 항상 유효할지 결정할 수도 없습니다. 빌려주기 검사기 역시 <code>x</code>와 <code>y</code>의 라이프타임이 반환 값의 라이프타임과 어떻게 연관되는지 알지 못하기 때문에 이를 결정할 수 없습니다. 이 에러를 수정하기 위해, 빌려주기 검사기가 분석을 수행할 수 있도록 참조들 간의 관계를 정의하는 제네릭 라이프타임 매개변수를 추가하겠습니다.</p>
+<p>When we’re defining this function, we don’t know the concrete values that will be passed into this function, so we don’t know whether the <code>if</code> case or the <code>else</code> case will execute. We also don’t know the concrete lifetimes of the references that will be passed in, so we can’t look at the scopes as we did in Listings 10-17 and 10-18 to determine whether the reference we return will always be valid. The borrow checker can’t determine this either, because it doesn’t know how the lifetimes of <code>x</code> and <code>y</code> relate to the lifetime of the return value. To fix this error, we’ll add generic lifetime parameters that define the relationship between the references so that the borrow checker can perform its analysis.</p>
 <h3 id="라이프타임-명시-문법"><a class="header" href="#라이프타임-명시-문법">라이프타임 명시 문법</a></h3>
 <p>라이프타임 명시는 참조가 얼마나 오래 사는지에 영향을 주지 않습니다. 그보다는 여러 참조의 라이프타임 간의 관계를 라이프타임에 영향을 주지 않으면서 기술하는 것입니다. 시그니처에 제네릭 타입 매개변수를 지정했을 때 함수가 어떤 타입이든 받아들일 수 있는 것처럼, 제네릭 라이프타임 매개변수를 지정하면 함수가 어떤 라이프타임의 참조든 받아들일 수 있습니다.</p>
-<p>라이프타임 명시는 약간 특이한 문법을 가지고 있습니다. 라이프타임 매개변수의 이름은 반드시 어포스트로피(<code>'</code>)로 시작해야 하며, 제네릭 타입처럼 보통은 아주 짧고 모두 소문자입니다. 대부분의 사람들은 첫 번째 라이프타임 명시로 <code>'a</code>라는 이름을 사용합니다. 라이프타임 매개변수 명시는 참조의 <code>&amp;</code> 뒤에 위치하며, 명시와 참조 타입을 구분하기 위해 공백을 하나 둡니다.</p>
-<p>여기에 몇 가지 예가 있습니다. 라이프타임 매개변수가 없는 <code>i32</code>에 대한 참조, <code>'a</code>라는 이름의 라이프타임 매개변수가 있는 <code>i32</code>에 대한 참조, 그리고 역시 <code>'a</code>라는 라이프타임을 가진 <code>i32</code>에 대한 가변 참조입니다.</p>
+<p>Lifetime annotations have a slightly unusual syntax: The names of lifetime parameters must start with an apostrophe (<code>'</code>) and are usually all lowercase and very short, like generic types. Most people use the name <code>'a</code> for the first lifetime annotation. We place lifetime parameter annotations after the <code>&amp;</code> of a reference, using a space to separate the annotation from the reference’s type.</p>
+<p>Here are some examples—a reference to an <code>i32</code> without a lifetime parameter, a reference to an <code>i32</code> that has a lifetime parameter named <code>'a</code>, and a mutable reference to an <code>i32</code> that also has the lifetime <code>'a</code>:</p>
 <pre><code class="language-rust ignore">&amp;i32        // 참조
 &amp;'a i32     // 명시적인 라이프타임이 있는 참조
 &amp;'a mut i32 // 명시적인 라이프타임이 있는 가변 참조</code></pre>
-<p>라이프타임 명시 하나만으로는 큰 의미가 없는데, 명시의 목적은 여러 참조의 제네릭 라이프타임 매개변수가 서로 어떻게 연관되는지 러스트에게 알려주는 것이기 때문입니다. <code>longest</code> 함수의 문맥에서 라이프타임 명시들이 서로 어떻게 연관되는지 살펴보겠습니다.</p>
-<h3 id="함수-시그니처에서의-라이프타임-명시"><a class="header" href="#함수-시그니처에서의-라이프타임-명시">함수 시그니처에서의 라이프타임 명시</a></h3>
-<p>함수 시그니처에서 라이프타임 명시를 사용하려면, 제네릭 <em>타입</em> 매개변수와 마찬가지로 함수 이름과 매개변수 목록 사이의 꺾쇠 괄호 안에 제네릭 <em>라이프타임</em> 매개변수를 선언해야 합니다.</p>
-<p>우리는 시그니처가 다음과 같은 제약 조건을 표현하기를 원합니다. 즉, 반환된 참조는 두 매개변수가 모두 유효한 동안에만 유효해야 한다는 것입니다. 이것이 매개변수와 반환 값의 라이프타임 간의 관계입니다. 라이프타임의 이름을 <code>'a</code>라고 짓고, 목록 10-21에 나온 것처럼 각 참조에 추가하겠습니다.</p>
+<p>One lifetime annotation by itself doesn’t have much meaning, because the annotations are meant to tell Rust how generic lifetime parameters of multiple references relate to each other. Let’s examine how the lifetime annotations relate to each other in the context of the <code>longest</code> function.</p>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="lifetime-annotations-in-function-signatures"></a></p>
+<h3 id="in-function-signatures"><a class="header" href="#in-function-signatures">In Function Signatures</a></h3>
+<p>To use lifetime annotations in function signatures, we need to declare the generic lifetime parameters inside angle brackets between the function name and the parameter list, just as we did with generic type parameters.</p>
+<p>We want the signature to express the following constraint: The returned reference will be valid as long as both of the parameters are valid. This is the relationship between lifetimes of the parameters and the return value. We’ll name the lifetime <code>'a</code> and then add it to each reference, as shown in Listing 10-21.</p>
 <Listing number="10-21" file-name="src/main.rs" caption="The `longest` function definition specifying that all the references in the signature must have the same lifetime `'a`">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span><span class="boring">    let string1 = String::from("abcd");
 </span><span class="boring">    let string2 = "xyz";
 </span><span class="boring">
@@ -356,11 +356,7 @@ error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
 </span><span class="boring">}
 </span><span class="boring">
 </span>fn longest&lt;'a&gt;(x: &amp;'a str, y: &amp;'a str) -&gt; &amp;'a str {
-    if x.len() &gt; y.len() {
-        x
-    } else {
-        y
-    }
+    if x.len() &gt; y.len() { x } else { y }
 }</code></pre></pre>
 </Listing>
 <p>이 코드는 목록 10-19의 <code>main</code> 함수와 함께 사용했을 때 컴파일되고 우리가 원하는 결과를 생성할 것입니다.</p>
@@ -370,7 +366,7 @@ error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
 <p><code>longest</code>에 구체적인 참조를 전달할 때, <code>'a</code>를 대체하는 구체적인 라이프타임은 <code>x</code>의 스코프와 <code>y</code>의 스코프가 겹치는 부분입니다. 다시 말해, 제네릭 라이프타임 <code>'a</code>는 <code>x</code>와 <code>y</code>의 라이프타임 중 더 작은 쪽과 동일한 구체적인 라이프타임을 갖게 됩니다. 반환되는 참조를 동일한 라이프타임 매개변수 <code>'a</code>로 명시했으므로, 반환된 참조 또한 <code>x</code>와 <code>y</code>의 라이프타임 중 더 짧은 쪽의 길이 동안 유효할 것입니다.</p>
 <p>서로 다른 구체적 라이프타임을 가진 참조를 전달함으로써 라이프타임 명시가 <code>longest</code> 함수를 어떻게 제한하는지 살펴보겠습니다. 목록 10-22는 간단한 예제입니다.</p>
 <Listing number="10-22" file-name="src/main.rs" caption="Using the `longest` function with references to `String` values that have different concrete lifetimes">
-<pre><pre class="playground"><code class="language-rust edition2021">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024">fn main() {
     let string1 = String::from("long string is long");
 
     {
@@ -381,15 +377,11 @@ error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
 }
 <span class="boring">
 </span><span class="boring">fn longest&lt;'a&gt;(x: &amp;'a str, y: &amp;'a str) -&gt; &amp;'a str {
-</span><span class="boring">    if x.len() &gt; y.len() {
-</span><span class="boring">        x
-</span><span class="boring">    } else {
-</span><span class="boring">        y
-</span><span class="boring">    }
+</span><span class="boring">    if x.len() &gt; y.len() { x } else { y }
 </span><span class="boring">}</span></code></pre></pre>
 </Listing>
 <p>이 예제에서 <code>string1</code>은 외부 스코프가 끝날 때까지 유효하고, <code>string2</code>는 내부 스코프가 끝날 때까지 유효하며, <code>result</code>는 내부 스코프가 끝날 때까지 유효한 무언가를 참조합니다. 이 코드를 실행하면 빌려주기 검사기가 승인함을 알 수 있습니다. 컴파일될 것이며 <code>The longest string is long string is long</code>을 출력할 것입니다.</p>
-<p>다음으로, <code>result</code>에 담긴 참조의 라이프타임이 두 인수 중 더 작은 라이프타임이어야 함을 보여주는 예제를 시도해 보겠습니다. <code>result</code> 변수의 선언을 내부 스코프 밖으로 옮기되, <code>result</code> 변수에 값을 할당하는 것은 <code>string2</code>가 있는 스코프 내부에 남겨두겠습니다. 그런 다음 <code>result</code>를 사용하는 <code>println!</code>을 내부 스코프 밖, 즉 내부 스코프가 끝난 뒤로 옮기겠습니다. 목록 10-23의 코드는 컴파일되지 않습니다.</p>
+<p>Next, let’s try an example that shows that the lifetime of the reference in <code>result</code> must be the smaller lifetime of the two arguments. We’ll move the declaration of the <code>result</code> variable outside the inner scope but leave the assignment of the value to the <code>result</code> variable inside the scope with <code>string2</code>. Then, we’ll move the <code>println!</code> that uses <code>result</code> to outside the inner scope, after the inner scope has ended. The code in Listing 10-23 will not compile.</p>
 <Listing number="10-23" file-name="src/main.rs" caption="Attempting to use `result` after `string2` has gone out of scope">
 <pre><code class="language-rust ignore does_not_compile">fn main() {
     let string1 = String::from("long string is long");
@@ -402,11 +394,7 @@ error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
 }
 <span class="boring">
 </span><span class="boring">fn longest&lt;'a&gt;(x: &amp;'a str, y: &amp;'a str) -&gt; &amp;'a str {
-</span><span class="boring">    if x.len() &gt; y.len() {
-</span><span class="boring">        x
-</span><span class="boring">    } else {
-</span><span class="boring">        y
-</span><span class="boring">    }
+</span><span class="boring">    if x.len() &gt; y.len() { x } else { y }
 </span><span class="boring">}</span></code></pre>
 </Listing>
 <p>이 코드를 컴파일하려고 시도하면, 다음과 같은 에러가 발생합니다:</p>
@@ -422,18 +410,20 @@ error[E0597]: `string2` does not live long enough
 7 |     }
   |     - `string2` dropped here while still borrowed
 8 |     println!("The longest string is {result}");
-  |                                     -------- borrow later used here
+  |                                      ------ borrow later used here
 
 For more information about this error, try `rustc --explain E0597`.
 error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
 </code></pre>
 <p>이 에러는 <code>result</code>가 <code>println!</code> 문에서 유효하기 위해서는 <code>string2</code>가 외부 스코프 끝까지 유효해야 함을 보여줍니다. 우리가 함수의 매개변수와 반환 값의 라이프타임을 동일한 라이프타임 매개변수 <code>'a</code>를 사용하여 명시했기 때문에 러스트는 이를 알 수 있습니다.</p>
 <p>사람의 관점에서는 이 코드를 보고 <code>string1</code>이 <code>string2</code>보다 길기 때문에 <code>result</code>가 <code>string1</code>에 대한 참조를 갖게 될 것임을 알 수 있습니다. <code>string1</code>은 아직 스코프를 벗어나지 않았으므로, <code>string1</code>에 대한 참조는 <code>println!</code> 문에서 여전히 유효할 것입니다. 하지만 컴파일러는 이 경우에 참조가 유효하다는 것을 알지 못합니다. 우리는 러스트에게 <code>longest</code> 함수가 반환하는 참조의 라이프타임이 전달된 참조들의 라이프타임 중 더 짧은 쪽과 같다고 말했습니다. 따라서 빌려주기 검사기는 목록 10-23의 코드가 유효하지 않은 참조를 가질 가능성이 있다고 보고 허용하지 않습니다.</p>
-<p><code>longest</code> 함수에 전달되는 참조의 값과 라이프타임, 그리고 반환된 참조가 사용되는 방식을 다양하게 바꾸며 더 많은 실험을 설계해 보세요. 컴파일하기 전에 여러분의 실험이 빌려주기 검사기를 통과할지 가설을 세워보고, 여러분의 생각이 맞는지 확인해 보세요!</p>
-<h3 id="라이프타임의-관점에서-생각하기"><a class="header" href="#라이프타임의-관점에서-생각하기">라이프타임의 관점에서 생각하기</a></h3>
+<p>Try designing more experiments that vary the values and lifetimes of the references passed in to the <code>longest</code> function and how the returned reference is used. Make hypotheses about whether or not your experiments will pass the borrow checker before you compile; then, check to see if you’re right!</p>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="thinking-in-terms-of-lifetimes"></a></p>
+<h3 id="relationships"><a class="header" href="#relationships">Relationships</a></h3>
 <p>라이프타임 매개변수를 지정해야 하는 방식은 함수가 하는 일에 따라 달라집니다. 예를 들어, <code>longest</code> 함수의 구현을 가장 긴 문자열 슬라이스 대신 항상 첫 번째 매개변수를 반환하도록 변경한다면, <code>y</code> 매개변수에는 라이프타임을 지정할 필요가 없습니다. 다음 코드는 컴파일됩니다:</p>
 <Listing file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span><span class="boring">    let string1 = String::from("abcd");
 </span><span class="boring">    let string2 = "efghijklmnopqrstuvwxyz";
 </span><span class="boring">
@@ -476,12 +466,14 @@ error[E0515]: cannot return value referencing local variable `result`
 For more information about this error, try `rustc --explain E0515`.
 error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
 </code></pre>
-<p>문제는 <code>result</code>가 <code>longest</code> 함수가 끝날 때 스코프를 벗어나 메모리에서 해제된다는 점입니다. 그런데 우리는 함수에서 <code>result</code>에 대한 참조를 반환하려고 하고 있습니다. 댕글링 참조를 해결할 수 있는 라이프타임 매개변수를 지정할 방법은 없으며, 러스트는 우리가 댕글링 참조를 만드는 것을 허용하지 않습니다. 이 경우 가장 좋은 해결책은 참조가 아닌 소유권이 있는 데이터 타입을 반환하여 호출한 함수가 값을 해제할 책임을 갖도록 하는 것입니다.</p>
+<p>The problem is that <code>result</code> goes out of scope and gets cleaned up at the end of the <code>longest</code> function. We’re also trying to return a reference to <code>result</code> from the function. There is no way we can specify lifetime parameters that would change the dangling reference, and Rust won’t let us create a dangling reference. In this case, the best fix would be to return an owned data type rather than a reference so that the calling function is then responsible for cleaning up the value.</p>
 <p>결국 라이프타임 문법은 함수의 다양한 매개변수와 반환 값의 라이프타임을 서로 연결하는 것에 관한 것입니다. 이들이 연결되면, 러스트는 메모리 안전한 연산을 허용하고 댕글링 포인터를 생성하거나 메모리 안전성을 위반하는 연산을 막기에 충분한 정보를 갖게 됩니다.</p>
-<h3 id="구조체-정의에서의-라이프타임-명시"><a class="header" href="#구조체-정의에서의-라이프타임-명시">구조체 정의에서의 라이프타임 명시</a></h3>
-<p>지금까지 우리가 정의한 구조체들은 모두 소유권이 있는 타입들만 가지고 있었습니다. 참조를 가지는 구조체를 정의할 수도 있지만, 그런 경우에는 구조체 정의에 포함된 모든 참조에 라이프타임 명시를 추가해야 합니다. 목록 10-24에는 문자열 슬라이스를 가지는 <code>ImportantExcerpt</code>라는 구조체가 있습니다.</p>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="lifetime-annotations-in-struct-definitions"></a></p>
+<h3 id="구조체-정의에서"><a class="header" href="#구조체-정의에서">구조체 정의에서</a></h3>
+<p>So far, the structs we’ve defined all hold owned types. We can define structs to hold references, but in that case, we would need to add a lifetime annotation on every reference in the struct’s definition. Listing 10-24 has a struct named <code>ImportantExcerpt</code> that holds a string slice.</p>
 <Listing number="10-24" file-name="src/main.rs" caption="A struct that holds a reference, requiring a lifetime annotation">
-<pre><pre class="playground"><code class="language-rust edition2021">struct ImportantExcerpt&lt;'a&gt; {
+<pre><pre class="playground"><code class="language-rust edition2024">struct ImportantExcerpt&lt;'a&gt; {
     part: &amp;'a str,
 }
 
@@ -493,12 +485,12 @@ fn main() {
     };
 }</code></pre></pre>
 </Listing>
-<p>이 구조체는 참조인 문자열 슬라이스를 담는 <code>part</code>라는 하나의 필드를 가집니다. 제네릭 데이터 타입과 마찬가지로, 구조체 이름 뒤의 꺾쇠 괄호 안에 제네릭 라이프타임 매개변수의 이름을 선언하여 구조체 정의 본문에서 라이프타임 매개변수를 사용할 수 있도록 합니다. 이 명시는 <code>ImportantExcerpt</code> 인스턴스가 <code>part</code> 필드에 담긴 참조보다 더 오래 살 수 없음을 의미합니다.</p>
+<p>This struct has the single field <code>part</code> that holds a string slice, which is a reference. As with generic data types, we declare the name of the generic lifetime parameter inside angle brackets after the name of the struct so that we can use the lifetime parameter in the body of the struct definition. This annotation means an instance of <code>ImportantExcerpt</code> can’t outlive the reference it holds in its <code>part</code> field.</p>
 <p>여기서 <code>main</code> 함수는 <code>novel</code> 변수가 소유한 <code>String</code>의 첫 번째 문장에 대한 참조를 담는 <code>ImportantExcerpt</code> 구조체의 인스턴스를 생성합니다. <code>novel</code>에 담긴 데이터는 <code>ImportantExcerpt</code> 인스턴스가 생성되기 전부터 존재합니다. 또한, <code>novel</code>은 <code>ImportantExcerpt</code>가 스코프를 벗어날 때까지 스코프를 벗어나지 않으므로, <code>ImportantExcerpt</code> 인스턴스 안의 참조는 유효합니다.</p>
 <h3 id="라이프타임-생략lifetime-elision"><a class="header" href="#라이프타임-생략lifetime-elision">라이프타임 생략(Lifetime Elision)</a></h3>
 <p>여러분은 모든 참조에는 라이프타임이 있으며, 참조를 사용하는 함수나 구조체에는 라이프타임 매개변수를 지정해야 한다는 것을 배웠습니다. 하지만 목록 4-9에서 보았고 목록 10-25에서 다시 보여주는 이 함수는 라이프타임 명시 없이도 컴파일됩니다.</p>
 <Listing number="10-25" file-name="src/lib.rs" caption="A function we defined in Listing 4-9 that compiled without lifetime annotations, even though the parameter and return type are references">
-<pre><pre class="playground"><code class="language-rust edition2021">fn first_word(s: &amp;str) -&gt; &amp;str {
+<pre><pre class="playground"><code class="language-rust edition2024">fn first_word(s: &amp;str) -&gt; &amp;str {
     let bytes = s.as_bytes();
 
     for (i, &amp;item) in bytes.iter().enumerate() {
@@ -526,12 +518,12 @@ fn main() {
 </span><span class="boring">    let word = first_word(my_string_literal);
 </span><span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>이 함수가 라이프타임 명시 없이 컴파일되는 이유는 역사적인 이유가 있습니다. 초기 버전(1.0 이전)의 러스트에서는 모든 참조에 명시적인 라이프타임이 필요했기 때문에 이 코드가 컴파일되지 않았을 것입니다. 당시에는 함수 시그니처를 다음과 같이 작성해야 했습니다:</p>
+<p>The reason this function compiles without lifetime annotations is historical: In early versions (pre-1.0) of Rust, this code wouldn’t have compiled, because every reference needed an explicit lifetime. At that time, the function signature would have been written like this:</p>
 <pre><code class="language-rust ignore">fn first_word&lt;'a&gt;(s: &amp;'a str) -&gt; &amp;'a str {</code></pre>
-<p>많은 러스트 코드를 작성해본 뒤, 러스트 팀은 러스트 프로그래머들이 특정한 상황에서 똑같은 라이프타임 명시를 반복해서 쓰고 있다는 사실을 발견했습니다. 이러한 상황들은 예측 가능했으며 몇 가지 결정론적인 패턴을 따랐습니다. 개발자들은 빌려주기 검사기가 이러한 상황에서 라이프타임을 추론할 수 있도록 이 패턴들을 컴파일러 코드에 프로그래밍했고, 그 결과 명시적인 라이프타임 명시가 필요 없게 되었습니다.</p>
+<p>After writing a lot of Rust code, the Rust team found that Rust programmers were entering the same lifetime annotations over and over in particular situations. These situations were predictable and followed a few deterministic patterns. The developers programmed these patterns into the compiler’s code so that the borrow checker could infer the lifetimes in these situations and wouldn’t need explicit annotations.</p>
 <p>러스트의 이러한 역사가 중요한 이유는 앞으로 더 많은 결정론적인 패턴들이 발견되어 컴파일러에 추가될 수 있기 때문입니다. 미래에는 훨씬 더 적은 라이프타임 명시만 필요하게 될지도 모릅니다.</p>
 <p>참조 분석을 위해 러스트에 프로그래밍된 패턴들을 _라이프타임 생략 규칙(lifetime elision rules)_이라고 부릅니다. 이는 프로그래머가 지켜야 할 규칙이 아닙니다. 컴파일러가 고려하는 몇 가지 특정한 경우의 모음이며, 여러분의 코드가 이 경우에 해당한다면 라이프타임을 명시적으로 작성할 필요가 없습니다.</p>
-<p>생략 규칙이 완전한 추론을 제공하는 것은 아닙니다. 만약 러스트가 규칙을 적용한 뒤에도 참조들의 라이프타임에 여전히 모호함이 남아있다면, 컴파일러는 남은 참조들이 어떤 라이프타임을 가져야 할지 추측하지 않습니다. 추측하는 대신, 컴파일러는 에러를 발생시키며 여러분은 라이프타임 명시를 추가하여 이를 해결할 수 있습니다.</p>
+<p>The elision rules don’t provide full inference. If there is still ambiguity about what lifetimes the references have after Rust applies the rules, the compiler won’t guess what the lifetime of the remaining references should be. Instead of guessing, the compiler will give you an error that you can resolve by adding the lifetime annotations.</p>
 <p>함수나 메서드의 매개변수에 대한 라이프타임을 _입력 라이프타임(input lifetimes)_이라고 하며, 반환 값에 대한 라이프타임을 _출력 라이프타임(output lifetimes)_이라고 합니다.</p>
 <p>명시적인 라이프타임 명시가 없을 때, 컴파일러는 세 가지 규칙을 사용하여 참조의 라이프타임을 파악합니다. 첫 번째 규칙은 입력 라이프타임에 적용되고, 두 번째와 세 번째 규칙은 출력 라이프타임에 적용됩니다. 만약 컴파일러가 세 가지 규칙을 모두 적용한 뒤에도 라이프타임을 파악할 수 없는 참조가 남아있다면, 컴파일러는 에러와 함께 멈춥니다. 이 규칙들은 <code>fn</code> 정의뿐만 아니라 <code>impl</code> 블록에도 적용됩니다.</p>
 <p>첫 번째 규칙은 참조인 각 매개변수에 대해 컴파일러가 라이프타임 매개변수를 할당한다는 것입니다. 즉, 매개변수가 하나인 함수는 하나의 라이프타임 매개변수를 갖습니다: <code>fn foo&lt;'a&gt;(x: &amp;'a i32)</code>. 매개변수가 두 개인 함수는 두 개의 개별 라이프타임 매개변수를 갖습니다: <code>fn foo&lt;'a, 'b&gt;(x: &amp;'a i32, y: &amp;'b i32)</code>. 이런 식입니다.</p>
@@ -539,23 +531,25 @@ fn main() {
 <p>세 번째 규칙은 매개변수가 여러 개인 경우, 그것이 메서드라서 그중 하나가 <code>&amp;self</code> 혹은 <code>&amp;mut self</code>라면 <code>self</code>의 라이프타임이 모든 출력 라이프타임 매개변수에 할당된다는 것입니다. 이 세 번째 규칙 덕분에 메서드를 읽고 쓰기가 훨씬 수월해지는데, 필요한 기호들이 적어지기 때문입니다.</p>
 <p>우리가 컴파일러라고 가정해 봅시다. 목록 10-25에 있는 <code>first_word</code> 함수 시그니처에서 참조의 라이프타임을 파악하기 위해 이 규칙들을 적용해 보겠습니다. 시그니처는 참조와 관련된 어떤 라이프타임도 없이 시작합니다:</p>
 <pre><code class="language-rust ignore">fn first_word(s: &amp;str) -&gt; &amp;str {</code></pre>
-<p>그런 다음 컴파일러는 첫 번째 규칙을 적용합니다. 이 규칙은 각 매개변수가 자신만의 라이프타임을 갖도록 명시합니다. 평소처럼 <code>'a</code>라고 부르겠습니다. 이제 시그니처는 다음과 같습니다:</p>
+<p>Then, the compiler applies the first rule, which specifies that each parameter gets its own lifetime. We’ll call it <code>'a</code> as usual, so now the signature is this:</p>
 <pre><code class="language-rust ignore">fn first_word&lt;'a&gt;(s: &amp;'a str) -&gt; &amp;str {</code></pre>
 <p>입력 라이프타임이 정확히 하나뿐이므로 두 번째 규칙이 적용됩니다. 두 번째 규칙은 하나의 입력 매개변수의 라이프타임이 출력 라이프타임에 할당되도록 명시합니다. 이제 시그니처는 다음과 같습니다:</p>
 <pre><code class="language-rust ignore">fn first_word&lt;'a&gt;(s: &amp;'a str) -&gt; &amp;'a str {</code></pre>
 <p>이제 이 함수 시그니처의 모든 참조가 라이프타임을 갖게 되었으며, 컴파일러는 프로그래머가 이 함수 시그니처에 라이프타임을 명시할 필요 없이 분석을 계속할 수 있습니다.</p>
 <p>이번에는 목록 10-20에서 작업하기 시작했을 때 라이프타임 매개변수가 없었던 <code>longest</code> 함수를 사용하여 다른 예제를 살펴보겠습니다:</p>
 <pre><code class="language-rust ignore">fn longest(x: &amp;str, y: &amp;str) -&gt; &amp;str {</code></pre>
-<p>첫 번째 규칙을 적용해 봅시다. 각 매개변수는 자체 라이프타임을 가집니다. 이번에는 매개변수가 하나가 아니라 두 개이므로 두 개의 라이프타임을 가집니다:</p>
+<p>Let’s apply the first rule: Each parameter gets its own lifetime. This time we have two parameters instead of one, so we have two lifetimes:</p>
 <pre><code class="language-rust ignore">fn longest&lt;'a, 'b&gt;(x: &amp;'a str, y: &amp;'b str) -&gt; &amp;str {</code></pre>
-<p>두 번째 규칙은 입력 라이프타임이 하나 이상이므로 적용되지 않습니다. 세 번째 규칙도 <code>longest</code>가 메서드가 아닌 함수이므로 매개변수 중 <code>self</code>가 없기 때문에 적용되지 않습니다. 세 가지 규칙을 모두 적용한 후에도 반환 타입의 라이프타임이 무엇인지 파악하지 못했습니다. 이것이 목록 10-20의 코드를 컴파일하려고 할 때 오류가 발생한 이유입니다. 컴파일러는 라이프타임 생략 규칙을 적용했지만 시그니처의 참조에 대한 모든 라이프타임을 여전히 파악할 수 없었습니다.</p>
+<p>You can see that the second rule doesn’t apply, because there is more than one input lifetime. The third rule doesn’t apply either, because <code>longest</code> is a function rather than a method, so none of the parameters are <code>self</code>. After working through all three rules, we still haven’t figured out what the return type’s lifetime is. This is why we got an error trying to compile the code in Listing 10-20: The compiler worked through the lifetime elision rules but still couldn’t figure out all the lifetimes of the references in the signature.</p>
 <p>세 번째 규칙은 실제로 메서드 시그니처에만 적용되므로, 다음으로 해당 컨텍스트에서 라이프타임을 살펴보고 세 번째 규칙 때문에 메서드 시그니처에 라이프타임을 자주 명시할 필요가 없는 이유를 알아보겠습니다.</p>
-<h3 id="메서드-정의의-라이프타임-명시"><a class="header" href="#메서드-정의의-라이프타임-명시">메서드 정의의 라이프타임 명시</a></h3>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="lifetime-annotations-in-method-definitions"></a></p>
+<h3 id="메서드-정의에서"><a class="header" href="#메서드-정의에서">메서드 정의에서</a></h3>
 <p>라이프타임을 가진 구조체에 메서드를 구현할 때, 목록 10-11에 표시된 것처럼 제네릭 타입 매개변수와 동일한 문법을 사용합니다. 라이프타임 매개변수를 선언하고 사용하는 위치는 구조체 필드와 관련이 있는지, 아니면 메서드 매개변수 및 반환 값과 관련이 있는지에 따라 달라집니다.</p>
 <p>구조체 필드의 라이프타임 이름은 항상 <code>impl</code> 키워드 뒤에 선언되어야 하며, 그런 다음 구조체 이름 뒤에 사용되어야 합니다. 왜냐하면 해당 라이프타임은 구조체 타입의 일부이기 때문입니다.</p>
 <p><code>impl</code> 블록 내부의 메서드 시그니처에서 참조는 구조체 필드의 참조 라이프타임에 묶여 있을 수도 있고, 독립적일 수도 있습니다. 또한 라이프타임 생략 규칙으로 인해 메서드 시그니처에 라이프타임 명시가 필요 없는 경우가 많습니다. 목록 10-24에서 정의한 <code>ImportantExcerpt</code>라는 구조체를 사용하여 몇 가지 예제를 살펴보겠습니다.</p>
-<p>먼저 유일한 매개변수가 <code>self</code>에 대한 참조이고 반환 값이 <code>i32</code>인 <code>level</code>이라는 메서드를 사용할 것입니다. <code>i32</code>는 어떤 것에도 대한 참조가 아닙니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">struct ImportantExcerpt&lt;'a&gt; {
+<p>First, we’ll use a method named <code>level</code> whose only parameter is a reference to <code>self</code> and whose return value is an <code>i32</code>, which is not a reference to anything:</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">struct ImportantExcerpt&lt;'a&gt; {
 </span><span class="boring">    part: &amp;'a str,
 </span><span class="boring">}
 </span><span class="boring">
@@ -579,9 +573,9 @@ fn main() {
 </span><span class="boring">        part: first_sentence,
 </span><span class="boring">    };
 </span><span class="boring">}</span></code></pre></pre>
-<p><code>impl</code> 뒤의 라이프타임 매개변수 선언과 타입 이름 뒤의 사용은 필수적이지만, 첫 번째 생략 규칙 때문에 <code>self</code>에 대한 참조의 라이프타임을 명시할 필요는 없습니다.</p>
+<p>The lifetime parameter declaration after <code>impl</code> and its use after the type name are required, but because of the first elision rule, we’re not required to annotate the lifetime of the reference to <code>self</code>.</p>
 <p>다음은 세 번째 라이프타임 생략 규칙이 적용되는 예제입니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">struct ImportantExcerpt&lt;'a&gt; {
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">struct ImportantExcerpt&lt;'a&gt; {
 </span><span class="boring">    part: &amp;'a str,
 </span><span class="boring">}
 </span><span class="boring">
@@ -608,15 +602,17 @@ fn main() {
 <p>두 개의 입력 라이프타임이 있으므로, 러스트는 첫 번째 라이프타임 생략 규칙을 적용하여 <code>&amp;self</code>와 <code>announcement</code> 모두에게 자체 라이프타임을 부여합니다. 그런 다음 매개변수 중 하나가 <code>&amp;self</code>이므로 반환 타입은 <code>&amp;self</code>의 라이프타임을 얻게 되며, 모든 라이프타임이 고려됩니다.</p>
 <h3 id="정적-라이프타임"><a class="header" href="#정적-라이프타임">정적 라이프타임</a></h3>
 <p>논의해야 할 한 가지 특별한 라이프타임은 <code>'static</code>입니다. 이는 영향을 받는 참조가 프로그램의 전체 기간 동안 _살아있을 수 있음_을 나타냅니다. 모든 문자열 리터럴은 <code>'static</code> 라이프타임을 가지며, 다음과 같이 명시할 수 있습니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let s: &amp;'static str = "나는 정적 라이프타임을 가지고 있습니다.";
 <span class="boring">}</span></code></pre></pre>
 <p>이 문자열의 텍스트는 프로그램의 바이너리에 직접 저장되며, 이는 항상 사용 가능합니다. 따라서 모든 문자열 리터럴의 라이프타임은 <code>'static</code>입니다.</p>
-<p>오류 메시지에서 <code>'static</code> 라이프타임을 사용하라는 제안을 볼 수도 있습니다. 하지만 참조에 대해 <code>'static</code>을 라이프타임으로 지정하기 전에, 가지고 있는 참조가 실제로 프로그램의 전체 라이프타임 동안 살아있는지 여부와 그렇게 되기를 원하는지 생각해 보세요. 대부분의 경우, <code>'static</code> 라이프타임을 제안하는 오류 메시지는 매달린 참조를 생성하려 했거나 사용 가능한 라이프타임이 일치하지 않아 발생합니다. 이러한 경우 해결책은 <code>'static</code> 라이프타임을 지정하는 것이 아니라 해당 문제를 해결하는 것입니다.</p>
-<h2 id="제네릭-타입-매개변수-트레이트-바운드-및-라이프타임-함께-사용하기"><a class="header" href="#제네릭-타입-매개변수-트레이트-바운드-및-라이프타임-함께-사용하기">제네릭 타입 매개변수, 트레이트 바운드 및 라이프타임 함께 사용하기</a></h2>
+<p>You might see suggestions in error messages to use the <code>'static</code> lifetime. But before specifying <code>'static</code> as the lifetime for a reference, think about whether or not the reference you have actually lives the entire lifetime of your program, and whether you want it to. Most of the time, an error message suggesting the <code>'static</code> lifetime results from attempting to create a dangling reference or a mismatch of the available lifetimes. In such cases, the solution is to fix those problems, not to specify the <code>'static</code> lifetime.</p>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="generic-type-parameters-trait-bounds-and-lifetimes-together"></a></p>
+<h2 id="generic-type-parameters-trait-bounds-and-lifetimes"><a class="header" href="#generic-type-parameters-trait-bounds-and-lifetimes">Generic Type Parameters, Trait Bounds, and Lifetimes</a></h2>
 <p>제네릭 타입 매개변수, 트레이트 바운드, 라이프타임을 모두 하나의 함수에서 지정하는 문법을 간략하게 살펴보겠습니다!</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span><span class="boring">    let string1 = String::from("abcd");
 </span><span class="boring">    let string2 = "xyz";
 </span><span class="boring">
@@ -639,16 +635,12 @@ where
     T: Display,
 {
     println!("Announcement! {ann}");
-    if x.len() &gt; y.len() {
-        x
-    } else {
-        y
-    }
+    if x.len() &gt; y.len() { x } else { y }
 }</code></pre></pre>
 <p>이것은 목록 10-21의 <code>longest</code> 함수로, 두 문자열 슬라이스 중 더 긴 것을 반환합니다. 하지만 이제 <code>where</code> 절에 지정된 대로 <code>Display</code> 트레이트를 구현하는 모든 타입으로 채워질 수 있는 제네릭 타입 <code>T</code>의 <code>ann</code>이라는 추가 매개변수를 가집니다. 이 추가 매개변수는 <code>{}</code>를 사용하여 출력될 것이며, 이것이 <code>Display</code> 트레이트 바운드가 필요한 이유입니다. 라이프타임은 제네릭의 한 종류이므로, 라이프타임 매개변수 <code>'a</code>와 제네릭 타입 매개변수 <code>T</code>의 선언은 함수 이름 뒤의 꺾쇠 괄호 안의 동일한 목록에 들어갑니다.</p>
 <h2 id="요약"><a class="header" href="#요약">요약</a></h2>
 <p>이 장에서 많은 내용을 다루었습니다! 이제 제네릭 타입 매개변수, 트레이트 및 트레이트 바운드, 제네릭 라이프타임 매개변수에 대해 알게 되었으므로, 다양한 상황에서 작동하는 반복 없는 코드를 작성할 준비가 되었습니다. 제네릭 타입 매개변수를 사용하면 코드를 다른 타입에 적용할 수 있습니다. 트레이트 및 트레이트 바운드는 타입이 제네릭이더라도 코드가 필요로 하는 동작을 가질 수 있도록 보장합니다. 라이프타임 명시를 사용하여 이 유연한 코드가 매달린 참조를 가지지 않도록 보장하는 방법을 배웠습니다. 그리고 이 모든 분석은 컴파일 타임에 이루어지므로 런타임 성능에 영향을 미치지 않습니다!</p>
-<p>믿거나 말거나, 이 장에서 논의한 주제에 대해 배울 것이 훨씬 더 많습니다. 18장에서는 트레이트를 사용하는 또 다른 방법인 트레이트 객체에 대해 다룹니다. 또한 매우 고급 시나리오에서만 필요한 라이프타임 명시와 관련된 더 복잡한 시나리오도 있습니다. 이에 대해서는 <a href="../reference/index.html">러스트 참조</a>를 읽어야 합니다. 하지만 다음으로, 코드가 제대로 작동하는지 확인할 수 있도록 러스트에서 테스트를 작성하는 방법을 배울 것입니다.</p>
+<p>Believe it or not, there is much more to learn on the topics we discussed in this chapter: Chapter 18 discusses trait objects, which are another way to use traits. There are also more complex scenarios involving lifetime annotations that you will only need in very advanced scenarios; for those, you should read the <a href="../reference/trait-bounds.html">Rust Reference</a>. But next, you’ll learn how to write tests in Rust so that you can make sure your code is working the way it should.</p>
 
                     </main>
 

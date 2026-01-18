@@ -216,8 +216,8 @@
 <p>The <code>#[doc]</code> attribute lets you control various aspects of how <code>rustdoc</code> does
 its job.</p>
 <p>The most basic function of <code>#[doc]</code> is to handle the actual documentation
-text. That is, <code>///</code> is syntax sugar for <code>#[doc]</code>. This means that these two
-are the same:</p>
+text. That is, <code>///</code> is syntax sugar for <code>#[doc]</code> (as is <code>//!</code> for <code>#![doc]</code>).
+This means that these two are the same:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>/// This is a doc comment.
@@ -262,7 +262,7 @@ crate level, and ones that are useful at the item level.</p>
 </span><span class="boring">}</span></code></pre></pre>
 <p>This will put <code>&lt;link rel="icon" href="{}"&gt;</code> into your docs, where
 the string for the attribute goes into the <code>{}</code>.</p>
-<p>If you don't use this attribute, there will be no favicon.</p>
+<p>If you don't use this attribute, a default favicon will be used.</p>
 <h3 id="html_logo_url"><a class="header" href="#html_logo_url"><code>html_logo_url</code></a></h3>
 <p>This form of the <code>doc</code> attribute lets you control the logo in the upper
 left hand side of the docs.</p>
@@ -281,8 +281,12 @@ on your documentation examples make requests to.</p>
 <span class="boring">fn main() {
 </span><span class="boring">}</span></code></pre></pre>
 <p>Now, when you press "run", the button will make a request to this domain. The request
-URL will contain 2 query parameters: <code>code</code> and <code>edition</code> for the code in the documentation
-and the Rust edition respectively.</p>
+URL will contain 3 query parameters:</p>
+<ol>
+<li><code>code</code> for the code in the documentation</li>
+<li><code>version</code> for the Rust channel, e.g. nightly, which is decided by whether <code>code</code> contain unstable features</li>
+<li><code>edition</code> for the Rust edition, e.g. 2024</li>
+</ol>
 <p>If you don't use this attribute, there will be no run buttons.</p>
 <h3 id="issue_tracker_base_url"><a class="header" href="#issue_tracker_base_url"><code>issue_tracker_base_url</code></a></h3>
 <p>This form of the <code>doc</code> attribute is mostly only useful for the standard library;
@@ -322,13 +326,6 @@ But if you include this:</p>
 <span class="boring">fn main() {
 </span><span class="boring">}</span></code></pre></pre>
 <p>it will not.</p>
-<h3 id="testattr"><a class="header" href="#testattr"><code>test(attr(...))</code></a></h3>
-<p>This form of the <code>doc</code> attribute allows you to add arbitrary attributes to all your doctests. For
-example, if you want your doctests to fail if they have dead code, you could add this:</p>
-<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
-</span>#![doc(test(attr(deny(dead_code))))]
-<span class="boring">fn main() {
-</span><span class="boring">}</span></code></pre></pre>
 <h2 id="at-the-item-level"><a class="header" href="#at-the-item-level">At the item level</a></h2>
 <p>These forms of the <code>#[doc]</code> attribute are used on individual items, to control how
 they are documented.</p>
@@ -419,6 +416,26 @@ you have no way to do so.</p>
 on the <code>do_something</code> method and then it's all good!
 Users can now look for <code>lib_name_do_something</code> in our crate directly and find
 <code>Obj::do_something</code>.</p>
+<h3 id="testattr"><a class="header" href="#testattr"><code>test(attr(...))</code></a></h3>
+<p>This form of the <code>doc</code> attribute allows you to add arbitrary attributes to all your doctests. For
+example, if you want your doctests to fail if they have dead code, you could add this:</p>
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
+</span>#![doc(test(attr(deny(dead_code))))]
+
+<span class="boring">fn main() {
+</span>mod my_mod {
+    #![doc(test(attr(allow(dead_code))))] // but allow `dead_code` for this module
+}
+<span class="boring">}</span></code></pre></pre>
+<p><code>test(attr(..))</code> attributes are appended to the parent module's, they do not replace the current
+list of attributes. In the previous example, both attributes would be present:</p>
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// For every doctest in `my_mod`
+
+#![deny(dead_code)] // from the crate-root
+#![allow(dead_code)] // from `my_mod`
+<span class="boring">}</span></code></pre></pre>
 
                     </main>
 

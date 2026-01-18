@@ -216,17 +216,14 @@
 
                 <div id="content" class="content">
                     <main>
-                        <div class="rule" id="r-attributes.derive"><a class="rule-link" href="#r-attributes.derive" title="attributes.derive"><span>[attributes<wbr>.derive]<span/></a></div>
+                        <!-- template:attributes -->
+<p>r[attributes.derive]</p>
 <h1 id="derive"><a class="header" href="#derive">Derive</a></h1>
-<div class="rule" id="r-attributes.derive.intro"><a class="rule-link" href="#r-attributes.derive.intro" title="attributes.derive.intro"><span>[attributes<wbr>.derive<wbr>.intro]<span/></a></div>
-<p>The <em><code>derive</code> attribute</em> allows new <a href="../items.html">items</a> to be automatically generated for
-data structures.</p>
-<div class="rule" id="r-attributes.derive.syntax"><a class="rule-link" href="#r-attributes.derive.syntax" title="attributes.derive.syntax"><span>[attributes<wbr>.derive<wbr>.syntax]<span/></a></div>
-<p>It uses the <a href="../attributes.html#meta-item-attribute-syntax"><em>MetaListPaths</em></a> syntax to specify a list of
-traits to implement or paths to <a href="../procedural-macros.html#derive-macros">derive macros</a> to process.</p>
-<p>For example, the following will create an <a href="../items/implementations.html"><code>impl</code> item</a> for the
-<a href="../../core/cmp/trait.PartialEq.html"><code>PartialEq</code></a> and <a href="../../core/clone/trait.Clone.html"><code>Clone</code></a> traits for <code>Foo</code>, and the type parameter <code>T</code> will be
-given the <code>PartialEq</code> or <code>Clone</code> constraints for the appropriate <code>impl</code>:</p>
+<p>r[attributes.derive.intro]
+The <em><code>derive</code> [attribute][attributes]</em> invokes one or more <a href="macro.proc.derive">derive macros</a>, allowing new <a href="../items.html">items</a> to be automatically generated for data structures. You can create <code>derive</code> macros with <a href="macro.proc.derive">procedural macros</a>.</p>
+<blockquote>
+<p>[!EXAMPLE]
+The [<code>PartialEq</code>][macro@PartialEq] derive macro emits an <a href="../items/implementations.html">implementation</a> of [<code>PartialEq</code>] for <code>Foo&lt;T&gt; where T: PartialEq</code>. The [<code>Clone</code>][macro@Clone] derive macro does likewise for [<code>Clone</code>].</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(PartialEq, Clone)]
@@ -235,7 +232,7 @@ struct Foo&lt;T&gt; {
     b: T,
 }
 <span class="boring">}</span></code></pre></pre>
-<p>The generated <code>impl</code> for <code>PartialEq</code> is equivalent to</p>
+<p>The generated <code>impl</code> items are equivalent to:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct Foo&lt;T&gt; { a: i32, b: T }
@@ -244,15 +241,75 @@ struct Foo&lt;T&gt; {
         self.a == other.a &amp;&amp; self.b == other.b
     }
 }
+
+impl&lt;T: Clone&gt; Clone for Foo&lt;T&gt; {
+    fn clone(&amp;self) -&gt; Self {
+        Foo { a: self.a.clone(), b: self.b.clone() }
+    }
+}
 <span class="boring">}</span></code></pre></pre>
-<div class="rule" id="r-attributes.derive.proc-macro"><a class="rule-link" href="#r-attributes.derive.proc-macro" title="attributes.derive.proc-macro"><span>[attributes<wbr>.derive<wbr>.proc-macro]<span/></a></div>
-<p>You can implement <code>derive</code> for your own traits through <a href="../procedural-macros.html#derive-macros">procedural macros</a>.</p>
-<div class="rule" id="r-attributes.derive.automatically_derived"><a class="rule-link" href="#r-attributes.derive.automatically_derived" title="attributes.derive.automatically_derived"><span>[attributes<wbr>.derive<wbr>.automatically_derived]<span/></a></div>
+</blockquote>
+<p>r[attributes.derive.syntax]
+The <code>derive</code> attribute uses the [MetaListPaths] syntax to specify a list of paths to <a href="macro.proc.derive">derive macros</a> to invoke.</p>
+<p>r[attributes.derive.allowed-positions]
+The <code>derive</code> attribute may only be applied to [structs][items.struct], [enums][items.enum], and [unions][items.union].</p>
+<p>r[attributes.derive.duplicates]
+The <code>derive</code> attribute may be used any number of times on an item. All derive macros listed in all attributes are invoked.</p>
+<p>r[attributes.derive.stdlib]
+The <code>derive</code> attribute is exported in the standard library prelude as [<code>core::prelude::v1::derive</code>].</p>
+<p>r[attributes.derive.built-in]
+Built-in derives are defined in the [language prelude][names.preludes.lang]. The list of built-in derives are:</p>
+<ul>
+<li>[<code>Clone</code>]</li>
+<li>[<code>Copy</code>]</li>
+<li>[<code>Debug</code>]</li>
+<li>[<code>Default</code>]</li>
+<li>[<code>Eq</code>]</li>
+<li>[<code>Hash</code>]</li>
+<li>[<code>Ord</code>]</li>
+<li>[<code>PartialEq</code>]</li>
+<li>[<code>PartialOrd</code>]</li>
+</ul>
+<p>r[attributes.derive.built-in-automatically_derived]
+The built-in derives include the [<code>automatically_derived</code> attribute][attributes.derive.automatically_derived] on the implementations they generate.</p>
+<p>r[attributes.derive.behavior]
+During macro expansion, for each element in the list of derives, the corresponding derive macro expands to zero or more <a href="../items.html">items</a>.</p>
+<!-- template:attributes -->
+<p>r[attributes.derive.automatically_derived]</p>
 <h2 id="the-automatically_derived-attribute"><a class="header" href="#the-automatically_derived-attribute">The <code>automatically_derived</code> attribute</a></h2>
-<p>The <em><code>automatically_derived</code> attribute</em> is automatically added to
-<a href="../items/implementations.html">implementations</a> created by the <code>derive</code> attribute for built-in traits. It
-has no direct effect, but it may be used by tools and diagnostic lints to
-detect these automatically generated implementations.</p>
+<p>r[attributes.derive.automatically_derived.intro]
+The <em><code>automatically_derived</code> [attribute][attributes]</em> is used to annotate an <a href="../items/implementations.html">implementation</a> to indicate that it was automatically created by a <a href="macro.proc.derive">derive macro</a>. It has no direct effect, but it may be used by tools and diagnostic lints to detect these automatically generated implementations.</p>
+<blockquote>
+<p>[!EXAMPLE]
+Given [<code>#[derive(Clone)]</code>][macro@Clone] on <code>struct Example</code>, the <a href="macro.proc.derive">derive macro</a> may produce:</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">struct Example;
+</span>#[automatically_derived]
+impl ::core::clone::Clone for Example {
+    #[inline]
+    fn clone(&amp;self) -&gt; Self {
+        Example
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
+<p>r[attributes.derive.automatically_derived.syntax]
+The <code>automatically_derived</code> attribute uses the [MetaWord] syntax.</p>
+<p>r[attributes.derive.automatically_derived.allowed-positions]
+The <code>automatically_derived</code> attribute may only be applied to an <a href="../items/implementations.html">implementation</a>.</p>
+<blockquote>
+<p>[!NOTE]
+<code>rustc</code> ignores use in other positions but lints against it. This may become an error in the future.</p>
+</blockquote>
+<p>r[attributes.derive.automatically_derived.duplicates]
+Using <code>automatically_derived</code> more than once on an implementation has the same effect as using it once.</p>
+<blockquote>
+<p>[!NOTE]
+<code>rustc</code> lints against any use following the first.</p>
+</blockquote>
+<p>r[attributes.derive.automatically_derived.behavior]
+The <code>automatically_derived</code> attribute has no behavior.</p>
 
                     </main>
 

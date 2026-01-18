@@ -186,7 +186,7 @@
                         <a href="https://github.com/rust-lang-translations/project" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/rust-lang/rust/edit/master/src/doc/rustc/src/platform-support/apple-ios.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/rust-lang/rust/edit/main/src/doc/rustc/src/platform-support/apple-ios.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -229,17 +229,16 @@
 <li><code>i386-apple-ios</code>: Apple iOS Simulator on 32-bit x86.</li>
 </ul>
 <h2 id="target-maintainers"><a class="header" href="#target-maintainers">Target maintainers</a></h2>
-<ul>
-<li><a href="https://github.com/badboy">@badboy</a></li>
-<li><a href="https://github.com/deg4uss3r">@deg4uss3r</a></li>
-<li><a href="https://github.com/madsmtm">@madsmtm</a></li>
-</ul>
+<p><a href="https://github.com/badboy">@badboy</a>
+<a href="https://github.com/deg4uss3r">@deg4uss3r</a>
+<a href="https://github.com/madsmtm">@madsmtm</a></p>
 <h2 id="requirements"><a class="header" href="#requirements">Requirements</a></h2>
 <p>These targets are cross-compiled, and require the corresponding iOS SDK
 (<code>iPhoneOS.sdk</code> or <code>iPhoneSimulator.sdk</code>), as provided by Xcode. To build the
 ARM64 targets, Xcode 12 or higher is required.</p>
 <p>The path to the SDK can be passed to <code>rustc</code> using the common <code>SDKROOT</code>
-environment variable.</p>
+environment variable, or will be inferred when compiling on host macOS using
+roughly the same logic as <code>xcrun --sdk iphoneos --show-sdk-path</code>.</p>
 <h3 id="os-version"><a class="header" href="#os-version">OS version</a></h3>
 <p>The minimum supported version is iOS 10.0.</p>
 <p>This can be raised per-binary by changing the deployment target. <code>rustc</code>
@@ -253,7 +252,7 @@ $ rustup target add aarch64-apple-ios-sim
 $ rustup target add x86_64-apple-ios
 </code></pre>
 <p>The tier 3 targets can be built by enabling them for a <code>rustc</code> build in
-<code>config.toml</code>, by adding, for example:</p>
+<code>bootstrap.toml</code>, by adding, for example:</p>
 <pre><code class="language-toml">[build]
 target = ["armv7s-apple-ios", "i386-apple-ios"]
 </code></pre>
@@ -263,11 +262,26 @@ target = ["armv7s-apple-ios", "i386-apple-ios"]
 <code>rustc</code> has been built with support for them. For example:</p>
 <pre><code class="language-console">$ rustc --target aarch64-apple-ios your-code.rs
 </code></pre>
+<p>Or if using Cargo and <code>-Zbuild-std</code>:</p>
+<pre><code class="language-console">$ cargo +nightly build -Zbuild-std --target armv7s-apple-ios
+</code></pre>
+<p>The simulator variants can be differentiated from the variants running
+on-device with the <code>target_env = "sim"</code> cfg (or <code>target_abi = "sim"</code> before
+Rust 1.91.0).</p>
+<pre><code class="language-rust">if cfg!(all(target_vendor = "apple", target_env = "sim")) {
+    // Do something on the iOS/tvOS/visionOS/watchOS Simulator.
+} else {
+    // Everything else, like Windows and non-Simulator iOS.
+}</code></pre>
+<p>This is similar to the <code>TARGET_OS_SIMULATOR</code> define in C code.</p>
 <h2 id="testing"><a class="header" href="#testing">Testing</a></h2>
-<p>There is no support for running the Rust or standard library testsuite at the
-moment. Testing has mostly been done manually with builds of static libraries
-embedded into applications called from Xcode or a simulator.</p>
-<p>It hopefully will be possible to improve this in the future.</p>
+<p>Running and testing your code naturally requires either an actual device
+running iOS, or the equivalent Xcode simulator environment. There exists
+several tools in the ecosystem for running a Cargo project on one of these.
+One of these tools is <a href="https://github.com/sonos/dinghy"><code>cargo-dinghy</code></a>. <a href="https://github.com/madsmtm/objc2/issues/459">madsmtm/objc2#459</a> contains a more
+exhaustive list.</p>
+<p>See also <a href="https://rustc-dev-guide.rust-lang.org/tests/running.html#testing-on-emulators">testing on emulators in the <code>rustc-dev-guide</code></a> for
+instructions on running the standard library's test suite.</p>
 
                     </main>
 

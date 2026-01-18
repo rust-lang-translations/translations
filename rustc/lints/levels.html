@@ -186,7 +186,7 @@
                         <a href="https://github.com/rust-lang-translations/project" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/rust-lang/rust/edit/master/src/doc/rustc/src/lints/levels.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/rust-lang/rust/edit/main/src/doc/rustc/src/lints/levels.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -242,7 +242,7 @@ talk about later in this section.</p>
 <h2 id="expect"><a class="header" href="#expect">expect</a></h2>
 <p>Sometimes, it can be helpful to suppress lints, but at the same time ensure that
 the code in question still emits them. The 'expect' level does exactly this. If
-the lint in question is not emitted, the <code>unfulfilled_lint_expectation</code> lint
+the lint in question is not emitted, the <code>unfulfilled_lint_expectations</code> lint
 triggers on the <code>expect</code> attribute, notifying you that the expectation is no
 longer fulfilled.</p>
 <pre><code class="language-rust">fn main() {
@@ -453,7 +453,90 @@ $
 </code></pre>
 <p>This feature is used heavily by Cargo; it will pass <code>--cap-lints allow</code> when
 compiling your dependencies, so that if they have any warnings, they do not
-pollute the output of your build.</p>
+pollute the output of your build. However, note that <code>--cap-lints allow</code> does <strong>not</strong> override lints marked as <code>force-warn</code>.</p>
+<h2 id="priority-of-lint-level-sources"><a class="header" href="#priority-of-lint-level-sources">Priority of lint level sources</a></h2>
+<p>Rust allows setting lint levels (<code>allow</code>, <code>warn</code>, <code>deny</code>, <code>forbid</code>, <code>force-warn</code>) through various sources:</p>
+<ul>
+<li><strong>Attributes</strong>: <code>#[allow(...)]</code>, <code>#![deny(...)]</code>, etc.</li>
+<li><strong>Command-line options</strong>: <code>--cap-lints</code>, <code>--force-warn</code>, <code>-A</code>, <code>-W</code>, <code>-D</code>, <code>-F</code></li>
+</ul>
+<p>Here’s how these different lint controls interact:</p>
+<ol>
+<li>
+<p><a href="#force-warn"><code>--force-warn</code></a> forces a lint to warning level, and takes precedence over attributes and all other CLI flags.</p>
+<pre><code class="language-rust compile_fail">#[forbid(unused_variables)]
+fn main() {
+    let x = 42;
+}</code></pre>
+<p>Compiled with:</p>
+<pre><code class="language-bash"> $ rustc --force-warn unused_variables lib.rs
+ warning: unused variable: `x`
+   --&gt; lib.rs:3:9
+   |
+ 3 |     let x = 42;
+   |         ^ help: if this is intentional, prefix it with an underscore: `_x`
+   |
+   = note: requested on the command line with `--force-warn unused-variables`
+
+ warning: 1 warning emitted
+</code></pre>
+</li>
+<li>
+<p><a href="#capping-lints"><code>--cap-lints</code></a> sets the maximum level of a lint, and takes precedence over attributes as well as the <code>-D</code>, <code>-W</code>, and <code>-F</code> CLI flags.</p>
+<pre><code class="language-rust compile_fail">#[deny(unused_variables)]
+fn main() {
+    let x = 42;
+}</code></pre>
+<p>Compiled with:</p>
+<pre><code class="language-bash"> $ rustc --cap-lints=warn lib.rs
+ warning: unused variable: `x`
+ --&gt; test1.rs:3:9
+   |
+ 3 |     let x = 42;
+   |         ^ help: if this is intentional, prefix it with an underscore: `_x`
+   |
+ note: the lint level is defined here
+ --&gt; test1.rs:1:8
+   |
+ 1 | #[deny(unused_variables)]
+   |        ^^^^^^^^^^^^^^^^
+
+ warning: 1 warning emitted
+</code></pre>
+</li>
+<li>
+<p><a href="#via-compiler-flag">CLI level flags</a> take precedence over attributes.</p>
+<p>The order of the flags matter; flags on the right take precedence over earlier flags.</p>
+<pre><code class="language-rust">fn main() {
+    let x = 42;
+}</code></pre>
+<p>Compiled with:</p>
+<pre><code class="language-bash"> $ rustc -A unused_variables -D unused_variables lib.rs
+ error: unused variable: `x`
+ --&gt; test1.rs:2:9
+   |
+ 2 |     let x = 42;
+   |         ^ help: if this is intentional, prefix it with an underscore: `_x`
+   |
+   = note: requested on the command line with `-D unused-variables`
+
+ error: aborting due to 1 previous error
+</code></pre>
+</li>
+<li>
+<p>Within the source, <a href="#via-an-attribute">attributes</a> at a lower-level in the syntax tree take precedence over attributes at a higher level, or from a previous attribute on the same entity as listed in left-to-right source order.</p>
+<pre><code class="language-rust">#![deny(unused_variables)]
+
+#[allow(unused_variables)]
+fn main() {
+    let x = 42; // Allow wins
+}</code></pre>
+<ul>
+<li>The exception is once a lint is set to "forbid", it is an error to try to change its level except for <code>deny</code>, which is allowed inside a forbid context, but is ignored.</li>
+</ul>
+</li>
+</ol>
+<p>In terms of priority, <a href="groups.html">lint groups</a> are treated as-if they are expanded to a list of all of the lints they contain. The exception is the <code>warnings</code> group which ignores attribute and CLI order and applies to all lints that would otherwise warn within the entity.</p>
 
                     </main>
 

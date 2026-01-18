@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Использование модулей для управления областью видимости и приватностью - The Rust Programming Language</title>
+        <title>Control Scope and Privacy with Modules - The Rust Programming Language</title>
 
 
         <!-- Custom HTML head -->
@@ -216,12 +216,14 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="Использование-модулей-для-управления-областью-видимости-и-приватностью"><a class="header" href="#Использование-модулей-для-управления-областью-видимости-и-приватностью">Использование модулей для управления областью видимости и приватностью</a></h2>
+                        <!-- Old headings. Do not remove or links may break. -->
+<p><a id="defining-modules-to-control-scope-and-privacy"></a></p>
+<h2 id="control-scope-and-privacy-with-modules"><a class="header" href="#control-scope-and-privacy-with-modules">Control Scope and Privacy with Modules</a></h2>
 <p>В этом разделе мы поговорим о модулях и других частях системы модулей, а именно: о <em>путях</em>, которые позволяют именовать элементы; о ключевом слове <code>use</code>, которое подключает путь к области видимости; о ключевом слове <code>pub</code>, которое делает элементы общедоступными. Мы также обсудим ключевое слово <code>as</code>, внешние пакеты и оператор <code>*</code>.</p>
 <h3 id="Шпаргалка-по-модулям"><a class="header" href="#Шпаргалка-по-модулям">Шпаргалка по модулям</a></h3>
 <p>Перед тем как вдаваться в детали работы с модулями и путями, мы дадим краткий обзор того, как модули, пути и ключевые слова <code>use</code> и <code>pub</code> работают в компиляторе, и как большинство разработчиков организуют свой код. В этой главе мы рассмотрим всё это на примерах, а пока что у нас есть удобный момент, чтобы дать выжимку о том, как работают крейты.</p>
 <ul>
-<li><strong>Старт с корня крейта</strong>. В начале компиляции крейта, компилятор ищет в корне крейта (обычно это <em>src/lib.rs</em> для библиотечного крейта или <em>src/main.rs</em> для бинарного крейта) код для компиляции.</li>
+<li><strong>Start from the crate root</strong>: When compiling a crate, the compiler first looks in the crate root file (usually <em>src/lib.rs</em> for a library crate and <em>src/main.rs</em> for a binary crate) for code to compile.</li>
 <li><strong>Объявление модулей</strong>. В файле корня крейта вы можете объявлять новые модули. Скажем, вы объявляете модуль "garden" с помощью <code>mod garden;</code>. Компилятор будет искать код модуля в следующих местах:
 <ul>
 <li>В этом же файле между фигурных скобок, которые заменяют точку с запятой после <code>mod garden</code></li>
@@ -238,9 +240,9 @@
 </li>
 <li><strong>Пути к коду в модулях</strong>. После того, как модуль станет частью вашего крейта, и если допускают правила приватности, вы можете ссылаться на код в этом модуле из любого места вашего крейта, используя путь к коду. Например, тип <code>Asparagus</code> в подмодуле <code>vegetables</code> модуля <code>garden</code> будет доступен по пути <code>crate::garden::vegetables::Asparagus</code>.</li>
 <li><strong>Закрытость и открытость</strong>. Код в модуле по умолчанию скрыт от его родительских модулей. Чтобы сделать модуль общедоступным, объявите его как <code>pub mod</code> вместо <code>mod</code>. Чтобы сделать элементы общедоступного модуля тоже общедоступными, используйте <code>pub</code> перед их объявлением.</li>
-<li><strong>Ключевое слово <code>use</code></strong>. Внутри области видимости использование ключевого слова <code>use</code> создаёт псевдонимы для элементов, чтобы сократить повторение длинных путей. В любой области видимости, из которой можно обратиться к <code>crate::garden::vegetables::Asparagus</code>, вы можете создать псевдоним <code>use crate::garden::vegetables::Asparagus;</code> и после этого вам нужно просто писать <code>Asparagus</code>, чтобы использовать этот тип в этой области видимости.</li>
+<li><strong>The <code>use</code> keyword</strong>: Within a scope, the <code>use</code> keyword creates shortcuts to items to reduce repetition of long paths. In any scope that can refer to <code>crate::garden::vegetables::Asparagus</code>, you can create a shortcut with <code>use crate::garden::vegetables::Asparagus;</code>, and from then on you only need to write <code>Asparagus</code> to make use of that type in the scope.</li>
 </ul>
-<p>Мы создали бинарный крейт <code>backyard</code>, который иллюстрирует эти правила. Директория крейта, также названная как <code>backyard</code>, содержит следующие файлы и директории:</p>
+<p>Here, we create a binary crate named <code>backyard</code> that illustrates these rules. The crate’s directory, also named <em>backyard</em>, contains these files and directories:</p>
 <pre><code class="language-text">backyard
 ├── Cargo.lock
 ├── Cargo.toml
@@ -272,8 +274,8 @@ pub struct Asparagus {}</code></pre>
 <h3 id="Группировка-родственного-кода-в-модули"><a class="header" href="#Группировка-родственного-кода-в-модули">Группировка родственного кода в модули</a></h3>
 <p><em>Модули</em> позволяют упорядочивать код внутри крейта для удобочитаемости и лёгкого повторного использования. Модули также позволяют нам управлять <em>приватностью</em> элементов, поскольку код внутри модуля по умолчанию является закрытым. Приватные элементы — это внутренние детали реализации, недоступные для внешнего использования. Мы можем сделать модули и элементы внутри них общедоступными, что позволит внешнему коду использовать их и зависеть от них.</p>
 <p>В качестве примера, давайте напишем библиотечный крейт предоставляющий функциональность ресторана. Мы определим сигнатуры функций, но оставим их тела пустыми, чтобы сосредоточиться на организации кода, вместо реализации самого ресторана.</p>
-<p>В ресторанной индустрии одни части ресторана называются <em>front of house</em>, а другие — <em>back of house</em>. Front of house — это там, где находятся клиенты; здесь размещаются места клиентов, официанты принимают заказы и оплаты, а бармены делают напитки. Back of house — там, это где повара работают на кухне, работают посудомоечные машины, а менеджеры занимаются хозяйственной деятельностью.</p>
-<p>Чтобы структурировать крейт аналогично ресторанной модели, можно организовать размещение его функций во вложенных модулях. Создадим новую библиотеку с именем <code>restaurant</code> выполнив команду <code>cargo new restaurant --lib</code>. Затем вставим код из Листинга 7-1 в <em>src/lib.rs</em> для определения некоторых модулей и сигнатур функций. Это front of house:</p>
+<p>In the restaurant industry, some parts of a restaurant are referred to as front of house and others as back of house. <em>Front of house</em> is where customers are; this encompasses where the hosts seat customers, servers take orders and payment, and bartenders make drinks. <em>Back of house</em> is where the chefs and cooks work in the kitchen, dishwashers clean up, and managers do administrative work.</p>
+<p>To structure our crate in this way, we can organize its functions into nested modules. Create a new library named <code>restaurant</code> by running <code>cargo new restaurant --lib</code>. Then, enter the code in Listing 7-1 into <em>src/lib.rs</em> to define some modules and function signatures; this code is the front of house section.</p>
 <Listing number="7-1" file-name="src/lib.rs" caption="A `front_of_house` module containing other modules that then contain functions">
 <pre><code class="language-rust noplayground">mod front_of_house {
     mod hosting {
@@ -291,9 +293,9 @@ pub struct Asparagus {}</code></pre>
     }
 }</code></pre>
 </Listing>
-<p>Мы определяем модуль ключевым словом <code>mod</code>, затем пишем название модуля (в данном случае — <code>front_of_house</code>) и размещаем фигурные скобки вокруг тела модуля. Внутри модулей можно иметь другие модули, как мы это сделали с модулями <code>hosting</code> и <code>serving</code>. Модули также могут содержать определения других элементов, таких как структуры, перечисления, константы, трейты или (как в Листинге 7-1) функции.</p>
+<p>We define a module with the <code>mod</code> keyword followed by the name of the module (in this case, <code>front_of_house</code>). The body of the module then goes inside curly brackets. Inside modules, we can place other modules, as in this case with the modules <code>hosting</code> and <code>serving</code>. Modules can also hold definitions for other items, such as structs, enums, constants, traits, and as in Listing 7-1, functions.</p>
 <p>Используя модули, мы можем группировать родственные определения вместе и пояснять, в чём они являются родственными. Программистам будет легче найти необходимую функциональность в сгруппированном коде, вместо того чтобы искать её в одном общем списке. Программисты, добавляющие новые функции в этот код, будут знать, где разместить код для поддержания порядка в программе.</p>
-<p>Earlier, we mentioned that <em>src/main.rs</em> and <em>src/lib.rs</em> are called crate roots. The reason for their name is that the contents of either of these two files form a module named <code>crate</code> at the root of the crate’s module structure, known as the <em>module tree</em>.</p>
+<p>Earlier, we mentioned that <em>src/main.rs</em> and <em>src/lib.rs</em> are called <em>crate roots</em>. The reason for their name is that the contents of either of these two files form a module named <code>crate</code> at the root of the crate’s module structure, known as the <em>module tree</em>.</p>
 <p>В Листинге 7-2 показано дерево модулей для структуры модулей, приведённой в коде Листинга 7-1.</p>
 <Listing number="7-2" caption="The module tree for the code in Listing 7-1">
 <pre><code class="language-text">crate

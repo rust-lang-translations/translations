@@ -226,11 +226,28 @@ concise. Let’s look at how iterators can improve our implementation of the
 an instance of the <code>Config</code> struct by indexing into the slice and cloning the
 values, allowing the <code>Config</code> struct to own those values. In Listing 13-17,
 we’ve reproduced the implementation of the <code>Config::build</code> function as it was
-in Listing 12-23:</p>
-<Listing number="13-17" file-name="src/lib.rs" caption="Reproduction of the `Config::build` function from Listing 12-23">
+in Listing 12-23.</p>
+<Listing number="13-17" file-name="src/main.rs" caption="Reproduction of the `Config::build` function from Listing 12-23">
 <pre><code class="language-rust ignore"><span class="boring">use std::env;
 </span><span class="boring">use std::error::Error;
 </span><span class="boring">use std::fs;
+</span><span class="boring">use std::process;
+</span><span class="boring">
+</span><span class="boring">use minigrep::{search, search_case_insensitive};
+</span><span class="boring">
+</span><span class="boring">fn main() {
+</span><span class="boring">    let args: Vec&lt;String&gt; = env::args().collect();
+</span><span class="boring">
+</span><span class="boring">    let config = Config::build(&amp;args).unwrap_or_else(|err| {
+</span><span class="boring">        println!("Problem parsing arguments: {err}");
+</span><span class="boring">        process::exit(1);
+</span><span class="boring">    });
+</span><span class="boring">
+</span><span class="boring">    if let Err(e) = run(config) {
+</span><span class="boring">        println!("Application error: {e}");
+</span><span class="boring">        process::exit(1);
+</span><span class="boring">    }
+</span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">pub struct Config {
 </span><span class="boring">    pub query: String,
@@ -239,7 +256,7 @@ in Listing 12-23:</p>
 </span><span class="boring">}
 </span><span class="boring">
 </span>impl Config {
-    pub fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
+    fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
         if args.len() &lt; 3 {
             return Err("not enough arguments");
         }
@@ -257,7 +274,7 @@ in Listing 12-23:</p>
     }
 }
 <span class="boring">
-</span><span class="boring">pub fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
 </span><span class="boring">    let contents = fs::read_to_string(config.file_path)?;
 </span><span class="boring">
 </span><span class="boring">    let results = if config.ignore_case {
@@ -271,66 +288,6 @@ in Listing 12-23:</p>
 </span><span class="boring">    }
 </span><span class="boring">
 </span><span class="boring">    Ok(())
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
-</span><span class="boring">    let mut results = Vec::new();
-</span><span class="boring">
-</span><span class="boring">    for line in contents.lines() {
-</span><span class="boring">        if line.contains(query) {
-</span><span class="boring">            results.push(line);
-</span><span class="boring">        }
-</span><span class="boring">    }
-</span><span class="boring">
-</span><span class="boring">    results
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">pub fn search_case_insensitive&lt;'a&gt;(
-</span><span class="boring">    query: &amp;str,
-</span><span class="boring">    contents: &amp;'a str,
-</span><span class="boring">) -&gt; Vec&lt;&amp;'a str&gt; {
-</span><span class="boring">    let query = query.to_lowercase();
-</span><span class="boring">    let mut results = Vec::new();
-</span><span class="boring">
-</span><span class="boring">    for line in contents.lines() {
-</span><span class="boring">        if line.to_lowercase().contains(&amp;query) {
-</span><span class="boring">            results.push(line);
-</span><span class="boring">        }
-</span><span class="boring">    }
-</span><span class="boring">
-</span><span class="boring">    results
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">#[cfg(test)]
-</span><span class="boring">mod tests {
-</span><span class="boring">    use super::*;
-</span><span class="boring">
-</span><span class="boring">    #[test]
-</span><span class="boring">    fn case_sensitive() {
-</span><span class="boring">        let query = "duct";
-</span><span class="boring">        let contents = "\
-</span><span class="boring">Rust:
-</span><span class="boring">safe, fast, productive.
-</span><span class="boring">Pick three.
-</span><span class="boring">Duct tape.";
-</span><span class="boring">
-</span><span class="boring">        assert_eq!(vec!["safe, fast, productive."], search(query, contents));
-</span><span class="boring">    }
-</span><span class="boring">
-</span><span class="boring">    #[test]
-</span><span class="boring">    fn case_insensitive() {
-</span><span class="boring">        let query = "rUsT";
-</span><span class="boring">        let contents = "\
-</span><span class="boring">Rust:
-</span><span class="boring">safe, fast, productive.
-</span><span class="boring">Pick three.
-</span><span class="boring">Trust me.";
-</span><span class="boring">
-</span><span class="boring">        assert_eq!(
-</span><span class="boring">            vec!["Rust:", "Trust me."],
-</span><span class="boring">            search_case_insensitive(query, contents)
-</span><span class="boring">        );
-</span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 </Listing>
 <p>At the time, we said not to worry about the inefficient <code>clone</code> calls because
@@ -338,7 +295,8 @@ we would remove them in the future. Well, that time is now!</p>
 <p>We needed <code>clone</code> here because we have a slice with <code>String</code> elements in the
 parameter <code>args</code>, but the <code>build</code> function doesn’t own <code>args</code>. To return
 ownership of a <code>Config</code> instance, we had to clone the values from the <code>query</code>
-and <code>file_path</code> fields of <code>Config</code> so the <code>Config</code> instance can own its values.</p>
+and <code>file_path</code> fields of <code>Config</code> so that the <code>Config</code> instance can own its
+values.</p>
 <p>With our new knowledge about iterators, we can change the <code>build</code> function to
 take ownership of an iterator as its argument instead of borrowing a slice.
 We’ll use the iterator functionality instead of the code that checks the length
@@ -351,9 +309,11 @@ operations that borrow, we can move the <code>String</code> values from the iter
 <p>Open your I/O project’s <em>src/main.rs</em> file, which should look like this:</p>
 <p><span class="filename">Filename: src/main.rs</span></p>
 <pre><code class="language-rust ignore"><span class="boring">use std::env;
+</span><span class="boring">use std::error::Error;
+</span><span class="boring">use std::fs;
 </span><span class="boring">use std::process;
 </span><span class="boring">
-</span><span class="boring">use minigrep::Config;
+</span><span class="boring">use minigrep::{search, search_case_insensitive};
 </span><span class="boring">
 </span>fn main() {
     let args: Vec&lt;String&gt; = env::args().collect();
@@ -365,19 +325,62 @@ operations that borrow, we can move the <code>String</code> values from the iter
 
     // --snip--
 <span class="boring">
-</span><span class="boring">    if let Err(e) = minigrep::run(config) {
+</span><span class="boring">    if let Err(e) = run(config) {
 </span><span class="boring">        eprintln!("Application error: {e}");
 </span><span class="boring">        process::exit(1);
 </span><span class="boring">    }
-</span>}</code></pre>
+</span>}
+<span class="boring">
+</span><span class="boring">pub struct Config {
+</span><span class="boring">    pub query: String,
+</span><span class="boring">    pub file_path: String,
+</span><span class="boring">    pub ignore_case: bool,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl Config {
+</span><span class="boring">    fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
+</span><span class="boring">        if args.len() &lt; 3 {
+</span><span class="boring">            return Err("not enough arguments");
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        let query = args[1].clone();
+</span><span class="boring">        let file_path = args[2].clone();
+</span><span class="boring">
+</span><span class="boring">        let ignore_case = env::var("IGNORE_CASE").is_ok();
+</span><span class="boring">
+</span><span class="boring">        Ok(Config {
+</span><span class="boring">            query,
+</span><span class="boring">            file_path,
+</span><span class="boring">            ignore_case,
+</span><span class="boring">        })
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">    let contents = fs::read_to_string(config.file_path)?;
+</span><span class="boring">
+</span><span class="boring">    let results = if config.ignore_case {
+</span><span class="boring">        search_case_insensitive(&amp;config.query, &amp;contents)
+</span><span class="boring">    } else {
+</span><span class="boring">        search(&amp;config.query, &amp;contents)
+</span><span class="boring">    };
+</span><span class="boring">
+</span><span class="boring">    for line in results {
+</span><span class="boring">        println!("{line}");
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}</span></code></pre>
 <p>We’ll first change the start of the <code>main</code> function that we had in Listing
 12-24 to the code in Listing 13-18, which this time uses an iterator. This
 won’t compile until we update <code>Config::build</code> as well.</p>
 <Listing number="13-18" file-name="src/main.rs" caption="Passing the return value of `env::args` to `Config::build`">
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">use std::env;
+</span><span class="boring">use std::error::Error;
+</span><span class="boring">use std::fs;
 </span><span class="boring">use std::process;
 </span><span class="boring">
-</span><span class="boring">use minigrep::Config;
+</span><span class="boring">use minigrep::{search, search_case_insensitive};
 </span><span class="boring">
 </span>fn main() {
     let config = Config::build(env::args()).unwrap_or_else(|err| {
@@ -387,24 +390,79 @@ won’t compile until we update <code>Config::build</code> as well.</p>
 
     // --snip--
 <span class="boring">
-</span><span class="boring">    if let Err(e) = minigrep::run(config) {
+</span><span class="boring">    if let Err(e) = run(config) {
 </span><span class="boring">        eprintln!("Application error: {e}");
 </span><span class="boring">        process::exit(1);
 </span><span class="boring">    }
-</span>}</code></pre>
+</span>}
+<span class="boring">
+</span><span class="boring">pub struct Config {
+</span><span class="boring">    pub query: String,
+</span><span class="boring">    pub file_path: String,
+</span><span class="boring">    pub ignore_case: bool,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl Config {
+</span><span class="boring">    fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
+</span><span class="boring">        if args.len() &lt; 3 {
+</span><span class="boring">            return Err("not enough arguments");
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        let query = args[1].clone();
+</span><span class="boring">        let file_path = args[2].clone();
+</span><span class="boring">
+</span><span class="boring">        let ignore_case = env::var("IGNORE_CASE").is_ok();
+</span><span class="boring">
+</span><span class="boring">        Ok(Config {
+</span><span class="boring">            query,
+</span><span class="boring">            file_path,
+</span><span class="boring">            ignore_case,
+</span><span class="boring">        })
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">    let contents = fs::read_to_string(config.file_path)?;
+</span><span class="boring">
+</span><span class="boring">    let results = if config.ignore_case {
+</span><span class="boring">        search_case_insensitive(&amp;config.query, &amp;contents)
+</span><span class="boring">    } else {
+</span><span class="boring">        search(&amp;config.query, &amp;contents)
+</span><span class="boring">    };
+</span><span class="boring">
+</span><span class="boring">    for line in results {
+</span><span class="boring">        println!("{line}");
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}</span></code></pre>
 </Listing>
 <p>The <code>env::args</code> function returns an iterator! Rather than collecting the
 iterator values into a vector and then passing a slice to <code>Config::build</code>, now
 we’re passing ownership of the iterator returned from <code>env::args</code> to
 <code>Config::build</code> directly.</p>
-<p>Next, we need to update the definition of <code>Config::build</code>. In your I/O
-project’s <em>src/lib.rs</em> file, let’s change the signature of <code>Config::build</code> to
-look like Listing 13-19. This still won’t compile because we need to update the
-function body.</p>
-<Listing number="13-19" file-name="src/lib.rs" caption="Updating the signature of `Config::build` to expect an iterator">
+<p>Next, we need to update the definition of <code>Config::build</code>. Let’s change the
+signature of <code>Config::build</code> to look like Listing 13-19. This still won’t
+compile, because we need to update the function body.</p>
+<Listing number="13-19" file-name="src/main.rs" caption="Updating the signature of `Config::build` to expect an iterator">
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">use std::env;
 </span><span class="boring">use std::error::Error;
 </span><span class="boring">use std::fs;
+</span><span class="boring">use std::process;
+</span><span class="boring">
+</span><span class="boring">use minigrep::{search, search_case_insensitive};
+</span><span class="boring">
+</span><span class="boring">fn main() {
+</span><span class="boring">    let config = Config::build(env::args()).unwrap_or_else(|err| {
+</span><span class="boring">        eprintln!("Problem parsing arguments: {err}");
+</span><span class="boring">        process::exit(1);
+</span><span class="boring">    });
+</span><span class="boring">
+</span><span class="boring">    if let Err(e) = run(config) {
+</span><span class="boring">        eprintln!("Application error: {e}");
+</span><span class="boring">        process::exit(1);
+</span><span class="boring">    }
+</span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">pub struct Config {
 </span><span class="boring">    pub query: String,
@@ -413,7 +471,7 @@ function body.</p>
 </span><span class="boring">}
 </span><span class="boring">
 </span>impl Config {
-    pub fn build(
+    fn build(
         mut args: impl Iterator&lt;Item = String&gt;,
     ) -&gt; Result&lt;Config, &amp;'static str&gt; {
         // --snip--
@@ -434,7 +492,7 @@ function body.</p>
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">pub fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
 </span><span class="boring">    let contents = fs::read_to_string(config.file_path)?;
 </span><span class="boring">
 </span><span class="boring">    let results = if config.ignore_case {
@@ -448,88 +506,44 @@ function body.</p>
 </span><span class="boring">    }
 </span><span class="boring">
 </span><span class="boring">    Ok(())
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
-</span><span class="boring">    let mut results = Vec::new();
-</span><span class="boring">
-</span><span class="boring">    for line in contents.lines() {
-</span><span class="boring">        if line.contains(query) {
-</span><span class="boring">            results.push(line);
-</span><span class="boring">        }
-</span><span class="boring">    }
-</span><span class="boring">
-</span><span class="boring">    results
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">pub fn search_case_insensitive&lt;'a&gt;(
-</span><span class="boring">    query: &amp;str,
-</span><span class="boring">    contents: &amp;'a str,
-</span><span class="boring">) -&gt; Vec&lt;&amp;'a str&gt; {
-</span><span class="boring">    let query = query.to_lowercase();
-</span><span class="boring">    let mut results = Vec::new();
-</span><span class="boring">
-</span><span class="boring">    for line in contents.lines() {
-</span><span class="boring">        if line.to_lowercase().contains(&amp;query) {
-</span><span class="boring">            results.push(line);
-</span><span class="boring">        }
-</span><span class="boring">    }
-</span><span class="boring">
-</span><span class="boring">    results
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">#[cfg(test)]
-</span><span class="boring">mod tests {
-</span><span class="boring">    use super::*;
-</span><span class="boring">
-</span><span class="boring">    #[test]
-</span><span class="boring">    fn case_sensitive() {
-</span><span class="boring">        let query = "duct";
-</span><span class="boring">        let contents = "\
-</span><span class="boring">Rust:
-</span><span class="boring">safe, fast, productive.
-</span><span class="boring">Pick three.
-</span><span class="boring">Duct tape.";
-</span><span class="boring">
-</span><span class="boring">        assert_eq!(vec!["safe, fast, productive."], search(query, contents));
-</span><span class="boring">    }
-</span><span class="boring">
-</span><span class="boring">    #[test]
-</span><span class="boring">    fn case_insensitive() {
-</span><span class="boring">        let query = "rUsT";
-</span><span class="boring">        let contents = "\
-</span><span class="boring">Rust:
-</span><span class="boring">safe, fast, productive.
-</span><span class="boring">Pick three.
-</span><span class="boring">Trust me.";
-</span><span class="boring">
-</span><span class="boring">        assert_eq!(
-</span><span class="boring">            vec!["Rust:", "Trust me."],
-</span><span class="boring">            search_case_insensitive(query, contents)
-</span><span class="boring">        );
-</span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 </Listing>
 <p>The standard library documentation for the <code>env::args</code> function shows that the
 type of the iterator it returns is <code>std::env::Args</code>, and that type implements
 the <code>Iterator</code> trait and returns <code>String</code> values.</p>
-<p>We’ve updated the signature of the <code>Config::build</code> function so the parameter
-<code>args</code> has a generic type with the trait bounds <code>impl Iterator&lt;Item = String&gt;</code>
-instead of <code>&amp;[String]</code>. This usage of the <code>impl Trait</code> syntax we discussed in
-the <a href="ch10-02-traits.html#traits-as-parameters">“Traits as Parameters”</a><!-- ignore --> section of Chapter 10
-means that <code>args</code> can be any type that implements the <code>Iterator</code> trait and
-returns <code>String</code> items.</p>
+<p>We’ve updated the signature of the <code>Config::build</code> function so that the
+parameter <code>args</code> has a generic type with the trait bounds <code>impl Iterator&lt;Item = String&gt;</code> instead of <code>&amp;[String]</code>. This usage of the <code>impl Trait</code> syntax we
+discussed in the <a href="ch10-02-traits.html#traits-as-parameters">“Using Traits as Parameters”</a><!-- ignore -->
+section of Chapter 10 means that <code>args</code> can be any type that implements the
+<code>Iterator</code> trait and returns <code>String</code> items.</p>
 <p>Because we’re taking ownership of <code>args</code> and we’ll be mutating <code>args</code> by
 iterating over it, we can add the <code>mut</code> keyword into the specification of the
 <code>args</code> parameter to make it mutable.</p>
-<h4 id="using-iterator-trait-methods-instead-of-indexing"><a class="header" href="#using-iterator-trait-methods-instead-of-indexing">Using <code>Iterator</code> Trait Methods Instead of Indexing</a></h4>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="using-iterator-trait-methods-instead-of-indexing"></a></p>
+<h4 id="using-iterator-trait-methods"><a class="header" href="#using-iterator-trait-methods">Using <code>Iterator</code> Trait Methods</a></h4>
 <p>Next, we’ll fix the body of <code>Config::build</code>. Because <code>args</code> implements the
 <code>Iterator</code> trait, we know we can call the <code>next</code> method on it! Listing 13-20
-updates the code from Listing 12-23 to use the <code>next</code> method:</p>
-<Listing number="13-20" file-name="src/lib.rs" caption="Changing the body of `Config::build` to use iterator methods">
-<pre><code class="language-rust noplayground"><span class="boring">use std::env;
+updates the code from Listing 12-23 to use the <code>next</code> method.</p>
+<Listing number="13-20" file-name="src/main.rs" caption="Changing the body of `Config::build` to use iterator methods">
+<pre><code class="language-rust ignore noplayground"><span class="boring">use std::env;
 </span><span class="boring">use std::error::Error;
 </span><span class="boring">use std::fs;
+</span><span class="boring">use std::process;
+</span><span class="boring">
+</span><span class="boring">use minigrep::{search, search_case_insensitive};
+</span><span class="boring">
+</span><span class="boring">fn main() {
+</span><span class="boring">    let config = Config::build(env::args()).unwrap_or_else(|err| {
+</span><span class="boring">        eprintln!("Problem parsing arguments: {err}");
+</span><span class="boring">        process::exit(1);
+</span><span class="boring">    });
+</span><span class="boring">
+</span><span class="boring">    if let Err(e) = run(config) {
+</span><span class="boring">        eprintln!("Application error: {e}");
+</span><span class="boring">        process::exit(1);
+</span><span class="boring">    }
+</span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">pub struct Config {
 </span><span class="boring">    pub query: String,
@@ -538,7 +552,7 @@ updates the code from Listing 12-23 to use the <code>next</code> method:</p>
 </span><span class="boring">}
 </span><span class="boring">
 </span>impl Config {
-    pub fn build(
+    fn build(
         mut args: impl Iterator&lt;Item = String&gt;,
     ) -&gt; Result&lt;Config, &amp;'static str&gt; {
         args.next();
@@ -563,7 +577,7 @@ updates the code from Listing 12-23 to use the <code>next</code> method:</p>
     }
 }
 <span class="boring">
-</span><span class="boring">pub fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
 </span><span class="boring">    let contents = fs::read_to_string(config.file_path)?;
 </span><span class="boring">
 </span><span class="boring">    let results = if config.ignore_case {
@@ -577,107 +591,22 @@ updates the code from Listing 12-23 to use the <code>next</code> method:</p>
 </span><span class="boring">    }
 </span><span class="boring">
 </span><span class="boring">    Ok(())
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
-</span><span class="boring">    let mut results = Vec::new();
-</span><span class="boring">
-</span><span class="boring">    for line in contents.lines() {
-</span><span class="boring">        if line.contains(query) {
-</span><span class="boring">            results.push(line);
-</span><span class="boring">        }
-</span><span class="boring">    }
-</span><span class="boring">
-</span><span class="boring">    results
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">pub fn search_case_insensitive&lt;'a&gt;(
-</span><span class="boring">    query: &amp;str,
-</span><span class="boring">    contents: &amp;'a str,
-</span><span class="boring">) -&gt; Vec&lt;&amp;'a str&gt; {
-</span><span class="boring">    let query = query.to_lowercase();
-</span><span class="boring">    let mut results = Vec::new();
-</span><span class="boring">
-</span><span class="boring">    for line in contents.lines() {
-</span><span class="boring">        if line.to_lowercase().contains(&amp;query) {
-</span><span class="boring">            results.push(line);
-</span><span class="boring">        }
-</span><span class="boring">    }
-</span><span class="boring">
-</span><span class="boring">    results
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">#[cfg(test)]
-</span><span class="boring">mod tests {
-</span><span class="boring">    use super::*;
-</span><span class="boring">
-</span><span class="boring">    #[test]
-</span><span class="boring">    fn case_sensitive() {
-</span><span class="boring">        let query = "duct";
-</span><span class="boring">        let contents = "\
-</span><span class="boring">Rust:
-</span><span class="boring">safe, fast, productive.
-</span><span class="boring">Pick three.
-</span><span class="boring">Duct tape.";
-</span><span class="boring">
-</span><span class="boring">        assert_eq!(vec!["safe, fast, productive."], search(query, contents));
-</span><span class="boring">    }
-</span><span class="boring">
-</span><span class="boring">    #[test]
-</span><span class="boring">    fn case_insensitive() {
-</span><span class="boring">        let query = "rUsT";
-</span><span class="boring">        let contents = "\
-</span><span class="boring">Rust:
-</span><span class="boring">safe, fast, productive.
-</span><span class="boring">Pick three.
-</span><span class="boring">Trust me.";
-</span><span class="boring">
-</span><span class="boring">        assert_eq!(
-</span><span class="boring">            vec!["Rust:", "Trust me."],
-</span><span class="boring">            search_case_insensitive(query, contents)
-</span><span class="boring">        );
-</span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 </Listing>
 <p>Remember that the first value in the return value of <code>env::args</code> is the name of
 the program. We want to ignore that and get to the next value, so first we call
-<code>next</code> and do nothing with the return value. Second, we call <code>next</code> to get the
-value we want to put in the <code>query</code> field of <code>Config</code>. If <code>next</code> returns a
+<code>next</code> and do nothing with the return value. Then, we call <code>next</code> to get the
+value we want to put in the <code>query</code> field of <code>Config</code>. If <code>next</code> returns
 <code>Some</code>, we use a <code>match</code> to extract the value. If it returns <code>None</code>, it means
-not enough arguments were given and we return early with an <code>Err</code> value. We do
+not enough arguments were given, and we return early with an <code>Err</code> value. We do
 the same thing for the <code>file_path</code> value.</p>
-<h3 id="making-code-clearer-with-iterator-adapters"><a class="header" href="#making-code-clearer-with-iterator-adapters">Making Code Clearer with Iterator Adapters</a></h3>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="making-code-clearer-with-iterator-adapters"></a></p>
+<h3 id="clarifying-code-with-iterator-adapters"><a class="header" href="#clarifying-code-with-iterator-adapters">Clarifying Code with Iterator Adapters</a></h3>
 <p>We can also take advantage of iterators in the <code>search</code> function in our I/O
-project, which is reproduced here in Listing 13-21 as it was in Listing 12-19:</p>
+project, which is reproduced here in Listing 13-21 as it was in Listing 12-19.</p>
 <Listing number="13-21" file-name="src/lib.rs" caption="The implementation of the `search` function from Listing 12-19">
-<pre><code class="language-rust ignore"><span class="boring">use std::error::Error;
-</span><span class="boring">use std::fs;
-</span><span class="boring">
-</span><span class="boring">pub struct Config {
-</span><span class="boring">    pub query: String,
-</span><span class="boring">    pub file_path: String,
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">impl Config {
-</span><span class="boring">    pub fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
-</span><span class="boring">        if args.len() &lt; 3 {
-</span><span class="boring">            return Err("not enough arguments");
-</span><span class="boring">        }
-</span><span class="boring">
-</span><span class="boring">        let query = args[1].clone();
-</span><span class="boring">        let file_path = args[2].clone();
-</span><span class="boring">
-</span><span class="boring">        Ok(Config { query, file_path })
-</span><span class="boring">    }
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">pub fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
-</span><span class="boring">    let contents = fs::read_to_string(config.file_path)?;
-</span><span class="boring">
-</span><span class="boring">    Ok(())
-</span><span class="boring">}
-</span><span class="boring">
-</span>pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
+<pre><code class="language-rust ignore">pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
     let mut results = Vec::new();
 
     for line in contents.lines() {
@@ -709,62 +638,10 @@ project, which is reproduced here in Listing 13-21 as it was in Listing 12-19:</
 Doing so also lets us avoid having a mutable intermediate <code>results</code> vector. The
 functional programming style prefers to minimize the amount of mutable state to
 make code clearer. Removing the mutable state might enable a future enhancement
-to make searching happen in parallel, because we wouldn’t have to manage
-concurrent access to the <code>results</code> vector. Listing 13-22 shows this change:</p>
+to make searching happen in parallel because we wouldn’t have to manage
+concurrent access to the <code>results</code> vector. Listing 13-22 shows this change.</p>
 <Listing number="13-22" file-name="src/lib.rs" caption="Using iterator adapter methods in the implementation of the `search` function">
-<pre><code class="language-rust ignore"><span class="boring">use std::env;
-</span><span class="boring">use std::error::Error;
-</span><span class="boring">use std::fs;
-</span><span class="boring">
-</span><span class="boring">pub struct Config {
-</span><span class="boring">    pub query: String,
-</span><span class="boring">    pub file_path: String,
-</span><span class="boring">    pub ignore_case: bool,
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">impl Config {
-</span><span class="boring">    pub fn build(
-</span><span class="boring">        mut args: impl Iterator&lt;Item = String&gt;,
-</span><span class="boring">    ) -&gt; Result&lt;Config, &amp;'static str&gt; {
-</span><span class="boring">        args.next();
-</span><span class="boring">
-</span><span class="boring">        let query = match args.next() {
-</span><span class="boring">            Some(arg) =&gt; arg,
-</span><span class="boring">            None =&gt; return Err("Didn't get a query string"),
-</span><span class="boring">        };
-</span><span class="boring">
-</span><span class="boring">        let file_path = match args.next() {
-</span><span class="boring">            Some(arg) =&gt; arg,
-</span><span class="boring">            None =&gt; return Err("Didn't get a file path"),
-</span><span class="boring">        };
-</span><span class="boring">
-</span><span class="boring">        let ignore_case = env::var("IGNORE_CASE").is_ok();
-</span><span class="boring">
-</span><span class="boring">        Ok(Config {
-</span><span class="boring">            query,
-</span><span class="boring">            file_path,
-</span><span class="boring">            ignore_case,
-</span><span class="boring">        })
-</span><span class="boring">    }
-</span><span class="boring">}
-</span><span class="boring">
-</span><span class="boring">pub fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
-</span><span class="boring">    let contents = fs::read_to_string(config.file_path)?;
-</span><span class="boring">
-</span><span class="boring">    let results = if config.ignore_case {
-</span><span class="boring">        search_case_insensitive(&amp;config.query, &amp;contents)
-</span><span class="boring">    } else {
-</span><span class="boring">        search(&amp;config.query, &amp;contents)
-</span><span class="boring">    };
-</span><span class="boring">
-</span><span class="boring">    for line in results {
-</span><span class="boring">        println!("{line}");
-</span><span class="boring">    }
-</span><span class="boring">
-</span><span class="boring">    Ok(())
-</span><span class="boring">}
-</span><span class="boring">
-</span>pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
+<pre><code class="language-rust ignore">pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
     contents
         .lines()
         .filter(|line| line.contains(query))
@@ -821,25 +698,34 @@ concurrent access to the <code>results</code> vector. Listing 13-22 shows this c
 </Listing>
 <p>Recall that the purpose of the <code>search</code> function is to return all lines in
 <code>contents</code> that contain the <code>query</code>. Similar to the <code>filter</code> example in Listing
-13-16, this code uses the <code>filter</code> adapter to keep only the lines that
-<code>line.contains(query)</code> returns <code>true</code> for. We then collect the matching lines
-into another vector with <code>collect</code>. Much simpler! Feel free to make the same
-change to use iterator methods in the <code>search_case_insensitive</code> function as
-well.</p>
-<h3 id="choosing-between-loops-or-iterators"><a class="header" href="#choosing-between-loops-or-iterators">Choosing Between Loops or Iterators</a></h3>
+13-16, this code uses the <code>filter</code> adapter to keep only the lines for which
+<code>line.contains(query)</code> returns <code>true</code>. We then collect the matching lines into
+another vector with <code>collect</code>. Much simpler! Feel free to make the same change
+to use iterator methods in the <code>search_case_insensitive</code> function as well.</p>
+<p>For a further improvement, return an iterator from the <code>search</code> function by
+removing the call to <code>collect</code> and changing the return type to <code>impl Iterator&lt;Item = &amp;'a str&gt;</code> so that the function becomes an iterator adapter.
+Note that you’ll also need to update the tests! Search through a large file
+using your <code>minigrep</code> tool before and after making this change to observe the
+difference in behavior. Before this change, the program won’t print any results
+until it has collected all of the results, but after the change, the results
+will be printed as each matching line is found because the <code>for</code> loop in the
+<code>run</code> function is able to take advantage of the laziness of the iterator.</p>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="choosing-between-loops-or-iterators"></a></p>
+<h3 id="choosing-between-loops-and-iterators"><a class="header" href="#choosing-between-loops-and-iterators">Choosing Between Loops and Iterators</a></h3>
 <p>The next logical question is which style you should choose in your own code and
 why: the original implementation in Listing 13-21 or the version using
-iterators in Listing 13-22. Most Rust programmers prefer to use the iterator
-style. It’s a bit tougher to get the hang of at first, but once you get a feel
-for the various iterator adapters and what they do, iterators can be easier to
-understand. Instead of fiddling with the various bits of looping and building
-new vectors, the code focuses on the high-level objective of the loop. This
-abstracts away some of the commonplace code so it’s easier to see the concepts
-that are unique to this code, such as the filtering condition each element in
-the iterator must pass.</p>
+iterators in Listing 13-22 (assuming we’re collecting all the results before
+returning them rather than returning the iterator). Most Rust programmers
+prefer to use the iterator style. It’s a bit tougher to get the hang of at
+first, but once you get a feel for the various iterator adapters and what they
+do, iterators can be easier to understand. Instead of fiddling with the various
+bits of looping and building new vectors, the code focuses on the high-level
+objective of the loop. This abstracts away some of the commonplace code so that
+it’s easier to see the concepts that are unique to this code, such as the
+filtering condition each element in the iterator must pass.</p>
 <p>But are the two implementations truly equivalent? The intuitive assumption
-might be that the more low-level loop will be faster. Let’s talk about
-performance.</p>
+might be that the lower-level loop will be faster. Let’s talk about performance.</p>
 
                     </main>
 

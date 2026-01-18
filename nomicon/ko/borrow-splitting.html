@@ -215,7 +215,7 @@
                     <main>
                         <h1 id="차용-분할"><a class="header" href="#차용-분할">차용 분할</a></h1>
 <p>가변 참조의 상호 배제(mutual exclusion) 속성은 복합 구조체로 작업할 때 매우 제한적일 수 있습니다. 빌림 검사기(borrowck)는 몇 가지 기본적인 사항은 이해하지만, 꽤 쉽게 한계에 부딪힙니다. 구조체에 대해서는 충분히 이해하고 있어서, 구조체의 서로 겹치지 않는(disjoint) 필드들을 동시에 대여하는 것이 가능하다는 것을 압니다. 따라서 다음과 같은 코드는 오늘날 정상적으로 작동합니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Foo {
     a: i32,
@@ -233,7 +233,7 @@ let c2 = &amp;x.c;
 println!("{} {} {} {}", a, b, c, c2);
 <span class="boring">}</span></code></pre></pre>
 <p>하지만 빌림 검사기는 배열이나 슬라이스를 전혀 이해하지 못하므로, 다음과 같은 코드는 작동하지 않습니다:</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut x = [1, 2, 3];
 let a = &amp;mut x[0];
@@ -255,7 +255,7 @@ error: 이전 에러로 인해 중단됨
 </code></pre>
 <p>빌림 검사기가 이 간단한 사례를 이해할 수 있을 것이라는 기대는 해볼 수 있겠지만, 트리와 같은 일반적인 컨테이너 타입에서 서로 겹치지 않음을 이해하는 것은 분명히 가망이 없습니다. 특히 서로 다른 키들이 실제로 <em>같은</em> 값을 가리키는 경우라면 더더욱 그렇습니다.</p>
 <p>우리가 하려는 일이 괜찮다는 것을 빌림 검사기에게 "가르치기" 위해, 우리는 unsafe 코드로 내려가야 합니다. 예를 들어, 가변 슬라이스는 슬라이스를 소비하고 두 개의 가변 슬라이스를 반환하는 <code>split_at_mut</code> 함수를 노출합니다. 하나는 인덱스의 왼쪽 전부를 위한 것이고, 다른 하나는 오른쪽 전부를 위한 것입니다. 직관적으로 우리는 이 슬라이스들이 겹치지 않으며 따라서 별칭이 발생하지 않으므로 안전하다는 것을 압니다. 하지만 그 구현에는 약간의 비안전성(unsafety)이 필요합니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use std::slice::from_raw_parts_mut;
 </span><span class="boring">struct FakeSlice&lt;T&gt;(T);
@@ -277,7 +277,7 @@ error: 이전 에러로 인해 중단됨
 </span><span class="boring">}</span></code></pre></pre>
 <p>이것은 사실 약간 미묘합니다. 같은 값에 대해 두 개의 <code>&amp;mut</code>를 만드는 상황을 피하기 위해, 우리는 원시 포인터를 통해 완전히 새로운 슬라이스를 명시적으로 생성합니다.</p>
 <p>하지만 가변 참조를 생성하는 반복자가 어떻게 작동하는지는 훨씬 더 미묘합니다. 반복자 트레잇은 다음과 같이 정의됩니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>trait Iterator {
     type Item;
@@ -290,7 +290,7 @@ error: 이전 에러로 인해 중단됨
 <p>하지만 반복자는 일회성(one-shot) 객체이기 때문에 실제로 <em>작동합니다</em>. <code>IterMut</code>가 생성하는 모든 것은 기껏해야 한 번만 생성되므로, 우리는 실제로 동일한 데이터 조각에 대해 여러 개의 가변 참조를 생성하지 않습니다.</p>
 <p>놀랍게도, 가변 반복자를 구현할 때 많은 타입들에 대해 unsafe 코드가 필요하지 않습니다!</p>
 <p>예를 들어, 여기 단일 연결 리스트(singly linked list)가 있습니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {}
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {}
 </span>type Link&lt;T&gt; = Option&lt;Box&lt;Node&lt;T&gt;&gt;&gt;;
 
 struct Node&lt;T&gt; {
@@ -321,7 +321,7 @@ impl&lt;'a, T&gt; Iterator for IterMut&lt;'a, T&gt; {
     }
 }</code></pre></pre>
 <p>여기 가변 슬라이스가 있습니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {}
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {}
 </span>use std::mem;
 
 pub struct IterMut&lt;'a, T: 'a&gt;(&amp;'a mut[T]);
@@ -351,7 +351,7 @@ impl&lt;'a, T&gt; DoubleEndedIterator for IterMut&lt;'a, T&gt; {
     }
 }</code></pre></pre>
 <p>그리고 여기 이진 트리(binary tree)가 있습니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {}
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {}
 </span>use std::collections::VecDeque;
 
 type Link&lt;T&gt; = Option&lt;Box&lt;Node&lt;T&gt;&gt;&gt;;
@@ -382,7 +382,9 @@ pub struct IterMut&lt;'a, T: 'a&gt;(VecDeque&lt;NodeIterMut&lt;'a, T&gt;&gt;);
 impl&lt;T&gt; Tree&lt;T&gt; {
     pub fn iter_mut(&amp;mut self) -&gt; IterMut&lt;T&gt; {
         let mut deque = VecDeque::new();
-        self.root.as_mut().map(|root| deque.push_front(root.iter_mut()));
+        if let Some(root) = self.root.as_mut() {
+            deque.push_front(root.iter_mut());
+        }
         IterMut(deque)
     }
 }
@@ -391,42 +393,33 @@ impl&lt;T&gt; Node&lt;T&gt; {
     pub fn iter_mut(&amp;mut self) -&gt; NodeIterMut&lt;T&gt; {
         NodeIterMut {
             elem: Some(&amp;mut self.elem),
-            left: self.left.as_mut().map(|node| &amp;mut **node),
-            right: self.right.as_mut().map(|node| &amp;mut **node),
+            left: self.left.as_deref_mut(),
+            right: self.right.as_deref_mut(),
         }
     }
 }
-
 
 impl&lt;'a, T&gt; Iterator for NodeIterMut&lt;'a, T&gt; {
     type Item = State&lt;'a, T&gt;;
 
     fn next(&amp;mut self) -&gt; Option&lt;Self::Item&gt; {
-        match self.left.take() {
-            Some(node) =&gt; Some(State::Node(node)),
-            None =&gt; match self.elem.take() {
-                Some(elem) =&gt; Some(State::Elem(elem)),
-                None =&gt; match self.right.take() {
-                    Some(node) =&gt; Some(State::Node(node)),
-                    None =&gt; None,
-                }
-            }
-        }
+        self.left.take().map(State::Node).or_else(|| {
+            self.elem
+                .take()
+                .map(State::Elem)
+                .or_else(|| self.right.take().map(State::Node))
+        })
     }
 }
 
 impl&lt;'a, T&gt; DoubleEndedIterator for NodeIterMut&lt;'a, T&gt; {
     fn next_back(&amp;mut self) -&gt; Option&lt;Self::Item&gt; {
-        match self.right.take() {
-            Some(node) =&gt; Some(State::Node(node)),
-            None =&gt; match self.elem.take() {
-                Some(elem) =&gt; Some(State::Elem(elem)),
-                None =&gt; match self.left.take() {
-                    Some(node) =&gt; Some(State::Node(node)),
-                    None =&gt; None,
-                }
-            }
-        }
+        self.right.take().map(State::Node).or_else(|| {
+            self.elem
+                .take()
+                .map(State::Elem)
+                .or_else(|| self.left.take().map(State::Node))
+        })
     }
 }
 
@@ -434,10 +427,12 @@ impl&lt;'a, T&gt; Iterator for IterMut&lt;'a, T&gt; {
     type Item = &amp;'a mut T;
     fn next(&amp;mut self) -&gt; Option&lt;Self::Item&gt; {
         loop {
-            match self.0.front_mut().and_then(|node_it| node_it.next()) {
+            match self.0.front_mut().and_then(Iterator::next) {
                 Some(State::Elem(elem)) =&gt; return Some(elem),
                 Some(State::Node(node)) =&gt; self.0.push_front(node.iter_mut()),
-                None =&gt; if let None = self.0.pop_front() { return None },
+                None =&gt; {
+                    self.0.pop_front()?;
+                }
             }
         }
     }
@@ -446,10 +441,12 @@ impl&lt;'a, T&gt; Iterator for IterMut&lt;'a, T&gt; {
 impl&lt;'a, T&gt; DoubleEndedIterator for IterMut&lt;'a, T&gt; {
     fn next_back(&amp;mut self) -&gt; Option&lt;Self::Item&gt; {
         loop {
-            match self.0.back_mut().and_then(|node_it| node_it.next_back()) {
+            match self.0.back_mut().and_then(DoubleEndedIterator::next_back) {
                 Some(State::Elem(elem)) =&gt; return Some(elem),
                 Some(State::Node(node)) =&gt; self.0.push_back(node.iter_mut()),
-                None =&gt; if let None = self.0.pop_back() { return None },
+                None =&gt; {
+                    self.0.pop_back()?;
+                }
             }
         }
     }

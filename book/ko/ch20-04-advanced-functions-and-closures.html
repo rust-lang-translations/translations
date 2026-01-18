@@ -219,10 +219,10 @@
                         <h2 id="고급-함수와-클로저"><a class="header" href="#고급-함수와-클로저">고급 함수와 클로저</a></h2>
 <p>이 섹션에서는 함수 포인터와 클로저 반환을 포함하여 함수 및 클로저와 관련된 몇 가지 고급 기능을 살펴봅니다.</p>
 <h3 id="함수-포인터"><a class="header" href="#함수-포인터">함수 포인터</a></h3>
-<p>우리는 함수에 클로저를 전달하는 방법에 대해 이야기했습니다. 그런데 일반 함수를 함수에 전달할 수도 있습니다! 이 기술은 새로운 클로저를 정의하는 대신 이미 정의한 함수를 전달하고 싶을 때 유용합니다. 함수는 <code>fn</code> 타입(소문자 f)으로 강제 변환(coerce)되는데, 이는 <code>Fn</code> 클로저 트레이트와 혼동해서는 안 됩니다. <code>fn</code> 타입을 _함수 포인터(function pointer)_라고 부릅니다. 함수 포인터로 함수를 전달하면 함수를 다른 함수의 인수로 사용할 수 있습니다.</p>
-<p>파라미터가 함수 포인터임을 지정하는 문법은 클로저의 문법과 유사합니다. 예제 20-28에 표시된 것처럼 파라미터에 1을 더하는 <code>add_one</code> 함수를 정의했습니다. <code>do_twice</code> 함수는 두 개의 파라미터를 받습니다. 하나는 <code>i32</code> 파라미터를 받아 <code>i32</code>를 반환하는 임의의 함수에 대한 함수 포인터이고, 다른 하나는 하나의 <code>i32</code> 값입니다. <code>do_twice</code> 함수는 함수 <code>f</code>를 두 번 호출하면서 <code>arg</code> 값을 전달하고, 두 함수 호출 결과를 합산합니다. <code>main</code> 함수는 <code>add_one</code>과 <code>5</code>를 인수로 하여 <code>do_twice</code>를 호출합니다.</p>
+<p>We’ve talked about how to pass closures to functions; you can also pass regular functions to functions! This technique is useful when you want to pass a function you’ve already defined rather than defining a new closure. Functions coerce to the type <code>fn</code> (with a lowercase <em>f</em>), not to be confused with the <code>Fn</code> closure trait. The <code>fn</code> type is called a <em>function pointer</em>. Passing functions with function pointers will allow you to use functions as arguments to other functions.</p>
+<p>The syntax for specifying that a parameter is a function pointer is similar to that of closures, as shown in Listing 20-28, where we’ve defined a function <code>add_one</code> that adds 1 to its parameter. The function <code>do_twice</code> takes two parameters: a function pointer to any function that takes an <code>i32</code> parameter and returns an <code>i32</code>, and one <code>i32</code> value. The <code>do_twice</code> function calls the function <code>f</code> twice, passing it the <code>arg</code> value, then adds the two function call results together. The <code>main</code> function calls <code>do_twice</code> with the arguments <code>add_one</code> and <code>5</code>.</p>
 <Listing number="20-28" file-name="src/main.rs" caption="Using the `fn` type to accept a function pointer as an argument">
-<pre><pre class="playground"><code class="language-rust edition2021">fn add_one(x: i32) -&gt; i32 {
+<pre><pre class="playground"><code class="language-rust edition2024">fn add_one(x: i32) -&gt; i32 {
     x + 1
 }
 
@@ -238,23 +238,29 @@ fn main() {
 </Listing>
 <p>이 코드는 <code>결과값은: 12</code>를 출력합니다. <code>do_twice</code>의 파라미터 <code>f</code>가 <code>i32</code> 타입의 파라미터 하나를 받아 <code>i32</code>를 반환하는 <code>fn</code>임을 지정합니다. 그러면 <code>do_twice</code> 본문에서 <code>f</code>를 호출할 수 있습니다. <code>main</code>에서는 함수 이름 <code>add_one</code>을 <code>do_twice</code>의 첫 번째 인수로 전달할 수 있습니다.</p>
 <p>클로저와 달리 <code>fn</code>은 트레이트가 아니라 타입이므로, <code>Fn</code> 트레이트 중 하나를 트레이트 바운드로 하는 제네릭 타입 파라미터를 선언하는 대신 <code>fn</code>을 직접 파라미터 타입으로 지정합니다.</p>
-<p>함수 포인터는 세 가지 클로저 트레이트(<code>Fn</code>, <code>FnMut</code>, <code>FnOnce</code>)를 모두 구현하므로, 클로저를 기대하는 함수의 인수로 항상 함수 포인터를 전달할 수 있습니다. 여러분의 함수가 함수나 클로저를 모두 받아들일 수 있도록 제네릭 타입과 클로저 트레이트 중 하나를 사용하여 함수를 작성하는 것이 가장 좋습니다.</p>
+<p>Function pointers implement all three of the closure traits (<code>Fn</code>, <code>FnMut</code>, and <code>FnOnce</code>), meaning you can always pass a function pointer as an argument for a function that expects a closure. It’s best to write functions using a generic type and one of the closure traits so that your functions can accept either functions or closures.</p>
 <p>그렇긴 하지만, 클로저가 아닌 <code>fn</code>만을 허용하고 싶은 한 가지 사례는 클로저가 없는 외부 코드와 인터페이스할 때입니다. C 함수는 함수를 인수로 받을 수 있지만 C에는 클로저가 없습니다.</p>
-<p>인라인으로 정의된 클로저나 이름이 있는 함수 중 하나를 사용할 수 있는 예로, 표준 라이브러리의 <code>Iterator</code> 트레이트가 제공하는 <code>map</code> 메서드의 사용 예를 살펴보겠습니다. <code>map</code> 함수를 사용하여 숫자 벡터를 문자열 벡터로 바꾸기 위해, 다음과 같이 클로저를 사용할 수 있습니다.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+<p>As an example of where you could use either a closure defined inline or a named function, let’s look at a use of the <code>map</code> method provided by the <code>Iterator</code> trait in the standard library. To use the <code>map</code> method to turn a vector of numbers into a vector of strings, we could use a closure, as in Listing 20-29.</p>
+<Listing number="20-29" caption="Using a closure with the `map` method to convert numbers to strings">
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span>    let list_of_numbers = vec![1, 2, 3];
     let list_of_strings: Vec&lt;String&gt; =
         list_of_numbers.iter().map(|i| i.to_string()).collect();
 <span class="boring">}</span></code></pre></pre>
-<p>혹은 클로저 대신 다음과 같이 함수 이름을 <code>map</code>의 인수로 사용할 수도 있습니다.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+</Listing>
+<p>Or we could name a function as the argument to <code>map</code> instead of the closure. Listing 20-30 shows what this would look like.</p>
+<Listing number="20-30" caption="Using the `String::to_string` function with the `map` method to convert numbers to strings">
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span>    let list_of_numbers = vec![1, 2, 3];
     let list_of_strings: Vec&lt;String&gt; =
         list_of_numbers.iter().map(ToString::to_string).collect();
 <span class="boring">}</span></code></pre></pre>
-<p><code>to_string</code>이라는 이름의 함수가 여러 개 존재하기 때문에, <a href="ch20-02-advanced-traits.html#advanced-traits">“고급 트레이트”</a><!-- ignore --> 섹션에서 이야기했던 완전 정규화 문법을 사용해야 한다는 점에 주의하세요. 여기서는 <code>ToString</code> 트레이트에 정의된 <code>to_string</code> 함수를 사용하고 있으며, 표준 라이브러리는 <code>Display</code>를 구현하는 모든 타입에 대해 이 트레이트를 구현해 두었습니다.</p>
-<p>6장의 <a href="ch06-01-defining-an-enum.html#enum-values">“열거형 값”</a><!-- ignore --> 섹션에서 정의한 각 열거형 변형의 이름이 초기화 함수가 되기도 한다는 점을 상기해 보세요. 우리는 이러한 초기화 함수들을 클로저 트레이트를 구현하는 함수 포인터로 사용할 수 있습니다. 즉, 다음과 같이 클로저를 받는 메서드의 인수로 초기화 함수를 지정할 수 있습니다.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+</Listing>
+<p>Note that we must use the fully qualified syntax that we talked about in the <a href="ch20-02-advanced-traits.html#advanced-traits">“Advanced Traits”</a><!-- ignore --> section because there are multiple functions available named <code>to_string</code>.</p>
+<p>Here, we’re using the <code>to_string</code> function defined in the <code>ToString</code> trait, which the standard library has implemented for any type that implements <code>Display</code>.</p>
+<p>Recall from the <a href="ch06-01-defining-an-enum.html#enum-values">“Enum Values”</a><!-- ignore --> section in Chapter 6 that the name of each enum variant that we define also becomes an initializer function. We can use these initializer functions as function pointers that implement the closure traits, which means we can specify the initializer functions as arguments for methods that take closures, as seen in Listing 20-31.</p>
+<Listing number="20-31" caption="Using an enum initializer with the `map` method to create a `Status` instance from numbers">
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span>    enum Status {
         Value(u32),
         Stop,
@@ -262,15 +268,22 @@ fn main() {
 
     let list_of_statuses: Vec&lt;Status&gt; = (0u32..20).map(Status::Value).collect();
 <span class="boring">}</span></code></pre></pre>
-<p>여기서는 <code>Status::Value</code>의 초기화 함수를 사용하여 <code>map</code>이 호출되는 범위 내의 각 <code>u32</code> 값을 이용해 <code>Status::Value</code> 인스턴스를 생성합니다. 어떤 사람들은 이 스타일을 선호하고, 어떤 사람들은 클로저 사용을 선호합니다. 이들은 동일한 코드로 컴파일되므로, 여러분에게 더 명확해 보이는 스타일을 사용하세요.</p>
+</Listing>
+<p>Here, we create <code>Status::Value</code> instances using each <code>u32</code> value in the range that <code>map</code> is called on by using the initializer function of <code>Status::Value</code>. Some people prefer this style and some people prefer to use closures. They compile to the same code, so use whichever style is clearer to you.</p>
 <h3 id="클로저-반환하기"><a class="header" href="#클로저-반환하기">클로저 반환하기</a></h3>
-<p>클로저는 트레이트로 표현되므로, 클로저를 직접 반환할 수는 없습니다. 트레이트를 반환하고 싶은 대부분의 경우, 대신 해당 트레이트를 구현하는 구체 타입을 함수의 반환값으로 사용할 수 있습니다. 하지만 클로저의 경우에는 반환 가능한 구체 타입이 없기 때문에 그렇게 할 수 없습니다. 예를 들어, 함수 포인터 <code>fn</code>을 반환 타입으로 사용하는 것은 허용되지 않습니다.</p>
-<p>대신, 보통 10장에서 배웠던 <code>impl Trait</code> 문법을 사용합니다. <code>Fn</code>, <code>FnOnce</code>, <code>FnMut</code>를 사용하여 어떤 함수 타입이든 반환할 수 있습니다. 예를 들어, 다음 코드는 문제없이 작동할 것입니다.</p>
-<pre><code class="language-rust ignore does_not_compile">fn returns_closure() -&gt; impl Fn(i32) -&gt; i32 {
+<p>Closures are represented by traits, which means you can’t return closures directly. In most cases where you might want to return a trait, you can instead use the concrete type that implements the trait as the return value of the function. However, you can’t usually do that with closures because they don’t have a concrete type that is returnable; you’re not allowed to use the function pointer <code>fn</code> as a return type if the closure captures any values from its scope, for example.</p>
+<p>Instead, you will normally use the <code>impl Trait</code> syntax we learned about in Chapter 10. You can return any function type, using <code>Fn</code>, <code>FnOnce</code>, and <code>FnMut</code>. For example, the code in Listing 20-32 will compile just fine.</p>
+<Listing number="20-32" caption="Returning a closure from a function using the `impl Trait` syntax">
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn returns_closure() -&gt; impl Fn(i32) -&gt; i32 {
     |x| x + 1
-}</code></pre>
-<p>하지만 13장의 <a href="ch13-01-closures.html#closure-type-inference-and-annotation">“클로저 타입 추론과 어노테이션”</a><!-- ignore --> 섹션에서 언급했듯이, 각 클로저는 자신만의 고유한 타입을 가집니다. 시그니처는 같지만 구현이 다른 여러 함수를 다뤄야 한다면, 트레이트 객체를 사용해야 합니다.</p>
-<pre><code class="language-rust noplayground">fn main() {
+}
+<span class="boring">}</span></code></pre></pre>
+</Listing>
+<p>However, as we noted in the <a href="ch13-01-closures.html#closure-type-inference-and-annotation">“Inferring and Annotating Closure Types”</a><!-- ignore --> section in Chapter 13, each closure is also its own distinct type. If you need to work with multiple functions that have the same signature but different implementations, you will need to use a trait object for them. Consider what happens if you write code like that shown in Listing 20-33.</p>
+<Listing file-name="src/main.rs" number="20-33" caption="Creating a `Vec<T>` of closures defined by functions that return `impl Fn` types">
+<pre><code class="language-rust ignore does_not_compile">fn main() {
     let handlers = vec![returns_closure(), returns_initialized_closure(123)];
     for handler in handlers {
         let output = handler(5);
@@ -278,14 +291,55 @@ fn main() {
     }
 }
 
-fn returns_closure() -&gt; Box&lt;dyn Fn(i32) -&gt; i32&gt; {
+fn returns_closure() -&gt; impl Fn(i32) -&gt; i32 {
+    |x| x + 1
+}
+
+fn returns_initialized_closure(init: i32) -&gt; impl Fn(i32) -&gt; i32 {
+    move |x| x + init
+}</code></pre>
+</Listing>
+<p>Here we have two functions, <code>returns_closure</code> and <code>returns_initialized_closure</code>, which both return <code>impl Fn(i32) -&gt; i32</code>. Notice that the closures that they return are different, even though they implement the same type. If we try to compile this, Rust lets us know that it won’t work:</p>
+<pre><code class="language-text">$ cargo build
+   Compiling functions-example v0.1.0 (file:///projects/functions-example)
+error[E0308]: mismatched types
+  --&gt; src/main.rs:2:44
+   |
+ 2 |     let handlers = vec![returns_closure(), returns_initialized_closure(123)];
+   |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected opaque type, found a different opaque type
+...
+ 9 | fn returns_closure() -&gt; impl Fn(i32) -&gt; i32 {
+   |                         ------------------- the expected opaque type
+...
+13 | fn returns_initialized_closure(init: i32) -&gt; impl Fn(i32) -&gt; i32 {
+   |                                              ------------------- the found opaque type
+   |
+   = note: expected opaque type `impl Fn(i32) -&gt; i32`
+              found opaque type `impl Fn(i32) -&gt; i32`
+   = note: distinct uses of `impl Trait` result in different opaque types
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `functions-example` (bin "functions-example") due to 1 previous error
+</code></pre>
+<p>The error message tells us that whenever we return an <code>impl Trait</code>, Rust creates a unique <em>opaque type</em>, a type where we cannot see into the details of what Rust constructs for us, nor can we guess the type Rust will generate to write ourselves. So, even though these functions return closures that implement the same trait, <code>Fn(i32) -&gt; i32</code>, the opaque types Rust generates for each are distinct. (This is similar to how Rust produces different concrete types for distinct async blocks even when they have the same output type, as we saw in <a href="ch17-03-more-futures.html">“The <code>Pin</code> Type and the <code>Unpin</code> Trait”</a><!-- ignore --> in Chapter 17.) We have seen a solution to this problem a few times now: We can use a trait object, as in Listing 20-34.</p>
+<Listing number="20-34" caption="Creating a `Vec<T>` of closures defined by functions that return `Box<dyn Fn>` so that they have the same type">
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
+</span><span class="boring">    let handlers = vec![returns_closure(), returns_initialized_closure(123)];
+</span><span class="boring">    for handler in handlers {
+</span><span class="boring">        let output = handler(5);
+</span><span class="boring">        println!("{output}");
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span>fn returns_closure() -&gt; Box&lt;dyn Fn(i32) -&gt; i32&gt; {
     Box::new(|x| x + 1)
 }
 
 fn returns_initialized_closure(init: i32) -&gt; Box&lt;dyn Fn(i32) -&gt; i32&gt; {
     Box::new(move |x| x + init)
-}</code></pre>
-<p>이 코드는 문제없이 컴파일되지만, 만약 <code>impl Fn(i32) -&gt; i32</code>를 고집했다면 컴파일되지 않았을 것입니다. 트레이트 객체에 대한 더 자세한 내용은 18장의 <a href="ch18-02-trait-objects.html#using-trait-objects-that-allow-for-values-of-different-types">“다른 타입의 값을 허용하는 트레이트 객체 사용하기”</a><!-- ignore --> 섹션을 참조하세요.</p>
+}</code></pre></pre>
+</Listing>
+<p>This code will compile just fine. For more about trait objects, refer to the section <a href="ch18-02-trait-objects.html">“Using Trait Objects To Abstract over Shared Behavior”</a><!-- ignore --> in Chapter 18.</p>
 <p>다음으로 매크로를 살펴보겠습니다!</p>
 
                     </main>

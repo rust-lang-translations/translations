@@ -216,20 +216,22 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="unsafe로-간주되지-않는-동작"><a class="header" href="#unsafe로-간주되지-않는-동작"><code>unsafe</code>로 간주되지 않는 동작</a></h2>
+                        <h1 id="unsafe로-간주되지-않는-동작"><a class="header" href="#unsafe로-간주되지-않는-동작"><code>unsafe</code>로 간주되지 않는 동작</a></h1>
 <p>러스트 컴파일러는 다음의 동작들을 _안전하지 않다(unsafe)_고 간주하지 않습니다. 비록 프로그래머가 이를 바람직하지 않거나, 예상치 못했거나, 잘못된 것으로 생각할지라도 말입니다.</p>
-<h5 id="데드락-deadlocks"><a class="header" href="#데드락-deadlocks">데드락 (Deadlocks)</a></h5>
-<h5 id="메모리-및-기타-리소스-누수-leaks"><a class="header" href="#메모리-및-기타-리소스-누수-leaks">메모리 및 기타 리소스 누수 (Leaks)</a></h5>
-<h5 id="소멸자destructor를-호출하지-않고-종료하는-것"><a class="header" href="#소멸자destructor를-호출하지-않고-종료하는-것">소멸자(destructor)를 호출하지 않고 종료하는 것</a></h5>
-<h5 id="포인터-누수를-통해-무작위화된-베이스-주소를-노출하는-것"><a class="header" href="#포인터-누수를-통해-무작위화된-베이스-주소를-노출하는-것">포인터 누수를 통해 무작위화된 베이스 주소를 노출하는 것</a></h5>
-<h5 id="정수-오버플로-integer-overflow"><a class="header" href="#정수-오버플로-integer-overflow">정수 오버플로 (Integer overflow)</a></h5>
+<ul>
+<li>데드락 (Deadlocks)</li>
+<li>메모리 및 기타 리소스 누수 (Leaks)</li>
+<li>소멸자(destructor)를 호출하지 않고 종료하는 것</li>
+<li>포인터 누수를 통해 무작위화된 베이스 주소를 노출하는 것</li>
+</ul>
+<h2 id="정수-오버플로-integer-overflow"><a class="header" href="#정수-오버플로-integer-overflow">정수 오버플로 (Integer overflow)</a></h2>
 <p>프로그램에 산술 오버플로가 포함되어 있다면, 이는 프로그래머의 실수입니다. 이어지는 논의에서, 우리는 산술 오버플로와 래핑(wrapping) 산술 연산을 구분합니다. 전자는 잘못된 것이고, 후자는 의도된 것입니다.</p>
 <p>프로그래머가 <code>debug_assert!</code> 단언을 활성화한 경우(예: 최적화되지 않은 빌드), 구현체는 오버플로 시 <code>panic</code>을 일으키는 동적 검사를 삽입해야 합니다. 다른 종류의 빌드에서는 구현체의 재량에 따라 오버플로 시 <code>panic</code>이 발생하거나 조용히 값이 래핑될 수 있습니다.</p>
 <p>암시적으로 래핑되는 오버플로의 경우, 구현체는 2의 보수 오버플로 관례를 사용하여 잘 정의된(여전히 오류로 간주될지라도) 결과를 제공해야 합니다.</p>
 <p>정수 타입들은 프로그래머가 명시적으로 래핑 산술 연산을 수행할 수 있도록 내재적 메서드들을 제공합니다. 예를 들어, <code>i32::wrapping_add</code>는 2의 보수 래핑 덧셈을 제공합니다.</p>
 <p>표준 라이브러리는 또한 <code>T</code>에 대한 모든 표준 산술 연산이 래핑 세만틱을 갖도록 보장하는 <code>Wrapping&lt;T&gt;</code> 뉴타입(newtype)을 제공합니다.</p>
 <p>오류 조건, 근거, 그리고 정수 오버플로에 대한 더 자세한 내용은 <a href="https://github.com/rust-lang/rfcs/blob/master/text/0560-integer-overflow.md">RFC 560</a>을 참조하십시오.</p>
-<h5 id="논리-오류-logic-errors"><a class="header" href="#논리-오류-logic-errors">논리 오류 (Logic errors)</a></h5>
+<h2 id="논리-오류-logic-errors"><a class="header" href="#논리-오류-logic-errors">논리 오류 (Logic errors)</a></h2>
 <p>안전한 코드는 컴파일 타임이나 런타임에 확인할 수 없는 추가적인 논리적 제약을 부과할 수 있습니다. 프로그램이 이러한 제약을 위반할 경우, 동작은 명시되지 않을 수 있으나 정의되지 않은 동작으로 이어지지는 않습니다. 여기에는 패닉, 잘못된 결과, 중단(abort), 그리고 종료되지 않음(non-termination) 등이 포함될 수 있습니다. 동작은 실행, 빌드, 또는 빌드 종류에 따라 달라질 수도 있습니다.</p>
 <p>예를 들어, <code>Hash</code>와 <code>Eq</code>를 모두 구현할 때는 동일하다고 간주되는 값들이 동일한 해시 값을 가져야 한다는 요구 사항이 있습니다. 또 다른 예로 <code>BinaryHeap</code>, <code>BTreeMap</code>, <code>BTreeSet</code>, <code>HashMap</code>, <code>HashSet</code>과 같은 데이터 구조들은 데이터 구조에 포함된 동안 키(key)의 수정에 대한 제약 조건을 기술합니다. 이러한 제약 조건을 위반하는 것은 안전하지 않은(unsafe) 것으로 간주되지는 않지만, 프로그램은 오류가 있는 것으로 간주되며 그 동작은 예측할 수 없게 됩니다.</p>
 

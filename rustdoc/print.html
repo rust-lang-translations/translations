@@ -466,6 +466,19 @@ For more, see <a href="write-documentation/documentation-tests.html">the chapter
 <p>This flag will run your code examples in the specified working directory.
 For more, see <a href="write-documentation/documentation-tests.html">the chapter on documentation tests</a>.</p>
 <p>See also <code>--test</code>.</p>
+<h2 id="--test-runtool---test-runtool-arg-program-to-run-tests-with-args-to-pass-to-it"><a class="header" href="#--test-runtool---test-runtool-arg-program-to-run-tests-with-args-to-pass-to-it"><code>--test-runtool</code>, <code>--test-runtool-arg</code>: program to run tests with; args to pass to it</a></h2>
+<p>A doctest wrapper program can be specified with the <code>--test-runtool</code> flag.
+Rustdoc will execute that wrapper instead of the doctest executable when
+running tests. The first arguments to the wrapper will be any arguments
+specified with the <code>--test-runtool-arg</code> flag, followed by the path to the
+doctest executable to run.</p>
+<p>Using these options looks like this:</p>
+<pre><code class="language-bash">$ rustdoc src/lib.rs --test-runtool path/to/runner --test-runtool-arg --do-thing --test-runtool-arg --do-other-thing
+</code></pre>
+<p>For example, if you want to run your doctests under valgrind you might run:</p>
+<pre><code class="language-bash">$ rustdoc src/lib.rs --test-runtool valgrind
+</code></pre>
+<p>Another use case would be to run a test inside an emulator, or through a Virtual Machine.</p>
 <h2 id="--target-generate-documentation-for-the-specified-target-triple"><a class="header" href="#--target-generate-documentation-for-the-specified-target-triple"><code>--target</code>: generate documentation for the specified target triple</a></h2>
 <p>Using this flag looks like this:</p>
 <pre><code class="language-bash">$ rustdoc src/lib.rs --target x86_64-pc-windows-gnu
@@ -683,7 +696,7 @@ and collapse all sections in the document.</p>
 <p>Rustdoc's HTML output includes a settings menu, and this chapter describes what
 each setting in this menu does.</p>
 <p>It can be accessed by clicking on the gear button
-(<i class="fa fa-cog" aria-hidden="true"></i>) in the upper right.</p>
+(<i class="fas fa-gear" aria-hidden="true"></i>) in the upper right.</p>
 <h2 id="changing-displayed-theme"><a class="header" href="#changing-displayed-theme">Changing displayed theme</a></h2>
 <p>It is possible to change the theme. If you pick the "system preference", you
 will be able to see two new sub-menus: "Preferred light theme" and "Preferred
@@ -778,7 +791,7 @@ the standard library and functions that are included in the results list:</p>
 </div>
 <h3 id="non-functions-in-type-based-search"><a class="header" href="#non-functions-in-type-based-search">Non-functions in type-based search</a></h3>
 <p>Certain items that are not functions are treated as though they
-were a semantically equivelent function.</p>
+were a semantically equivalent function.</p>
 <p>For example, struct fields are treated as though they were getter methods.
 This means that a search for <code>CpuidResult -&gt; u32</code> will show
 the <code>CpuidResult::eax</code> field in the results.</p>
@@ -1339,13 +1352,13 @@ themes are as easy as creating a custom theme <code>.css</code> file and using t
 syntax:</p>
 <pre><code class="language-bash">rustdoc --theme awesome.css src/lib.rs
 </code></pre>
-<p>Here is an example of a new theme, <a href="https://github.com/rust-lang/rust/blob/master/src/librustdoc/html/static/css/rustdoc.css#L2384-L2574">Ayu</a>.</p>
+<p>Here is an example of a new theme, <a href="https://github.com/rust-lang/rust/blob/HEAD/src/librustdoc/html/static/css/rustdoc.css#L2384-L2574">Ayu</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="the-doc-attribute"><a class="header" href="#the-doc-attribute">The <code>#[doc]</code> attribute</a></h1>
 <p>The <code>#[doc]</code> attribute lets you control various aspects of how <code>rustdoc</code> does
 its job.</p>
 <p>The most basic function of <code>#[doc]</code> is to handle the actual documentation
-text. That is, <code>///</code> is syntax sugar for <code>#[doc]</code>. This means that these two
-are the same:</p>
+text. That is, <code>///</code> is syntax sugar for <code>#[doc]</code> (as is <code>//!</code> for <code>#![doc]</code>).
+This means that these two are the same:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>/// This is a doc comment.
@@ -1390,7 +1403,7 @@ crate level, and ones that are useful at the item level.</p>
 </span><span class="boring">}</span></code></pre></pre>
 <p>This will put <code>&lt;link rel="icon" href="{}"&gt;</code> into your docs, where
 the string for the attribute goes into the <code>{}</code>.</p>
-<p>If you don't use this attribute, there will be no favicon.</p>
+<p>If you don't use this attribute, a default favicon will be used.</p>
 <h3 id="html_logo_url"><a class="header" href="#html_logo_url"><code>html_logo_url</code></a></h3>
 <p>This form of the <code>doc</code> attribute lets you control the logo in the upper
 left hand side of the docs.</p>
@@ -1409,8 +1422,12 @@ on your documentation examples make requests to.</p>
 <span class="boring">fn main() {
 </span><span class="boring">}</span></code></pre></pre>
 <p>Now, when you press "run", the button will make a request to this domain. The request
-URL will contain 2 query parameters: <code>code</code> and <code>edition</code> for the code in the documentation
-and the Rust edition respectively.</p>
+URL will contain 3 query parameters:</p>
+<ol>
+<li><code>code</code> for the code in the documentation</li>
+<li><code>version</code> for the Rust channel, e.g. nightly, which is decided by whether <code>code</code> contain unstable features</li>
+<li><code>edition</code> for the Rust edition, e.g. 2024</li>
+</ol>
 <p>If you don't use this attribute, there will be no run buttons.</p>
 <h3 id="issue_tracker_base_url"><a class="header" href="#issue_tracker_base_url"><code>issue_tracker_base_url</code></a></h3>
 <p>This form of the <code>doc</code> attribute is mostly only useful for the standard library;
@@ -1450,13 +1467,6 @@ But if you include this:</p>
 <span class="boring">fn main() {
 </span><span class="boring">}</span></code></pre></pre>
 <p>it will not.</p>
-<h3 id="testattr"><a class="header" href="#testattr"><code>test(attr(...))</code></a></h3>
-<p>This form of the <code>doc</code> attribute allows you to add arbitrary attributes to all your doctests. For
-example, if you want your doctests to fail if they have dead code, you could add this:</p>
-<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
-</span>#![doc(test(attr(deny(dead_code))))]
-<span class="boring">fn main() {
-</span><span class="boring">}</span></code></pre></pre>
 <h2 id="at-the-item-level"><a class="header" href="#at-the-item-level">At the item level</a></h2>
 <p>These forms of the <code>#[doc]</code> attribute are used on individual items, to control how
 they are documented.</p>
@@ -1547,6 +1557,26 @@ you have no way to do so.</p>
 on the <code>do_something</code> method and then it's all good!
 Users can now look for <code>lib_name_do_something</code> in our crate directly and find
 <code>Obj::do_something</code>.</p>
+<h3 id="testattr"><a class="header" href="#testattr"><code>test(attr(...))</code></a></h3>
+<p>This form of the <code>doc</code> attribute allows you to add arbitrary attributes to all your doctests. For
+example, if you want your doctests to fail if they have dead code, you could add this:</p>
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
+</span>#![doc(test(attr(deny(dead_code))))]
+
+<span class="boring">fn main() {
+</span>mod my_mod {
+    #![doc(test(attr(allow(dead_code))))] // but allow `dead_code` for this module
+}
+<span class="boring">}</span></code></pre></pre>
+<p><code>test(attr(..))</code> attributes are appended to the parent module's, they do not replace the current
+list of attributes. In the previous example, both attributes would be present:</p>
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// For every doctest in `my_mod`
+
+#![deny(dead_code)] // from the crate-root
+#![allow(dead_code)] // from `my_mod`
+<span class="boring">}</span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="re-exports"><a class="header" href="#re-exports">Re-exports</a></h1>
 <p>Let's start by explaining what are re-exports. To do so, we will use an example where we are
 writing a library (named <code>lib</code>) with some types dispatched in sub-modules:</p>
@@ -1774,7 +1804,7 @@ fn Foo() {}
 <p>These prefixes will be stripped when displayed in the documentation, so <code>[struct@Foo]</code> will be
 rendered as <code>Foo</code>. The following prefixes are available: <code>struct</code>, <code>enum</code>, <code>trait</code>, <code>union</code>,
 <code>mod</code>, <code>module</code>, <code>const</code>, <code>constant</code>, <code>fn</code>, <code>function</code>, <code>field</code>, <code>variant</code>, <code>method</code>, <code>derive</code>,
-<code>type</code>, <code>value</code>, <code>macro</code>, <code>prim</code> or <code>primitive</code>.</p>
+<code>type</code>, <code>value</code>, <code>macro</code>, <code>tyalias</code>, <code>typealias</code>, <code>prim</code> or <code>primitive</code>.</p>
 <p>You can also disambiguate for functions by adding <code>()</code> after the function name,
 or for macros by adding <code>!</code> after the macro name. The macro <code>!</code> can be followed by <code>()</code>, <code>{}</code>,
 or <code>[]</code>. Example:</p>
@@ -1999,6 +2029,19 @@ which has a line that starts with a <code>#</code>:</p>
 <pre><code class="language-text">/// let s = "foo
 /// ## bar # baz";
 </code></pre>
+<p>Here is an example with a macro rule which matches on tokens starting with <code>#</code>:</p>
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>/// ```
+/// macro_rules! ignore { (##tag) =&gt; {}; }
+/// ignore! {
+///     ###tag
+/// }
+/// ```
+<span class="boring">fn f() {}
+</span><span class="boring">}</span></code></pre></pre>
+<p>As you can see, the rule is expecting two <code>#</code>, so when calling it, we need to add an extra <code>#</code>
+because the first one is used as escape.</p>
 <h2 id="using--in-doc-tests"><a class="header" href="#using--in-doc-tests">Using <code>?</code> in doc tests</a></h2>
 <p>When writing an example, it is rarely useful to include a complete error
 handling, as it would add significant amounts of boilerplate code. Instead, you
@@ -2193,6 +2236,37 @@ should not be merged with the others. So the previous code should use it:</p>
 <span class="boring">}</span></code></pre></pre>
 <p>In this case, it means that the line information will not change if you add/remove other
 doctests.</p>
+<h3 id="ignoring-targets"><a class="header" href="#ignoring-targets">Ignoring targets</a></h3>
+<p>Attributes starting with <code>ignore-</code> can be used to ignore doctests for specific
+targets. For example, <code>ignore-x86_64</code> will avoid building doctests when the
+target name contains <code>x86_64</code>.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>/// ```ignore-x86_64
+/// assert!(2 == 2);
+/// ```
+struct Foo;
+<span class="boring">}</span></code></pre></pre>
+<p>This doctest will not be built for targets such as <code>x86_64-unknown-linux-gnu</code>.</p>
+<p>Multiple ignore attributes can be specified to ignore multiple targets:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>/// ```ignore-x86_64,ignore-windows
+/// assert!(2 == 2);
+/// ```
+struct Foo;
+<span class="boring">}</span></code></pre></pre>
+<p>If you want to preserve backwards compatibility for older versions of rustdoc,
+you can specify both <code>ignore</code> and <code>ignore-</code>, such as:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>/// ```ignore,ignore-x86_64
+/// assert!(2 == 2);
+/// ```
+struct Foo;
+<span class="boring">}</span></code></pre></pre>
+<p>In older versions, this will be ignored on all targets, but starting with
+version 1.88.0, <code>ignore-x86_64</code> will override <code>ignore</code>.</p>
 <h3 id="custom-css-classes-for-code-blocks"><a class="header" href="#custom-css-classes-for-code-blocks">Custom CSS classes for code blocks</a></h3>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2746,17 +2820,24 @@ result right away (which is often the best match) use the following instead:</p>
 </code></pre>
 <p>This URL adds the <code>go_to_first=true</code> query parameter which can be appended to any <code>rustdoc</code> search URL
 to automatically go to the first result.</p>
-<h2 id="reprtransparent-documenting-the-transparent-representation"><a class="header" href="#reprtransparent-documenting-the-transparent-representation"><code>#[repr(transparent)]</code>: Documenting the transparent representation</a></h2>
+<h2 id="repr-documenting-the-representation-of-a-type"><a class="header" href="#repr-documenting-the-representation-of-a-type"><code>#[repr(...)]</code>: Documenting the representation of a type</a></h2>
+<p>Generally, rustdoc only displays the representation of a given type if none of its variants are
+<code>#[doc(hidden)]</code> and if all of its fields are public and not <code>#[doc(hidden)]</code> since it's likely
+not meant to be considered part of the public ABI otherwise.</p>
+<p>Note that there's no way to overwrite that heuristic and force rustdoc to show the representation
+regardless.</p>
+<h3 id="reprtransparent"><a class="header" href="#reprtransparent"><code>#[repr(transparent)]</code></a></h3>
 <p>You can read more about <code>#[repr(transparent)]</code> itself in the <a href="https://doc.rust-lang.org/reference/type-layout.html#the-transparent-representation">Rust Reference</a> and
 in the <a href="https://doc.rust-lang.org/nomicon/other-reprs.html#reprtransparent">Rustonomicon</a>.</p>
 <p>Since this representation is only considered part of the public ABI if the single field with non-trivial
-size or alignment is public and if the documentation does not state otherwise, Rustdoc helpfully displays
-the attribute if and only if the non-1-ZST field is public or at least one field is public in case all
-fields are 1-ZST fields. The term <em>1-ZST</em> refers to types that are one-aligned and zero-sized.</p>
+size or alignment is public and if the documentation does not state otherwise, rustdoc helpfully displays
+the attribute if and only if the non-1-ZST field is public and not <code>#[doc(hidden)]</code> or
+– in case all fields are 1-ZST fields — at least one field is public and not <code>#[doc(hidden)]</code>.
+The term <em>1-ZST</em> refers to types that are one-aligned and zero-sized.</p>
 <p>It would seem that one can manually hide the attribute with <code>#[cfg_attr(not(doc), repr(transparent))]</code>
 if one wishes to declare the representation as private even if the non-1-ZST field is public.
 However, due to <a href="https://github.com/rust-lang/rust/issues/114952">current limitations</a>, this method is not always guaranteed to work.
-Therefore, if you would like to do so, you should always write it down in prose independently of whether
+Therefore, if you would like to do so, you should always write that down in prose independently of whether
 you use <code>cfg_attr</code> or not.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="unstable-features"><a class="header" href="#unstable-features">Unstable features</a></h1>
 <p>Rustdoc is under active development, and like the Rust compiler, some features are only available
@@ -2794,78 +2875,6 @@ It is also not emitted for foreign items, aliases, extern crates and imports.</p
 <h2 id="extensions-to-the-doc-attribute"><a class="header" href="#extensions-to-the-doc-attribute">Extensions to the <code>#[doc]</code> attribute</a></h2>
 <p>These features operate by extending the <code>#[doc]</code> attribute, and thus can be caught by the compiler
 and enabled with a <code>#![feature(...)]</code> attribute in your crate.</p>
-<h3 id="doccfg-recording-what-platforms-or-features-are-required-for-code-to-be-present"><a class="header" href="#doccfg-recording-what-platforms-or-features-are-required-for-code-to-be-present"><code>#[doc(cfg)]</code>: Recording what platforms or features are required for code to be present</a></h3>
-<ul>
-<li>Tracking issue: <a href="https://github.com/rust-lang/rust/issues/43781">#43781</a></li>
-</ul>
-<p>You can use <code>#[doc(cfg(...))]</code> to tell Rustdoc exactly which platform items appear on.
-This has two effects:</p>
-<ol>
-<li>doctests will only run on the appropriate platforms, and</li>
-<li>When Rustdoc renders documentation for that item, it will be accompanied by a banner explaining
-that the item is only available on certain platforms.</li>
-</ol>
-<p><code>#[doc(cfg)]</code> is intended to be used alongside <a href="./advanced-features.html"><code>#[cfg(doc)]</code></a>.
-For example, <code>#[cfg(any(windows, doc))]</code> will preserve the item either on Windows or during the
-documentation process. Then, adding a new attribute <code>#[doc(cfg(windows))]</code> will tell Rustdoc that
-the item is supposed to be used on Windows. For example:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span>#![feature(doc_cfg)]
-
-<span class="boring">fn main() {
-</span>/// Token struct that can only be used on Windows.
-#[cfg(any(windows, doc))]
-#[doc(cfg(windows))]
-pub struct WindowsToken;
-
-/// Token struct that can only be used on Unix.
-#[cfg(any(unix, doc))]
-#[doc(cfg(unix))]
-pub struct UnixToken;
-
-/// Token struct that is only available with the `serde` feature
-#[cfg(feature = "serde")]
-#[doc(cfg(feature = "serde"))]
-#[derive(serde::Deserialize)]
-pub struct SerdeToken;
-<span class="boring">}</span></code></pre></pre>
-<p>In this sample, the tokens will only appear on their respective platforms, but they will both appear
-in documentation.</p>
-<p><code>#[doc(cfg(...))]</code> was introduced to be used by the standard library and currently requires the
-<code>#![feature(doc_cfg)]</code> feature gate. For more information, see <a href="../unstable-book/language-features/doc-cfg.html">its chapter in the Unstable
-Book</a> and <a href="https://github.com/rust-lang/rust/issues/43781">its tracking issue</a>.</p>
-<h3 id="doc_auto_cfg-automatically-generate-doccfg"><a class="header" href="#doc_auto_cfg-automatically-generate-doccfg"><code>doc_auto_cfg</code>: Automatically generate <code>#[doc(cfg)]</code></a></h3>
-<ul>
-<li>Tracking issue: <a href="https://github.com/rust-lang/rust/issues/43781">#43781</a></li>
-</ul>
-<p><code>doc_auto_cfg</code> is an extension to the <code>#[doc(cfg)]</code> feature. With it, you don't need to add
-<code>#[doc(cfg(...)]</code> anymore unless you want to override the default behaviour. So if we take the
-previous source code:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span>#![feature(doc_auto_cfg)]
-
-<span class="boring">fn main() {
-</span>/// Token struct that can only be used on Windows.
-#[cfg(any(windows, doc))]
-pub struct WindowsToken;
-
-/// Token struct that can only be used on Unix.
-#[cfg(any(unix, doc))]
-pub struct UnixToken;
-
-/// Token struct that is only available with the `serde` feature
-#[cfg(feature = "serde")]
-#[derive(serde::Deserialize)]
-pub struct SerdeToken;
-<span class="boring">}</span></code></pre></pre>
-<p>It'll render almost the same, the difference being that <code>doc</code> will also be displayed. To fix this,
-you can use <code>doc_cfg_hide</code>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span>#![feature(doc_cfg_hide)]
-#![doc(cfg_hide(doc))]
-<span class="boring">fn main() {
-</span><span class="boring">}</span></code></pre></pre>
-<p>And <code>doc</code> won't show up anymore!</p>
 <h3 id="adding-your-trait-to-the-notable-traits-dialog"><a class="header" href="#adding-your-trait-to-the-notable-traits-dialog">Adding your trait to the "Notable traits" dialog</a></h3>
 <ul>
 <li>Tracking issue: <a href="https://github.com/rust-lang/rust/issues/45040">#45040</a></li>
@@ -2908,7 +2917,7 @@ attributes. The <code>#[rustc_doc_primitive = "..."]</code> attribute is used by
 provide a way to generate documentation for primitive types, and requires <code>#![feature(rustc_attrs)]</code>
 to enable.</p>
 <h3 id="document-keywords"><a class="header" href="#document-keywords">Document keywords</a></h3>
-<p>This is for Rust compiler internal use only.</p>
+<p>This is for internal use in the std library.</p>
 <p>Rust keywords are documented in the standard library (look for <code>match</code> for example).</p>
 <p>To do so, the <code>#[doc(keyword = "...")]</code> attribute is used. Example:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -2918,6 +2927,19 @@ to enable.</p>
 <span class="boring">fn main() {
 </span>/// Some documentation about the keyword.
 #[doc(keyword = "break")]
+mod empty_mod {}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="document-builtin-attributes"><a class="header" href="#document-builtin-attributes">Document builtin attributes</a></h3>
+<p>This is for internal use in the std library.</p>
+<p>Rust builtin attributes are documented in the standard library (look for <code>repr</code> for example).</p>
+<p>To do so, the <code>#[doc(attribute = "...")]</code> attribute is used. Example:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span>#![feature(rustdoc_internals)]
+#![allow(internal_features)]
+
+<span class="boring">fn main() {
+</span>/// Some documentation about the attribute.
+#[doc(attribute = "repr")]
 mod empty_mod {}
 <span class="boring">}</span></code></pre></pre>
 <h3 id="use-the-rust-logo-as-the-crate-logo"><a class="header" href="#use-the-rust-logo-as-the-crate-logo">Use the Rust logo as the crate logo</a></h3>
@@ -2958,6 +2980,29 @@ limiting the use of <code>fundamental</code> to when documentation is built.</p>
 themselves marked as unstable. To use any of these options, pass <code>-Z unstable-options</code> as well as
 the flag in question to Rustdoc on the command-line. To do this from Cargo, you can either use the
 <code>RUSTDOCFLAGS</code> environment variable or the <code>cargo rustdoc</code> command.</p>
+<h3 id="--merge---parts-out-dir-and---include-parts-dir"><a class="header" href="#--merge---parts-out-dir-and---include-parts-dir"><code>--merge</code>, <code>--parts-out-dir</code>, and <code>--include-parts-dir</code></a></h3>
+<p>These options control how rustdoc handles files that combine data from multiple crates.</p>
+<p>By default, they act like <code>--merge=shared</code> is set, and <code>--parts-out-dir</code> and <code>--include-parts-dir</code>
+are turned off. The <code>--merge=shared</code> mode causes rustdoc to load the existing data in the out-dir,
+combine the new crate data into it, and write the result. This is very easy to use in scripts that
+manually invoke rustdoc, but it's also slow, because it performs O(crates) work on
+every crate, meaning it performs O(crates<sup>2</sup>) work.</p>
+<pre><code class="language-console">$ rustdoc crate1.rs --out-dir=doc
+$ cat doc/search.index/crateNames/*
+rd_("fcrate1")
+$ rustdoc crate2.rs --out-dir=doc
+$ cat doc/search.index/crateNames/*
+rd_("fcrate1fcrate2")
+</code></pre>
+<p>To delay shared-data merging until the end of a build, so that you only have to perform O(crates)
+work, use <code>--merge=none</code> on every crate except the last one, which will use <code>--merge=finalize</code>.</p>
+<pre><code class="language-console">$ rustdoc +nightly crate1.rs --merge=none --parts-out-dir=crate1.d -Zunstable-options
+$ cat doc/search.index/crateNames/*
+cat: 'doc/search.index/crateNames/*': No such file or directory
+$ rustdoc +nightly crate2.rs --merge=finalize --include-parts-dir=crate1.d -Zunstable-options
+$ cat doc/search.index/crateNames/*
+rd_("fcrate1fcrate2")
+</code></pre>
 <h3 id="--document-hidden-items-show-items-that-are-dochidden"><a class="header" href="#--document-hidden-items-show-items-that-are-dochidden"><code>--document-hidden-items</code>: Show items that are <code>#[doc(hidden)]</code></a></h3>
 <p><span id="document-hidden-items"></span></p>
 <p>By default, <code>rustdoc</code> does not document items that are annotated with
@@ -3048,6 +3093,11 @@ crate. However, if you want to link to docs that exist in neither of those place
 flags to control that behavior. When the <code>--extern-html-root-url</code> flag is given with a name matching
 one of your dependencies, rustdoc use that URL for those docs. Keep in mind that if those docs exist
 in the output directory, those local docs will still override this flag.</p>
+<p>The names in this flag are first matched against the names given in the <code>--extern name=</code> flags,
+which allows selecting between multiple crates with the same name (e.g. multiple versions of
+the same crate). For transitive dependencies that haven't been loaded via an <code>--extern</code> flag, matching
+falls backs to using crate names only, without ability to distinguish between multiple crates with
+the same name.</p>
 <h2 id="-z-force-unstable-if-unmarked"><a class="header" href="#-z-force-unstable-if-unmarked"><code>-Z force-unstable-if-unmarked</code></a></h2>
 <p>Using this flag looks like this:</p>
 <pre><code class="language-bash">$ rustdoc src/lib.rs -Z force-unstable-if-unmarked
@@ -3063,7 +3113,7 @@ is the <a href="https://doc.rust-lang.org/nightly/index.html">rust documentation
 <p>Using <code>index-page</code> option enables <code>enable-index-page</code> option as well.</p>
 <h2 id="--enable-index-page-generate-a-default-index-page-for-docs"><a class="header" href="#--enable-index-page-generate-a-default-index-page-for-docs"><code>--enable-index-page</code>: generate a default index page for docs</a></h2>
 <p>This feature allows the generation of a default index-page which lists the generated crates.</p>
-<h2 id="--nocapture-disable-output-capture-for-test"><a class="header" href="#--nocapture-disable-output-capture-for-test"><code>--nocapture</code>: disable output capture for test</a></h2>
+<h2 id="--no-capture-disable-output-capture-for-test"><a class="header" href="#--no-capture-disable-output-capture-for-test"><code>--no-capture</code>: disable output capture for test</a></h2>
 <p>When this flag is used with <code>--test</code>, the output (stdout and stderr) of your tests won't be
 captured by rustdoc. Instead, the output will be directed to your terminal,
 as if you had run the test executable manually. This is especially useful
@@ -3186,16 +3236,18 @@ provided crate.</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>/// ```
+/// #![allow(dead_code)]
 /// let x = 12;
+/// Ok(())
 /// ```
 pub trait Trait {}
 <span class="boring">}</span></code></pre></pre>
 <p>The generated output (formatted) will look like this:</p>
 <pre><code class="language-json">{
-  "format_version": 1,
+  "format_version": 2,
   "doctests": [
     {
-      "file": "foo.rs",
+      "file": "src/lib.rs",
       "line": 1,
       "doctest_attributes": {
         "original": "",
@@ -3211,9 +3263,17 @@ pub trait Trait {}
         "added_css_classes": [],
         "unknown": []
       },
-      "original_code": "let x = 12;",
-      "doctest_code": "#![allow(unused)]\nfn main() {\nlet x = 12;\n}",
-      "name": "foo.rs - Trait (line 1)"
+      "original_code": "#![allow(dead_code)]\nlet x = 12;\nOk(())",
+      "doctest_code": {
+        "crate_level": "#![allow(unused)]\n#![allow(dead_code)]\n\n",
+        "code": "let x = 12;\nOk(())",
+        "wrapper": {
+          "before": "fn main() { fn _inner() -&gt; core::result::Result&lt;(), impl core::fmt::Debug&gt; {\n",
+          "after": "\n} _inner().unwrap() }",
+          "returns_result": true
+        }
+      },
+      "name": "src/lib.rs - (line 1)"
     }
   ]
 }
@@ -3226,7 +3286,17 @@ pub trait Trait {}
 <li><code>line</code> is the line where the doctest starts (so where the ``` is located in the current code).</li>
 <li><code>doctest_attributes</code> contains computed information about the attributes used on the doctests. For more information about doctest attributes, take a look <a href="write-documentation/documentation-tests.html#attributes">here</a>.</li>
 <li><code>original_code</code> is the code as written in the source code before rustdoc modifies it.</li>
-<li><code>doctest_code</code> is the code modified by rustdoc that will be run. If there is a fatal syntax error, this field will not be present.</li>
+<li><code>doctest_code</code> is the code modified by rustdoc that will be run. If there is a fatal syntax error, this field will not be present.
+<ul>
+<li><code>crate_level</code> is the crate level code (like attributes or <code>extern crate</code>) that will be added at the top-level of the generated doctest.</li>
+<li><code>code</code> is "naked" doctest without anything from <code>crate_level</code> and <code>wrapper</code> content.</li>
+<li><code>wrapper</code> contains extra code that will be added before and after <code>code</code>.
+<ul>
+<li><code>returns_result</code> is a boolean. If <code>true</code>, it means that the doctest returns a <code>Result</code> type.</li>
+</ul>
+</li>
+</ul>
+</li>
 <li><code>name</code> is the name generated by rustdoc which represents this doctest.</li>
 </ul>
 </li>
@@ -3234,47 +3304,6 @@ pub trait Trait {}
 <h3 id="html"><a class="header" href="#html">html</a></h3>
 <p><code>--output-format html</code> has no effect, as the default output is HTML. This is
 accepted on stable, even though the other options for this flag aren't.</p>
-<h2 id="--enable-per-target-ignores-allow-ignore-foo-style-filters-for-doctests"><a class="header" href="#--enable-per-target-ignores-allow-ignore-foo-style-filters-for-doctests"><code>--enable-per-target-ignores</code>: allow <code>ignore-foo</code> style filters for doctests</a></h2>
-<ul>
-<li>Tracking issue: <a href="https://github.com/rust-lang/rust/issues/64245">#64245</a></li>
-</ul>
-<p>Using this flag looks like this:</p>
-<pre><code class="language-bash">$ rustdoc src/lib.rs -Z unstable-options --enable-per-target-ignores
-</code></pre>
-<p>This flag allows you to tag doctests with compiletest style <code>ignore-foo</code> filters that prevent
-rustdoc from running that test if the target triple string contains foo. For example:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>///```ignore-foo,ignore-bar
-///assert!(2 == 2);
-///```
-struct Foo;
-<span class="boring">}</span></code></pre></pre>
-<p>This will not be run when the build target is <code>super-awesome-foo</code> or <code>less-bar-awesome</code>.
-If the flag is not enabled, then rustdoc will consume the filter, but do nothing with it, and
-the above example will be run for all targets.
-If you want to preserve backwards compatibility for older versions of rustdoc, you can use</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>///```ignore,ignore-foo
-///assert!(2 == 2);
-///```
-struct Foo;
-<span class="boring">}</span></code></pre></pre>
-<p>In older versions, this will be ignored on all targets, but on newer versions <code>ignore-gnu</code> will
-override <code>ignore</code>.</p>
-<h2 id="--runtool---runtool-arg-program-to-run-tests-with-args-to-pass-to-it"><a class="header" href="#--runtool---runtool-arg-program-to-run-tests-with-args-to-pass-to-it"><code>--runtool</code>, <code>--runtool-arg</code>: program to run tests with; args to pass to it</a></h2>
-<ul>
-<li>Tracking issue: <a href="https://github.com/rust-lang/rust/issues/64245">#64245</a></li>
-</ul>
-<p>Using these options looks like this:</p>
-<pre><code class="language-bash">$ rustdoc src/lib.rs -Z unstable-options --runtool runner --runtool-arg --do-thing --runtool-arg --do-other-thing
-</code></pre>
-<p>These options can be used to run the doctest under a program, and also pass arguments to
-that program. For example, if you want to run your doctests under valgrind you might run</p>
-<pre><code class="language-bash">$ rustdoc src/lib.rs -Z unstable-options --runtool valgrind
-</code></pre>
-<p>Another use case would be to run a test inside an emulator, or through a Virtual Machine.</p>
 <h2 id="--with-examples-include-examples-of-uses-of-items-as-documentation"><a class="header" href="#--with-examples-include-examples-of-uses-of-items-as-documentation"><code>--with-examples</code>: include examples of uses of items as documentation</a></h2>
 <ul>
 <li>Tracking issue: <a href="https://github.com/rust-lang/rust/issues/88791">#88791</a></li>
@@ -3330,7 +3359,7 @@ $ rustdoc -Zunstable-options \
 The first argument to the program will be the test builder program.</p>
 <p>This flag can be passed multiple times to nest wrappers.</p>
 <h2 id="passing-arguments-to-rustc-when-compiling-doctests"><a class="header" href="#passing-arguments-to-rustc-when-compiling-doctests">Passing arguments to rustc when compiling doctests</a></h2>
-<p>You can use the <code>--doctest-compilation-args</code> flag if you want to add options when compiling the
+<p>You can use the <code>--doctest-build-arg</code> flag if you want to add options when compiling the
 doctest. For example if you have:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -3371,27 +3400,167 @@ failures:
 
 test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
 </code></pre>
-<p>But if you can limit the lint level to warning by using <code>--doctest_compilation_args=--cap-lints=warn</code>:</p>
-<pre><code class="language-console">$ rustdoc --test --doctest_compilation_args=--cap-lints=warn file.rs
+<p>But if you can limit the lint level to warning by using <code>--doctest-build-arg=--cap-lints=warn</code>:</p>
+<pre><code class="language-console">$ rustdoc --test --doctest-build-arg=--cap-lints=warn file.rs
 
 running 1 test
 test tests/rustdoc-ui/doctest/rustflags.rs - Bar (line 5) ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
 </code></pre>
-<p>The parsing of arguments works as follows: if it encounters a <code>"</code> or a <code>'</code>, it will continue
-until it finds the character unescaped (without a prepending <code>\</code>). If not inside a string, a
-whitespace character will also split arguments. Example:</p>
-<pre><code class="language-text">"hello 'a'\" ok" how are   'you today?'
+<p>In order to pass multiple arguments to the underlying compiler,
+pass <code>--doctest-build-arg ARG</code> for each argument <code>ARG</code>.</p>
+<h2 id="--generate-macro-expansion-generate-macros-expansion-toggles-in-source-code"><a class="header" href="#--generate-macro-expansion-generate-macros-expansion-toggles-in-source-code"><code>--generate-macro-expansion</code>: Generate macros expansion toggles in source code</a></h2>
+<p>This flag enables the generation of toggles to expand macros in the HTML source code pages.</p>
+<h2 id="doccfg-and-docauto_cfg"><a class="header" href="#doccfg-and-docauto_cfg"><code>#[doc(cfg)]</code> and <code>#[doc(auto_cfg)]</code></a></h2>
+<p>This feature aims at providing rustdoc users the possibility to add visual markers to the rendered documentation to know under which conditions an item is available (currently possible through the following unstable feature: <code>doc_cfg</code>).</p>
+<p>It does not aim to allow having a same item with different <code>cfg</code>s to appear more than once in the generated documentation.</p>
+<p>It does not aim to document items which are <em>inactive</em> under the current configuration (i.e., “<code>cfg</code>ed out”).</p>
+<p>This features adds the following attributes:</p>
+<ul>
+<li><code>#[doc(auto_cfg)]</code>/<code>#[doc(auto_cfg = true)]</code>/<code>#[doc(auto_cfg = false)]</code></li>
+<li><code>#[doc(cfg(...))]</code></li>
+<li><code>#![doc(auto_cfg(hide(...)))]</code> / <code>#[doc(auto_cfg(show(...)))]</code></li>
+</ul>
+<p>All of these attributes can be added to a module or to the crate root, and they will be inherited by the child items unless another attribute overrides it. This is why "opposite" attributes like <code>auto_cfg(hide(...))</code> and <code>auto_cfg(show(...))</code> are provided: they allow a child item to override its parent.</p>
+<h3 id="doccfg"><a class="header" href="#doccfg"><code>#[doc(cfg(...))]</code></a></h3>
+<p>This attribute provides a standardized format to override <code>#[cfg()]</code> attributes to document conditionally available items. Example:</p>
+<pre><code class="language-rust ignore (nightly)">// the "real" cfg condition
+#[cfg(feature = "futures-io")]
+// the `doc(cfg())` so it's displayed to the readers
+#[doc(cfg(feature = "futures-io"))]
+pub mod futures {}</code></pre>
+<p>It will display in the documentation for this module:</p>
+<pre><code class="language-text">This is supported on feature="futures-io" only.
 </code></pre>
-<p>will be split as follows:</p>
-<pre><code class="language-text">[
-    "hello 'a'\" ok",
-    "how",
-    "are",
-    "you today?",
-]
+<p>You can use it to display information in generated documentation, whether or not there is a <code>#[cfg()]</code> attribute:</p>
+<pre><code class="language-rust ignore (nightly)">#[doc(cfg(feature = "futures-io"))]
+pub mod futures {}</code></pre>
+<p>It will be displayed exactly the same as the previous code.</p>
+<p>This attribute has the same syntax as conditional compilation, but it only causes documentation to be added. This means <code>#[doc(cfg(not(windows)))]</code> will not cause your docs to be hidden on non-windows targets, even though <code>#[cfg(not(windows))]</code> does do that.</p>
+<p>If <code>doc(auto_cfg)</code> is enabled on the item, <code>doc(cfg)</code> will override it anyway so in the two previous examples, even if the <code>doc(auto_cfg)</code> feature was enabled, it would still display the same thing.</p>
+<p>This attribute works on modules and on items.</p>
+<h3 id="docauto_cfghide"><a class="header" href="#docauto_cfghide"><code>#[doc(auto_cfg(hide(...)))]</code></a></h3>
+<p>This attribute is used to prevent some <code>cfg</code> to be generated in the visual markers. It only applies to <code>#[doc(auto_cfg = true)]</code>, not to <code>#[doc(cfg(...))]</code>. So in the previous example:</p>
+<pre><code class="language-rust ignore (nightly)">#[cfg(any(unix, feature = "futures-io"))]
+pub mod futures {}</code></pre>
+<p>It currently displays both <code>unix</code> and <code>feature = "futures-io"</code> into the documentation, which is not great. To prevent the <code>unix</code> cfg to ever be displayed, you can use this attribute at the crate root level:</p>
+<pre><code class="language-rust ignore (nightly)">#![doc(auto_cfg(hide(unix)))]</code></pre>
+<p>Or directly on a given item/module as it covers any of the item's descendants:</p>
+<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg(hide(unix)))]
+#[cfg(any(unix, feature = "futures-io"))]
+pub mod futures {
+    // `futures` and all its descendants won't display "unix" in their cfgs.
+}</code></pre>
+<p>Then, the <code>unix</code> cfg will never be displayed into the documentation.</p>
+<p>Rustdoc currently hides <code>doc</code> and <code>doctest</code> attributes by default and reserves the right to change the list of "hidden by default" attributes.</p>
+<p>The attribute accepts only a list of identifiers or key/value items. So you can write:</p>
+<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg(hide(unix, doctest, feature = "something")))]
+#[doc(auto_cfg(hide()))]</code></pre>
+<p>But you cannot write:</p>
+<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg(hide(not(unix))))]</code></pre>
+<p>So if we use <code>doc(auto_cfg(hide(unix)))</code>, it means it will hide all mentions of <code>unix</code>:</p>
+<pre><code class="language-rust ignore (nightly)">#[cfg(unix)] // nothing displayed
+#[cfg(any(unix))] // nothing displayed
+#[cfg(any(unix, windows))] // only `windows` displayed</code></pre>
+<p>However, it only impacts the <code>unix</code> cfg, not the feature:</p>
+<pre><code class="language-rust ignore (nightly)">#[cfg(feature = "unix")] // `feature = "unix"` is displayed</code></pre>
+<p>If <code>cfg_auto(show(...))</code> and <code>cfg_auto(hide(...))</code> are used to show/hide a same <code>cfg</code> on a same item, it'll emit an error. Example:</p>
+<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg(hide(unix)))]
+#[doc(auto_cfg(show(unix)))] // Error!
+pub fn foo() {}</code></pre>
+<p>Using this attribute will re-enable <code>auto_cfg</code> if it was disabled at this location:</p>
+<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg = false)] // Disabling `auto_cfg`
+pub fn foo() {}</code></pre>
+<p>And using <code>doc(auto_cfg)</code> will re-enable it:</p>
+<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg = false)] // Disabling `auto_cfg`
+pub mod module {
+    #[doc(auto_cfg(hide(unix)))] // `auto_cfg` is re-enabled.
+    pub fn foo() {}
+}</code></pre>
+<p>However, using <code>doc(auto_cfg = ...)</code> and <code>doc(auto_cfg(...))</code> on the same item will emit an error:</p>
+<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg = false)]
+#[doc(auto_cfg(hide(unix)))] // error
+pub fn foo() {}</code></pre>
+<p>The reason behind this is that <code>doc(auto_cfg = ...)</code> enables or disables the feature, whereas <code>doc(auto_cfg(...))</code> enables it unconditionally, making the first attribute to appear useless as it will be overidden by the next <code>doc(auto_cfg)</code> attribute.</p>
+<h3 id="docauto_cfgshow"><a class="header" href="#docauto_cfgshow"><code>#[doc(auto_cfg(show(...)))]</code></a></h3>
+<p>This attribute does the opposite of <code>#[doc(auto_cfg(hide(...)))]</code>: if you used <code>#[doc(auto_cfg(hide(...)))]</code> and want to revert its effect on an item and its descendants, you can use <code>#[doc(auto_cfg(show(...)))]</code>.
+It only applies to <code>#[doc(auto_cfg = true)]</code>, not to <code>#[doc(cfg(...))]</code>.</p>
+<p>For example:</p>
+<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg(hide(unix)))]
+#[cfg(any(unix, feature = "futures-io"))]
+pub mod futures {
+    // `futures` and all its descendants won't display "unix" in their cfgs.
+    #[doc(auto_cfg(show(unix)))]
+    pub mod child {
+        // `child` and all its descendants will display "unix" in their cfgs.
+    }
+}</code></pre>
+<p>The attribute accepts only a list of identifiers or key/value items. So you can write:</p>
+<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg(show(unix, doctest, feature = "something")))]
+#[doc(auto_cfg(show()))]</code></pre>
+<p>But you cannot write:</p>
+<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg(show(not(unix))))]</code></pre>
+<p>If <code>auto_cfg(show(...))</code> and <code>auto_cfg(hide(...))</code> are used to show/hide a same <code>cfg</code> on a same item, it'll emit an error. Example:</p>
+<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg(show(unix)))]
+#[doc(auto_cfg(hide(unix)))] // Error!
+pub fn foo() {}</code></pre>
+<p>Using this attribute will re-enable <code>auto_cfg</code> if it was disabled at this location:</p>
+<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg = false)] // Disabling `auto_cfg`
+#[doc(auto_cfg(show(unix)))] // `auto_cfg` is re-enabled.
+pub fn foo() {}</code></pre>
+<h3 id="docauto_cfgdocauto_cfg--truedocauto_cfg--false"><a class="header" href="#docauto_cfgdocauto_cfg--truedocauto_cfg--false"><code>#[doc(auto_cfg)</code>/<code>#[doc(auto_cfg = true)]</code>/<code>#[doc(auto_cfg = false)]</code></a></h3>
+<p>By default, <code>#[doc(auto_cfg)]</code> is enabled at the crate-level. When it's enabled, Rustdoc will automatically display <code>cfg(...)</code> compatibility information as-if the same <code>#[doc(cfg(...))]</code> had been specified.</p>
+<p>This attribute impacts the item on which it is used and its descendants.</p>
+<p>So if we take back the previous example:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(feature = "futures-io")]
+pub mod futures {}
+<span class="boring">}</span></code></pre></pre>
+<p>There's no need to "duplicate" the <code>cfg</code> into a <code>doc(cfg())</code> to make Rustdoc display it.</p>
+<p>In some situations, the detailed conditional compilation rules used to implement the feature might not serve as good documentation (for example, the list of supported platforms might be very long, and it might be better to document them in one place). To turn it off, add the <code>#[doc(auto_cfg = false)]</code> attribute on the item.</p>
+<p>If no argument is specified (ie <code>#[doc(auto_cfg)]</code>), it's the same as writing <code>#[doc(auto_cfg = true)]</code>.</p>
+<h2 id="inheritance"><a class="header" href="#inheritance">Inheritance</a></h2>
+<p>Rustdoc merges <code>cfg</code> attributes from parent modules to its children. For example, in this case, the module <code>non_unix</code> will describe the entire compatibility matrix for the module, and not just its directly attached information:</p>
+<pre><code class="language-rust ignore (nightly)">#[doc(cfg(any(windows, unix)))]
+pub mod desktop {
+    #[doc(cfg(not(unix)))]
+    pub mod non_unix {
+        // ...
+    }
+}</code></pre>
+<p>This code will display:</p>
+<pre><code class="language-text">Available on (Windows or Unix) and non-Unix only.
 </code></pre>
+<h3 id="re-exports-and-inlining"><a class="header" href="#re-exports-and-inlining">Re-exports and inlining</a></h3>
+<p><code>cfg</code> attributes of a re-export are never merged with the re-exported item(s) attributes except if the re-export has the <code>#[doc(inline)]</code> attribute. In this case, the <code>cfg</code> of the re-exported item will be merged with the re-export's.</p>
+<p>When talking about "attributes merge", we mean that if the re-export has <code>#[cfg(unix)]</code> and the re-exported item has <code>#[cfg(feature = "foo")]</code>, you will only see <code>cfg(unix)</code> on the re-export and only <code>cfg(feature = "foo")</code> on the re-exported item, unless the re-export has <code>#[doc(inline)]</code>, then you will only see the re-exported item with both <code>cfg(unix)</code> and <code>cfg(feature = "foo")</code>.</p>
+<p>Example:</p>
+<pre><code class="language-rust ignore (nightly)">#[doc(cfg(any(windows, unix)))]
+pub mod desktop {
+    #[doc(cfg(not(unix)))]
+    pub mod non_unix {
+        // code
+    }
+}
+
+#[doc(cfg(target_os = "freebsd"))]
+pub use desktop::non_unix as non_unix_desktop;
+#[doc(cfg(target_os = "macos"))]
+#[doc(inline)]
+pub use desktop::non_unix as inlined_non_unix_desktop;</code></pre>
+<p>In this example, <code>non_unix_desktop</code> will only display <code>cfg(target_os = "freeebsd")</code> and not display any <code>cfg</code> from <code>desktop::non_unix</code>.</p>
+<p>On the contrary, <code>inlined_non_unix_desktop</code> will have cfgs from both the re-export and the re-exported item.</p>
+<p>So that also means that if a crate re-exports a foreign item, unless it has <code>#[doc(inline)]</code>, the <code>cfg</code> and <code>doc(cfg)</code> attributes will not be visible:</p>
+<pre><code class="language-rust ignore (nightly)">// dep:
+#[cfg(feature = "a")]
+pub struct S;
+
+// crate using dep:
+
+// There will be no mention of `feature = "a"` in the documentation.
+pub use dep::S as Y;</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="deprecated-features"><a class="header" href="#deprecated-features">Deprecated features</a></h1>
 <h2 id="passes"><a class="header" href="#passes">Passes</a></h2>
 <p>Rustdoc has a concept called "passes". These are transformations that

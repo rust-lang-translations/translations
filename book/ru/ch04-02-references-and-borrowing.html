@@ -217,10 +217,10 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="Ссылки-и-заимствование"><a class="header" href="#Ссылки-и-заимствование">Ссылки и заимствование</a></h2>
-<p>Проблема с решением из Листинга 4-5 заключается в том, что мы должны возвращать <code>String</code> обратно из вызванной функции, чтобы использовать <code>String</code> после вызова <code>calculate_length</code>, потому что <code>String</code> перемещается в <code>calculate_length</code>. Вместо этого мы можем передавать значение <code>String</code> по ссылке. Ссылка похожа на указатель в том смысле, что она является адресом, по которому мы можем проследовать, чтобы получить доступ к данным, хранящимся по этому адресу; эти данные принадлежат какой-то другой переменной. В отличие от указателя, ссылка гарантирует, что данные, к которым по ней можно обратиться, действительны всё время жизни ссылки.</p>
+<p>The issue with the tuple code in Listing 4-5 is that we have to return the <code>String</code> to the calling function so that we can still use the <code>String</code> after the call to <code>calculate_length</code>, because the <code>String</code> was moved into <code>calculate_length</code>. Instead, we can provide a reference to the <code>String</code> value. A reference is like a pointer in that it’s an address we can follow to access the data stored at that address; that data is owned by some other variable. Unlike a pointer, a reference is guaranteed to point to a valid value of a particular type for the life of that reference.</p>
 <p>Вот как вы могли бы определить и использовать функцию <code>calculate_length</code>, принимающую как параметр ссылку, а не прямо получающую владение над значением:</p>
 <Listing file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024">fn main() {
     let s1 = String::from("hello");
 
     let len = calculate_length(&amp;s1);
@@ -232,16 +232,16 @@ fn calculate_length(s: &amp;String) -&gt; usize {
     s.len()
 }</code></pre></pre>
 </Listing>
-<p>Во-первых, мы теперь возвращаем не кортеж, а только необходимое нам значение длины. Во-вторых, обратите внимание, что мы передаём <code>&amp;s1</code> в <code>calculate_length</code> и в её сигнатуре используем <code>&amp;String</code>, а не <code>String</code>. Имена с амперсандами представляют собой <em>ссылки</em> — они позволяют вам ссылаться на некоторое значение, не принимая владение над ними. Рисунок 4-5 показывает, как это следует представлять.</p>
+<p>First, notice that all the tuple code in the variable declaration and the function return value is gone. Second, note that we pass <code>&amp;s1</code> into <code>calculate_length</code> and, in its definition, we take <code>&amp;String</code> rather than <code>String</code>. These ampersands represent references, and they allow you to refer to some value without taking ownership of it. Figure 4-6 depicts this concept.</p>
 <p><img alt="Три таблицы: таблица s содержит только указатель на таблицу
 s1. Таблица s1 содержит данные на стеке строки s1 и указывает на
 текстовые данные в куче." src="img/trpl04-06.svg" class="center" /></p>
-<p><span class="caption">Рисунок 4-6: Схема строения <code>&amp;String s</code>, указывающей на <code>String s1</code></span></p>
+<p><span class="caption">Figure 4-6: A diagram of <code>&amp;String</code> <code>s</code> pointing at <code>String</code> <code>s1</code></span></p>
 <blockquote>
 <p>Примечание: Противоположностью взятия ссылки с оператором <code>&amp;</code> является <em>разыменование</em>, выполняемое с помощью оператора разыменования <code>*</code>. Мы увидим некоторые варианты использования оператора разыменования в Главе 8 и обсудим детали этого процесса в Главе 15.</p>
 </blockquote>
 <p>Давайте подробнее рассмотрим, как нам вызвать нашу функцию:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span>    let s1 = String::from("hello");
 
     let len = calculate_length(&amp;s1);
@@ -254,7 +254,7 @@ s1. Таблица s1 содержит данные на стеке строки
 </span><span class="boring">}</span></code></pre></pre>
 <p><code>&amp;s1</code> создаёт ссылку, которая ссылается на значение <code>s1</code>, но не владеет им. Поскольку она не владеет им, значение, на которое она указывает, не будет удалено, когда ссылка будет удалена.</p>
 <p>Аналогично, в сигнатуре функции используется <code>&amp;</code> для указания на то, что тип параметра <code>s</code> является ссылкой.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span><span class="boring">    let s1 = String::from("hello");
 </span><span class="boring">
 </span><span class="boring">    let len = calculate_length(&amp;s1);
@@ -264,11 +264,11 @@ s1. Таблица s1 содержит данные на стеке строки
 </span><span class="boring">
 </span>fn calculate_length(s: &amp;String) -&gt; usize { // s — ссылка на String
     s.len()
-} // Здесь s входит в область видимости. Но поскольку s не владеет тем, на что
-  // ссылается, значение не удаляется.</code></pre></pre>
+} // Here, s goes out of scope. But because s does not have ownership of what
+  // it refers to, the String is not dropped.</code></pre></pre>
 <p>Область видимости <code>s</code> такая же, как и область видимости любого параметра функции, но значение, на которое указывает ссылка, не удаляется, когда <code>s</code> перестаёт использоваться, потому что <code>s</code> не является его владельцем. Если функция принимает ссылки (а не фактические значения) в качестве параметров, нам не нужно возвращать значения, чтобы обратно получить над ними владение, потому что мы и не передаём владение функции.</p>
 <p>Мы называем процесс создания ссылки <em>заимствованием</em>. Как и в реальной жизни, если человек чем-то владеет, вы можете это у него позаимствовать. Когда вы закончите, вы должны вернуть заимствованное законному владельцу: вы не становитесь владельцем.</p>
-<p>А что произойдёт, если попытаться изменить заимствованные данные? Попробуйте запустить код из Листинга 4-6: ничего не выйдет!</p>
+<p>So, what happens if we try to modify something we’re borrowing? Try the code in Listing 4-6. Spoiler alert: It doesn’t work!</p>
 <Listing number="4-6" file-name="src/main.rs" caption="Attempting to modify a borrowed value">
 <pre><code class="language-rust ignore does_not_compile">fn main() {
     let s = String::from("hello");
@@ -301,7 +301,7 @@ error: could not compile `ownership` (bin "ownership") due to 1 previous error
 <h3 id="Изменяемые-ссылки"><a class="header" href="#Изменяемые-ссылки">Изменяемые ссылки</a></h3>
 <p>Мы можем исправить код из Листинга 4-6, чтобы позволить себе изменять заимствованное значение: внеся небольшие правки, мы можем получить <em>изменяемую ссылку</em>:</p>
 <Listing file-name="src/main.rs">
-<pre><pre class="playground"><code class="language-rust edition2021">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024">fn main() {
     let mut s = String::from("hello");
 
     change(&amp;mut s);
@@ -311,8 +311,8 @@ fn change(some_string: &amp;mut String) {
     some_string.push_str(", world");
 }</code></pre></pre>
 </Listing>
-<p>Во-первых, мы меняем объявление <code>s</code>, чтобы сделать её <code>mut</code>. Затем мы создаём изменяемую ссылку с помощью <code>&amp;mut s</code> и передаём её функции <code>change</code>. Во-вторых, мы соответственно обновляем сигнатуру функции, чтобы мочь принять изменяемую ссылку: <code>some_string: &amp;mut String</code>. Это даёт понимать, что <code>change</code> может изменять значение, которое заимствует.</p>
-<p>Изменяемые ссылки имеют одно большое ограничительное правило: если у вас есть изменяемая ссылка на значение, у вас не может быть других ссылок на это же значение. Код, который пытается создать две изменяемые ссылки на <code>s</code>, не скомпилируется:</p>
+<p>First, we change <code>s</code> to be <code>mut</code>. Then, we create a mutable reference with <code>&amp;mut s</code> where we call the <code>change</code> function and update the function signature to accept a mutable reference with <code>some_string: &amp;mut String</code>. This makes it very clear that the <code>change</code> function will mutate the value it borrows.</p>
+<p>Mutable references have one big restriction: If you have a mutable reference to a value, you can have no other references to that value. This code that attempts to create two mutable references to <code>s</code> will fail:</p>
 <Listing file-name="src/main.rs">
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">fn main() {
 </span>    let mut s = String::from("hello");
@@ -320,7 +320,7 @@ fn change(some_string: &amp;mut String) {
     let r1 = &amp;mut s;
     let r2 = &amp;mut s;
 
-    println!("{}, {}", r1, r2);
+    println!("{r1}, {r2}");
 <span class="boring">}</span></code></pre>
 </Listing>
 <p>Вот ошибка:</p>
@@ -334,8 +334,8 @@ error[E0499]: cannot borrow `s` as mutable more than once at a time
 5 |     let r2 = &amp;mut s;
   |              ^^^^^^ second mutable borrow occurs here
 6 |
-7 |     println!("{}, {}", r1, r2);
-  |                        -- first borrow later used here
+7 |     println!("{r1}, {r2}");
+  |                -- first borrow later used here
 
 For more information about this error, try `rustc --explain E0499`.
 error: could not compile `ownership` (bin "ownership") due to 1 previous error
@@ -349,7 +349,7 @@ error: could not compile `ownership` (bin "ownership") due to 1 previous error
 </ul>
 <p>Гонки данных вызывают неопределённое поведение, и их может быть сложно диагностировать и исправить, когда вы пытаетесь отследить их во время работы программы. Rust предотвращает такую проблему, отказываясь компилировать код с гонками данных.</p>
 <p>Как и всегда, мы можем использовать фигурные скобки для создания новой области видимости, позволяющей использовать несколько изменяемых ссылок, но не <em>одновременно</em>:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span>    let mut s = String::from("hello");
 
     {
@@ -366,7 +366,7 @@ error: could not compile `ownership` (bin "ownership") due to 1 previous error
     let r2 = &amp;s; // всё хорошо
     let r3 = &amp;mut s; // ВСЁ ПЛОХО
 
-    println!("{}, {} и {}", r1, r2, r3);
+    println!("{r1}, {r2}, and {r3}");
 <span class="boring">}</span></code></pre>
 <p>Вот ошибка:</p>
 <pre><code class="language-console">$ cargo run
@@ -374,14 +374,14 @@ error: could not compile `ownership` (bin "ownership") due to 1 previous error
 error[E0502]: cannot borrow `s` as mutable because it is also borrowed as immutable
  --&gt; src/main.rs:6:14
   |
-4 |     let r1 = &amp;s; // всё хорошо
+4 |     let r1 = &amp;s; // no problem
   |              -- immutable borrow occurs here
-5 |     let r2 = &amp;s; // всё хорошо
-6 |     let r3 = &amp;mut s; // ВСЁ ПЛОХО
+5 |     let r2 = &amp;s; // no problem
+6 |     let r3 = &amp;mut s; // BIG PROBLEM
   |              ^^^^^^ mutable borrow occurs here
 7 |
-8 |     println!("{}, {} и {}", r1, r2, r3);
-  |                                -- immutable borrow later used here
+8 |     println!("{r1}, {r2}, and {r3}");
+  |                -- immutable borrow later used here
 
 For more information about this error, try `rustc --explain E0502`.
 error: could not compile `ownership` (bin "ownership") due to 1 previous error
@@ -389,7 +389,7 @@ error: could not compile `ownership` (bin "ownership") due to 1 previous error
 <p>Да. Мы, <em>в том числе</em>, не можем иметь изменяемую ссылку, пока у нас действительна неизменяемая ссылка на то же значение.</p>
 <p>Дело в том, что пользователи неизменяемой ссылки не ожидают, что значение внезапно изменится у них под носом! Однако, множественные неизменяемые ссылки разрешены: никто, кто просто читает данные, не может повлиять на чтение данных кем-либо ещё.</p>
 <p>Обратите внимание, что область видимости ссылки начинается с того места, где она создаётся, и продолжается до последнего использования этой ссылки. Например, этот код будет компилироваться, потому что после макроса <code>println!</code> неизменяемые ссылки больше не будут использоваться, и у нас не будет одновременно используемых изменяемых и неизменяемых ссылок:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span>    let mut s = String::from("hello");
 
     let r1 = &amp;s; // всё хорошо
@@ -400,10 +400,10 @@ error: could not compile `ownership` (bin "ownership") due to 1 previous error
     let r3 = &amp;mut s; // всё хорошо
     println!("{r3}");
 <span class="boring">}</span></code></pre></pre>
-<p>Области видимости неизменяемых ссылок <code>r1</code> и <code>r2</code> заканчиваются после <code>println!</code>, то есть до создания изменяемой ссылки <code>r3</code>. Эти области не пересекаются, поэтому этот код допустим: компилятор может сказать, что ссылка больше не используется в точке перед концом области видимости.</p>
-<p>Несмотря на то, что ошибки заимствования иногда могут вогнать во фрустрацию, помните, что компилятор Rust заранее (во время компиляции, а не во время исполнения) определяет потенциальную ошибку и точно показывает, в чём проблема. Эти правила и их проверки освобождают вас от мучительного поиска причин того, в какой момент и почему меняются нужные вам данные.</p>
+<p>The scopes of the immutable references <code>r1</code> and <code>r2</code> end after the <code>println!</code> where they are last used, which is before the mutable reference <code>r3</code> is created. These scopes don’t overlap, so this code is allowed: The compiler can tell that the reference is no longer being used at a point before the end of the scope.</p>
+<p>Even though borrowing errors may be frustrating at times, remember that it’s the Rust compiler pointing out a potential bug early (at compile time rather than at runtime) and showing you exactly where the problem is. Then, you don’t have to track down why your data isn’t what you thought it was.</p>
 <h3 id="Висячие-ссылки"><a class="header" href="#Висячие-ссылки">Висячие ссылки</a></h3>
-<p>В языках с указателями весьма легко ошибочно создать "висячую" ссылку — ссылку, указывающую на участок памяти, который был освобождён. Компилятор Rust гарантирует, что ссылки никогда не будут недействительными: если у вас есть ссылка на какие-то данные, компилятор обеспечит, что эти данные не покинут области видимости прежде, чем из области видимости исчезнет ссылка.</p>
+<p>In languages with pointers, it’s easy to erroneously create a <em>dangling pointer</em>—a pointer that references a location in memory that may have been given to someone else—by freeing some memory while preserving a pointer to that memory. In Rust, by contrast, the compiler guarantees that references will never be dangling references: If you have a reference to some data, the compiler will ensure that the data will not go out of scope before the reference to the data does.</p>
 <p>Давайте попробуем создать висячую ссылку, чтобы увидеть, как Rust предотвращает их появление — сразу на этапе компиляции:</p>
 <Listing file-name="src/main.rs">
 <pre><code class="language-rust ignore does_not_compile">fn main() {
@@ -436,15 +436,8 @@ help: instead, you are more likely to want to return an owned value
 5 + fn dangle() -&gt; String {
   |
 
-error[E0515]: cannot return reference to local variable `s`
- --&gt; src/main.rs:8:5
-  |
-8 |     &amp;s
-  |     ^^ returns a reference to data owned by the current function
-
-Some errors have detailed explanations: E0106, E0515.
-For more information about an error, try `rustc --explain E0106`.
-error: could not compile `ownership` (bin "ownership") due to 2 previous errors
+For more information about this error, try `rustc --explain E0106`.
+error: could not compile `ownership` (bin "ownership") due to 1 previous error
 </code></pre>
 <p>Это сообщение об ошибке относится к особенности языка, которую мы ещё не рассмотрели: "времена жизни". Мы подробно обсудим времена жизни в Главе 10. Но даже если не обращать внимание на строки об ошибках о времени жизни, всё равно можно заметить самую главную ошибку:</p>
 <pre><code class="language-text">this function's return type contains a borrowed value, but there is no value
@@ -461,12 +454,12 @@ for it to be borrowed from
     let s = String::from("hello"); // в s записывается новое значение типа String
 
     &amp;s // мы возвращаем ссылку s на значение типа String
-} // Здесь s покидает область видимости, и её память высвобождается
-  // Беда!</code></pre>
+} // Here, s goes out of scope and is dropped, so its memory goes away.
+  // Danger!</code></pre>
 </Listing>
 <p>Поскольку <code>s</code> создаётся внутри <code>dangle</code>, то когда тело <code>dangle</code> закончится, <code>s</code> будет освобождена. Но мы попытались вернуть ссылку на неё. Это означает, что эта ссылка будет указывать на недействительную String. Это, очевидно, проблема! Однако Rust нас от неё защищает.</p>
 <p>Решением будет вернуть непосредственно само значение <code>String</code>:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span><span class="boring">    let string = no_dangle();
 </span><span class="boring">}
 </span><span class="boring">

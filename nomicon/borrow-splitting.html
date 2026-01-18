@@ -219,7 +219,7 @@ working with a composite structure. The borrow checker (a.k.a. borrowck)
 understands some basic stuff, but will fall over pretty easily. It does
 understand structs sufficiently to know that it's possible to borrow disjoint
 fields of a struct simultaneously. So this works today:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Foo {
     a: i32,
@@ -238,7 +238,7 @@ println!("{} {} {} {}", a, b, c, c2);
 <span class="boring">}</span></code></pre></pre>
 <p>However borrowck doesn't understand arrays or slices in any way, so this doesn't
 work:</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut x = [1, 2, 3];
 let a = &amp;mut x[0];
@@ -268,7 +268,7 @@ that consumes the slice and returns two mutable slices. One for everything to
 the left of the index, and one for everything to the right. Intuitively we know
 this is safe because the slices don't overlap, and therefore alias. However
 the implementation requires some unsafety:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use std::slice::from_raw_parts_mut;
 </span><span class="boring">struct FakeSlice&lt;T&gt;(T);
@@ -292,7 +292,7 @@ the implementation requires some unsafety:</p>
 same value, we explicitly construct brand-new slices through raw pointers.</p>
 <p>However more subtle is how iterators that yield mutable references work.
 The iterator trait is defined as follows:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>trait Iterator {
     type Item;
@@ -315,7 +315,7 @@ actually ever yield multiple mutable references to the same piece of data.</p>
 <p>Perhaps surprisingly, mutable iterators don't require unsafe code to be
 implemented for many types!</p>
 <p>For instance here's a singly linked list:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {}
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {}
 </span>type Link&lt;T&gt; = Option&lt;Box&lt;Node&lt;T&gt;&gt;&gt;;
 
 struct Node&lt;T&gt; {
@@ -346,7 +346,7 @@ impl&lt;'a, T&gt; Iterator for IterMut&lt;'a, T&gt; {
     }
 }</code></pre></pre>
 <p>Here's a mutable slice:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {}
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {}
 </span>use std::mem;
 
 pub struct IterMut&lt;'a, T: 'a&gt;(&amp;'a mut[T]);
@@ -376,7 +376,7 @@ impl&lt;'a, T&gt; DoubleEndedIterator for IterMut&lt;'a, T&gt; {
     }
 }</code></pre></pre>
 <p>And here's a binary tree:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {}
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {}
 </span>use std::collections::VecDeque;
 
 type Link&lt;T&gt; = Option&lt;Box&lt;Node&lt;T&gt;&gt;&gt;;
@@ -407,7 +407,9 @@ pub struct IterMut&lt;'a, T: 'a&gt;(VecDeque&lt;NodeIterMut&lt;'a, T&gt;&gt;);
 impl&lt;T&gt; Tree&lt;T&gt; {
     pub fn iter_mut(&amp;mut self) -&gt; IterMut&lt;T&gt; {
         let mut deque = VecDeque::new();
-        self.root.as_mut().map(|root| deque.push_front(root.iter_mut()));
+        if let Some(root) = self.root.as_mut() {
+            deque.push_front(root.iter_mut());
+        }
         IterMut(deque)
     }
 }
@@ -416,42 +418,33 @@ impl&lt;T&gt; Node&lt;T&gt; {
     pub fn iter_mut(&amp;mut self) -&gt; NodeIterMut&lt;T&gt; {
         NodeIterMut {
             elem: Some(&amp;mut self.elem),
-            left: self.left.as_mut().map(|node| &amp;mut **node),
-            right: self.right.as_mut().map(|node| &amp;mut **node),
+            left: self.left.as_deref_mut(),
+            right: self.right.as_deref_mut(),
         }
     }
 }
-
 
 impl&lt;'a, T&gt; Iterator for NodeIterMut&lt;'a, T&gt; {
     type Item = State&lt;'a, T&gt;;
 
     fn next(&amp;mut self) -&gt; Option&lt;Self::Item&gt; {
-        match self.left.take() {
-            Some(node) =&gt; Some(State::Node(node)),
-            None =&gt; match self.elem.take() {
-                Some(elem) =&gt; Some(State::Elem(elem)),
-                None =&gt; match self.right.take() {
-                    Some(node) =&gt; Some(State::Node(node)),
-                    None =&gt; None,
-                }
-            }
-        }
+        self.left.take().map(State::Node).or_else(|| {
+            self.elem
+                .take()
+                .map(State::Elem)
+                .or_else(|| self.right.take().map(State::Node))
+        })
     }
 }
 
 impl&lt;'a, T&gt; DoubleEndedIterator for NodeIterMut&lt;'a, T&gt; {
     fn next_back(&amp;mut self) -&gt; Option&lt;Self::Item&gt; {
-        match self.right.take() {
-            Some(node) =&gt; Some(State::Node(node)),
-            None =&gt; match self.elem.take() {
-                Some(elem) =&gt; Some(State::Elem(elem)),
-                None =&gt; match self.left.take() {
-                    Some(node) =&gt; Some(State::Node(node)),
-                    None =&gt; None,
-                }
-            }
-        }
+        self.right.take().map(State::Node).or_else(|| {
+            self.elem
+                .take()
+                .map(State::Elem)
+                .or_else(|| self.left.take().map(State::Node))
+        })
     }
 }
 
@@ -459,10 +452,12 @@ impl&lt;'a, T&gt; Iterator for IterMut&lt;'a, T&gt; {
     type Item = &amp;'a mut T;
     fn next(&amp;mut self) -&gt; Option&lt;Self::Item&gt; {
         loop {
-            match self.0.front_mut().and_then(|node_it| node_it.next()) {
+            match self.0.front_mut().and_then(Iterator::next) {
                 Some(State::Elem(elem)) =&gt; return Some(elem),
                 Some(State::Node(node)) =&gt; self.0.push_front(node.iter_mut()),
-                None =&gt; if let None = self.0.pop_front() { return None },
+                None =&gt; {
+                    self.0.pop_front()?;
+                }
             }
         }
     }
@@ -471,10 +466,12 @@ impl&lt;'a, T&gt; Iterator for IterMut&lt;'a, T&gt; {
 impl&lt;'a, T&gt; DoubleEndedIterator for IterMut&lt;'a, T&gt; {
     fn next_back(&amp;mut self) -&gt; Option&lt;Self::Item&gt; {
         loop {
-            match self.0.back_mut().and_then(|node_it| node_it.next_back()) {
+            match self.0.back_mut().and_then(DoubleEndedIterator::next_back) {
                 Some(State::Elem(elem)) =&gt; return Some(elem),
                 Some(State::Node(node)) =&gt; self.0.push_back(node.iter_mut()),
-                None =&gt; if let None = self.0.pop_back() { return None },
+                None =&gt; {
+                    self.0.pop_back()?;
+                }
             }
         }
     }

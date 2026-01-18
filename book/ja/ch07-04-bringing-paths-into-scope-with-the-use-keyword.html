@@ -217,8 +217,8 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="bringing-paths-into-scope-with-the-use-keyword"><a class="header" href="#bringing-paths-into-scope-with-the-use-keyword">Bringing Paths into Scope with the <code>use</code> Keyword</a></h2>
-<p>Having to write out the paths to call functions can feel inconvenient and repetitive. In Listing 7-7, whether we chose the absolute or relative path to the <code>add_to_waitlist</code> function, every time we wanted to call <code>add_to_waitlist</code> we had to specify <code>front_of_house</code> and <code>hosting</code> too. Fortunately, there’s a way to simplify this process: we can create a shortcut to a path with the <code>use</code> keyword once, and then use the shorter name everywhere else in the scope.</p>
-<p>In Listing 7-11, we bring the <code>crate::front_of_house::hosting</code> module into the scope of the <code>eat_at_restaurant</code> function so we only have to specify <code>hosting::add_to_waitlist</code> to call the <code>add_to_waitlist</code> function in <code>eat_at_restaurant</code>.</p>
+<p>Having to write out the paths to call functions can feel inconvenient and repetitive. In Listing 7-7, whether we chose the absolute or relative path to the <code>add_to_waitlist</code> function, every time we wanted to call <code>add_to_waitlist</code> we had to specify <code>front_of_house</code> and <code>hosting</code> too. Fortunately, there’s a way to simplify this process: We can create a shortcut to a path with the <code>use</code> keyword once and then use the shorter name everywhere else in the scope.</p>
+<p>In Listing 7-11, we bring the <code>crate::front_of_house::hosting</code> module into the scope of the <code>eat_at_restaurant</code> function so that we only have to specify <code>hosting::add_to_waitlist</code> to call the <code>add_to_waitlist</code> function in <code>eat_at_restaurant</code>.</p>
 <Listing number="7-11" file-name="src/lib.rs" caption="Bringing a module into scope with `use`">
 <pre><code class="language-rust noplayground test_harness">mod front_of_house {
     pub mod hosting {
@@ -252,12 +252,13 @@ mod customer {
 <p>The compiler error shows that the shortcut no longer applies within the <code>customer</code> module:</p>
 <pre><code class="language-console">$ cargo build
    Compiling restaurant v0.1.0 (file:///projects/restaurant)
-error[E0433]: failed to resolve: use of undeclared crate or module `hosting`
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `hosting`
   --&gt; src/lib.rs:11:9
    |
 11 |         hosting::add_to_waitlist();
-   |         ^^^^^^^ use of undeclared crate or module `hosting`
+   |         ^^^^^^^ use of unresolved module or unlinked crate `hosting`
    |
+   = help: if you wanted to use a crate named `hosting`, use `cargo add hosting` to add it to your `Cargo.toml`
 help: consider importing this module through its public re-export
    |
 10 +     use crate::hosting;
@@ -294,14 +295,14 @@ pub fn eat_at_restaurant() {
 <p>Although both Listing 7-11 and Listing 7-13 accomplish the same task, Listing 7-11 is the idiomatic way to bring a function into scope with <code>use</code>. Bringing the function’s parent module into scope with <code>use</code> means we have to specify the parent module when calling the function. Specifying the parent module when calling the function makes it clear that the function isn’t locally defined while still minimizing repetition of the full path. The code in Listing 7-13 is unclear as to where <code>add_to_waitlist</code> is defined.</p>
 <p>On the other hand, when bringing in structs, enums, and other items with <code>use</code>, it’s idiomatic to specify the full path. Listing 7-14 shows the idiomatic way to bring the standard library’s <code>HashMap</code> struct into the scope of a binary crate.</p>
 <Listing number="7-14" file-name="src/main.rs" caption="Bringing `HashMap` into scope in an idiomatic way">
-<pre><pre class="playground"><code class="language-rust edition2021">use std::collections::HashMap;
+<pre><pre class="playground"><code class="language-rust edition2024">use std::collections::HashMap;
 
 fn main() {
     let mut map = HashMap::new();
     map.insert(1, 2);
 }</code></pre></pre>
 </Listing>
-<p>There’s no strong reason behind this idiom: it’s just the convention that has emerged, and folks have gotten used to reading and writing Rust code this way.</p>
+<p>There’s no strong reason behind this idiom: It’s just the convention that has emerged, and folks have gotten used to reading and writing Rust code this way.</p>
 <p>The exception to this idiom is if we’re bringing two items with the same name into scope with <code>use</code> statements, because Rust doesn’t allow that. Listing 7-15 shows how to bring two <code>Result</code> types into scope that have the same name but different parent modules, and how to refer to them.</p>
 <Listing number="7-15" file-name="src/lib.rs" caption="Bringing two types with the same name into the same scope requires using their parent modules.">
 <pre><code class="language-rust noplayground">use std::fmt;
@@ -319,7 +320,7 @@ fn function2() -&gt; io::Result&lt;()&gt; {
 </Listing>
 <p>As you can see, using the parent modules distinguishes the two <code>Result</code> types. If instead we specified <code>use std::fmt::Result</code> and <code>use std::io::Result</code>, we’d have two <code>Result</code> types in the same scope, and Rust wouldn’t know which one we meant when we used <code>Result</code>.</p>
 <h3 id="providing-new-names-with-the-as-keyword"><a class="header" href="#providing-new-names-with-the-as-keyword">Providing New Names with the <code>as</code> Keyword</a></h3>
-<p>There’s another solution to the problem of bringing two types of the same name into the same scope with <code>use</code>: after the path, we can specify <code>as</code> and a new local name, or <em>alias</em>, for the type. Listing 7-16 shows another way to write the code in Listing 7-15 by renaming one of the two <code>Result</code> types using <code>as</code>.</p>
+<p>There’s another solution to the problem of bringing two types of the same name into the same scope with <code>use</code>: After the path, we can specify <code>as</code> and a new local name, or <em>alias</em>, for the type. Listing 7-16 shows another way to write the code in Listing 7-15 by renaming one of the two <code>Result</code> types using <code>as</code>.</p>
 <Listing number="7-16" file-name="src/lib.rs" caption="Renaming a type when it’s brought into scope with the `as` keyword">
 <pre><code class="language-rust noplayground">use std::fmt::Result;
 use std::io::Result as IoResult;
@@ -336,7 +337,7 @@ fn function2() -&gt; IoResult&lt;()&gt; {
 </Listing>
 <p>In the second <code>use</code> statement, we chose the new name <code>IoResult</code> for the <code>std::io::Result</code> type, which won’t conflict with the <code>Result</code> from <code>std::fmt</code> that we’ve also brought into scope. Listing 7-15 and Listing 7-16 are considered idiomatic, so the choice is up to you!</p>
 <h3 id="re-exporting-names-with-pub-use"><a class="header" href="#re-exporting-names-with-pub-use">Re-exporting Names with <code>pub use</code></a></h3>
-<p>When we bring a name into scope with the <code>use</code> keyword, the name available in the new scope is private. To enable the code that calls our code to refer to that name as if it had been defined in that code’s scope, we can combine <code>pub</code> and <code>use</code>. This technique is called <em>re-exporting</em> because we’re bringing an item into scope but also making that item available for others to bring into their scope.</p>
+<p>When we bring a name into scope with the <code>use</code> keyword, the name is private to the scope into which we imported it. To enable code outside that scope to refer to that name as if it had been defined in that scope, we can combine <code>pub</code> and <code>use</code>. This technique is called <em>re-exporting</em> because we’re bringing an item into scope but also making that item available for others to bring into their scope.</p>
 <p>Listing 7-17 shows the code in Listing 7-11 with <code>use</code> in the root module changed to <code>pub use</code>.</p>
 <Listing number="7-17" file-name="src/lib.rs" caption="Making a name available for any code to use from a new scope with `pub use`">
 <pre><code class="language-rust noplayground test_harness">mod front_of_house {
@@ -352,7 +353,7 @@ pub fn eat_at_restaurant() {
 }</code></pre>
 </Listing>
 <p>Before this change, external code would have to call the <code>add_to_waitlist</code> function by using the path <code>restaurant::front_of_house::hosting::add_to_waitlist()</code>, which also would have required the <code>front_of_house</code> module to be marked as <code>pub</code>. Now that this <code>pub use</code> has re-exported the <code>hosting</code> module from the root module, external code can use the path <code>restaurant::hosting::add_to_waitlist()</code> instead.</p>
-<p>Re-exporting is useful when the internal structure of your code is different from how programmers calling your code would think about the domain. For example, in this restaurant metaphor, the people running the restaurant think about “front of house” and “back of house.” But customers visiting a restaurant probably won’t think about the parts of the restaurant in those terms. With <code>pub use</code>, we can write our code with one structure but expose a different structure. Doing so makes our library well organized for programmers working on the library and programmers calling the library. We’ll look at another example of <code>pub use</code> and how it affects your crate’s documentation in <a href="ch14-02-publishing-to-crates-io.html#exporting-a-convenient-public-api-with-pub-use">“Exporting a Convenient Public API with <code>pub use</code>”</a><!-- ignore --> in Chapter 14.</p>
+<p>Re-exporting is useful when the internal structure of your code is different from how programmers calling your code would think about the domain. For example, in this restaurant metaphor, the people running the restaurant think about “front of house” and “back of house.” But customers visiting a restaurant probably won’t think about the parts of the restaurant in those terms. With <code>pub use</code>, we can write our code with one structure but expose a different structure. Doing so makes our library well organized for programmers working on the library and programmers calling the library. We’ll look at another example of <code>pub use</code> and how it affects your crate’s documentation in <a href="ch14-02-publishing-to-crates-io.html#exporting-a-convenient-public-api">“Exporting a Convenient Public API”</a><!-- ignore --> in Chapter 14.</p>
 <h3 id="using-external-packages"><a class="header" href="#using-external-packages">Using External Packages</a></h3>
 <p>In Chapter 2, we programmed a guessing game project that used an external package called <code>rand</code> to get random numbers. To use <code>rand</code> in our project, we added this line to <em>Cargo.toml</em>:</p>
 <!-- When updating the version of `rand` used, also update the version of
@@ -367,6 +368,7 @@ pub fn eat_at_restaurant() {
 <p>Adding <code>rand</code> as a dependency in <em>Cargo.toml</em> tells Cargo to download the <code>rand</code> package and any dependencies from <a href="https://crates.io/">crates.io</a> and make <code>rand</code> available to our project.</p>
 <p>Then, to bring <code>rand</code> definitions into the scope of our package, we added a <code>use</code> line starting with the name of the crate, <code>rand</code>, and listed the items we wanted to bring into scope. Recall that in <a href="ch02-00-guessing-game-tutorial.html#generating-a-random-number">“Generating a Random Number”</a><!-- ignore --> in Chapter 2, we brought the <code>Rng</code> trait into scope and called the <code>rand::thread_rng</code> function:</p>
 <pre><code class="language-rust ignore"><span class="boring">use std::io;
+</span><span class="boring">
 </span>use rand::Rng;
 
 fn main() {
@@ -388,12 +390,14 @@ fn main() {
 </span>}</code></pre>
 <p>Members of the Rust community have made many packages available at <a href="https://crates.io/">crates.io</a>, and pulling any of them into your package involves these same steps: listing them in your package’s <em>Cargo.toml</em> file and using <code>use</code> to bring items from their crates into scope.</p>
 <p>Note that the standard <code>std</code> library is also a crate that’s external to our package. Because the standard library is shipped with the Rust language, we don’t need to change <em>Cargo.toml</em> to include <code>std</code>. But we do need to refer to it with <code>use</code> to bring items from there into our package’s scope. For example, with <code>HashMap</code> we would use this line:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::collections::HashMap;
 <span class="boring">}</span></code></pre></pre>
 <p>This is an absolute path starting with <code>std</code>, the name of the standard library crate.</p>
-<h3 id="using-nested-paths-to-clean-up-large-use-lists"><a class="header" href="#using-nested-paths-to-clean-up-large-use-lists">Using Nested Paths to Clean Up Large <code>use</code> Lists</a></h3>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="using-nested-paths-to-clean-up-large-use-lists"></a></p>
+<h3 id="using-nested-paths-to-clean-up-use-lists"><a class="header" href="#using-nested-paths-to-clean-up-use-lists">Using Nested Paths to Clean Up <code>use</code> Lists</a></h3>
 <p>If we’re using multiple items defined in the same crate or same module, listing each item on its own line can take up a lot of vertical space in our files. For example, these two <code>use</code> statements we had in the guessing game in Listing 2-4 bring items from <code>std</code> into scope:</p>
 <Listing file-name="src/main.rs">
 <pre><code class="language-rust ignore"><span class="boring">use rand::Rng;
@@ -470,14 +474,16 @@ use std::io::Write;</code></pre>
 <pre><code class="language-rust noplayground">use std::io::{self, Write};</code></pre>
 </Listing>
 <p>This line brings <code>std::io</code> and <code>std::io::Write</code> into scope.</p>
-<h3 id="the-glob-operator"><a class="header" href="#the-glob-operator">The Glob Operator</a></h3>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="the-glob-operator"></a></p>
+<h3 id="importing-items-with-the-glob-operator"><a class="header" href="#importing-items-with-the-glob-operator">Importing Items with the Glob Operator</a></h3>
 <p>If we want to bring <em>all</em> public items defined in a path into scope, we can specify that path followed by the <code>*</code> glob operator:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::collections::*;
 <span class="boring">}</span></code></pre></pre>
-<p>This <code>use</code> statement brings all public items defined in <code>std::collections</code> into the current scope. Be careful when using the glob operator! Glob can make it harder to tell what names are in scope and where a name used in your program was defined.</p>
-<p>The glob operator is often used when testing to bring everything under test into the <code>tests</code> module; we’ll talk about that in <a href="ch11-01-writing-tests.html#how-to-write-tests">“How to Write Tests”</a><!-- ignore --> in Chapter 11. The glob operator is also sometimes used as part of the prelude pattern: see <a href="../std/prelude/index.html#other-preludes">the standard library documentation</a><!-- ignore --> for more information on that pattern.</p>
+<p>This <code>use</code> statement brings all public items defined in <code>std::collections</code> into the current scope. Be careful when using the glob operator! Glob can make it harder to tell what names are in scope and where a name used in your program was defined. Additionally, if the dependency changes its definitions, what you’ve imported changes as well, which may lead to compiler errors when you upgrade the dependency if the dependency adds a definition with the same name as a definition of yours in the same scope, for example.</p>
+<p>The glob operator is often used when testing to bring everything under test into the <code>tests</code> module; we’ll talk about that in <a href="ch11-01-writing-tests.html#how-to-write-tests">“How to Write Tests”</a><!-- ignore --> in Chapter 11. The glob operator is also sometimes used as part of the prelude pattern: See <a href="../std/prelude/index.html#other-preludes">the standard library documentation</a><!-- ignore --> for more information on that pattern.</p>
 
                     </main>
 

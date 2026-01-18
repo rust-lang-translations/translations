@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>표준 출력 대신 표준 에러로 에러 메시지 출력하기 - The Rust Programming Language</title>
+        <title>Redirecting Errors to Standard Error - The Rust Programming Language</title>
 
 
         <!-- Custom HTML head -->
@@ -216,26 +216,30 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="표준-출력-대신-표준-에러로-에러-메시지-출력하기"><a class="header" href="#표준-출력-대신-표준-에러로-에러-메시지-출력하기">표준 출력 대신 표준 에러로 에러 메시지 출력하기</a></h2>
+                        <!-- Old headings. Do not remove or links may break. -->
+<p><a id="writing-error-messages-to-standard-error-instead-of-standard-output"></a></p>
+<h2 id="redirecting-errors-to-standard-error"><a class="header" href="#redirecting-errors-to-standard-error">Redirecting Errors to Standard Error</a></h2>
 <p>현재 우리는 <code>println!</code> 매크로를 사용하여 모든 출력을 터미널에 쓰고 있습니다. 대부분의 터미널에는 두 종류의 출력이 있습니다. 일반 정보를 위한 <em>표준 출력</em>(<code>stdout</code>)과 에러 메시지를 위한 <em>표준 에러</em>(<code>stderr</code>)입니다. 이러한 구분은 사용자가 프로그램의 성공적인 출력을 파일로 보내면서도 에러 메시지는 여전히 화면에 출력되도록 선택할 수 있게 해줍니다.</p>
 <p><code>println!</code> 매크로는 표준 출력으로만 인쇄할 수 있으므로, 표준 에러로 인쇄하려면 다른 것을 사용해야 합니다.</p>
 <h3 id="에러가-어디에-쓰이는지-확인하기"><a class="header" href="#에러가-어디에-쓰이는지-확인하기">에러가 어디에 쓰이는지 확인하기</a></h3>
-<p>먼저 <code>minigrep</code>이 출력하는 내용이 현재 어떻게 표준 출력으로 쓰이는지 관찰해 봅시다. 여기에는 우리가 표준 에러로 쓰고 싶어 하는 에러 메시지도 포함됩니다. 의도적으로 에러를 일으키면서 표준 출력 스트림을 파일로 리다이렉션하여 이를 확인해 보겠습니다. 표준 에러 스트림은 리다이렉션하지 않을 것이므로, 표준 에러로 전송된 내용은 계속 화면에 표시될 것입니다.</p>
-<p>명령줄 프로그램은 표준 출력 스트림을 파일로 리다이렉션하더라도 화면에서 에러 메시지를 볼 수 있도록 에러 메시지를 표준 에러 스트림으로 보낼 것으로 기대됩니다. 우리 프로그램은 현재 올바르게 동작하고 있지 않습니다. 에러 메시지 출력이 파일로 저장되는 것을 보게 될 것입니다!</p>
+<p>First, let’s observe how the content printed by <code>minigrep</code> is currently being written to standard output, including any error messages we want to write to standard error instead. We’ll do that by redirecting the standard output stream to a file while intentionally causing an error. We won’t redirect the standard error stream, so any content sent to standard error will continue to display on the screen.</p>
+<p>Command line programs are expected to send error messages to the standard error stream so that we can still see error messages on the screen even if we redirect the standard output stream to a file. Our program is not currently well behaved: We’re about to see that it saves the error message output to a file instead!</p>
 <p>이 동작을 증명하기 위해, <code>&gt;</code>와 표준 출력 스트림을 리다이렉션할 파일 경로인 _output.txt_를 사용하여 프로그램을 실행해 보겠습니다. 에러를 유발하기 위해 아무런 인수도 전달하지 않겠습니다:</p>
 <pre><code class="language-console">$ cargo run &gt; output.txt
 </code></pre>
 <p><code>&gt;</code> 문법은 셸에게 표준 출력의 내용을 화면 대신 _output.txt_에 쓰라고 지시합니다. 우리가 기대했던 에러 메시지가 화면에 출력되지 않았으므로, 이는 파일에 기록되었음이 분명합니다. _output.txt_의 내용은 다음과 같습니다:</p>
 <pre><code class="language-text">Problem parsing arguments: not enough arguments
 </code></pre>
-<p>네, 에러 메시지가 표준 출력으로 인쇄되고 있군요. 이런 에러 메시지는 표준 에러로 인쇄되어, 성공적인 실행 결과만 파일에 저장되는 것이 훨씬 더 유용합니다. 이 부분을 수정해 보겠습니다.</p>
+<p>Yup, our error message is being printed to standard output. It’s much more useful for error messages like this to be printed to standard error so that only data from a successful run ends up in the file. We’ll change that.</p>
 <h3 id="표준-에러로-에러-출력하기"><a class="header" href="#표준-에러로-에러-출력하기">표준 에러로 에러 출력하기</a></h3>
 <p>목록 12-24의 코드를 사용하여 에러 메시지가 출력되는 방식을 변경해 보겠습니다. 이 장의 앞부분에서 수행한 리팩터링 덕분에, 에러 메시지를 출력하는 모든 코드는 하나의 함수, 즉 <code>main</code>에 모여 있습니다. 표준 라이브러리는 표준 에러 스트림으로 출력하는 <code>eprintln!</code> 매크로를 제공하므로, 에러를 출력하기 위해 <code>println!</code>을 호출하던 두 곳을 <code>eprintln!</code>으로 변경해 봅시다.</p>
 <Listing number="12-24" file-name="src/main.rs" caption="Writing error messages to standard error instead of standard output using `eprintln!`">
 <pre><code class="language-rust ignore"><span class="boring">use std::env;
+</span><span class="boring">use std::error::Error;
+</span><span class="boring">use std::fs;
 </span><span class="boring">use std::process;
 </span><span class="boring">
-</span><span class="boring">use minigrep::Config;
+</span><span class="boring">use minigrep::{search, search_case_insensitive};
 </span><span class="boring">
 </span>fn main() {
     let args: Vec&lt;String&gt; = env::args().collect();
@@ -245,11 +249,52 @@
         process::exit(1);
     });
 
-    if let Err(e) = minigrep::run(config) {
+    if let Err(e) = run(config) {
         eprintln!("애플리케이션 에러: {e}");
         process::exit(1);
     }
-}</code></pre>
+}
+<span class="boring">
+</span><span class="boring">pub struct Config {
+</span><span class="boring">    pub query: String,
+</span><span class="boring">    pub file_path: String,
+</span><span class="boring">    pub ignore_case: bool,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl Config {
+</span><span class="boring">    fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
+</span><span class="boring">        if args.len() &lt; 3 {
+</span><span class="boring">            return Err("인수가 부족합니다");
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        let query = args[1].clone();
+</span><span class="boring">        let file_path = args[2].clone();
+</span><span class="boring">
+</span><span class="boring">        let ignore_case = env::var("IGNORE_CASE").is_ok();
+</span><span class="boring">
+</span><span class="boring">        Ok(Config {
+</span><span class="boring">            query,
+</span><span class="boring">            file_path,
+</span><span class="boring">            ignore_case,
+</span><span class="boring">        })
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">    let contents = fs::read_to_string(config.file_path)?;
+</span><span class="boring">
+</span><span class="boring">    let results = if config.ignore_case {
+</span><span class="boring">        search_case_insensitive(&amp;config.query, &amp;contents)
+</span><span class="boring">    } else {
+</span><span class="boring">        search(&amp;config.query, &amp;contents)
+</span><span class="boring">    };
+</span><span class="boring">
+</span><span class="boring">    for line in results {
+</span><span class="boring">        println!("{line}");
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}</span></code></pre>
 </Listing>
 <p>이제 이전과 같은 방식으로, 인수 없이 그리고 <code>&gt;</code>로 표준 출력을 리다이렉션하여 프로그램을 다시 실행해 봅시다:</p>
 <pre><code class="language-console">$ cargo run &gt; output.txt

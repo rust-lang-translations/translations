@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Extensible Concurrency with the Sync and Send Traits - The Rust Programming Language</title>
+        <title>Extensible Concurrency with Send and Sync - The Rust Programming Language</title>
 
 
         <!-- Custom HTML head -->
@@ -216,48 +216,57 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="extensible-concurrency-with-the-sync-and-send-traits"><a class="header" href="#extensible-concurrency-with-the-sync-and-send-traits">Extensible Concurrency with the <code>Sync</code> and <code>Send</code> Traits</a></h2>
-<p>Interestingly, the Rust language has <em>very</em> few concurrency features. Almost
-every concurrency feature we’ve talked about so far in this chapter has been
-part of the standard library, not the language. Your options for handling
-concurrency are not limited to the language or the standard library; you can
-write your own concurrency features or use those written by others.</p>
-<p>However, two concurrency concepts are embedded in the language: the
-<code>std::marker</code> traits <code>Sync</code> and <code>Send</code>.</p>
-<h3 id="allowing-transference-of-ownership-between-threads-with-send"><a class="header" href="#allowing-transference-of-ownership-between-threads-with-send">Allowing Transference of Ownership Between Threads with <code>Send</code></a></h3>
+                        <!-- Old headings. Do not remove or links may break. -->
+<p><a id="extensible-concurrency-with-the-sync-and-send-traits"></a>
+<a id="extensible-concurrency-with-the-send-and-sync-traits"></a></p>
+<h2 id="extensible-concurrency-with-send-and-sync"><a class="header" href="#extensible-concurrency-with-send-and-sync">Extensible Concurrency with <code>Send</code> and <code>Sync</code></a></h2>
+<p>Interestingly, almost every concurrency feature we’ve talked about so far in
+this chapter has been part of the standard library, not the language. Your
+options for handling concurrency are not limited to the language or the
+standard library; you can write your own concurrency features or use those
+written by others.</p>
+<p>However, among the key concurrency concepts that are embedded in the language
+rather than the standard library are the <code>std::marker</code> traits <code>Send</code> and <code>Sync</code>.</p>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="allowing-transference-of-ownership-between-threads-with-send"></a></p>
+<h3 id="transferring-ownership-between-threads"><a class="header" href="#transferring-ownership-between-threads">Transferring Ownership Between Threads</a></h3>
 <p>The <code>Send</code> marker trait indicates that ownership of values of the type
 implementing <code>Send</code> can be transferred between threads. Almost every Rust type
-is <code>Send</code>, but there are some exceptions, including <code>Rc&lt;T&gt;</code>: this cannot be
-<code>Send</code> because if you cloned an <code>Rc&lt;T&gt;</code> value and tried to transfer ownership
-of the clone to another thread, both threads might update the reference count
-at the same time. For this reason, <code>Rc&lt;T&gt;</code> is implemented for use in
-single-threaded situations where you don’t want to pay the thread-safe
-performance penalty.</p>
+implements <code>Send</code>, but there are some exceptions, including <code>Rc&lt;T&gt;</code>: This
+cannot implement <code>Send</code> because if you cloned an <code>Rc&lt;T&gt;</code> value and tried to
+transfer ownership of the clone to another thread, both threads might update
+the reference count at the same time. For this reason, <code>Rc&lt;T&gt;</code> is implemented
+for use in single-threaded situations where you don’t want to pay the
+thread-safe performance penalty.</p>
 <p>Therefore, Rust’s type system and trait bounds ensure that you can never
 accidentally send an <code>Rc&lt;T&gt;</code> value across threads unsafely. When we tried to do
-this in Listing 16-14, we got the error <code>the trait Send is not implemented for Rc&lt;Mutex&lt;i32&gt;&gt;</code>. When we switched to <code>Arc&lt;T&gt;</code>, which is <code>Send</code>, the code
-compiled.</p>
+this in Listing 16-14, we got the error <code>the trait `Send` is not implemented for `Rc&lt;Mutex&lt;i32&gt;&gt;`</code>. When we switched to <code>Arc&lt;T&gt;</code>, which does implement
+<code>Send</code>, the code compiled.</p>
 <p>Any type composed entirely of <code>Send</code> types is automatically marked as <code>Send</code> as
 well. Almost all primitive types are <code>Send</code>, aside from raw pointers, which
 we’ll discuss in Chapter 20.</p>
-<h3 id="allowing-access-from-multiple-threads-with-sync"><a class="header" href="#allowing-access-from-multiple-threads-with-sync">Allowing Access from Multiple Threads with <code>Sync</code></a></h3>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="allowing-access-from-multiple-threads-with-sync"></a></p>
+<h3 id="accessing-from-multiple-threads"><a class="header" href="#accessing-from-multiple-threads">Accessing from Multiple Threads</a></h3>
 <p>The <code>Sync</code> marker trait indicates that it is safe for the type implementing
-<code>Sync</code> to be referenced from multiple threads. In other words, any type <code>T</code> is
-<code>Sync</code> if <code>&amp;T</code> (an immutable reference to <code>T</code>) is <code>Send</code>, meaning the reference
-can be sent safely to another thread. Similar to <code>Send</code>, primitive types are
-<code>Sync</code>, and types composed entirely of types that are <code>Sync</code> are also <code>Sync</code>.</p>
-<p>The smart pointer <code>Rc&lt;T&gt;</code> is also not <code>Sync</code> for the same reasons that it’s not
-<code>Send</code>. The <code>RefCell&lt;T&gt;</code> type (which we talked about in Chapter 15) and the
-family of related <code>Cell&lt;T&gt;</code> types are not <code>Sync</code>. The implementation of borrow
-checking that <code>RefCell&lt;T&gt;</code> does at runtime is not thread-safe. The smart
-pointer <code>Mutex&lt;T&gt;</code> is <code>Sync</code> and can be used to share access with multiple
-threads as you saw in <a href="ch16-03-shared-state.html#sharing-a-mutext-between-multiple-threads">“Sharing a <code>Mutex&lt;T&gt;</code> Between Multiple
-Threads”</a><!-- ignore -->.</p>
+<code>Sync</code> to be referenced from multiple threads. In other words, any type <code>T</code>
+implements <code>Sync</code> if <code>&amp;T</code> (an immutable reference to <code>T</code>) implements <code>Send</code>,
+meaning the reference can be sent safely to another thread. Similar to <code>Send</code>,
+primitive types all implement <code>Sync</code>, and types composed entirely of types that
+implement <code>Sync</code> also implement <code>Sync</code>.</p>
+<p>The smart pointer <code>Rc&lt;T&gt;</code> also doesn’t implement <code>Sync</code> for the same reasons
+that it doesn’t implement <code>Send</code>. The <code>RefCell&lt;T&gt;</code> type (which we talked about
+in Chapter 15) and the family of related <code>Cell&lt;T&gt;</code> types don’t implement
+<code>Sync</code>. The implementation of borrow checking that <code>RefCell&lt;T&gt;</code> does at runtime
+is not thread-safe. The smart pointer <code>Mutex&lt;T&gt;</code> implements <code>Sync</code> and can be
+used to share access with multiple threads, as you saw in <a href="ch16-03-shared-state.html#shared-access-to-mutext">“Shared Access to
+<code>Mutex&lt;T&gt;</code>”</a><!-- ignore -->.</p>
 <h3 id="implementing-send-and-sync-manually-is-unsafe"><a class="header" href="#implementing-send-and-sync-manually-is-unsafe">Implementing <code>Send</code> and <code>Sync</code> Manually Is Unsafe</a></h3>
-<p>Because types that are made up of <code>Send</code> and <code>Sync</code> traits are automatically
-also <code>Send</code> and <code>Sync</code>, we don’t have to implement those traits manually. As
-marker traits, they don’t even have any methods to implement. They’re just
-useful for enforcing invariants related to concurrency.</p>
+<p>Because types composed entirely of other types that implement the <code>Send</code> and
+<code>Sync</code> traits also automatically implement <code>Send</code> and <code>Sync</code>, we don’t have to
+implement those traits manually. As marker traits, they don’t even have any
+methods to implement. They’re just useful for enforcing invariants related to
+concurrency.</p>
 <p>Manually implementing these traits involves implementing unsafe Rust code.
 We’ll talk about using unsafe Rust code in Chapter 20; for now, the important
 information is that building new concurrent types not made up of <code>Send</code> and
@@ -265,10 +274,10 @@ information is that building new concurrent types not made up of <code>Send</cod
 Rustonomicon”</a> has more information about these guarantees and how to
 uphold them.</p>
 <h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
-<p>This isn’t the last you’ll see of concurrency in this book: the whole next
-chapter focuses on async programming, and the project in Chapter 21 will use the
-concepts in this chapter in a more realistic situation than the smaller examples
-discussed here.</p>
+<p>This isn’t the last you’ll see of concurrency in this book: The next chapter
+focuses on async programming, and the project in Chapter 21 will use the
+concepts in this chapter in a more realistic situation than the smaller
+examples discussed here.</p>
 <p>As mentioned earlier, because very little of how Rust handles concurrency is
 part of the language, many concurrency solutions are implemented as crates.
 These evolve more quickly than the standard library, so be sure to search
@@ -281,7 +290,7 @@ code using these solutions won’t end up with data races or invalid references.
 Once you get your code to compile, you can rest assured that it will happily
 run on multiple threads without the kinds of hard-to-track-down bugs common in
 other languages. Concurrent programming is no longer a concept to be afraid of:
-go forth and make your programs concurrent, fearlessly!</p>
+Go forth and make your programs concurrent, fearlessly!</p>
 
                     </main>
 

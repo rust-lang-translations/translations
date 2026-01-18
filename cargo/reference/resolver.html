@@ -89,6 +89,7 @@
         <link rel="stylesheet" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/cargo.css">
         <link rel="stylesheet" href="../theme/language-picker.css">
 
 
@@ -223,7 +224,7 @@
 <p>One of Cargo’s primary tasks is to determine the versions of dependencies to
 use based on the version requirements specified in each package. This process
 is called “dependency resolution” and is performed by the “resolver”. The
-result of the resolution is stored in the <code>Cargo.lock</code> file which “locks” the
+result of the resolution is stored in the <a href="../guide/cargo-toml-vs-cargo-lock.html"><code>Cargo.lock</code> file</a> which “locks” the
 dependencies to specific versions, and keeps them fixed over time.
 The <a href="../commands/cargo-tree.html"><code>cargo tree</code></a> command can be used to visualize the result of the
 resolver.</p>
@@ -237,11 +238,11 @@ To understand how these interact, it is helpful to have a coarse understanding o
 </span>pub fn resolve(workspace: &amp;[Package], policy: Policy) -&gt; Option&lt;ResolveGraph&gt; {
     let dep_queue = Queue::new(workspace);
     let resolved = ResolveGraph::new();
-    resolve_next(pkq_queue, resolved, policy)
+    resolve_next(dep_queue, resolved, policy)
 }
 
 fn resolve_next(dep_queue: Queue, resolved: ResolveGraph, policy: Policy) -&gt; Option&lt;ResolveGraph&gt; {
-    let Some(dep_spec) = policy.pick_next_dep(dep_queue) else {
+    let Some(dep_spec) = policy.pick_next_dep(&amp;mut dep_queue) else {
         // Done
         return Some(resolved);
     };
@@ -253,15 +254,15 @@ fn resolve_next(dep_queue: Queue, resolved: ResolveGraph, policy: Policy) -&gt; 
     let dep_versions = dep_spec.lookup_versions()?;
     let mut dep_versions = policy.filter_versions(dep_spec, dep_versions);
     while let Some(dep_version) = policy.pick_next_version(&amp;mut dep_versions) {
-        if policy.needs_version_unification(dep_version, &amp;resolved) {
+        if policy.needs_version_unification(&amp;dep_version, &amp;resolved) {
             continue;
         }
 
         let mut dep_queue = dep_queue.clone();
-        dep_queue.enqueue(dep_version.dependencies);
+        dep_queue.enqueue(&amp;dep_version.dependencies);
         let mut resolved = resolved.clone();
         resolved.register(dep_version);
-        if let Some(resolved) = resolve_next(dep_queue, resolved) {
+        if let Some(resolved) = resolve_next(dep_queue, resolved, policy) {
             return Some(resolved);
         }
     }
@@ -372,7 +373,7 @@ types from the newer version.</p>
 sometimes they will only appear as a runtime misbehavior. For example, let’s
 say there is a common library named <code>foo</code> that ends up appearing with both
 version <code>1.0.0</code> and <code>2.0.0</code> in the resolve graph. If <a href="../../std/any/trait.Any.html#method.downcast_ref"><code>downcast_ref</code></a> is used
-on a object created by a library using version <code>1.0.0</code>, and the code calling
+on an object created by a library using version <code>1.0.0</code>, and the code calling
 <code>downcast_ref</code> is downcasting to a type from version <code>2.0.0</code>, the downcast
 will fail at runtime.</p>
 <p>It is important to make sure that if you have multiple versions of a library
@@ -380,6 +381,23 @@ that you are properly using them, especially if it is ever possible for the
 types from different versions to be used together. The <a href="../commands/cargo-tree.html"><code>cargo tree -d</code></a> command can be used to identify duplicate versions and
 where they come from. Similarly, it is important to consider the impact on the
 ecosystem if you publish a SemVer-incompatible version of a popular library.</p>
+<h3 id="lock-file"><a class="header" href="#lock-file">Lock file</a></h3>
+<p>Cargo gives the highest priority to versions contained in the <a href="../guide/cargo-toml-vs-cargo-lock.html"><code>Cargo.lock</code> file</a>, when used.
+This is intended to balance reproducible builds with adjusting to changes in the manifest.</p>
+<p>For example, if you had a package in the resolve graph with:</p>
+<pre><code class="language-toml">[dependencies]
+bitflags = "*"
+</code></pre>
+<p>If at the time your <code>Cargo.lock</code> file is generated, the greatest version of
+<code>bitflags</code> is <code>1.2.1</code>, then the package will use <code>1.2.1</code> and recorded in the <code>Cargo.lock</code> file.</p>
+<p>By the time Cargo next runs, <code>bitflags</code> <code>1.3.5</code> is out.
+When resolving dependencies,
+<code>1.2.1</code> will still be used because it is present in your <code>Cargo.lock</code> file.</p>
+<p>The package is then edited to:</p>
+<pre><code class="language-toml">[dependencies]
+bitflags = "1.3.0"
+</code></pre>
+<p><code>bitflags</code> <code>1.2.1</code> does not match this version requirement and so that entry in your <code>Cargo.lock</code> file is ignored and version <code>1.3.5</code> will now be used and recorded in your <code>Cargo.lock</code> file.</p>
 <h3 id="rust-version"><a class="header" href="#rust-version">Rust version</a></h3>
 <p>To support developing software with a minimum supported <a href="rust-version.html">Rust version</a>,
 the resolver can take into account a dependency version’s compatibility with your Rust version.
@@ -778,21 +796,6 @@ the new release. You will also need to consider if this is a SemVer-breaking
 change of your own library, for example if it exposes types from the
 dependency.</li>
 </ul>
-<script>
-(function() {
-    var fragments = {
-        "#version-metadata": "specifying-dependencies.html#version-metadata",
-        "#pre-releases": "specifying-dependencies.html#pre-releases",
-        "#other-constraints": "#constraints-and-heuristics",
-    };
-    var target = fragments[window.location.hash];
-    if (target) {
-        var url = window.location.toString();
-        var base = url.substring(0, url.lastIndexOf('/'));
-        window.location.replace(base + "/" + target);
-    }
-})();
-</script>
 
                     </main>
 

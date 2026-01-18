@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>애플리케이션 바이너리 인터페이스 - The Rust Reference</title>
+        <title>Application binary interface - The Rust Reference</title>
 
 
         <!-- Custom HTML head -->
@@ -216,11 +216,13 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="애플리케이션-바이너리-인터페이스-abi"><a class="header" href="#애플리케이션-바이너리-인터페이스-abi">애플리케이션 바이너리 인터페이스 (ABI)</a></h1>
-<p>이 섹션은 크레이트의 컴파일된 출력물의 ABI에 영향을 주는 기능들을 설명합니다.</p>
+                        <p>r[abi]</p>
+<h1 id="application-binary-interface-abi"><a class="header" href="#application-binary-interface-abi">Application binary interface (ABI)</a></h1>
+<p>r[abi.intro] This section documents features that affect the ABI of the compiled output of a crate.</p>
 <p>함수를 내보내기 위해 ABI를 지정하는 방법에 대한 정보는 _<a href="items/functions.html#extern-function-qualifier">외부 함수(extern functions)</a>_를 참조하십시오. 외부 라이브러리를 링크하기 위해 ABI를 지정하는 방법에 대한 정보는 _<a href="items/external-blocks.html">외부 블록(external blocks)</a>_을 참조하십시오.</p>
+<p>r[abi.used]</p>
 <h2 id="used-속성"><a class="header" href="#used-속성"><code>used</code> 속성</a></h2>
-<p>_<code>used</code> 속성_은 오직 <a href="items/static-items.html"><code>static</code> 아이템</a>에만 적용될 수 있습니다. 이 <a href="attributes.html">속성</a>은 해당 변수가 크레이트의 다른 아이템에 의해 사용되거나 참조되지 않더라도, 출력 목적 파일(.o, .rlib 등, 최종 바이너리 제외)에 변수를 강제로 유지하도록 컴파일러에 명령합니다. 하지만 링커는 여전히 이러한 아이템을 제거할 수 있습니다.</p>
+<p>r[abi.used.intro] The <em><code>used</code> attribute</em> can only be applied to <a href="items/static-items.html"><code>static</code> items</a>. This <a href="attributes.html">attribute</a> forces the compiler to keep the variable in the output object file (.o, .rlib, etc. excluding final binaries) even if the variable is not used, or referenced, by any other item in the crate. However, the linker is still free to remove such an item.</p>
 <p>아래는 컴파일러가 어떤 조건 하에서 <code>static</code> 아이템을 출력 목적 파일에 유지하는지 보여주는 예제입니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -260,21 +262,24 @@ $ nm -C foo.o
 0000000000000000 R foo::QUUX
 0000000000000000 T foo::quux
 </code></pre>
+<p>r[abi.no_mangle]</p>
 <h2 id="no_mangle-속성"><a class="header" href="#no_mangle-속성"><code>no_mangle</code> 속성</a></h2>
-<p>_<code>no_mangle</code> 속성_은 표준 심볼 이름 맹글링(mangling)을 비활성화하기 위해 모든 <a href="items.html">아이템</a>에 사용될 수 있습니다. 해당 아이템의 심볼은 아이템의 이름과 동일한 식별자가 됩니다.</p>
-<p>또한, <a href="#the-used-attribute"><code>used</code> 속성</a>과 유사하게, 해당 아이템은 생성된 라이브러리나 목적 파일로부터 공개적으로 내보내집니다.</p>
-<p>맹글링되지 않은 심볼은 동일한 이름을 가진 다른 심볼(또는 잘 알려진 심볼)과 충돌하여 정의되지 않은 동작을 초래할 수 있으므로, 이 속성은 안전하지 않습니다(unsafe).</p>
+<p>r[abi.no_mangle.intro] The <em><code>no_mangle</code> attribute</em> may be used on any <a href="items.html">item</a> to disable standard symbol name mangling. The symbol for the item will be the identifier of the item’s name.</p>
+<p>r[abi.no_mangle.publicly-exported] Additionally, the item will be publicly exported from the produced library or object file, similar to the <a href="#the-used-attribute"><code>used</code> attribute</a>.</p>
+<p>r[abi.no_mangle.unsafe] This attribute is unsafe as an unmangled symbol may collide with another symbol with the same name (or with a well-known symbol), leading to undefined behavior.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[unsafe(no_mangle)]
 extern "C" fn foo() {}
 <span class="boring">}</span></code></pre></pre>
+<p>r[abi.no_mangle.edition2024]</p>
 <blockquote>
-<p><strong>에디션 차이</strong>: 2024 에디션 이전에는 <code>unsafe</code> 수식 없이 <code>no_mangle</code> 속성을 사용할 수 있었습니다.</p>
+<p>[!EDITION-2024] Before the 2024 edition it is allowed to use the <code>no_mangle</code> attribute without the <code>unsafe</code> qualification.</p>
 </blockquote>
+<p>r[abi.link_section]</p>
 <h2 id="link_section-속성"><a class="header" href="#link_section-속성"><code>link_section</code> 속성</a></h2>
-<p>_<code>link_section</code> 속성_은 <a href="items/functions.html">함수</a> 또는 <a href="items/static-items.html">정적 변수</a>의 내용이 배치될 목적 파일의 섹션을 지정합니다. 섹션 이름을 지정하기 위해 <a href="attributes.html#meta-item-attribute-syntax"><em>MetaNameValueStr</em></a> 구문을 사용합니다.</p>
-<p>이 속성은 가변 데이터를 읽기 전용 영역에 배치하는 것과 같이, 데이터와 코드를 의도하지 않은 메모리 섹션에 배치할 수 있게 하므로 안전하지 않습니다(unsafe).</p>
+<p>r[abi.link_section.intro] The <em><code>link_section</code> attribute</em> specifies the section of the object file that a <a href="items/functions.html">function</a> or <a href="items/static-items.html">static</a>’s content will be placed into.</p>
+<p>r[abi.link_section.syntax] The <code>link_section</code> attribute uses the [MetaNameValueStr] syntax to specify the section name.</p>
 <!-- no_run: don't link. The format of the section name is platform-specific. -->
 <pre><pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -282,19 +287,24 @@ extern "C" fn foo() {}
 #[unsafe(link_section = ".example_section")]
 pub static VAR1: u32 = 1;
 <span class="boring">}</span></code></pre></pre>
+<p>r[abi.link_section.unsafe] This attribute is unsafe as it allows users to place data and code into sections of memory not expecting them, such as mutable data into read-only areas.</p>
+<p>r[abi.link_section.edition2024]</p>
 <blockquote>
-<p><strong>에디션 차이</strong>: 2024 에디션 이전에는 <code>unsafe</code> 수식 없이 <code>link_section</code> 속성을 사용할 수 있었습니다.</p>
+<p>[!EDITION-2024] Before the 2024 edition it is allowed to use the <code>link_section</code> attribute without the <code>unsafe</code> qualification.</p>
 </blockquote>
+<p>r[abi.export_name]</p>
 <h2 id="export_name-속성"><a class="header" href="#export_name-속성"><code>export_name</code> 속성</a></h2>
-<p>_<code>export_name</code> 속성_은 <a href="items/functions.html">함수</a> 또는 <a href="items/static-items.html">정적 변수</a>에서 내보내질 심볼의 이름을 지정합니다. 심볼 이름을 지정하기 위해 <a href="attributes.html#meta-item-attribute-syntax"><em>MetaNameValueStr</em></a> 구문을 사용합니다.</p>
-<p>커스텀 이름을 가진 심볼은 동일한 이름을 가진 다른 심볼(또는 잘 알려진 심볼)과 충돌하여 정의되지 않은 동작을 초래할 수 있으므로, 이 속성은 안전하지 않습니다(unsafe).</p>
+<p>r[abi.export_name.intro] The <em><code>export_name</code> attribute</em> specifies the name of the symbol that will be exported on a <a href="items/functions.html">function</a> or <a href="items/static-items.html">static</a>.</p>
+<p>r[abi.export_name.syntax] The <code>export_name </code>attribute uses the [MetaNameValueStr] syntax to specify the symbol name.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[unsafe(export_name = "exported_symbol_name")]
 pub fn name_in_rust() { }
 <span class="boring">}</span></code></pre></pre>
+<p>r[abi.export_name.unsafe] This attribute is unsafe as a symbol with a custom name may collide with another symbol with the same name (or with a well-known symbol), leading to undefined behavior.</p>
+<p>r[abi.export_name.edition2024]</p>
 <blockquote>
-<p><strong>에디션 차이</strong>: 2024 에디션 이전에는 <code>unsafe</code> 수식 없이 <code>export_name</code> 속성을 사용할 수 있었습니다.</p>
+<p>[!EDITION-2024] Before the 2024 edition it is allowed to use the <code>export_name</code> attribute without the <code>unsafe</code> qualification.</p>
 </blockquote>
 
                     </main>

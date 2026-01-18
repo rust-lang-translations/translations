@@ -214,7 +214,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="점-연산자"><a class="header" href="#점-연산자">점 연산자</a></h1>
-<p>점(dot) 연산자는 타입을 변환하기 위해 많은 마법을 부립니다. 타입이 일치할 때까지 자동 참조(auto-referencing), 자동 역참조(auto-dereferencing), 그리고 강제 변환을 수행합니다. 메서드 조회의 자세한 메커니즘은 <a href="https://rustc-dev-guide.rust-lang.org/method-lookup.html">여기</a>에 정의되어 있지만, 주요 단계들을 요약하면 다음과 같습니다.</p>
+<p>The dot operator will perform a lot of magic to convert types. It will perform auto-referencing, auto-dereferencing, and coercion until types match. The detailed mechanics of method lookup are defined <a href="https://rustc-dev-guide.rust-lang.org/hir-typeck/method-lookup.html">here</a>, but here is a brief overview that outlines the main steps.</p>
 <p>수신자(<code>self</code>, <code>&amp;self</code>, 또는 <code>&amp;mut self</code> 매개변수)를 가진 함수 <code>foo</code>가 있다고 가정해 봅시다. <code>value.foo()</code>를 호출하면, 컴파일러는 함수의 올바른 구현을 호출하기 전에 <code>Self</code>가 어떤 타입인지 결정해야 합니다. 이 예제에서 <code>value</code>는 <code>T</code> 타입을 가진다고 하겠습니다.</p>
 <p>어떤 타입에 대해 함수를 호출하고 있는지 정확히 하기 위해 <a href="../book/ch19-03-advanced-traits.html#fully-qualified-syntax-for-disambiguation-calling-methods-with-the-same-name">정규화된 구문(fully-qualified syntax)</a>을 사용하겠습니다.</p>
 <ul>
@@ -228,7 +228,7 @@ let first_entry = array[0];</code></pre>
 <p>배열이 이토록 많은 간접 참조 뒤에 숨어 있을 때, 컴파일러는 실제로 어떻게 <code>array[0]</code>을 계산할까요? 먼저, <code>array[0]</code>은 실제로는 <a href="../std/ops/trait.Index.html"><code>Index</code></a> 트레잇에 대한 구문 설탕일 뿐입니다. 컴파일러는 <code>array[0]</code>을 <code>array.index(0)</code>으로 변환합니다. 이제 컴파일러는 함수를 호출할 수 있도록 <code>array</code>가 <code>Index</code>를 구현하는지 확인합니다.</p>
 <p>그다음 컴파일러는 <code>Rc&lt;Box&lt;[T; 3]&gt;&gt;</code>가 <code>Index</code>를 구현하는지 확인하지만, 구현하지 않으며 <code>&amp;Rc&lt;Box&lt;[T; 3]&gt;&gt;</code>나 <code>&amp;mut Rc&lt;Box&lt;[T; 3]&gt;&gt;</code>도 마찬가지입니다. 어느 것도 작동하지 않았으므로, 컴파일러는 <code>Rc&lt;Box&lt;[T; 3]&gt;&gt;</code>를 <code>Box&lt;[T; 3]&gt;</code>로 역참조하고 다시 시도합니다. <code>Box&lt;[T; 3]&gt;</code>, <code>&amp;Box&lt;[T; 3]&gt;</code>, <code>&amp;mut Box&lt;[T; 3]&gt;</code>도 <code>Index</code>를 구현하지 않으므로 다시 역참조합니다. <code>[T; 3]</code>과 그 자동 참조들도 <code>Index</code>를 구현하지 않습니다. <code>[T; 3]</code>은 더 이상 역참조할 수 없으므로, 컴파일러는 이를 언사이징하여 <code>[T]</code>를 얻습니다. 마침내 <code>[T]</code>가 <code>Index</code>를 구현하고 있으므로, 이제 실제 <code>index</code> 함수를 호출할 수 있습니다.</p>
 <p>점 연산자가 작동하는 더 복잡한 다음 예제를 고려해 보세요:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn do_stuff&lt;T: Clone&gt;(value: &amp;T) {
     let cloned = value.clone();
@@ -237,7 +237,7 @@ let first_entry = array[0];</code></pre>
 <p><code>cloned</code>는 어떤 타입일까요? 먼저 컴파일러는 값에 의해 호출할 수 있는지 확인합니다. <code>value</code>의 타입은 <code>&amp;T</code>이므로, <code>clone</code> 함수의 시그니처는 <code>fn clone(&amp;T) -&gt; T</code>가 됩니다. 컴파일러는 <code>T: Clone</code>임을 알고 있으므로 <code>cloned: T</code>임을 찾아냅니다.</p>
 <p><code>T: Clone</code> 제약이 제거되면 어떻게 될까요? <code>T</code>에 대한 <code>Clone</code> 구현이 없으므로 값에 의해 호출할 수 없게 됩니다. 따라서 컴파일러는 자동 참조에 의한 호출을 시도합니다. 이 경우 <code>Self = &amp;T</code>이므로 함수의 시그니처는 <code>fn clone(&amp;&amp;T) -&gt; &amp;T</code>가 됩니다. 컴파일러는 <code>&amp;T: Clone</code>임을 확인하고, <code>cloned: &amp;T</code>라고 추론합니다.</p>
 <p>다음은 자동 참조 동작이 미묘한 효과를 만들어내는 또 다른 예시입니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use std::sync::Arc;
 </span><span class="boring">

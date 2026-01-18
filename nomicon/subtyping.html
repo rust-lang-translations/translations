@@ -220,7 +220,7 @@ or permit undefined behavior.</p>
 <p>In order to allow flexible usage of lifetimes
 while also preventing their misuse, Rust uses <strong>subtyping</strong> and <strong>variance</strong>.</p>
 <p>Let's start with an example.</p>
-<pre><pre class="playground"><code class="language-rust edition2021">// Note: debug expects two parameters with the *same* lifetime
+<pre><pre class="playground"><code class="language-rust edition2024">// Note: debug expects two parameters with the *same* lifetime
 fn debug&lt;'a&gt;(a: &amp;'a str, b: &amp;'a str) {
     println!("a = {a:?} b = {b:?}");
 }
@@ -275,7 +275,7 @@ For now, let's also accept the idea that subtypes of lifetimes can be passed thr
 (more on this in <a href="#variance">Variance</a>),
 <em>e.g.</em> <code>&amp;'static str</code> is a subtype of <code>&amp;'world str</code>, then we can "downgrade" <code>&amp;'static str</code> into a <code>&amp;'world str</code>.
 With that, the example above will compile:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">fn debug&lt;'a&gt;(a: &amp;'a str, b: &amp;'a str) {
+<pre><pre class="playground"><code class="language-rust edition2024">fn debug&lt;'a&gt;(a: &amp;'a str, b: &amp;'a str) {
     println!("a = {a:?} b = {b:?}");
 }
 
@@ -290,7 +290,7 @@ fn main() {
 <h2 id="variance"><a class="header" href="#variance">Variance</a></h2>
 <p>Above, we glossed over the fact that <code>'static &lt;: 'b</code> implied that <code>&amp;'static T &lt;: &amp;'b T</code>. This uses a property known as <em>variance</em>.
 It's not always as simple as this example, though. To understand that, let's try to extend this example a bit:</p>
-<pre><pre class="playground"><code class="language-rust compile_fail E0597 edition2021">fn assign&lt;T&gt;(input: &amp;mut T, val: T) {
+<pre><pre class="playground"><code class="language-rust compile_fail E0597 edition2024">fn assign&lt;T&gt;(input: &amp;mut T, val: T) {
     *input = val;
 }
 
@@ -326,7 +326,7 @@ types <code>Sub</code> and <code>Super</code>, where <code>Sub</code> is a subty
 <p>If we remember from the above examples,
 it was ok for us to treat <code>&amp;'a T</code> as a subtype of <code>&amp;'b T</code> if <code>'a &lt;: 'b</code>,
 therefore we can say that <code>&amp;'a T</code> is <em>covariant</em> over <code>'a</code>.</p>
-<p>Also, we saw that it was not ok for us to treat <code>&amp;mut &amp;'a U</code> as a subtype of <code>&amp;mut &amp;'b U</code>,
+<p>Also, we saw that it was not ok for us to treat <code>&amp;mut &amp;'a T</code> as a subtype of <code>&amp;mut &amp;'b T</code>,
 therefore we can say that <code>&amp;mut T</code> is <em>invariant</em> over <code>T</code></p>
 <p>Here is a table of some other generic types and their variances:</p>
 <div class="table-wrapper"><table><thead><tr><th></th><th style="text-align: center">'a</th><th style="text-align: center">T</th><th style="text-align: center">U</th></tr></thead><tbody>
@@ -359,7 +359,7 @@ which gets into higher rank lifetimes, which work independently of subtyping).</
 </blockquote>
 <p>Now that we have some more formal understanding of variance,
 let's go through some more examples in more detail.</p>
-<pre><pre class="playground"><code class="language-rust compile_fail E0597 edition2021">fn assign&lt;T&gt;(input: &amp;mut T, val: T) {
+<pre><pre class="playground"><code class="language-rust compile_fail E0597 edition2024">fn assign&lt;T&gt;(input: &amp;mut T, val: T) {
     *input = val;
 }
 
@@ -385,7 +385,7 @@ fn main() {
 </code></pre>
 <p>Good, it doesn't compile! Let's break down what's happening here in detail.</p>
 <p>First let's look at the <code>assign</code> function:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn assign&lt;T&gt;(input: &amp;mut T, val: T) {
     *input = val;
@@ -398,7 +398,7 @@ clearly says in its signature the referent and the value must be the <em>exact s
 <p>Because <code>&amp;mut T</code> is invariant over <code>T</code>, the compiler concludes it can't apply any subtyping
 to the first argument, and so <code>T</code> must be exactly <code>&amp;'static str</code>.</p>
 <p>This is counter to the <code>&amp;T</code> case:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn debug&lt;T: std::fmt::Debug&gt;(a: T, b: T) {
     println!("a = {a:?} b = {b:?}");
@@ -443,7 +443,7 @@ Covariance doesn't work here. But if we flip it around, it actually <em>does</em
 work! If we need a function that can handle <code>&amp;'static str</code>, a function that can handle <em>any</em> reference lifetime
 will surely work fine.</p>
 <p>Let's see this in practice</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021"><span class="boring">use std::cell::RefCell;
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">use std::cell::RefCell;
 </span>thread_local! {
     pub static StaticVecs: RefCell&lt;Vec&lt;&amp;'static str&gt;&gt; = RefCell::new(Vec::new());
 }
@@ -486,7 +486,7 @@ over <code>A</code> is exactly <code>a</code>'s variance over <code>A</code>.</p
 <li>If all uses of <code>A</code> are contravariant, then MyType is contravariant over <code>A</code></li>
 <li>Otherwise, MyType is invariant over <code>A</code></li>
 </ul>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::cell::Cell;
 

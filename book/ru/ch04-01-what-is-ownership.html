@@ -217,18 +217,18 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="Что-такое-владение"><a class="header" href="#Что-такое-владение">Что такое владение?</a></h2>
-<p><em>Владение</em> — это набор правил, регулирующих управление памятью в Rust. Всем программам необходимо иметь способ взаимодействовать с памятью, предоставляемой компьютером. Некоторые языки имеют сборщик мусора — он время от времени собирает неиспользуемую память и высвобождает её. В других языках программист должен явно и самостоятельно выделять и освобождать память. Rust нашёл третий путь: память управляется по правилам системы владения, исполнение которых проверяется компилятором. Если какие-либо правила нарушены, программа не скомпилируется. Кстати: поскольку правила владения проверяются именно на этапе компиляции, они не сделают ваш код медленнее.</p>
+<p><em>Ownership</em> is a set of rules that govern how a Rust program manages memory. All programs have to manage the way they use a computer’s memory while running. Some languages have garbage collection that regularly looks for no-longer-used memory as the program runs; in other languages, the programmer must explicitly allocate and free the memory. Rust uses a third approach: Memory is managed through a system of ownership with a set of rules that the compiler checks. If any of the rules are violated, the program won’t compile. None of the features of ownership will slow down your program while it’s running.</p>
 <p>Поскольку идея владения незнакома большинству программистов, нужно некоторое время, чтобы выработался навык. Хорошая новость: чем больше опыта вы будете приобретать с Rust и правилами системы владения, тем легче вам будет разрабатывать безопасный и эффективный код. Выше нос!</p>
 <p>Когда вы поймёте владение, вы получите устойчивый фундамент для понимания особенностей, которые делают Rust уникальным языком. В этой главе вы изучите владение, поработав над несколькими примерами с использованием одной из самых распространённых структур данных — строк.</p>
 <blockquote>
 <h3 id="Стек-и-куча"><a class="header" href="#Стек-и-куча">Стек и куча</a></h3>
 <p>Многие языки программирования не требуют от вас задумываться о стеке или куче. Но в системных языках программирования (вроде Rust), важно знать разницу между размещением данных на стеке или на куче, знать о том как ведёт себя при этом язык и какие последствия повлечёт ваш выбор. Частично, владение будет рассмотрено в отношении стека, а под конец главы мы коснёмся и кучи; а пока, для подготовки, кратко расскажем о стеке и куче.</p>
-<p>И стек, и куча — это участки памяти, доступные вашей программе для использования, однако устроены они по-разному. Стек хранит значения в порядке их добавления и удаляет их в обратном. Это называется принципом <em>"первым вошёл — последним вышел"</em>. Думайте о стеке как о стопке тарелок: если вы добавляете больше тарелок, вы ставите их наверх; когда вам нужно взять тарелку, вы берёте её сверху. Добавить или убрать тарелку снизу или из середины не выйдет! Помещение данных в стек называется <em>push</em>, а извлечение — <em>pop</em>. Всё, что хранится на стеке, должно иметь постоянный и известный размер. Если же для ваших данных нельзя узнать длину до компиляции, или если их размер может поменяться, следует воспользоваться кучей.</p>
-<p>Куча менее организована: когда вы помещаете данные в кучу, вы получаете немного места в ней и туда размещаете свои данные. Распределитель памяти (синоним: "аллокатор") ищет в памяти свободное место достаточного размера, помечает его как задействованное вашей программой, и возвращает вам <em>указатель</em> на этот участок памяти. Этот процесс называется <em>аллокацией памяти в куче</em> или просто <em>аллокацией</em> (примечание: размещение данных в стеке не считается аллокацией). Поскольку указатель на кучу имеет известный и постоянный размер, вы можете хранить его на стеке; но если вам потребуются непосредственно данные, вам нужно будет обратиться по указателю. Думайте об этом как о порядке рассадки в ресторане: когда вы входите, вы сообщаете о том, сколько человек в вашей группе, и официант ищет для вас столик подходящего размера; если же кто-то из вашей группы опаздывает, вы сообщаете ему, где вас разместили.</p>
+<p>Both the stack and the heap are parts of memory available to your code to use at runtime, but they are structured in different ways. The stack stores values in the order it gets them and removes the values in the opposite order. This is referred to as <em>last in, first out (LIFO)</em>. Think of a stack of plates: When you add more plates, you put them on top of the pile, and when you need a plate, you take one off the top. Adding or removing plates from the middle or bottom wouldn’t work as well! Adding data is called <em>pushing onto the stack</em>, and removing data is called <em>popping off the stack</em>. All data stored on the stack must have a known, fixed size. Data with an unknown size at compile time or a size that might change must be stored on the heap instead.</p>
+<p>The heap is less organized: When you put data on the heap, you request a certain amount of space. The memory allocator finds an empty spot in the heap that is big enough, marks it as being in use, and returns a <em>pointer</em>, which is the address of that location. This process is called <em>allocating on the heap</em> and is sometimes abbreviated as just <em>allocating</em> (pushing values onto the stack is not considered allocating). Because the pointer to the heap is a known, fixed size, you can store the pointer on the stack, but when you want the actual data, you must follow the pointer. Think of being seated at a restaurant. When you enter, you state the number of people in your group, and the host finds an empty table that fits everyone and leads you there. If someone in your group comes late, they can ask where you’ve been seated to find you.</p>
 <p>Размещение на стеке быстрее, чем аллокация в куче, поскольку при размещении на стеке распределителю памяти не приходится искать свободное место достаточного размера: таковое всегда находится на вершине стека. Соответственно, резмещение в куче требует куда больше работы, поскольку распределитель памяти должен сначала найти достаточно большой и неиспользуемый участок в памяти, а потом подготовиться к следующему запросу на выделение памяти.</p>
-<p>Доступ к данным в куче медленнее, чем к данным на стеке, поскольку вам нужно сначала отыскать нужный участок памяти по указателю. Современные процессоры работают быстрее, если не нагружать их частыми обращениями к памяти. Продолжая аналогию с ресторанами: подумайте о приёме официантом заказов посетителей. Эффективнее всего будет взять все заказы с одного столика перед тем, как идти к следующему. Если же пытаться взять заказ у столика A, потом у столика B, потом снова у A, а потом ещё раз у B... Это будет значительно медленнее. Точно так же процессору легче и быстрее выполнить свою работу, если необходимые данные будут лежать рядом (как на стеке), а не разрозненно по всей памяти (как в куче).</p>
+<p>Accessing data in the heap is generally slower than accessing data on the stack because you have to follow a pointer to get there. Contemporary processors are faster if they jump around less in memory. Continuing the analogy, consider a server at a restaurant taking orders from many tables. It’s most efficient to get all the orders at one table before moving on to the next table. Taking an order from table A, then an order from table B, then one from A again, and then one from B again would be a much slower process. By the same token, a processor can usually do its job better if it works on data that’s close to other data (as it is on the stack) rather than farther away (as it can be on the heap).</p>
 <p>Когда ваш код вызывает функцию, значения, переданные функции (включая, например, указатели на данные в куче), и локальные переменные функции размещаются на стеке. Когда функция завершается, значения извлекаются из стека и их память освобождается.</p>
-<p>Управление тем, какие участки программы какую используют память в куче; минимизация копирования данных в куче; очистка неиспользуемых данных — это всё работа механизма владения. Как только вы поймёте владение, вам  не понадобится самому особенно часто думать о стеке и куче, но знание о том, что основная задача владения — это управление стеком и кучей, поможет вам понять, почему владение устроено именно так.</p>
+<p>Keeping track of what parts of code are using what data on the heap, minimizing the amount of duplicate data on the heap, and cleaning up unused data on the heap so that you don’t run out of space are all problems that ownership addresses. Once you understand ownership, you won’t need to think about the stack and the heap very often. But knowing that the main purpose of ownership is to manage heap data can help explain why it works the way it does.</p>
 </blockquote>
 <h3 id="Правила-владения"><a class="header" href="#Правила-владения">Правила владения</a></h3>
 <p>Для начала, давайте посмотрим на правила владения. Держите их в голове по мере того, как мы будем показывать иллюстрирующие их примеры:</p>
@@ -238,16 +238,16 @@
 <li>Когда владелец покидает свою область видимости, значение высвобождается.</li>
 </ul>
 <h3 id="Область-видимости-переменной"><a class="header" href="#Область-видимости-переменной">Область видимости переменной</a></h3>
-<p>Теперь, поскольку мы освоились с базовым синтаксисом Rust, мы не будем постоянно включать код примеров в <code>fn main() {</code>, так что если вы захотите повторить примеры, не забудьте поместить их в функцию <code>main</code>. Мы опускаем явное упоминание функции <code>main</code>, чтобы сосредоточиться на деталях, на нюансах кода, а не на уже заученных шаблонах.</p>
-<p>В качестве первого примера владения, мы изучим границы <em>области видимости</em> некоторых переменных. Область видимости — это участок программы, в котором данные ещё действительны. Вот пример переменной:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<p>Now that we’re past basic Rust syntax, we won’t include all the <code>fn main() {</code> code in the examples, so if you’re following along, make sure to put the following examples inside a <code>main</code> function manually. As a result, our examples will be a bit more concise, letting us focus on the actual details rather than boilerplate code.</p>
+<p>As a first example of ownership, we’ll look at the scope of some variables. A <em>scope</em> is the range within a program for which an item is valid. Take the following variable:</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let s = "hello";
 <span class="boring">}</span></code></pre></pre>
-<p>Переменная <code>s</code> связана с литералом строки, записанным непосредственно в коде нашей программы. Переменная действительна с тех пор, как она объявлена, и до конца её <em>области видимости</em>. Листинг 4-1 содержит программу с комментариями о действительности переменной в разные моменты.</p>
+<p>The variable <code>s</code> refers to a string literal, where the value of the string is hardcoded into the text of our program. The variable is valid from the point at which it’s declared until the end of the current scope. Listing 4-1 shows a program with comments annotating where the variable <code>s</code> would be valid.</p>
 <Listing number="4-1" caption="A variable and the scope in which it is valid">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
-</span>    {                      // s пока не действительна, так как не объявлена
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
+</span>    {                      // s is not valid here, since it's not yet declared
         let s = "hello";   // отсюда и далее s действительна
 
         // здесь можно использовать s
@@ -262,20 +262,21 @@
 <p>Пока что отношения между областями видимости и действительностью переменных в целом такие же, как и в других языках программирования. Теперь, на этом фундаменте, мы рассмотрим тип <code>String</code>.</p>
 <h3 id="Тип-string"><a class="header" href="#Тип-string">Тип <code>String</code></a></h3>
 <p>Чтобы проиллюстрировать правила владения, нам нужен тип данных более сложный, чем те, что мы рассмотрели в разделе <a href="ch03-02-data-types.html#%D0%A2%D0%B8%D0%BF%D1%8B-%D0%B4%D0%B0%D0%BD%D0%BD%D1%8B%D1%85">"Типы данных"</a><!-- ignore --> Главы 3. Там мы рассматривали такие типы, которые имеют фиксированный размер; хранятся на стеке и высвобождаются с концом их области видимости; могут быть быстро и просто скопированы, чтобы получить отдельно живущую копию данных, которую можно затем использовать в другой области видимости. Но на этот раз нам нужны данные, которые придётся хранить в куче — чтобы узнать, как Rust выясняет момент для высвобождения этих данных. Тип <code>String</code> нам отлично подойдёт.</p>
-<p>Мы сконцентрируемся на тех частях String, которые связаны с владением. Эти аспекты также применимы к другим сложным типам данных, независимо от того, предоставлены они стандартной библиотекой или созданы вами. Более подробно мы обсудим <code>String</code> в <a href="ch08-02-strings.html">Главе 8</a><!-- ignore -->.</p>
-<p>Мы уже видели строковые литералы, где строковое значение явно вписано в нашу программу. Строковые литералы удобны, но они подходят не для каждой ситуации, где мы можем хотеть использовать текст. Одна из причин заключается в том, что они неизменяемы. Кроме того, не всегда строковое значение может быть известно уже во время написания кода: что, если мы захотим принять и сохранить пользовательский ввод? Для таких ситуаций в Rust есть ещё один строковый тип — <code>String</code>. Этот тип управляет данными, выделенными в куче, и поэтому может хранить объём текста, который во время компиляции неизвестен. Вы можете создать <code>String</code> из строкового литерала, используя функцию <code>from</code>; вот так:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<p>We’ll concentrate on the parts of <code>String</code> that relate to ownership. These aspects also apply to other complex data types, whether they are provided by the standard library or created by you. We’ll discuss non-ownership aspects of <code>String</code> in <a href="ch08-02-strings.html">Chapter 8</a><!-- ignore -->.</p>
+<p>We’ve already seen string literals, where a string value is hardcoded into our program. String literals are convenient, but they aren’t suitable for every situation in which we may want to use text. One reason is that they’re immutable. Another is that not every string value can be known when we write our code: For example, what if we want to take user input and store it? It is for these situations that Rust has the <code>String</code> type. This type manages data allocated on the heap and as such is able to store an amount of text that is unknown to us at compile time. You can create a <code>String</code> from a string literal using the <code>from</code> function, like so:</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let s = String::from("hello");
 <span class="boring">}</span></code></pre></pre>
-<p>Оператор "двойное двоеточие" (<code>::</code>) позволяет обращаться к данной функции <code>from</code> как к функции над типом <code>String</code>. Он позволяет отказаться от различных специфичных самостоятельных имён, вроде <code>string_from</code>. Мы обсудим этот синтаксис более подробно в разделе <a href="ch05-03-method-syntax.html#%D0%A1%D0%B8%D0%BD%D1%82%D0%B0%D0%BA%D1%81%D0%B8%D1%81-%D0%BC%D0%B5%D1%82%D0%BE%D0%B4%D0%B0">"Синтаксис метода"</a><!-- ignore --> Главы 5, а также в ходе обсуждения пространств имён и модулей в разделе <a href="ch07-03-paths-for-referring-to-an-item-in-the-module-tree.html">"Пути для ссылки на элемент в дереве модулей"</a><!-- ignore --> Главы 7.</p>
+<p>The double colon <code>::</code> operator allows us to namespace this particular <code>from</code> function under the <code>String</code> type rather than using some sort of name like <code>string_from</code>. We’ll discuss this syntax more in the <a href="ch05-03-method-syntax.html#methods">“Methods”</a><!--
+ignore --> section of Chapter 5, and when we talk about namespacing with modules in <a href="ch07-03-paths-for-referring-to-an-item-in-the-module-tree.html">“Paths for Referring to an Item in the Module Tree”</a><!-- ignore --> in Chapter 7.</p>
 <p>Подобного рода строки <em>могут</em> быть изменены</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span>    let mut s = String::from("hello");
 
     s.push_str(", world!"); // push_str() приписывает литерал к String
 
-    println!("{s}"); // Будет напечатано `hello, world!`
+    println!("{s}"); // this will print `hello, world!`
 <span class="boring">}</span></code></pre></pre>
 <p>В чем же разница? Почему строку <code>String</code> можно изменить, а литералы — нельзя? Разница заключается в том, как эти два типа работают с памятью.</p>
 <h3 id="Память-и-её-выделение"><a class="header" href="#Память-и-её-выделение">Память и её выделение</a></h3>
@@ -285,10 +286,10 @@
 <li>Память должна запрашиваться у распределителя памяти во время исполнения программы.</li>
 <li>Необходим способ вернуть эту память распределителю, когда мы закончили работу с нашей <code>String</code>.</li>
 </ul>
-<p>Первое выполняется нами: когда мы вызываем <code>String::from</code>, его реализация запрашивает необходимую память. Такое довольно знакомо многим языкам программирования.</p>
+<p>That first part is done by us: When we call <code>String::from</code>, its implementation requests the memory it needs. This is pretty much universal in programming languages.</p>
 <p>Однако второй пункт куда интереснее. В языках со <em>сборщиком мусора (GC)</em> память, которая больше не используется, им отслеживается и очищается — нам не нужно об этом думать. В большинстве языков без сборщика мусора мы обязаны сами определять, когда память больше не используется, и вызывать код, явно её освобождающий: точно так же, как мы делали это для её выделения. Правильные ручные запросы на выделение и высвобождение памяти всегда были сложной проблемой программирования. Если мы забудем освободить память, она будет потеряна и без проку забьёт собой место. Если же мы сделаем это слишком рано, у нас будет недействительная переменная. Сделать это дважды — тоже выйдут проблемы. Нам нужно ровно единожды высвободить память, которую мы единожды выделили.</p>
-<p>Rust пошёл по своему: память автоматически возвращается системе, как только владеющая памятью переменная выходит из области видимости. Вот версия примера с областью видимости из Листинга 4-1, в котором используется тип <code>String</code> вместо строкового литерала:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+<p>Rust takes a different path: The memory is automatically returned once the variable that owns it goes out of scope. Here’s a version of our scope example from Listing 4-1 using a <code>String</code> instead of a string literal:</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span>    {
         let s = String::from("hello"); // отсюда и далее s действительна
 
@@ -301,42 +302,42 @@
 <p>Примечание: В C++ этот шаблон освобождения ресурсов в конце времени жизни данных иногда называется <em>"Получение ресурса есть инициализация"</em> (Resource Acquisition Is Initialization — RAII). Функция <code>drop</code> в Rust покажется вам знакомой, если вы использовали шаблоны RAII.</p>
 </blockquote>
 <p>Этот шаблон оказывает глубокое влияние на способ написания кода в Rust. Сейчас это всё может казаться простым, но в более сложных случаях поведение кода может оказаться неожиданным: например, когда хочется иметь несколько переменных, использующих данные, выделенные в куче. Изучим несколько таких ситуаций.</p>
-<!-- Old heading. Do not remove or links may break. -->
+<!-- Old headings. Do not remove or links may break. -->
 <p><a id="ways-variables-and-data-interact-move"></a></p>
 <h4 id="Взаимодействие-переменных-и-данных-с-помощью-перемещения"><a class="header" href="#Взаимодействие-переменных-и-данных-с-помощью-перемещения">Взаимодействие переменных и данных с помощью перемещения</a></h4>
-<p>В Rust, несколько переменных могут по-разному взаимодействовать с одними и теми же данными. Давайте рассмотрим один пример с использованием целое число:</p>
+<p>Multiple variables can interact with the same data in different ways in Rust. Listing 4-2 shows an example using an integer.</p>
 <Listing number="4-2" caption="Assigning the integer value of variable `x` to `y`">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span>    let x = 5;
     let y = x;
 <span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>Мы можем догадаться, что делает этот код: "привяжи значение <code>5</code> к <code>x</code>; затем сделай копию значения в <code>x</code> и привяжи его к <code>y</code>". Теперь у нас есть две переменные: <code>x</code> и <code>y</code>, и обе равны <code>5</code>. Именно так всё и происходит, потому что целые числа — это простые значения с известным фиксированным размером, так что эти два значения <code>5</code> помещаются в стек.</p>
+<p>We can probably guess what this is doing: “Bind the value <code>5</code> to <code>x</code>; then, make a copy of the value in <code>x</code> and bind it to <code>y</code>.” We now have two variables, <code>x</code> and <code>y</code>, and both equal <code>5</code>. This is indeed what is happening, because integers are simple values with a known, fixed size, and these two <code>5</code> values are pushed onto the stack.</p>
 <p>Теперь посмотрим на версию с типом <code>String</code></p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span>    let s1 = String::from("hello");
     let s2 = s1;
 <span class="boring">}</span></code></pre></pre>
-<p>Всё выглядит очень похожим, поэтому мы можем предположить, что происходит то же самое: вторая строка сделает копию значения <code>s1</code> и привяжет его к <code>s2</code>. Но это не совсем так.</p>
+<p>This looks very similar, so we might assume that the way it works would be the same: That is, the second line would make a copy of the value in <code>s1</code> and bind it to <code>s2</code>. But this isn’t quite what happens.</p>
 <p>Взгляните на Рисунок 4-1, чтобы понять, что со <code>String</code> происходит под капотом. <code>String</code> состоит из трёх частей (показаны слева): указатель на память, в которой хранится содержимое строки; длина; ёмкость. Эта группа данных хранится на стеке. Справа — память в куче, которая содержит сам текст.</p>
 <p><img alt="Две таблицы: первая содержит представление s1в
 стеке, содержащее её длину (5), ёмкость (5) и указатель на первое
 значение во второй таблице. Вторая таблица содержит представление содержимого
 строки в куче, байт за байтом." src="img/trpl04-01.svg" class="center"
 style="width: 50%;" /></p>
-<p><span class="caption">Рисунок 4-1: Представление в памяти значения типа <code>String</code>, содержащее значение <code>"hello"</code> и связанное с <code>s1</code></span></p>
+<p><span class="caption">Figure 4-1: The representation in memory of a <code>String</code> holding the value <code>"hello"</code> bound to <code>s1</code></span></p>
 <p>Длина — это объём памяти в байтах, который в настоящее время использует содержимое <code>String</code>. Ёмкость — это общий объём памяти в байтах, который <code>String</code> получил от распределителя. Разница между длиной и ёмкостью имеет значение, но не в этом контексте, поэтому на данный момент можно игнорировать ёмкость.</p>
 <p>Когда мы присваиваем <code>s1</code> значению <code>s2</code>, данные <code>String</code> копируются: под этим имеется в виду, что мы копируем указатель, длину и ёмкость, которые находятся в стеке. Мы не копируем данные в куче, на которые указывает указатель. Иными словами, вид данных в памяти выглядит так, как показано на Рисунке 4-2.</p>
 <p><img alt="Три таблицы: таблицы s1 и s2 предсталяют эти строки на
 стеке, соответственно, и обе указывают на один и тот же текст в куче."
 src="img/trpl04-02.svg" class="center" style="width: 50%;" /></p>
-<p><span class="caption">Рисунок 4-2: Вид памяти переменной <code>s2</code>, имеющей копию указателя, длины и ёмкости <code>s1</code></span></p>
+<p><span class="caption">Figure 4-2: The representation in memory of the variable <code>s2</code> that has a copy of the pointer, length, and capacity of <code>s1</code></span></p>
 <p>Вид памяти <em>не</em> будет похож на Рисунок 4-3: так выглядела бы память, если бы вместо этого Rust также копировал данные кучи. Если бы Rust делал это, операция <code>s2 = s1</code> могла бы быть очень дорогой с точки зрения производительности исполнения, если бы копируемые данные в куче были большими.</p>
 <p><img alt="Четыре таблицы: две таблицы представляют данные s1 и s2 на стеке,
 и каждая указывает на собственную копию текста в куче."
 src="img/trpl04-03.svg" class="center" style="width: 50%;" /></p>
 <p><span class="caption">Рисунок 4-3: Другой вариант того, что могла бы делать операция<code>s2 = s1</code>, если бы Rust также копировал данные кучи</span></p>
-<p>Ранее мы сказали, что когда переменная выходит за пределы области видимости, Rust автоматически вызывает функцию <code>drop</code> и очищает память данной переменной, выделенную в куче. Но на Рисунке 4-2 оба указателя данных указывают на одно и то же место. Это проблема: когда переменные <code>s2</code> и <code>s1</code> будут выходить из области видимости, они обе будут пытаться освободить одну и ту же память. Это известно как ошибка <em>двойного освобождения</em> —  она является одной из ошибок безопасности памяти, упоминаемых ранее. Повторное свобождение памяти может привести к повреждению памяти, что потенциально может привести к уязвимостям.</p>
+<p>Earlier, we said that when a variable goes out of scope, Rust automatically calls the <code>drop</code> function and cleans up the heap memory for that variable. But Figure 4-2 shows both data pointers pointing to the same location. This is a problem: When <code>s2</code> and <code>s1</code> go out of scope, they will both try to free the same memory. This is known as a <em>double free</em> error and is one of the memory safety bugs we mentioned previously. Freeing memory twice can lead to memory corruption, which can potentially lead to security vulnerabilities.</p>
 <p>Чтобы обеспечить безопасность памяти, после строки <code>let s2 = s1;</code> Rust считает <code>s1</code> более не инициализированной. Следовательно, Rust не нужно ничего освобождать, когда <code>s1</code> выходит из области видимости. Посмотрите, что произойдёт, если вы попытаетесь использовать <code>s1</code> после создания <code>s2</code>:</p>
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">fn main() {
 </span>    let s1 = String::from("hello");
@@ -348,7 +349,7 @@ src="img/trpl04-03.svg" class="center" style="width: 50%;" /></p>
 <pre><code class="language-console">$ cargo run
    Compiling ownership v0.1.0 (file:///projects/ownership)
 error[E0382]: borrow of moved value: `s1`
- --&gt; src/main.rs:5:15
+ --&gt; src/main.rs:5:16
   |
 2 |     let s1 = String::from("hello");
   |         -- move occurs because `s1` has type `String`, which does not implement the `Copy` trait
@@ -356,7 +357,7 @@ error[E0382]: borrow of moved value: `s1`
   |              -- value moved here
 4 |
 5 |     println!("{s1}, world!");
-  |               ^^^^ value borrowed here after move
+  |                ^^ value borrowed here after move
   |
   = note: this error originates in the macro `$crate::format_args_nl` which comes from the expansion of the macro `println` (in Nightly builds, run with -Z macro-backtrace for more info)
 help: consider cloning the value if the performance cost is acceptable
@@ -368,38 +369,35 @@ For more information about this error, try `rustc --explain E0382`.
 error: could not compile `ownership` (bin "ownership") due to 1 previous error
 </code></pre>
 <p>Если вы слышали про термины <em>поверхностное копирование</em> и <em>глубокое копирование</em>, если работали с другими языками, концепция копирования указателя, длины и ёмкости без копирования данных, вероятно, звучит как создание поверхностной копии. Но поскольку Rust также деинициализирует первую переменную, это называется не поверхностным копированием, а <em>перемещением</em>. В примере выше мы бы сказали, что <code>s1</code> была перемещён в <code>s2</code>. В конечном счёте, истинная картина происходящего показана на Рисунке 4-4.</p>
-<p><img alt="Три таблицы: таблицы s1 и s2 представляют эти строки на
-стеке, соответственно, и обе указывают на один и тот же текст в куче.
-Таблица s1 серая, по-скольку s1 больше не действительна; лишь s2 может быть использована для
-обращения к данным в куче." src="img/trpl04-04.svg" class="center" style="width:
+<p><img alt="Three tables: tables s1 and s2 representing those strings on the
+stack, respectively, and both pointing to the same string data on the heap.
+Table s1 is grayed out because s1 is no longer valid; only s2 can be used to
+access the heap data." src="img/trpl04-04.svg" class="center" style="width:
 50%;" /></p>
-<p><span class="caption">Рисунок 4-4: Вид памяти после того, как <code>s1</code> была деинициализирована</span></p>
+<p><span class="caption">Figure 4-4: The representation in memory after <code>s1</code> has been invalidated</span></p>
 <p>Это решает нашу проблему! Действительной остаётся только переменная <code>s2</code>. Когда она покинет область видимости, то лишь она одна будет освобождать память в куче.</p>
 <p>Этот порядок работы с памятью даёт ещё одно преимущество: Rust никогда не будет автоматически создавать "глубокие" копии ваших данных. Следовательно, любое автоматическое копирование, связанное и перемещением, можно считать недорогим с точки зрения производительности.</p>
 <h4 id="Область-видимости-и-присвоение"><a class="header" href="#Область-видимости-и-присвоение">Область видимости и присвоение</a></h4>
 <p>The inverse of this is true for the relationship between scoping, ownership, and memory being freed via the <code>drop</code> function as well. When you assign a completely new value to an existing variable, Rust will call <code>drop</code> and free the original value’s memory immediately. Consider this code, for example:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span>    let mut s = String::from("hello");
     s = String::from("ahoy");
 
     println!("{s}, world!");
 <span class="boring">}</span></code></pre></pre>
-<p>Сначала мы объявляем переменную <code>s</code> и связываем её со значением <code>"hello"</code> типа <code>String</code>. Затем мы немедленно создаем новую строку типа <code>String</code> со значением <code>"ahoy"</code> и присваиваем её переменной <code>s</code>. После этого ничто больше не ссылается на изначальные данные в куче.</p>
-<p><img alt="Одна таблица, s, представляет данные строки на стеке, указывающие на
-вторую часть данных строки (“ahoy”) в куче, вместе с изначальным текстом
-строки (“hello”) выкрашенными в серый, поскольку он больше никому не доступен."
-src="img/trpl04-05.svg"
-class="center"
-style="width: 50%;"
-/></p>
-<p><span class="caption">Рисунок 4-5: Вид памяти после того, как начальное значение было полностью заменено, вытеснено новым.</span></p>
+<p>We initially declare a variable <code>s</code> and bind it to a <code>String</code> with the value <code>"hello"</code>. Then, we immediately create a new <code>String</code> with the value <code>"ahoy"</code> and assign it to <code>s</code>. At this point, nothing is referring to the original value on the heap at all. Figure 4-5 illustrates the stack and heap data now:</p>
+<p><img alt="One table representing the string value on the stack, pointing to
+the second piece of string data (ahoy) on the heap, with the original string
+data (hello) grayed out because it cannot be accessed anymore."
+src="img/trpl04-05.svg" class="center" style="width: 50%;" /></p>
+<p><span class="caption">Figure 4-5: The representation in memory after the initial value has been replaced in its entirety</span></p>
 <p>Оригинальная строка, в связи с этим, в этот же момент покинула область видимости. Rust вызовет на ней функцию <code>drop</code> и высвободит её память. Когда исполнение дойдёт до строчки печати, будет выведено <code>"ahoy, world!"</code>.</p>
-<!-- Old heading. Do not remove or links may break. -->
+<!-- Old headings. Do not remove or links may break. -->
 <p><a id="ways-variables-and-data-interact-clone"></a></p>
 <h4 id="Взаимодействие-переменных-и-данных-с-помощью-клонирования"><a class="header" href="#Взаимодействие-переменных-и-данных-с-помощью-клонирования">Взаимодействие переменных и данных с помощью клонирования</a></h4>
 <p>Если мы всё же <em>хотим</em> глубоко скопировать данные <code>String</code> в куче, а не только стека, мы можем использовать часто реализуемый метод, называемый <code>clone</code>. Мы обсудим синтаксис метода в Главе 5, но поскольку методы являются общей чертой многих языков программирования, вы, вероятно, уже знакомы с ними.</p>
 <p>Вот пример работы метода <code>clone</code>:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span>    let s1 = String::from("hello");
     let s2 = s1.clone();
 
@@ -409,13 +407,13 @@ style="width: 50%;"
 <p>Если вы видите вызов <code>clone</code>, вы сразу можете понять, что исполняемый здесь некоторый код наверняка будет затратным. В то же время, использование <code>clone</code> является маркером того, что тут происходит что-то необычное.</p>
 <h4 id="Данные-размещающиеся-только-на-стеке-всегда-копируются"><a class="header" href="#Данные-размещающиеся-только-на-стеке-всегда-копируются">Данные, размещающиеся только на стеке, всегда копируются</a></h4>
 <p>Это ещё одна особенность, о которой мы ранее не говорили. Этот код, часть которого мы ранее показали в Листинге 4-2, полностью корректен:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span>    let x = 5;
     let y = x;
 
     println!("x = {x}, y = {y}");
 <span class="boring">}</span></code></pre></pre>
-<p>Но в то же время этот код, кажется, противоречит тому, что мы только что узнали: мы не вызываем <code>clone</code>, но <code>x</code> остаётся действительна и её значение не перемещается в <code>y</code>.</p>
+<p>But this code seems to contradict what we just learned: We don’t have a call to <code>clone</code>, but <code>x</code> is still valid and wasn’t moved into <code>y</code>.</p>
 <p>Причина в том, что такие типы, как целые числа, размер которых известен во время компиляции, полностью хранятся на стеке, поэтому копии фактических значений создаются быстро. Это означает, что нет причин, по которым мы хотели бы предотвратить доступность <code>x</code> после того, как создадим переменную <code>y</code>. Иными словами, для таких типов нет разницы между глубоким и поверхностным копированием, поэтому вызов <code>clone</code> ничем не отличается от обычного поверхностного копирования, и мы можем его опустить.</p>
 <p>В Rust есть специальная аннотация, называемая трейтом <code>Copy</code>, которую мы можем приписывать типам, хранящимся на стеке: как это сделано для целых чисел (подробнее о трейтах мы поговорим в <a href="ch10-02-traits.html">Главе 10</a><!-- ignore -->). Если тип реализует трейт <code>Copy</code>, переменные, к нему принадлежащие, не перемещаются при присваивании, а просто копируются, что оставляет их действительными после присвоения другой переменной.</p>
 <p>Rust не позволит нам аннотировать тип с помощью <code>Copy</code>, если тип или любая из его частей реализует трейт <code>Drop</code>. Если для типа нужно, чтобы произошло что-то особенное, когда значение выходит за пределы области видимости, и мы добавляем аннотацию <code>Copy</code> к этому типу, мы получим ошибку компиляции. Чтобы узнать, как добавить аннотацию <code>Copy</code> к вашему типу для реализации трейта, посмотрите раздел <a href="appendix-03-derivable-traits.html">"Выводимые трейты"</a><!-- ignore --> в Приложении C.</p>
@@ -430,7 +428,7 @@ style="width: 50%;"
 <h3 id="Владение-и-функции"><a class="header" href="#Владение-и-функции">Владение и функции</a></h3>
 <p>Механизм передачи функции значения схож с тем, что происходит при присвоении переменной значения. Передача переменной в функцию приведёт к перемещению или копированию ровно так же, как при присваивании. В Листинге 4-3 есть пример с некоторыми комментариями, поясняющими, где переменные входят в область видимости и где выходят из неё.</p>
 <Listing number="4-3" file-name="src/main.rs" caption="Functions with ownership and scope annotated">
-<pre><pre class="playground"><code class="language-rust edition2021">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024">fn main() {
     let s = String::from("hello");  // s входит в область видимости
 
     takes_ownership(s);             // значение s перемещается в функцию...
@@ -438,12 +436,12 @@ style="width: 50%;"
 
     let x = 5;                      // x входит в область видимости
 
-    makes_copy(x);                  // поскольку i32 реализует трейт Copy,
-                                    // x НЕ переместится в функцию,
-    println!("{}", x);              // так что далее всё ещё можно использовать x
+    makes_copy(x);                  // Because i32 implements the Copy trait,
+                                    // x does NOT move into the function,
+                                    // so it's okay to use x afterward.
 
-} // Здесь x покидает область видимости, вслед за ней — и s. Но поскольку значение s ранее было перемещено, ничего
-  // критического не происходит.
+} // Here, x goes out of scope, then s. However, because s's value was moved,
+  // nothing special happens.
 
 fn takes_ownership(some_string: String) { // some_string входит в область видимости
     println!("{some_string}");
@@ -458,7 +456,7 @@ fn makes_copy(some_integer: i32) { // some_integer входит в област�
 <h3 id="Возвращение-значений-и-область-видимости"><a class="header" href="#Возвращение-значений-и-область-видимости">Возвращение значений и область видимости</a></h3>
 <p>Возвращение значений также может сопровождаться передачей владения. В Листинге 4-4 показан пример функции, возвращающей некоторое значение, с подобными же комментариями, как в Листинге 4-3.</p>
 <Listing number="4-4" file-name="src/main.rs" caption="Transferring ownership of return values">
-<pre><pre class="playground"><code class="language-rust edition2021">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024">fn main() {
     let s1 = gives_ownership();        // gives_ownership перемещает своё возвращаемое значение
                                        // в s1
 
@@ -488,11 +486,11 @@ fn gives_ownership() -&gt; String {       // gives_ownership перемещае�
     a_string  // a_string возвращается из функции перемещается в то, что вызвало функцию
 }</code></pre></pre>
 </Listing>
-<p>Владение переменной каждый раз следует одному и тому же шаблону: присваивание значения другой переменной перемещает это значение в новую переменную. Когда переменная, содержащая данные в куче, выходит из области видимости, содержимое в куче будет очищено функцией <code>drop</code>, если только данные не были перемещены во владение другой переменной.</p>
+<p>The ownership of a variable follows the same pattern every time: Assigning a value to another variable moves it. When a variable that includes data on the heap goes out of scope, the value will be cleaned up by <code>drop</code> unless ownership of the data has been moved to another variable.</p>
 <p>Хотя всё исправно работает, получать владение, а затем возвращать его из каждой функцией довольно утомительно. Что, если мы хотим, чтобы функция использовала значение, но не становилась владельцем? Очень раздражает, что всё, что мы передаём, также должно быть передано обратно, если мы хотим использовать это снова (помимо любых вычисленных в теле функции данных, которые мы также можем хотеть вернуть).</p>
 <p>Rust позволяет нам возвращать из функции несколько значений, используя кортеж, как показано в Листинге 4-5.</p>
 <Listing number="4-5" file-name="src/main.rs" caption="Returning ownership of parameters">
-<pre><pre class="playground"><code class="language-rust edition2021">fn main() {
+<pre><pre class="playground"><code class="language-rust edition2024">fn main() {
     let s1 = String::from("hello");
 
     let (s2, len) = calculate_length(s1);
@@ -506,7 +504,7 @@ fn calculate_length(s: String) -&gt; (String, usize) {
     (s, length)
 }</code></pre></pre>
 </Listing>
-<p>Но это слишком многословно и излишне для методики, которая претендует на универсальность и всеприменимость. К счастью, в Rust есть способ использовать значение без передачи владения — <em>ссылки</em>.</p>
+<p>But this is too much ceremony and a lot of work for a concept that should be common. Luckily for us, Rust has a feature for using a value without transferring ownership: references.</p>
 
                     </main>
 

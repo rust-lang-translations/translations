@@ -1,0 +1,448 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Optimizing Build Performance - The Cargo Book</title>
+
+
+        <!-- Custom HTML head -->
+        <style>
+            dd {
+                margin-bottom: 1em;
+            }
+        </style>
+        
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-L455DH98TK"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+        
+          gtag('config', 'G-L455DH98TK');
+        </script>
+        
+        
+        <script>
+            (function () {
+                // See these pages for details:
+                // https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls
+                // https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics
+        
+                function gen_canonical_href(lang) {
+        
+                    let base = "https://rust-lang-translations.org/cargo";
+        
+                    let canonical_href;
+                    if (lang == "en") {
+                        canonical_href = `${base}/guide/build-performance.md`;
+                    } else {
+                        canonical_href = `${base}/${lang}/guide/build-performance.md`;
+                    }
+                    canonical_href = canonical_href.slice(0, -"md".length) + "html";
+                    if (canonical_href.endsWith("/index.html")) {
+                        canonical_href = canonical_href.slice(0, -"index.html".length);
+                    }
+                    return canonical_href;
+                }
+        
+                const canonical_href = gen_canonical_href("en");
+
+                let link = document.createElement("link");
+                link.rel = "canonical";
+                link.href = canonical_href;
+                document.head.appendChild(link);
+        
+        
+                const langs = ["en"  , "ja"  , "ko" ];
+        
+                for (const lang of langs) {
+                    const canonical_href = gen_canonical_href(lang);
+        
+                    let link = document.createElement("link");
+                    link.rel = "alternate";
+                    link.hreflang = lang;
+                    link.href = canonical_href;
+                    document.head.appendChild(link);
+                }
+            })()
+        </script>
+        
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/cargo.css">
+        <link rel="stylesheet" href="../theme/language-picker.css">
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Cargo Book</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/rust-lang-translations/project" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/rust-lang/cargo/edit/master/src/doc/src/guide/build-performance.md" title="Suggest an edit" aria-label="Suggest an edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="optimizing-build-performance"><a class="header" href="#optimizing-build-performance">Optimizing Build Performance</a></h1>
+<p>Cargo configuration options and source code organization patterns can help improve build performance, by prioritizing it over other aspects which may not be as important for your circumstances.</p>
+<p>Same as when optimizing runtime performance, be sure to measure these changes against the workflows you actually care about, as we provide general guidelines and your circumstances may be different, it is possible that some of these approaches might actually make build performance worse for your use-case.</p>
+<p>Example workflows to consider include:</p>
+<ul>
+<li>Compiler feedback as you develop (<code>cargo check</code> after making a code change)</li>
+<li>Test feedback as you develop (<code>cargo test</code> after making a code change)</li>
+<li>CI builds</li>
+</ul>
+<h2 id="cargo-and-compiler-configuration"><a class="header" href="#cargo-and-compiler-configuration">Cargo and Compiler Configuration</a></h2>
+<p>Cargo uses configuration defaults that try to balance several aspects, including debuggability, runtime performance, build performance, binary size and others. This section describes several approaches for changing these defaults that should be designed to maximize build performance.</p>
+<p>Common locations to override defaults are:</p>
+<ul>
+<li><a href="../reference/profiles.html"><code>Cargo.toml</code> manifest</a>
+<ul>
+<li>Available to all developers contributing to your project</li>
+<li>Limited in what configuration is supported (see <a href="https://github.com/rust-lang/cargo/issues/12738">#12738</a> for expanding this)</li>
+</ul>
+</li>
+<li><a href="../reference/config.html"><code>$WORKSPACE_ROOT/.cargo/config.toml</code> configuration file</a>
+<ul>
+<li>Available to all developers contributing to your project</li>
+<li>Unlike <code>Cargo.toml</code>, this is sensitive to what directory you invoke <code>cargo</code> from (see <a href="https://github.com/rust-lang/cargo/issues/2930">#2930</a>)</li>
+</ul>
+</li>
+<li><a href="../reference/config.html"><code>$CARGO_HOME/.cargo/config.toml</code> configuration file</a>
+<ul>
+<li>For a developer to control the defaults for their development</li>
+</ul>
+</li>
+</ul>
+<h3 id="reduce-amount-of-generated-debug-information"><a class="header" href="#reduce-amount-of-generated-debug-information">Reduce amount of generated debug information</a></h3>
+<p>Recommendation: Add to your <code>Cargo.toml</code> or <code>.cargo/config.toml</code>:</p>
+<pre><code class="language-toml">[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
+[profile.debugging]
+inherits = "dev"
+debug = true
+</code></pre>
+<p>This will:</p>
+<ul>
+<li>Change the <a href="../reference/profiles.html#dev"><code>dev</code> profile</a> (default for development commands) to:
+<ul>
+<li>Limit <a href="../reference/profiles.html#debug">debug information</a> for workspace members to what is needed for useful panic backtraces</li>
+<li>Avoid generating any debug information for dependencies</li>
+</ul>
+</li>
+<li>Provide an opt-in for when debugging via <a href="../reference/profiles.html#custom-profiles"><code>--profile debugging</code></a></li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> re-evaluating the <code>dev</code> profile is being tracked in <a href="https://github.com/rust-lang/cargo/issues/15931">#15931</a>.</p>
+</blockquote>
+<p>Trade-offs:</p>
+<ul>
+<li>✅ Faster code generation (<code>cargo build</code>)</li>
+<li>✅ Faster link times</li>
+<li>✅ Smaller disk usage of the <code>target</code> directory</li>
+<li>❌ Requires a full rebuild to have a high-quality debugger experience</li>
+</ul>
+<h3 id="use-an-alternative-codegen-backend"><a class="header" href="#use-an-alternative-codegen-backend">Use an alternative codegen backend</a></h3>
+<p>Recommendation:</p>
+<ul>
+<li>Install the Cranelift codegen backend rustup component
+<pre><code class="language-console">$ rustup component add rustc-codegen-cranelift-preview --toolchain nightly
+</code></pre>
+</li>
+<li>Add to your <code>Cargo.toml</code> or <code>.cargo/config.toml</code>:
+<pre><code class="language-toml">[profile.dev]
+codegen-backend = "cranelift"
+</code></pre>
+</li>
+<li>Run Cargo with <code>-Z codegen-backend</code> or enable the <a href="../reference/unstable.html#codegen-backend"><code>codegen-backend</code></a> feature in <code>.cargo/config.toml</code>.
+<ul>
+<li>This is required because this is currently an unstable feature.</li>
+</ul>
+</li>
+</ul>
+<p>This will change the <a href="../reference/profiles.html#dev"><code>dev</code> profile</a> to use the <a href="https://github.com/rust-lang/rustc_codegen_cranelift">Cranelift codegen backend</a> for generating machine code, instead of the default LLVM backend. The Cranelift backend should generate code faster than LLVM, which should result in improved build performance.</p>
+<p>Trade-offs:</p>
+<ul>
+<li>✅ Faster code generation (<code>cargo build</code>)</li>
+<li>❌ <strong>Requires using nightly Rust and an <a href="../reference/unstable.html#codegen-backend">unstable Cargo feature</a></strong></li>
+<li>❌ Worse runtime performance of the generated code
+<ul>
+<li>Speeds up build part of <code>cargo test</code>, but might increase its test execution part</li>
+</ul>
+</li>
+<li>❌ Only available for <a href="https://github.com/rust-lang/rustc_codegen_cranelift?tab=readme-ov-file#platform-support">certain targets</a></li>
+<li>❌ Might not support all Rust features (e.g. unwinding)</li>
+</ul>
+<h3 id="enable-the-experimental-parallel-frontend"><a class="header" href="#enable-the-experimental-parallel-frontend">Enable the experimental parallel frontend</a></h3>
+<p>Recommendation: Add to your <code>.cargo/config.toml</code>:</p>
+<pre><code class="language-toml">[build]
+rustflags = "-Zthreads=8"
+</code></pre>
+<p>This <a href="../reference/config.html#buildrustflags"><code>rustflags</code></a> will enable the <a href="https://blog.rust-lang.org/2023/11/09/parallel-rustc/">parallel frontend</a> of the Rust compiler, and tell it to use <code>n</code> threads. The value of <code>n</code> should be chosen according to the number of cores available on your system, although there are diminishing returns. We recommend using at most <code>8</code> threads.</p>
+<p>Trade-offs:</p>
+<ul>
+<li>✅ Faster build times (both <code>cargo check</code> and <code>cargo build</code>)</li>
+<li>❌ <strong>Requires using nightly Rust and an <a href="https://github.com/rust-lang/rust/issues/113349">unstable Rust feature</a></strong></li>
+</ul>
+<h3 id="use-an-alternative-linker"><a class="header" href="#use-an-alternative-linker">Use an alternative linker</a></h3>
+<p>Consider: installing and configuring an alternative linker, like <a href="https://lld.llvm.org/">LLD</a>, <a href="https://github.com/rui314/mold">mold</a> or <a href="https://github.com/davidlattimore/wild">wild</a>. For example, to configure mold on Linux, you can add to your <code>.cargo/config.toml</code>:</p>
+<pre><code class="language-toml">[target.'cfg(target_os = "linux")']
+# mold, if you have GCC 12+
+rustflags = ["-C", "link-arg=-fuse-ld=mold"]
+
+# mold, otherwise
+linker = "clang"
+rustflags = ["-C", "link-arg=-fuse-ld=/path/to/mold"]
+</code></pre>
+<p>While dependencies may be built in parallel, linking all of your dependencies happens at once at the end of your build, which can make linking dominate your build times, especially for incremental rebuilds. Often, the linker Rust uses is already fairly fast and the gains from switching may not be worth it, but it is not always the case. For example, Linux targets besides <code>x86_64-unknown-linux-gnu</code> still use the Linux system linker which is quite slow (see <a href="https://github.com/rust-lang/rust/issues/39915">rust#39915</a> for more details).</p>
+<p>Trade-offs:</p>
+<ul>
+<li>✅ Faster link times</li>
+<li>❌ Might not support all use-cases, in particular if you depend on C or C++ dependencies</li>
+</ul>
+<h3 id="resolve-features-for-the-whole-workspace"><a class="header" href="#resolve-features-for-the-whole-workspace">Resolve features for the whole workspace</a></h3>
+<p>Consider: adding to your project’s <code>.cargo/config.toml</code></p>
+<pre><code class="language-toml">[resolver]
+feature-unification = "workspace"
+</code></pre>
+<p>When invoking <code>cargo</code>,
+<a href="../reference/resolver.html#features">features get activated</a> based on which workspace members you have selected.
+However, when contributing to an application,
+you may need to build and test various packages within the application,
+which can cause extraneous rebuilds because different sets of features may be activated for common dependencies.
+With <a href="../reference/unstable.html#feature-unification"><code>feature-unification</code></a>,
+you can reuse more dependency builds by ensuring the same set of dependency features are activated,
+independent of which package you are currently building and testing.</p>
+<p>Trade-offs:</p>
+<ul>
+<li>✅ Fewer rebuilds when building different packages in a workspace</li>
+<li>❌ <strong>Requires using nightly Rust and an <a href="../reference/unstable.html#feature-unification">unstable Cargo feature</a></strong></li>
+<li>❌ A package activating a feature can mask bugs in other packages that should activate it but don’t</li>
+<li>❌ If the feature unification from <code>--workspace</code> doesn’t work for you, then this won’t either</li>
+</ul>
+<h2 id="reducing-built-code"><a class="header" href="#reducing-built-code">Reducing built code</a></h2>
+<h3 id="removing-unused-dependencies"><a class="header" href="#removing-unused-dependencies">Removing unused dependencies</a></h3>
+<p>Recommendation: Periodically review unused dependencies for removal using third-party tools like
+<a href="https://crates.io/crates/cargo-machete">cargo-machete</a>,
+<a href="https://crates.io/crates/cargo-udeps">cargo-udeps</a>,
+<a href="https://crates.io/crates/cargo-shear">cargo-shear</a>.</p>
+<p>When changing code,
+it can be easy to miss that a dependency is no longer used and can be removed.</p>
+<blockquote>
+<p><strong>Note:</strong> native support for this in Cargo is being tracked in <a href="https://github.com/rust-lang/cargo/issues/15813">#15813</a>.</p>
+</blockquote>
+<p>Trade-offs:</p>
+<ul>
+<li>✅ Faster full build and link times</li>
+<li>❌ May incorrectly flag dependencies as unused or miss some</li>
+</ul>
+<h3 id="removing-unused-features-from-dependencies"><a class="header" href="#removing-unused-features-from-dependencies">Removing unused features from dependencies</a></h3>
+<p>Recommendation: Periodically review unused features from dependencies for removal using third-party tools like
+<a href="https://crates.io/crates/cargo-features-manager">cargo-features-manager</a>,
+<a href="https://crates.io/crates/cargo-unused-features">cargo-unused-features</a>.</p>
+<p>When changing code,
+it can be easy to miss that a dependency’s feature is no longer used and can be removed.
+This can reduce the number of transitive dependencies being built or
+reduce the amount of code within a crate being built.
+When removing features, extra caution is needed because features
+may also be used for desired behavior or performance changes
+which may not always be obvious from compiling or testing.</p>
+<p>Trade-offs:</p>
+<ul>
+<li>✅ Faster full build and link times</li>
+<li>❌ May incorrectly flag features as unused</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../guide/cargo-home.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../reference/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../guide/cargo-home.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../reference/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/language-picker.js"></script>
+
+
+    </div>
+    </body>
+</html>

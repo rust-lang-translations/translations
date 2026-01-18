@@ -232,7 +232,7 @@ let y;</code></pre>
 <pre><code class="language-rust ignore">let tuple = (vec![], vec![]);</code></pre>
 <p>왼쪽 벡터가 먼저 드롭됩니다. 하지만 이것이 대여 검사기(borrow checker)의 관점에서 오른쪽 벡터가 왼쪽 벡터보다 엄격하게 더 오래 산다는 것을 의미할까요? 대답은 _아니오_입니다. 대여 검사기는 튜플의 필드를 개별적으로 추적할 수도 있겠지만, 대여 검사기가 이해하지 못하는 순수 라이브러리 코드를 통해 수동으로 드롭되는 벡터 요소의 경우, 무엇이 무엇보다 더 오래 사는지 결정할 수 없을 것입니다.</p>
 <p>그렇다면 왜 우리가 이것에 신경을 써야 할까요? 타입 시스템이 주의를 기울이지 않으면 실수로 매달린 포인터를 만들 수 있기 때문입니다. 다음의 간단한 프로그램을 고려해 보세요.</p>
-<pre><pre class="playground"><code class="language-rust edition2021">struct Inspector&lt;'a&gt;(&amp;'a u8);
+<pre><pre class="playground"><code class="language-rust edition2024">struct Inspector&lt;'a&gt;(&amp;'a u8);
 
 struct World&lt;'a&gt; {
     inspector: Option&lt;Inspector&lt;'a&gt;&gt;,
@@ -248,7 +248,7 @@ fn main() {
 }</code></pre></pre>
 <p>이 프로그램은 완전히 건전하며 현재 컴파일됩니다. <code>days</code>가 <code>inspector</code>보다 엄격하게 더 오래 살지 않는다는 사실은 중요하지 않습니다. <code>inspector</code>가 살아있는 동안은 <code>days</code>도 살아있기 때문입니다.</p>
 <p>하지만 소멸자를 추가하면, 프로그램은 더 이상 컴파일되지 않습니다!</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021">struct Inspector&lt;'a&gt;(&amp;'a u8);
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024">struct Inspector&lt;'a&gt;(&amp;'a u8);
 
 impl&lt;'a&gt; Drop for Inspector&lt;'a&gt; {
     fn drop(&amp;mut self) {
@@ -289,7 +289,7 @@ fn main() {
 <p>이 규칙을 준수하는 것은 (대개) 대여 검사기를 만족시키기 위해 필요합니다. 이 규칙을 준수하는 것은 건전함을 보장하기에 충분하지만 필수적인 것은 아닙니다. 즉, 여러분의 타입이 이 규칙을 따른다면 드롭하는 것이 확실히 건전합니다.</p>
 <p>위의 규칙을 항상 만족해야 할 필요가 없는 이유는, 일부 <code>Drop</code> 구현이 타입상으로는 접근할 수 있음에도 불구하고 빌린 데이터에 접근하지 않거나, 우리가 특정 드롭 순서를 알고 있어서 대여 검사기가 모르더라도 빌린 데이터가 여전히 유효하기 때문입니다.</p>
 <p>예를 들어, 위 <code>Inspector</code> 예제의 이 변형은 빌려온 데이터에 절대 접근하지 않습니다.</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021">struct Inspector&lt;'a&gt;(&amp;'a u8, &amp;'static str);
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024">struct Inspector&lt;'a&gt;(&amp;'a u8, &amp;'static str);
 
 impl&lt;'a&gt; Drop for Inspector&lt;'a&gt; {
     fn drop(&amp;mut self) {
@@ -312,7 +312,7 @@ fn main() {
     // Inspector가 드롭되더라도, 소멸자는 빌려온 `days`에 접근하지 않을 것입니다.
 }</code></pre></pre>
 <p>마찬가지로, 이 변형 또한 빌려온 데이터에 절대 접근하지 않습니다.</p>
-<pre><pre class="playground"><code class="language-rust compile_fail edition2021">struct Inspector&lt;T&gt;(T, &amp;'static str);
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024">struct Inspector&lt;T&gt;(T, &amp;'static str);
 
 impl&lt;T&gt; Drop for Inspector&lt;T&gt; {
     fn drop(&amp;mut self) {
@@ -339,11 +339,11 @@ fn main() {
 <p>따라서 드롭 검사기는 값 안에 있는 모든 빌려온 데이터가 해당 값보다 엄격하게 더 오래 살도록 강제합니다.</p>
 <h2 id="탈출구-an-escape-hatch"><a class="header" href="#탈출구-an-escape-hatch">탈출구 (An Escape Hatch)</a></h2>
 <p>드롭 검사를 규정하는 정확한 규칙은 미래에 덜 제한적으로 변할 수도 있습니다.</p>
-<p>현재의 분석은 의도적으로 보수적이고 단순합니다. 값 내부의 모든 빌린 데이터가 그 값보다 더 오래 살도록 강제하며, 이는 확실히 건전합니다.</p>
+<p>The current analysis is deliberately conservative; it forces all borrowed data in a value to outlive that value, which is certainly sound.</p>
 <p>미래 버전의 언어에서는 분석이 더 정밀해져서, 건전한 코드가 안전하지 않다는 이유로 거부되는 사례를 줄일 수 있을 것입니다. 이는 위에서 살펴본 파괴되는 동안 검사하지 않는 두 <code>Inspector</code>와 같은 사례를 해결하는 데 도움이 될 것입니다.</p>
 <p>그동안은 제네릭 타입의 소멸자가 만료된 데이터에 접근하지 않는다는 것이 (비안전하게) 보장됨을 단언(assert)하기 위해 사용할 수 있는 불안정(unstable) 속성이 있습니다. 타입 자체는 접근 능력을 제공하더라도 말이죠.</p>
 <p>그 속성은 <code>may_dangle</code>이라고 불리며 <a href="https://github.com/rust-lang/rfcs/blob/master/text/1327-dropck-param-eyepatch.md">RFC 1327</a>에서 도입되었습니다. 위의 <code>Inspector</code>에 적용하려면 다음과 같이 작성합니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">#![feature(dropck_eyepatch)]
+<pre><pre class="playground"><code class="language-rust edition2024">#![feature(dropck_eyepatch)]
 
 struct Inspector&lt;'a&gt;(&amp;'a u8, &amp;'static str);
 
@@ -367,7 +367,7 @@ fn main() {
 }</code></pre></pre>
 <p>이 속성을 사용하려면 <code>Drop</code> 구현을 <code>unsafe</code>로 표시해야 합니다. 컴파일러는 잠재적으로 만료된 데이터(예: 위의 <code>self.0</code>)에 접근하지 않는다는 암묵적인 단언을 검사하지 않기 때문입니다.</p>
 <p>이 속성은 임의의 개수의 수명 및 타입 매개변수에 적용될 수 있습니다. 다음 예제에서, 우리는 수명 <code>'b</code>를 가진 참조 뒤의 데이터에 접근하지 않으며 <code>T</code>는 이동되거나 드롭되는 용도로만 사용된다고 단언합니다. 하지만 <code>'a</code>와 <code>U</code>에서는 이 속성을 생략했는데, 해당 수명과 타입을 가진 데이터에는 실제로 접근하기 때문입니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span>#![feature(dropck_eyepatch)]
 <span class="boring">fn main() {
 </span>use std::fmt::Display;
@@ -387,7 +387,7 @@ unsafe impl&lt;'a, #[may_dangle] 'b, #[may_dangle] T, U: Display&gt; Drop for In
 </ul>
 <p>(구현 전문화(impl specialization)와 같이 미래에 언어에 추가될 변경 사항들이 이런 간접 접근의 또 다른 통로를 열 수도 있습니다.)</p>
 <p>콜백 호출의 예시는 다음과 같습니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct Inspector&lt;T&gt;(T, &amp;'static str, Box&lt;for &lt;'r&gt; fn(&amp;'r T) -&gt; String&gt;);
 
@@ -400,7 +400,7 @@ impl&lt;T&gt; Drop for Inspector&lt;T&gt; {
 }
 <span class="boring">}</span></code></pre></pre>
 <p>트레잇 메서드 호출의 예시는 다음과 같습니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::fmt;
 

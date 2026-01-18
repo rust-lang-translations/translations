@@ -216,8 +216,8 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="rct-the-reference-counted-smart-pointer"><a class="header" href="#rct-the-reference-counted-smart-pointer"><code>Rc&lt;T&gt;</code>, the Reference Counted Smart Pointer</a></h2>
-<p>In the majority of cases, ownership is clear: you know exactly which variable
+                        <h2 id="rct-the-reference-counted-smart-pointer"><a class="header" href="#rct-the-reference-counted-smart-pointer"><code>Rc&lt;T&gt;</code>, the Reference-Counted Smart Pointer</a></h2>
+<p>In the majority of cases, ownership is clear: You know exactly which variable
 owns a given value. However, there are cases when a single value might have
 multiple owners. For example, in graph data structures, multiple edges might
 point to the same node, and that node is conceptually owned by all of the edges
@@ -232,7 +232,7 @@ can be cleaned up without any references becoming invalid.</p>
 they turn it on. Others can come into the room and watch the TV. When the last
 person leaves the room, they turn off the TV because it’s no longer being used.
 If someone turns off the TV while others are still watching it, there would be
-uproar from the remaining TV watchers!</p>
+an uproar from the remaining TV watchers!</p>
 <p>We use the <code>Rc&lt;T&gt;</code> type when we want to allocate some data on the heap for
 multiple parts of our program to read and we can’t determine at compile time
 which part will finish using the data last. If we knew which part would finish
@@ -241,20 +241,27 @@ rules enforced at compile time would take effect.</p>
 <p>Note that <code>Rc&lt;T&gt;</code> is only for use in single-threaded scenarios. When we discuss
 concurrency in Chapter 16, we’ll cover how to do reference counting in
 multithreaded programs.</p>
-<h3 id="using-rct-to-share-data"><a class="header" href="#using-rct-to-share-data">Using <code>Rc&lt;T&gt;</code> to Share Data</a></h3>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="using-rct-to-share-data"></a></p>
+<h3 id="sharing-data"><a class="header" href="#sharing-data">Sharing Data</a></h3>
 <p>Let’s return to our cons list example in Listing 15-5. Recall that we defined
 it using <code>Box&lt;T&gt;</code>. This time, we’ll create two lists that both share ownership
-of a third list. Conceptually, this looks similar to Figure 15-3:</p>
-<img alt="Two lists that share ownership of a third list" src="img/trpl15-03.svg" class="center" />
+of a third list. Conceptually, this looks similar to Figure 15-3.</p>
+<p><img alt="A linked list with the label 'a' pointing to three elements. The first element contains the integer 5 and points to the second element. Th
+e second element contains the integer 10 and points to the third element. The third element contains the value 'Nil' that signifies the end of the l
+ist; it does not point anywhere. A linked list with the label 'b' points to an element that contains the integer 3 and points to the first element o
+f list 'a'. A linked list with the label 'c' points to an element that contains the integer 4 and also points to the first element of list 'a' so th
+at the tails of lists 'b' and 'c' are both list 'a'." src="img/trpl15-03.svg" class="center" /></p>
 <p><span class="caption">Figure 15-3: Two lists, <code>b</code> and <code>c</code>, sharing ownership of
 a third list, <code>a</code></span></p>
-<p>We’ll create list <code>a</code> that contains 5 and then 10. Then we’ll make two more
-lists: <code>b</code> that starts with 3 and <code>c</code> that starts with 4. Both <code>b</code> and <code>c</code>
-lists will then continue on to the first <code>a</code> list containing 5 and 10. In other
-words, both lists will share the first list containing 5 and 10.</p>
+<p>We’ll create list <code>a</code> that contains <code>5</code> and then <code>10</code>. Then, we’ll make two
+more lists: <code>b</code> that starts with <code>3</code> and <code>c</code> that starts with <code>4</code>. Both the <code>b</code>
+and <code>c</code> lists will then continue on to the first <code>a</code> list containing <code>5</code> and
+<code>10</code>. In other words, both lists will share the first list containing <code>5</code> and
+<code>10</code>.</p>
 <p>Trying to implement this scenario using our definition of <code>List</code> with <code>Box&lt;T&gt;</code>
-won’t work, as shown in Listing 15-17:</p>
-<Listing number="15-17" file-name="src/main.rs" caption="Demonstrating we’re not allowed to have two lists using `Box<T>` that try to share ownership of a third list">
+won’t work, as shown in Listing 15-17.</p>
+<Listing number="15-17" file-name="src/main.rs" caption="Demonstrating that we’re not allowed to have two lists using `Box<T>` that try to share ownership of a third list">
 <pre><code class="language-rust ignore does_not_compile">enum List {
     Cons(i32, Box&lt;List&gt;),
     Nil,
@@ -274,12 +281,21 @@ fn main() {
 error[E0382]: use of moved value: `a`
   --&gt; src/main.rs:11:30
    |
-9  |     let a = Cons(5, Box::new(Cons(10, Box::new(Nil))));
+ 9 |     let a = Cons(5, Box::new(Cons(10, Box::new(Nil))));
    |         - move occurs because `a` has type `List`, which does not implement the `Copy` trait
 10 |     let b = Cons(3, Box::new(a));
    |                              - value moved here
 11 |     let c = Cons(4, Box::new(a));
    |                              ^ value used here after move
+   |
+note: if `List` implemented `Clone`, you could clone the value
+  --&gt; src/main.rs:1:1
+   |
+ 1 | enum List {
+   | ^^^^^^^^^ consider implementing `Clone` for this type
+...
+10 |     let b = Cons(3, Box::new(a));
+   |                              - you could clone this value
 
 For more information about this error, try `rustc --explain E0382`.
 error: could not compile `cons-list` (bin "cons-list") due to 1 previous error
@@ -303,7 +319,7 @@ we call <code>Rc::clone</code>, the reference count to the data within the <code
 increase, and the data won’t be cleaned up unless there are zero references to
 it.</p>
 <Listing number="15-18" file-name="src/main.rs" caption="A definition of `List` that uses `Rc<T>`">
-<pre><pre class="playground"><code class="language-rust edition2021">enum List {
+<pre><pre class="playground"><code class="language-rust edition2024">enum List {
     Cons(i32, Rc&lt;List&gt;),
     Nil,
 }
@@ -318,8 +334,8 @@ fn main() {
 }</code></pre></pre>
 </Listing>
 <p>We need to add a <code>use</code> statement to bring <code>Rc&lt;T&gt;</code> into scope because it’s not
-in the prelude. In <code>main</code>, we create the list holding 5 and 10 and store it in
-a new <code>Rc&lt;List&gt;</code> in <code>a</code>. Then when we create <code>b</code> and <code>c</code>, we call the
+in the prelude. In <code>main</code>, we create the list holding <code>5</code> and <code>10</code> and store it
+in a new <code>Rc&lt;List&gt;</code> in <code>a</code>. Then, when we create <code>b</code> and <code>c</code>, we call the
 <code>Rc::clone</code> function and pass a reference to the <code>Rc&lt;List&gt;</code> in <code>a</code> as an
 argument.</p>
 <p>We could have called <code>a.clone()</code> rather than <code>Rc::clone(&amp;a)</code>, but Rust’s
@@ -332,13 +348,17 @@ distinguish between the deep-copy kinds of clones and the kinds of clones that
 increase the reference count. When looking for performance problems in the
 code, we only need to consider the deep-copy clones and can disregard calls to
 <code>Rc::clone</code>.</p>
-<h3 id="cloning-an-rct-increases-the-reference-count"><a class="header" href="#cloning-an-rct-increases-the-reference-count">Cloning an <code>Rc&lt;T&gt;</code> Increases the Reference Count</a></h3>
-<p>Let’s change our working example in Listing 15-18 so we can see the reference
-counts changing as we create and drop references to the <code>Rc&lt;List&gt;</code> in <code>a</code>.</p>
-<p>In Listing 15-19, we’ll change <code>main</code> so it has an inner scope around list <code>c</code>;
-then we can see how the reference count changes when <code>c</code> goes out of scope.</p>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="cloning-an-rct-increases-the-reference-count"></a></p>
+<h3 id="cloning-to-increase-the-reference-count"><a class="header" href="#cloning-to-increase-the-reference-count">Cloning to Increase the Reference Count</a></h3>
+<p>Let’s change our working example in Listing 15-18 so that we can see the
+reference counts changing as we create and drop references to the <code>Rc&lt;List&gt;</code> in
+<code>a</code>.</p>
+<p>In Listing 15-19, we’ll change <code>main</code> so that it has an inner scope around list
+<code>c</code>; then, we can see how the reference count changes when <code>c</code> goes out of
+scope.</p>
 <Listing number="15-19" file-name="src/main.rs" caption="Printing the reference count">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">enum List {
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">enum List {
 </span><span class="boring">    Cons(i32, Rc&lt;List&gt;),
 </span><span class="boring">    Nil,
 </span><span class="boring">}
@@ -346,7 +366,9 @@ then we can see how the reference count changes when <code>c</code> goes out of 
 </span><span class="boring">use crate::List::{Cons, Nil};
 </span><span class="boring">use std::rc::Rc;
 </span><span class="boring">
-</span>fn main() {
+</span>// --snip--
+
+fn main() {
     let a = Rc::new(Cons(5, Rc::new(Cons(10, Rc::new(Nil)))));
     println!("count after creating a = {}", Rc::strong_count(&amp;a));
     let b = Cons(3, Rc::clone(&amp;a));
@@ -362,8 +384,7 @@ then we can see how the reference count changes when <code>c</code> goes out of 
 reference count, which we get by calling the <code>Rc::strong_count</code> function. This
 function is named <code>strong_count</code> rather than <code>count</code> because the <code>Rc&lt;T&gt;</code> type
 also has a <code>weak_count</code>; we’ll see what <code>weak_count</code> is used for in <a href="ch15-06-reference-cycles.html#preventing-reference-cycles-turning-an-rct-into-a-weakt">“Preventing
-Reference Cycles: Turning an <code>Rc&lt;T&gt;</code> into a
-<code>Weak&lt;T&gt;</code>”</a><!-- ignore -->.</p>
+Reference Cycles Using <code>Weak&lt;T&gt;</code>”</a><!-- ignore -->.</p>
 <p>This code prints the following:</p>
 <pre><code class="language-console">$ cargo run
    Compiling cons-list v0.1.0 (file:///projects/cons-list)
@@ -374,21 +395,21 @@ count after creating b = 2
 count after creating c = 3
 count after c goes out of scope = 2
 </code></pre>
-<p>We can see that the <code>Rc&lt;List&gt;</code> in <code>a</code> has an initial reference count of 1; then
-each time we call <code>clone</code>, the count goes up by 1. When <code>c</code> goes out of scope,
-the count goes down by 1. We don’t have to call a function to decrease the
-reference count like we have to call <code>Rc::clone</code> to increase the reference
-count: the implementation of the <code>Drop</code> trait decreases the reference count
+<p>We can see that the <code>Rc&lt;List&gt;</code> in <code>a</code> has an initial reference count of 1;
+then, each time we call <code>clone</code>, the count goes up by 1. When <code>c</code> goes out of
+scope, the count goes down by 1. We don’t have to call a function to decrease
+the reference count like we have to call <code>Rc::clone</code> to increase the reference
+count: The implementation of the <code>Drop</code> trait decreases the reference count
 automatically when an <code>Rc&lt;T&gt;</code> value goes out of scope.</p>
 <p>What we can’t see in this example is that when <code>b</code> and then <code>a</code> go out of scope
-at the end of <code>main</code>, the count is then 0, and the <code>Rc&lt;List&gt;</code> is cleaned up
+at the end of <code>main</code>, the count is 0, and the <code>Rc&lt;List&gt;</code> is cleaned up
 completely. Using <code>Rc&lt;T&gt;</code> allows a single value to have multiple owners, and
 the count ensures that the value remains valid as long as any of the owners
 still exist.</p>
 <p>Via immutable references, <code>Rc&lt;T&gt;</code> allows you to share data between multiple
 parts of your program for reading only. If <code>Rc&lt;T&gt;</code> allowed you to have multiple
 mutable references too, you might violate one of the borrowing rules discussed
-in Chapter 4: multiple mutable borrows to the same place can cause data races
+in Chapter 4: Multiple mutable borrows to the same place can cause data races
 and inconsistencies. But being able to mutate data is very useful! In the next
 section, we’ll discuss the interior mutability pattern and the <code>RefCell&lt;T&gt;</code>
 type that you can use in conjunction with an <code>Rc&lt;T&gt;</code> to work with this

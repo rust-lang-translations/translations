@@ -217,7 +217,7 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="명령줄-인수-받기"><a class="header" href="#명령줄-인수-받기">명령줄 인수 받기</a></h2>
-<p>언제나처럼 <code>cargo new</code>를 사용하여 새 프로젝트를 만들어 봅시다. 이미 시스템에 있을 수도 있는 <code>grep</code> 도구와 구분하기 위해 우리 프로젝트의 이름은 <code>minigrep</code>으로 짓겠습니다.</p>
+<p>Let’s create a new project with, as always, <code>cargo new</code>. We’ll call our project <code>minigrep</code> to distinguish it from the <code>grep</code> tool that you might already have on your system:</p>
 <pre><code class="language-console">$ cargo new minigrep
      Created binary (application) `minigrep` project
 $ cd minigrep
@@ -227,17 +227,18 @@ $ cd minigrep
 </code></pre>
 <p>현재 <code>cargo new</code>로 생성된 프로그램은 우리가 주는 인수들을 처리할 수 없습니다. <a href="https://crates.io/">crates.io</a>에 있는 몇몇 기존 라이브러리들이 명령줄 인수를 받는 프로그램을 작성하는 데 도움을 줄 수 있지만, 여러분은 이제 막 이 개념을 배우고 있으므로 이 기능을 직접 구현해 보겠습니다.</p>
 <h3 id="인수-값-읽기"><a class="header" href="#인수-값-읽기">인수 값 읽기</a></h3>
-<p><code>minigrep</code>에 전달된 명령줄 인수의 값을 읽을 수 있도록 하려면, 러스트 표준 라이브러리에서 제공하는 <code>std::env::args</code> 함수가 필요합니다. 이 함수는 <code>minigrep</code>에 전달된 명령줄 인수의 반복자(iterator)를 반환합니다. 반복자에 대해서는 <a href="ch13-00-functional-features.html">13장</a><!-- ignore -->에서 자세히 다룰 것입니다. 지금은 반복자에 대해 두 가지 세부 사항만 알면 됩니다. 반복자는 일련의 값들을 생성하며, 반복자에 <code>collect</code> 메서드를 호출하여 반복자가 생성하는 모든 요소를 담은 벡터와 같은 컬렉션으로 바꿀 수 있다는 점입니다.</p>
-<p>목록 12-1의 코드는 <code>minigrep</code> 프로그램이 전달된 모든 명령줄 인수를 읽고, 그 값들을 벡터로 수집할 수 있게 해줍니다.</p>
+<p>To enable <code>minigrep</code> to read the values of command line arguments we pass to it, we’ll need the <code>std::env::args</code> function provided in Rust’s standard library. This function returns an iterator of the command line arguments passed to <code>minigrep</code>. We’ll cover iterators fully in <a href="ch13-00-functional-features.html">Chapter 13</a><!-- ignore
+-->. For now, you only need to know two details about iterators: Iterators produce a series of values, and we can call the <code>collect</code> method on an iterator to turn it into a collection, such as a vector, which contains all the elements the iterator produces.</p>
+<p>The code in Listing 12-1 allows your <code>minigrep</code> program to read any command line arguments passed to it and then collect the values into a vector.</p>
 <Listing number="12-1" file-name="src/main.rs" caption="Collecting the command line arguments into a vector and printing them">
-<pre><pre class="playground"><code class="language-rust edition2021">use std::env;
+<pre><pre class="playground"><code class="language-rust edition2024">use std::env;
 
 fn main() {
     let args: Vec&lt;String&gt; = env::args().collect();
     dbg!(args);
 }</code></pre></pre>
 </Listing>
-<p>먼저 <code>args</code> 함수를 사용할 수 있도록 <code>use</code> 문을 사용하여 <code>std::env</code> 모듈을 스코프로 가져옵니다. <code>std::env::args</code> 함수가 두 단계의 모듈 안에 중첩되어 있음에 주목하세요. 7장의 <a href="ch07-04-bringing-paths-into-scope-with-the-use-keyword.html#creating-idiomatic-use-paths">“관용적인 use 경로 만들기”</a><!-- ignore -->에서 논의했듯이, 원하는 함수가 둘 이상의 모듈에 중첩된 경우 함수 자체가 아닌 부모 모듈을 스코프로 가져오는 방식을 택했습니다. 이렇게 함으로써 <code>std::env</code>에 있는 다른 함수들도 쉽게 사용할 수 있습니다. 또한 <code>use std::env::args</code>를 추가하고 함수를 그냥 <code>args</code>라고 호출하는 것보다 모호함이 적은데, <code>args</code>가 현재 모듈에 정의된 함수로 쉽게 오해받을 수 있기 때문입니다.</p>
+<p>First, we bring the <code>std::env</code> module into scope with a <code>use</code> statement so that we can use its <code>args</code> function. Notice that the <code>std::env::args</code> function is nested in two levels of modules. As we discussed in <a href="ch07-04-bringing-paths-into-scope-with-the-use-keyword.html#creating-idiomatic-use-paths">Chapter 7</a><!-- ignore -->, in cases where the desired function is nested in more than one module, we’ve chosen to bring the parent module into scope rather than the function. By doing so, we can easily use other functions from <code>std::env</code>. It’s also less ambiguous than adding <code>use std::env::args</code> and then calling the function with just <code>args</code>, because <code>args</code> might easily be mistaken for a function that’s defined in the current module.</p>
 <blockquote>
 <h3 id="args-함수와-유효하지-않은-유니코드"><a class="header" href="#args-함수와-유효하지-않은-유니코드"><code>args</code> 함수와 유효하지 않은 유니코드</a></h3>
 <p>어떤 인수라도 유효하지 않은 유니코드를 포함하고 있으면 <code>std::env::args</code>가 패닉을 일으킨다는 점에 유의하세요. 프로그램이 유효하지 않은 유니코드를 포함한 인수를 받아들여야 한다면, 대신 <code>std::env::args_os</code>를 사용하세요. 그 함수는 <code>String</code> 값 대신 <code>OsString</code> 값을 생성하는 반복자를 반환합니다. 여기서는 단순함을 위해 <code>std::env::args</code>를 사용하기로 했는데, <code>OsString</code> 값은 플랫폼마다 다르며 <code>String</code> 값보다 다루기가 더 복잡하기 때문입니다.</p>
@@ -264,7 +265,7 @@ fn main() {
 </code></pre>
 <p>벡터의 첫 번째 값이 우리 바이너리의 이름인 <code>"target/debug/minigrep"</code>임에 주목하세요. 이는 C 언어의 인수 목록 동작과 일치하며, 프로그램이 실행될 때 호출된 이름을 사용할 수 있게 해줍니다. 프로그램 이름을 출력 메시지에 포함하거나, 프로그램을 호출할 때 사용된 명령줄 별칭에 따라 동작을 변경하고 싶을 때 프로그램 이름에 접근할 수 있으면 종종 편리합니다. 하지만 이 장의 목적을 위해 우리는 이를 무시하고 필요한 두 개의 인수만 저장할 것입니다.</p>
 <h3 id="인수-값을-변수에-저장하기"><a class="header" href="#인수-값을-변수에-저장하기">인수 값을 변수에 저장하기</a></h3>
-<p>현재 프로그램은 명령줄 인수로 지정된 값들에 접근할 수 있습니다. 이제 프로그램의 나머지 부분에서 이 값들을 사용할 수 있도록 두 인수의 값을 변수에 저장해야 합니다. 목록 12-2에서 이 작업을 수행합니다.</p>
+<p>The program is currently able to access the values specified as command line arguments. Now we need to save the values of the two arguments in variables so that we can use the values throughout the rest of the program. We do that in Listing 12-2.</p>
 <Listing number="12-2" file-name="src/main.rs" caption="Creating variables to hold the query argument and file path argument">
 <pre><code class="language-rust should_panic noplayground">use std::env;
 

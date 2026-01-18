@@ -232,13 +232,17 @@ this book, however it is a good idea to keep the following in mind:</p>
 <li>Set the desired priority of the interrupt handler in the interrupt controller</li>
 <li>Enable the interrupt handler in the interrupt controller</li>
 </ul>
-<p>Similarly to exceptions, the <code>cortex-m-rt</code> crate provides an <a href="https://docs.rs/cortex-m-rt-macros/0.1.5/cortex_m_rt_macros/attr.interrupt.html"><code>interrupt</code></a>
-attribute to declare interrupt handlers. The available interrupts (and
-their position in the interrupt handler table) are usually automatically
-generated via <code>svd2rust</code> from a SVD description.</p>
-<pre><code class="language-rust ignore">// Interrupt handler for the Timer2 interrupt
+<p>Similarly to exceptions, the cortex-m-rt crate exposes an <a href="https://docs.rs/cortex-m-rt-macros/0.1.5/cortex_m_rt_macros/attr.interrupt.html"><code>interrupt</code></a> attribute for declaring interrupt handlers. However, this
+attribute is only available when the device feature is enabled. That said, this attribute is not intended to be used directly—doing
+so will result in a compilation error.</p>
+<p>Instead, you should use the re-exported version of the interrupt attribute provided by the device crate (usually generated using svd2rust).
+This ensures that the compiler can verify that the interrupt actually exists on the target device. The list of available interrupts—and
+their position in the interrupt vector table—is typically auto-generated from an SVD file by svd2rust.</p>
+<pre><code class="language-rust ignore">use lm3s6965::interrupt; // Re-exported attribute from the device crate
+
+// Interrupt handler for the Timer2 interrupt
 #[interrupt]
-fn TIM2() {
+fn TIMER2A() {
     // ..
     // Clear reason for the generated interrupt request
 }</code></pre>
@@ -250,7 +254,7 @@ the interrupt handler.</p>
 <p>Similar to exception handlers it is also possible to declare <code>static mut</code>
 variables inside the interrupt handlers for <em>safe</em> state keeping.</p>
 <pre><code class="language-rust ignore">#[interrupt]
-fn TIM2() {
+fn TIMER2A() {
     static mut COUNT: u32 = 0;
 
     // `COUNT` has type `&amp;mut u32` and it's safe to use

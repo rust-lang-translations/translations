@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>다른 타입의 값을 허용하는 트레이트 객체 사용하기 - The Rust Programming Language</title>
+        <title>Using Trait Objects to Abstract over Shared Behavior - The Rust Programming Language</title>
 
 
         <!-- Custom HTML head -->
@@ -216,15 +216,17 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="다른-타입의-값을-허용하는-트레이트-객체-사용하기"><a class="header" href="#다른-타입의-값을-허용하는-트레이트-객체-사용하기">다른 타입의 값을 허용하는 트레이트 객체 사용하기</a></h2>
+                        <!-- Old headings. Do not remove or links may break. -->
+<p><a id="using-trait-objects-that-allow-for-values-of-different-types"></a></p>
+<h2 id="using-trait-objects-to-abstract-over-shared-behavior"><a class="header" href="#using-trait-objects-to-abstract-over-shared-behavior">Using Trait Objects to Abstract over Shared Behavior</a></h2>
 <p>8장에서 우리는 벡터의 한 가지 제한 사항이 오직 한 가지 타입의 요소만 저장할 수 있다는 점임을 언급했습니다. 목록 8-9에서 우리는 정수, 실수, 텍스트를 보유할 수 있는 변형들을 가진 <code>SpreadsheetCell</code> 열거형을 정의하여 우회 방법을 만들었습니다. 이는 각 셀에 서로 다른 타입의 데이터를 저장하면서도 셀의 한 행을 나타내는 벡터를 가질 수 있음을 의미했습니다. 이는 서로 교체 가능한 아이템들이 코드가 컴파일될 때 우리가 알고 있는 고정된 타입 세트인 경우에 완벽하게 좋은 해결책입니다.</p>
-<p>하지만 때때로 우리는 라이브러리 사용자가 특정 상황에서 유효한 타입 세트를 확장할 수 있기를 원합니다. 이를 어떻게 달성할 수 있는지 보여주기 위해, 아이템 리스트를 순회하며 각 아이템의 <code>draw</code> 메서드를 호출하여 화면에 그리는 예제 GUI 도구를 만들 것입니다. 이는 GUI 도구에서 흔히 사용하는 기술입니다. 우리는 GUI 라이브러리의 구조를 담고 있는 <code>gui</code>라는 이름의 라이브러리 크레이트를 만들 것입니다. 이 크레이트에는 사용자들이 사용할 수 있는 <code>Button</code>이나 <code>TextField</code> 같은 타입들이 포함될 수 있습니다. 게다가 <code>gui</code> 사용자들은 화면에 그려질 수 있는 자신만의 타입을 만들고 싶어 할 것입니다. 예를 들어 어떤 프로그래머는 <code>Image</code>를 추가할 수 있고, 다른 프로그래머는 <code>SelectBox</code>를 추가할 수 있습니다.</p>
-<p>We won’t implement a fully fledged GUI library for this example but will show how the pieces would fit together. At the time of writing the library, we can’t know and define all the types other programmers might want to create. But we do know that <code>gui</code> needs to keep track of many values of different types, and it needs to call a <code>draw</code> method on each of these differently typed values. It doesn’t need to know exactly what will happen when we call the <code>draw</code> method, just that the value will have that method available for us to call.</p>
-<p>상속이 있는 언어에서 이를 수행하려면, <code>draw</code> 메서드를 가진 <code>Component</code>라는 클래스를 정의할 수 있습니다. <code>Button</code>, <code>Image</code>, <code>SelectBox</code> 같은 다른 클래스들은 <code>Component</code>를 상속받아 <code>draw</code> 메서드를 물려받게 됩니다. 각 클래스는 <code>draw</code> 메서드를 오버라이드하여 자신만의 커스텀 동작을 정의할 수 있고, 프레임워크는 모든 타입을 <code>Component</code> 인스턴스인 것처럼 취급하여 <code>draw</code>를 호출할 수 있습니다. 하지만 러스트에는 상속이 없으므로, 사용자들이 새로운 타입으로 확장할 수 있도록 <code>gui</code> 라이브러리를 구조화하는 다른 방법이 필요합니다.</p>
+<p>However, sometimes we want our library user to be able to extend the set of types that are valid in a particular situation. To show how we might achieve this, we’ll create an example graphical user interface (GUI) tool that iterates through a list of items, calling a <code>draw</code> method on each one to draw it to the screen—a common technique for GUI tools. We’ll create a library crate called <code>gui</code> that contains the structure of a GUI library. This crate might include some types for people to use, such as <code>Button</code> or <code>TextField</code>. In addition, <code>gui</code> users will want to create their own types that can be drawn: For instance, one programmer might add an <code>Image</code>, and another might add a <code>SelectBox</code>.</p>
+<p>At the time of writing the library, we can’t know and define all the types other programmers might want to create. But we do know that <code>gui</code> needs to keep track of many values of different types, and it needs to call a <code>draw</code> method on each of these differently typed values. It doesn’t need to know exactly what will happen when we call the <code>draw</code> method, just that the value will have that method available for us to call.</p>
+<p>To do this in a language with inheritance, we might define a class named <code>Component</code> that has a method named <code>draw</code> on it. The other classes, such as <code>Button</code>, <code>Image</code>, and <code>SelectBox</code>, would inherit from <code>Component</code> and thus inherit the <code>draw</code> method. They could each override the <code>draw</code> method to define their custom behavior, but the framework could treat all of the types as if they were <code>Component</code> instances and call <code>draw</code> on them. But because Rust doesn’t have inheritance, we need another way to structure the <code>gui</code> library to allow users to create new types compatible with the library.</p>
 <h3 id="공통된-동작을-위한-트레이트-정의하기"><a class="header" href="#공통된-동작을-위한-트레이트-정의하기">공통된 동작을 위한 트레이트 정의하기</a></h3>
-<p>우리가 <code>gui</code> 라이브러리에 바라는 동작을 구현하기 위해, <code>draw</code>라는 하나의 메서드를 가진 <code>Draw</code>라는 트레이트를 정의하겠습니다. 그런 다음 트레이트 객체를 담는 벡터를 정의할 수 있습니다. _트레이트 객체(trait object)_는 우리가 지정한 트레이트를 구현하는 타입의 인스턴스와, 런타임에 해당 타입의 트레이트 메서드를 찾기 위해 사용되는 테이블을 모두 가리킵니다. 트레이트 객체는 <code>&amp;</code> 참조나 <code>Box&lt;T&gt;</code> 스마트 포인터와 같은 포인터 종류를 명시하고, 그 뒤에 <code>dyn</code> 키워드와 관련 트레이트를 명시함으로써 생성합니다. (트레이트 객체가 반드시 포인터를 사용해야 하는 이유는 20장의 <a href="ch20-03-advanced-types.html#dynamically-sized-types-and-the-sized-trait">“동적 크기 타입과 <code>Sized</code> 트레이트”</a><!-- ignore -->에서 다룰 것입니다.) 우리는 제네릭이나 구체 타입 대신 트레이트 객체를 사용할 수 있습니다. 트레이트 객체를 사용하는 곳 어디에서나, 러스트의 타입 시스템은 해당 맥락에서 사용되는 모든 값이 트레이트 객체의 트레이트를 구현하도록 컴파일 타임에 보장합니다. 결과적으로 우리는 컴파일 타임에 모든 가능한 타입을 알 필요가 없습니다.</p>
-<p>우리는 러스트의 구조체와 열거형을 다른 언어의 객체와 구별하기 위해 "객체"라고 부르는 것을 자제한다고 언급한 바 있습니다. 구조체나 열거형에서는 구조체 필드의 데이터와 <code>impl</code> 블록의 동작이 분리되어 있는 반면, 다른 언어에서는 데이터와 동작이 하나의 개념으로 결합된 것을 흔히 객체라고 부릅니다. 하지만 트레이트 객체는 데이터와 동작을 결합한다는 점에서 다른 언어의 객체와 더 <em>비슷합니다</em>. 하지만 트레이트 객체는 우리가 트레이트 객체에 데이터를 추가할 수 없다는 점에서 전통적인 객체와 다릅니다. 트레이트 객체는 다른 언어의 객체만큼 일반적으로 유용하지는 않습니다. 그것들의 특수한 목적은 공통된 동작에 대한 추상화를 허용하는 것입니다.</p>
-<p>목록 18-3은 <code>draw</code>라는 하나의 메서드를 가진 <code>Draw</code>라는 이름의 트레이트를 정의하는 방법을 보여줍니다.</p>
+<p>To implement the behavior that we want <code>gui</code> to have, we’ll define a trait named <code>Draw</code> that will have one method named <code>draw</code>. Then, we can define a vector that takes a trait object. A <em>trait object</em> points to both an instance of a type implementing our specified trait and a table used to look up trait methods on that type at runtime. We create a trait object by specifying some sort of pointer, such as a reference or a <code>Box&lt;T&gt;</code> smart pointer, then the <code>dyn</code> keyword, and then specifying the relevant trait. (We’ll talk about the reason trait objects must use a pointer in <a href="ch20-03-advanced-types.html#dynamically-sized-types-and-the-sized-trait">“Dynamically Sized Types and the <code>Sized</code> Trait”</a><!-- ignore --> in Chapter 20.) We can use trait objects in place of a generic or concrete type. Wherever we use a trait object, Rust’s type system will ensure at compile time that any value used in that context will implement the trait object’s trait. Consequently, we don’t need to know all the possible types at compile time.</p>
+<p>We’ve mentioned that, in Rust, we refrain from calling structs and enums “objects” to distinguish them from other languages’ objects. In a struct or enum, the data in the struct fields and the behavior in <code>impl</code> blocks are separated, whereas in other languages, the data and behavior combined into one concept is often labeled an object. Trait objects differ from objects in other languages in that we can’t add data to a trait object. Trait objects aren’t as generally useful as objects in other languages: Their specific purpose is to allow abstraction across common behavior.</p>
+<p>Listing 18-3 shows how to define a trait named <code>Draw</code> with one method named <code>draw</code>.</p>
 <Listing number="18-3" file-name="src/lib.rs" caption="Definition of the `Draw` trait">
 <pre><code class="language-rust noplayground">pub trait Draw {
     fn draw(&amp;self);
@@ -240,7 +242,7 @@
     pub components: Vec&lt;Box&lt;dyn Draw&gt;&gt;,
 }</code></pre>
 </Listing>
-<p>목록 18-5에 나타난 것처럼, <code>Screen</code> 구조체에 각 <code>components</code>의 <code>draw</code> 메서드를 호출하는 <code>run</code> 메서드를 정의하겠습니다.</p>
+<p>On the <code>Screen</code> struct, we’ll define a method named <code>run</code> that will call the <code>draw</code> method on each of its <code>components</code>, as shown in Listing 18-5.</p>
 <Listing number="18-5" file-name="src/lib.rs" caption="A `run` method on `Screen` that calls the `draw` method on each component">
 <pre><code class="language-rust noplayground"><span class="boring">pub trait Draw {
 </span><span class="boring">    fn draw(&amp;self);
@@ -258,7 +260,7 @@
     }
 }</code></pre>
 </Listing>
-<p>이는 트레이트 바운드가 있는 제네릭 타입 매개변수를 사용하는 구조체를 정의하는 것과는 다르게 작동합니다. 제네릭 타입 매개변수는 한 번에 하나의 구체 타입으로만 대체될 수 있는 반면, 트레이트 객체는 런타임에 여러 구체 타입이 트레이트 객체 자리를 채우는 것을 허용합니다. 예를 들어, 목록 18-6과 같이 제네릭 타입과 트레이트 바운드를 사용하여 <code>Screen</code> 구조체를 정의할 수도 있었을 것입니다.</p>
+<p>This works differently from defining a struct that uses a generic type parameter with trait bounds. A generic type parameter can be substituted with only one concrete type at a time, whereas trait objects allow for multiple concrete types to fill in for the trait object at runtime. For example, we could have defined the <code>Screen</code> struct using a generic type and a trait bound, as in Listing 18-6.</p>
 <Listing number="18-6" file-name="src/lib.rs" caption="An alternate implementation of the `Screen` struct and its `run` method using generics and trait bounds">
 <pre><code class="language-rust noplayground"><span class="boring">pub trait Draw {
 </span><span class="boring">    fn draw(&amp;self);
@@ -282,7 +284,7 @@ where
 <p>이렇게 하면 컴포넌트 리스트가 모두 <code>Button</code> 타입이거나 모두 <code>TextField</code> 타입인 <code>Screen</code> 인스턴스로 제한됩니다. 만약 항상 동일한 타입의 컬렉션만 가진다면, 정의가 컴파일 타임에 구체 타입을 사용하도록 단일화(monomorphized)되기 때문에 제네릭과 트레이트 바운드를 사용하는 것이 바람직합니다.</p>
 <p>반면에 트레이트 객체를 사용하는 방식을 쓰면, 하나의 <code>Screen</code> 인스턴스가 <code>Box&lt;Button&gt;</code>과 <code>Box&lt;TextField&gt;</code>를 모두 포함하는 <code>Vec&lt;T&gt;</code>를 가질 수 있습니다. 이것이 어떻게 작동하는지 살펴보고, 이어서 런타임 성능에 미치는 영향에 대해 이야기해 보겠습니다.</p>
 <h3 id="트레이트-구현하기"><a class="header" href="#트레이트-구현하기">트레이트 구현하기</a></h3>
-<p>Now we’ll add some types that implement the <code>Draw</code> trait. We’ll provide the <code>Button</code> type. Again, actually implementing a GUI library is beyond the scope of this book, so the <code>draw</code> method won’t have any useful implementation in its body. To imagine what the implementation might look like, a <code>Button</code> struct might have fields for <code>width</code>, <code>height</code>, and <code>label</code>, as shown in Listing 18-7:</p>
+<p>Now we’ll add some types that implement the <code>Draw</code> trait. We’ll provide the <code>Button</code> type. Again, actually implementing a GUI library is beyond the scope of this book, so the <code>draw</code> method won’t have any useful implementation in its body. To imagine what the implementation might look like, a <code>Button</code> struct might have fields for <code>width</code>, <code>height</code>, and <code>label</code>, as shown in Listing 18-7.</p>
 <Listing number="18-7" file-name="src/lib.rs" caption="A `Button` struct that implements the `Draw` trait">
 <pre><code class="language-rust noplayground"><span class="boring">pub trait Draw {
 </span><span class="boring">    fn draw(&amp;self);
@@ -313,7 +315,7 @@ impl Draw for Button {
 }</code></pre>
 </Listing>
 <p>사용자가 버튼을 클릭했을 때 일어나는 일들과 관련이 있습니다. 이러한 종류의 메서드들은 <code>TextField</code>와 같은 타입에는 적용되지 않을 것입니다.</p>
-<p>우리 라이브러리를 사용하는 누군가가 <code>width</code>, <code>height</code>, <code>options</code> 필드를 가진 <code>SelectBox</code> 구조체를 구현하기로 했다면, 목록 18-8에 나타난 것처럼 <code>SelectBox</code> 타입에 대해서도 <code>Draw</code> 트레이트를 구현합니다.</p>
+<p>If someone using our library decides to implement a <code>SelectBox</code> struct that has <code>width</code>, <code>height</code>, and <code>options</code> fields, they would implement the <code>Draw</code> trait on the <code>SelectBox</code> type as well, as shown in Listing 18-8.</p>
 <Listing number="18-8" file-name="src/main.rs" caption="Another crate using `gui` and implementing the `Draw` trait on a `SelectBox` struct">
 <pre><code class="language-rust ignore">use gui::Draw;
 
@@ -331,7 +333,7 @@ impl Draw for SelectBox {
 <span class="boring">
 </span><span class="boring">fn main() {}</span></code></pre>
 </Listing>
-<p>이제 라이브러리 사용자는 <code>main</code> 함수를 작성하여 <code>Screen</code> 인스턴스를 생성할 수 있습니다. <code>Screen</code> 인스턴스에 <code>SelectBox</code>와 <code>Button</code>을 각각 <code>Box&lt;T&gt;</code>에 넣어 트레이트 객체로 만듦으로써 추가할 수 있습니다. 그런 다음 <code>Screen</code> 인스턴스의 <code>run</code> 메서드를 호출하면 각 컴포넌트의 <code>draw</code>를 호출할 것입니다. 목록 18-9에 이 구현이 나와 있습니다.</p>
+<p>Our library’s user can now write their <code>main</code> function to create a <code>Screen</code> instance. To the <code>Screen</code> instance, they can add a <code>SelectBox</code> and a <code>Button</code> by putting each in a <code>Box&lt;T&gt;</code> to become a trait object. They can then call the <code>run</code> method on the <code>Screen</code> instance, which will call <code>draw</code> on each of the components. Listing 18-9 shows this implementation.</p>
 <Listing number="18-9" file-name="src/main.rs" caption="Using trait objects to store values of different types that implement the same trait">
 <pre><code class="language-rust ignore"><span class="boring">use gui::Draw;
 </span><span class="boring">
@@ -373,9 +375,9 @@ fn main() {
 }</code></pre>
 </Listing>
 <p>우리가 라이브러리를 작성할 때는 누군가가 <code>SelectBox</code> 타입을 추가할지 몰랐지만, 우리의 <code>Screen</code> 구현은 새로운 타입에 대해 작동하고 이를 그릴 수 있었습니다. <code>SelectBox</code>가 <code>Draw</code> 트레이트를 구현하고 있고, 이는 곧 <code>draw</code> 메서드를 구현하고 있음을 의미하기 때문입니다.</p>
-<p>값의 구체적인 타입보다는 해당 값이 어떤 메시지에 응답하는지에만 관심을 갖는 이 개념은 동적 타입 언어의 <em>덕 타이핑(duck typing)</em> 개념과 유사합니다. 만약 어떤 것이 오리처럼 걷고 오리처럼 꽥꽥거린다면, 그것은 오리임에 틀림없다는 것이죠! 목록 18-5의 <code>Screen</code>에 구현된 <code>run</code> 메서드는 각 컴포넌트의 구체적인 타입이 무엇인지 알 필요가 없습니다. 컴포넌트가 <code>Button</code>의 인스턴스인지 <code>SelectBox</code>의 인스턴스인지 확인하지 않고, 그저 컴포넌트의 <code>draw</code> 메서드를 호출할 뿐입니다. <code>components</code> 벡터의 값 타입을 <code>Box&lt;dyn Draw&gt;</code>로 지정함으로써, 우리는 <code>Screen</code>이 <code>draw</code> 메서드를 호출할 수 있는 값들을 필요로 한다고 정의한 것입니다.</p>
+<p>This concept—of being concerned only with the messages a value responds to rather than the value’s concrete type—is similar to the concept of <em>duck typing</em> in dynamically typed languages: If it walks like a duck and quacks like a duck, then it must be a duck! In the implementation of <code>run</code> on <code>Screen</code> in Listing 18-5, <code>run</code> doesn’t need to know what the concrete type of each component is. It doesn’t check whether a component is an instance of a <code>Button</code> or a <code>SelectBox</code>, it just calls the <code>draw</code> method on the component. By specifying <code>Box&lt;dyn Draw&gt;</code> as the type of the values in the <code>components</code> vector, we’ve defined <code>Screen</code> to need values that we can call the <code>draw</code> method on.</p>
 <p>덕 타이핑을 사용하는 코드와 유사하게 작성하면서도 트레이트 객체와 러스트의 타입 시스템을 사용하는 것의 장점은, 런타임에 어떤 값이 특정 메서드를 구현하는지 확인할 필요가 없으며, 메서드를 구현하지 않은 값을 호출했을 때 발생할 에러를 걱정할 필요가 없다는 점입니다. 만약 값이 트레이트 객체가 요구하는 트레이트를 구현하지 않는다면 러스트는 코드를 컴파일하지 않을 것입니다.</p>
-<p>예를 들어, 목록 18-10은 컴포넌트로 <code>String</code>을 넣어 <code>Screen</code>을 생성하려고 시도했을 때 어떤 일이 벌어지는지 보여줍니다.</p>
+<p>For example, Listing 18-10 shows what happens if we try to create a <code>Screen</code> with a <code>String</code> as a component.</p>
 <Listing number="18-10" file-name="src/main.rs" caption="Attempting to use a type that doesn’t implement the trait object’s trait">
 <pre><code class="language-rust ignore does_not_compile">use gui::Screen;
 
@@ -402,10 +404,12 @@ error[E0277]: the trait bound `String: Draw` is not satisfied
 이 에러에 대한 더 자세한 정보를 원하시면 `rustc --explain E0277`을 시도해 보세요.
 에러: 1개의 이전 에러로 인해 `gui` (바이너리 "gui")를 컴파일할 수 없습니다
 </code></pre>
-<p>이 에러는 우리가 의도하지 않은 것을 <code>Screen</code>에 전달했으므로 다른 타입을 전달해야 하거나, <code>Screen</code>이 <code>draw</code>를 호출할 수 있도록 <code>String</code>에 <code>Draw</code>를 구현해야 함을 알려줍니다.</p>
-<h3 id="트레이트-객체는-동적-디스패치를-수행한다"><a class="header" href="#트레이트-객체는-동적-디스패치를-수행한다">트레이트 객체는 동적 디스패치를 수행한다</a></h3>
-<p>10장의 <a href="ch10-01-syntax.html#performance-of-code-using-generics">“제네릭을 사용한 코드의 성능”</a><!-- ignore -->에서 컴파일러가 제네릭에 대해 수행하는 단일화(monomorphization) 과정에 대해 논의했던 것을 상기해 보세요. 컴파일러는 제네릭 타입 매개변수 대신 우리가 사용하는 각 구체 타입에 대해 함수와 메서드의 비제네릭 구현을 생성합니다. 단일화의 결과로 생성된 코드는 _정적 디스패치(static dispatch)_를 수행하는데, 이는 컴파일러가 컴파일 타임에 여러분이 어떤 메서드를 호출하는지 알고 있음을 의미합니다. 이와 반대되는 개념은 _동적 디스패치(dynamic dispatch)_로, 컴파일러가 컴파일 타임에 어떤 메서드가 호출될지 알 수 없는 경우입니다. 동적 디스패치의 경우, 컴파일러는 런타임에 어떤 메서드를 호출할지 결정하는 코드를 생성합니다.</p>
-<p>트레이트 객체를 사용할 때 러스트는 반드시 동적 디스패치를 사용해야 합니다. 컴파일러는 트레이트 객체를 사용하는 코드와 함께 어떤 타입들이 사용될지 모두 알지 못하므로, 어떤 타입에 구현된 어떤 메서드를 호출해야 할지 알 수 없습니다. 대신 런타임에 러스트는 트레이트 객체 내부의 포인터를 사용하여 어떤 메서드를 호출할지 파악합니다. 이러한 조회 과정은 정적 디스패치에서는 발생하지 않는 런타임 비용을 발생시킵니다. 또한 동적 디스패치는 컴파일러가 메서드 코드를 인라인(inline)화하는 것을 방해하여 일부 최적화를 수행하지 못하게 하며, 러스트에는 동적 디스패치를 사용할 수 있는 곳과 없는 곳에 대한 <a href="https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility"><em>dyn 호환성(dyn compatibility)</em></a>이라는 몇 가지 규칙이 있습니다. 하지만 우리는 목록 18-5에서 작성하고 목록 18-9에서 지원할 수 있었던 코드에서 추가적인 유연성을 얻었으므로, 이는 고려해 볼 만한 트레이드오프입니다.</p>
+<p>This error lets us know that either we’re passing something to <code>Screen</code> that we didn’t mean to pass and so should pass a different type, or we should implement <code>Draw</code> on <code>String</code> so that <code>Screen</code> is able to call <code>draw</code> on it.</p>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="trait-objects-perform-dynamic-dispatch"></a></p>
+<h3 id="performing-dynamic-dispatch"><a class="header" href="#performing-dynamic-dispatch">Performing Dynamic Dispatch</a></h3>
+<p>Recall in <a href="ch10-01-syntax.html#performance-of-code-using-generics">“Performance of Code Using Generics”</a><!-- ignore --> in Chapter 10 our discussion on the monomorphization process performed on generics by the compiler: The compiler generates nongeneric implementations of functions and methods for each concrete type that we use in place of a generic type parameter. The code that results from monomorphization is doing <em>static dispatch</em>, which is when the compiler knows what method you’re calling at compile time. This is opposed to <em>dynamic dispatch</em>, which is when the compiler can’t tell at compile time which method you’re calling. In dynamic dispatch cases, the compiler emits code that at runtime will know which method to call.</p>
+<p>When we use trait objects, Rust must use dynamic dispatch. The compiler doesn’t know all the types that might be used with the code that’s using trait objects, so it doesn’t know which method implemented on which type to call. Instead, at runtime, Rust uses the pointers inside the trait object to know which method to call. This lookup incurs a runtime cost that doesn’t occur with static dispatch. Dynamic dispatch also prevents the compiler from choosing to inline a method’s code, which in turn prevents some optimizations, and Rust has some rules about where you can and cannot use dynamic dispatch, called <em>dyn compatibility</em>. Those rules are beyond the scope of this discussion, but you can read more about them <a href="https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility">in the reference</a><!-- ignore -->. However, we did get extra flexibility in the code that we wrote in Listing 18-5 and were able to support in Listing 18-9, so it’s a trade-off to consider.</p>
 
                     </main>
 

@@ -89,6 +89,7 @@
         <link rel="stylesheet" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/cargo.css">
         <link rel="stylesheet" href="../theme/language-picker.css">
 
 
@@ -221,23 +222,97 @@
                     <main>
                         <h1 id="lints"><a class="header" href="#lints">Lints</a></h1>
 <p>Note: <a href="unstable.html#lintscargo">Cargo’s linting system is unstable</a> and can only be used on nightly toolchains</p>
+<div class="table-wrapper"><table><thead><tr><th>Group</th><th>Description</th><th>Default level</th></tr></thead><tbody>
+<tr><td><code>cargo::complexity</code></td><td>code that does something simple but in a complex way</td><td>warn</td></tr>
+<tr><td><code>cargo::correctness</code></td><td>code that is outright wrong or useless</td><td>deny</td></tr>
+<tr><td><code>cargo::nursery</code></td><td>new lints that are still under development</td><td>allow</td></tr>
+<tr><td><code>cargo::pedantic</code></td><td>lints which are rather strict or have occasional false positives</td><td>allow</td></tr>
+<tr><td><code>cargo::perf</code></td><td>code that can be written to run faster</td><td>warn</td></tr>
+<tr><td><code>cargo::restriction</code></td><td>lints which prevent the use of Cargo features</td><td>allow</td></tr>
+<tr><td><code>cargo::style</code></td><td>code that should be written in a more idiomatic way</td><td>warn</td></tr>
+<tr><td><code>cargo::suspicious</code></td><td>code that is most likely wrong or useless</td><td>warn</td></tr>
+</tbody></table>
+</div>
+<h2 id="allowed-by-default"><a class="header" href="#allowed-by-default">Allowed-by-default</a></h2>
+<p>These lints are all set to the ‘allow’ level by default.</p>
+<ul>
+<li><a href="#implicit_minimum_version_req"><code>implicit_minimum_version_req</code></a></li>
+</ul>
 <h2 id="warn-by-default"><a class="header" href="#warn-by-default">Warn-by-default</a></h2>
 <p>These lints are all set to the ‘warn’ level by default.</p>
 <ul>
+<li><a href="#blanket_hint_mostly_unused"><code>blanket_hint_mostly_unused</code></a></li>
 <li><a href="#unknown_lints"><code>unknown_lints</code></a></li>
 </ul>
-<h2 id="unknown_lints"><a class="header" href="#unknown_lints"><code>unknown_lints</code></a></h2>
-<p>Set to <code>warn</code> by default</p>
+<h2 id="blanket_hint_mostly_unused"><a class="header" href="#blanket_hint_mostly_unused"><code>blanket_hint_mostly_unused</code></a></h2>
+<p>Group: <code>suspicious</code></p>
+<p>Level: <code>warn</code></p>
 <h3 id="what-it-does"><a class="header" href="#what-it-does">What it does</a></h3>
-<p>Checks for unknown lints in the <code>[lints.cargo]</code> table</p>
+<p>Checks if <code>hint-mostly-unused</code> being applied to all dependencies.</p>
 <h3 id="why-it-is-bad"><a class="header" href="#why-it-is-bad">Why it is bad</a></h3>
+<p><code>hint-mostly-unused</code> indicates that most of a crate’s API surface will go
+unused by anything depending on it; this hint can speed up the build by
+attempting to minimize compilation time for items that aren’t used at all.
+Misapplication to crates that don’t fit that criteria will slow down the build
+rather than speeding it up. It should be selectively applied to dependencies
+that meet these criteria. Applying it globally is always a misapplication and
+will likely slow down the build.</p>
+<h3 id="example"><a class="header" href="#example">Example</a></h3>
+<pre><code class="language-toml">[profile.dev.package."*"]
+hint-mostly-unused = true
+</code></pre>
+<p>Should instead be:</p>
+<pre><code class="language-toml">[profile.dev.package.huge-mostly-unused-dependency]
+hint-mostly-unused = true
+</code></pre>
+<h2 id="implicit_minimum_version_req"><a class="header" href="#implicit_minimum_version_req"><code>implicit_minimum_version_req</code></a></h2>
+<p>Group: <code>pedantic</code></p>
+<p>Level: <code>allow</code></p>
+<h3 id="what-it-does-1"><a class="header" href="#what-it-does-1">What it does</a></h3>
+<p>Checks for dependency version requirements
+that do not explicitly specify a full <code>major.minor.patch</code> version requirement,
+such as <code>serde = "1"</code> or <code>serde = "1.0"</code>.</p>
+<p>This lint currently only applies to caret requirements
+(the <a href="specifying-dependencies.html#default-requirements">default requirements</a>).</p>
+<h3 id="why-it-is-bad-1"><a class="header" href="#why-it-is-bad-1">Why it is bad</a></h3>
+<p>Version requirements without an explicit full version
+can be misleading about the actual minimum supported version.
+For example,
+<code>serde = "1"</code> has an implicit minimum bound of <code>1.0.0</code>.
+If your code actually requires features from <code>1.0.219</code>,
+the implicit minimum bound of <code>1.0.0</code> gives a false impression about compatibility.</p>
+<p>Specifying the full version helps with:</p>
+<ul>
+<li>Accurate minimum version documentation</li>
+<li>Better compatibility with <code>-Z minimal-versions</code></li>
+<li>Clearer dependency constraints for consumers</li>
+</ul>
+<h3 id="drawbacks"><a class="header" href="#drawbacks">Drawbacks</a></h3>
+<p>Even with a fully specified version,
+the minimum bound might still be incorrect if untested.
+This lint helps make the minimum version requirement explicit
+but doesn’t guarantee correctness.</p>
+<h3 id="example-1"><a class="header" href="#example-1">Example</a></h3>
+<pre><code class="language-toml">[dependencies]
+serde = "1"
+</code></pre>
+<p>Should be written as a full specific version:</p>
+<pre><code class="language-toml">[dependencies]
+serde = "1.0.219"
+</code></pre>
+<h2 id="unknown_lints"><a class="header" href="#unknown_lints"><code>unknown_lints</code></a></h2>
+<p>Group: <code>suspicious</code></p>
+<p>Level: <code>warn</code></p>
+<h3 id="what-it-does-2"><a class="header" href="#what-it-does-2">What it does</a></h3>
+<p>Checks for unknown lints in the <code>[lints.cargo]</code> table</p>
+<h3 id="why-it-is-bad-2"><a class="header" href="#why-it-is-bad-2">Why it is bad</a></h3>
 <ul>
 <li>The lint name could be misspelled, leading to confusion as to why it is
 not working as expected</li>
 <li>The unknown lint could end up causing an error if <code>cargo</code> decides to make
 a lint with the same name in the future</li>
 </ul>
-<h3 id="example"><a class="header" href="#example">Example</a></h3>
+<h3 id="example-2"><a class="header" href="#example-2">Example</a></h3>
 <pre><code class="language-toml">[lints.cargo]
 this-lint-does-not-exist = "warn"
 </code></pre>

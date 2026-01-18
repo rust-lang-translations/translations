@@ -89,6 +89,7 @@
         <link rel="stylesheet" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/cargo.css">
         <link rel="stylesheet" href="theme/language-picker.css">
 
 
@@ -310,10 +311,10 @@
 <p>failed to select a version for <code>x</code> which could resolve this conflict</p>
 </blockquote>
 <p>Have you seen the error message above?</p>
-<p>This is one of the most annoying error message for Cargo users. There are several situations may lead us to a version conflict. Below we’ll walk through possible causes and provide diagnostic techniques to help you out there:</p>
+<p>This is one of the most annoying error messages for Cargo users. There are several situations which may lead to a version conflict. Below we’ll walk through possible causes and provide diagnostic techniques to help you out there:</p>
 <ul>
 <li>
-<p>The project and its dependencies use <a href="https://doc.rust-lang.org/cargo/reference/resolver.html#links">links</a> to repeatedly link the local library. Cargo forbids linking two packages with the same native library, so even with multiple layers of dependencies it is not allowed. In this case, the error message will prompt: <code>Only one package in the dependency graph may specify the same links value</code>, you may need to manually check and delete duplicate link values. The community also have <a href="https://doc.rust-lang.org/cargo/reference/build-scripts.html#-sys-packages">conventions in place</a> to alleviate this.</p>
+<p>The project and its dependencies use <a href="reference/resolver.html#links">links</a> to repeatedly link the local library. Cargo forbids linking two packages with the same native library, so even with multiple layers of dependencies it is not allowed. In this case, the error message will prompt: <code>Only one package in the dependency graph may specify the same links value</code>, you may need to manually check and delete duplicate link values. The community also have <a href="reference/build-scripts.html#-sys-packages">conventions in place</a> to alleviate this.</p>
 </li>
 <li>
 <p>When depending on different crates in the project, if these crates use the same dependent library, but the version used is restricted, making it impossible to determine the correct version, it will also cause conflicts. The error message will prompt: <code>all possible versions conflict with previously selected packages</code>. You may need to modify the version requirements to make them consistent.</p>
@@ -327,6 +328,14 @@
 <li>
 <p>Conflicts may occur when merging branches or PRs, if there are non-trivial conflicts, you can reset all “yours” changes, fix all other conflicts in the branch, and then run some cargo command (like <code>cargo tree</code> or <code>cargo check</code>), which should re-update the lockfile with your own local changes. If you previously ran some <code>cargo update</code> commands in your branch, you can re-run them that this time. The community has been looking to resolve merge conflicts with <code>Cargo.lock</code> and <code>Cargo.toml</code> using a <a href="https://github.com/rust-lang/cargo/issues/1818">custom merge tool</a>.</p>
 </li>
+</ul>
+<h2 id="why-does-my-build-take-up-so-much-space"><a class="header" href="#why-does-my-build-take-up-so-much-space">Why does my build take up so much space?</a></h2>
+<p>Cargo trades off disk space for faster builds including:</p>
+<ul>
+<li>Maintaining a <a href="reference/build-cache.html">cache</a> of intermediate build artifacts to avoid rebuilding everything when making changes to one package</li>
+<li>Maintaining distinct <a href="reference/build-cache.html">cache</a> entries for different combinations of toolchain versions, package versions, features, etc to avoid rebuilding packages when switching back and forth between configurations</li>
+<li>Enabling <a href="reference/profiles.html#incremental">incremental compilation</a> for local packages for faster rebuilds for the package that changed</li>
+<li>Enabling <a href="reference/profiles.html#debug">debuginfo</a> in the <a href="reference/profiles.html#dev"><code>dev</code> profile</a> in case you use a debugger</li>
 </ul>
 
                     </main>

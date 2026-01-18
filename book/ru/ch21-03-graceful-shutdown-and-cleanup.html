@@ -217,14 +217,14 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="Благополучное-завершение-работы"><a class="header" href="#Благополучное-завершение-работы">Благополучное завершение работы</a></h2>
-<p>The code in Listing 21-20 is responding to requests asynchronously through the use of a thread pool, as we intended. We get some warnings about the <code>workers</code>, <code>id</code>, and <code>thread</code> fields that we’re not using in a direct way that reminds us we’re not cleaning up anything. When we use the less elegant <kbd>ctrl</kbd>-<kbd>c</kbd> method to halt the main thread, all other threads are stopped immediately as well, even if they’re in the middle of serving a request.</p>
-<p>Next, then, we’ll implement the <code>Drop</code> trait to call <code>join</code> on each of the threads in the pool so they can finish the requests they’re working on before closing. Then we’ll implement a way to tell the threads they should stop accepting new requests and shut down. To see this code in action, we’ll modify our server to accept only two requests before gracefully shutting down its thread pool.</p>
-<p>One thing to notice as we go: none of this affects the parts of the code that handle executing the closures, so everything here would be just the same if we were using a thread pool for an async runtime.</p>
+<p>The code in Listing 21-20 is responding to requests asynchronously through the use of a thread pool, as we intended. We get some warnings about the <code>workers</code>, <code>id</code>, and <code>thread</code> fields that we’re not using in a direct way that reminds us we’re not cleaning up anything. When we use the less elegant <kbd>ctrl</kbd>-<kbd>C</kbd> method to halt the main thread, all other threads are stopped immediately as well, even if they’re in the middle of serving a request.</p>
+<p>Next, then, we’ll implement the <code>Drop</code> trait to call <code>join</code> on each of the threads in the pool so that they can finish the requests they’re working on before closing. Then, we’ll implement a way to tell the threads they should stop accepting new requests and shut down. To see this code in action, we’ll modify our server to accept only two requests before gracefully shutting down its thread pool.</p>
+<p>One thing to notice as we go: None of this affects the parts of the code that handle executing the closures, so everything here would be the same if we were using a thread pool for an async runtime.</p>
 <h3 id="implementing-the-drop-trait-on-threadpool"><a class="header" href="#implementing-the-drop-trait-on-threadpool">Implementing the <code>Drop</code> Trait on <code>ThreadPool</code></a></h3>
 <p>Let’s start with implementing <code>Drop</code> on our thread pool. When the pool is dropped, our threads should all join to make sure they finish their work. Listing 21-22 shows a first attempt at a <code>Drop</code> implementation; this code won’t quite work yet.</p>
 <Listing number="21-22" file-name="src/lib.rs" caption="Joining each thread when the thread pool goes out of scope">
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">use std::{
-</span><span class="boring">    sync::{mpsc, Arc, Mutex},
+</span><span class="boring">    sync::{Arc, Mutex, mpsc},
 </span><span class="boring">    thread,
 </span><span class="boring">};
 </span><span class="boring">
@@ -286,48 +286,47 @@
 </span><span class="boring">
 </span><span class="boring">impl Worker {
 </span><span class="boring">    fn new(id: usize, receiver: Arc&lt;Mutex&lt;mpsc::Receiver&lt;Job&gt;&gt;&gt;) -&gt; Worker {
-</span><span class="boring">        let thread = thread::spawn(move || loop {
-</span><span class="boring">            let job = receiver.lock().unwrap().recv().unwrap();
+</span><span class="boring">        let thread = thread::spawn(move || {
+</span><span class="boring">            loop {
+</span><span class="boring">                let job = receiver.lock().unwrap().recv().unwrap();
 </span><span class="boring">
-</span><span class="boring">            println!("Worker {id} got a job; executing.");
+</span><span class="boring">                println!("Worker {id} got a job; executing.");
 </span><span class="boring">
-</span><span class="boring">            job();
+</span><span class="boring">                job();
+</span><span class="boring">            }
 </span><span class="boring">        });
 </span><span class="boring">
 </span><span class="boring">        Worker { id, thread }
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 </Listing>
-<p>First, we loop through each of the thread pool <code>workers</code>. We use <code>&amp;mut</code> for this because <code>self</code> is a mutable reference, and we also need to be able to mutate <code>worker</code>. For each worker, we print a message saying that this particular <code>Worker</code> instance is shutting down, and then we call <code>join</code> on that <code>Worker</code> instance’s thread. If the call to <code>join</code> fails, we use <code>unwrap</code> to make Rust panic and go into an ungraceful shutdown.</p>
+<p>First, we loop through each of the thread pool <code>workers</code>. We use <code>&amp;mut</code> for this because <code>self</code> is a mutable reference, and we also need to be able to mutate <code>worker</code>. For each <code>worker</code>, we print a message saying that this particular <code>Worker</code> instance is shutting down, and then we call <code>join</code> on that <code>Worker</code> instance’s thread. If the call to <code>join</code> fails, we use <code>unwrap</code> to make Rust panic and go into an ungraceful shutdown.</p>
 <p>Here is the error we get when we compile this code:</p>
 <pre><code class="language-console">$ cargo check
     Checking hello v0.1.0 (file:///projects/hello)
 error[E0507]: cannot move out of `worker.thread` which is behind a mutable reference
-    --&gt; src/lib.rs:52:13
-     |
-52   |             worker.thread.join().unwrap();
-     |             ^^^^^^^^^^^^^ ------ `worker.thread` moved due to this method call
-     |             |
-     |             move occurs because `worker.thread` has type `JoinHandle&lt;()&gt;`, which does not implement the `Copy` trait
-     |
+  --&gt; src/lib.rs:52:13
+   |
+52 |             worker.thread.join().unwrap();
+   |             ^^^^^^^^^^^^^ ------ `worker.thread` moved due to this method call
+   |             |
+   |             move occurs because `worker.thread` has type `JoinHandle&lt;()&gt;`, which does not implement the `Copy` trait
+   |
 note: `JoinHandle::&lt;T&gt;::join` takes ownership of the receiver `self`, which moves `worker.thread`
-    --&gt; file:///home/.rustup/toolchains/1.82/lib/rustlib/src/rust/library/std/src/thread/mod.rs:1763:17
-     |
-1763 |     pub fn join(self) -&gt; Result&lt;T&gt; {
-     |                 ^^^^
+  --&gt; /rustc/1159e78c4747b02ef996e55082b704c09b970588/library/std/src/thread/mod.rs:1921:17
 
 For more information about this error, try `rustc --explain E0507`.
 error: could not compile `hello` (lib) due to 1 previous error
 </code></pre>
-<p>The error tells us we can’t call <code>join</code> because we only have a mutable borrow of each <code>worker</code> and <code>join</code> takes ownership of its argument. To solve this issue, we need to move the thread out of the <code>Worker</code> instance that owns <code>thread</code> so <code>join</code> can consume the thread. One way to do this is by taking the same approach we did in Listing 18-15. If <code>Worker</code> held an <code>Option&lt;thread::JoinHandle&lt;()&gt;&gt;</code>, we could call the <code>take</code> method on the <code>Option</code> to move the value out of the <code>Some</code> variant and leave a <code>None</code> variant in its place. In other words, a <code>Worker</code> that is running would have a <code>Some</code> variant in <code>thread</code>, and when we wanted to clean up a <code>Worker</code>, we’d replace <code>Some</code> with <code>None</code> so the <code>Worker</code> wouldn’t have a thread to run.</p>
-<p>However, the <em>only</em> time this would come up would be when dropping the <code>Worker</code>. In exchange, we’d have to deal with an <code>Option&lt;thread::JoinHandle&lt;()&gt;&gt;</code> anywhere we accessed <code>worker.thread</code>. Idiomatic Rust uses <code>Option</code> quite a bit, but when you find yourself wrapping something you know will always be present in <code>Option</code> as a workaround like this, it’s a good idea to look for alternative approaches. They can make your code cleaner and less error-prone.</p>
-<p>In this case, a better alternative exists: the <code>Vec::drain</code> method. It accepts a range parameter to specify which items to remove from the <code>Vec</code>, and returns an iterator of those items. Passing the <code>..</code> range syntax will remove <em>every</em> value from the <code>Vec</code>.</p>
-<p>So we need to update the <code>ThreadPool</code> <code>drop</code> implementation like this:</p>
+<p>The error tells us we can’t call <code>join</code> because we only have a mutable borrow of each <code>worker</code> and <code>join</code> takes ownership of its argument. To solve this issue, we need to move the thread out of the <code>Worker</code> instance that owns <code>thread</code> so that <code>join</code> can consume the thread. One way to do this is to take the same approach we took in Listing 18-15. If <code>Worker</code> held an <code>Option&lt;thread::JoinHandle&lt;()&gt;&gt;</code>, we could call the <code>take</code> method on the <code>Option</code> to move the value out of the <code>Some</code> variant and leave a <code>None</code> variant in its place. In other words, a <code>Worker</code> that is running would have a <code>Some</code> variant in <code>thread</code>, and when we wanted to clean up a <code>Worker</code>, we’d replace <code>Some</code> with <code>None</code> so that the <code>Worker</code> wouldn’t have a thread to run.</p>
+<p>However, the <em>only</em> time this would come up would be when dropping the <code>Worker</code>. In exchange, we’d have to deal with an <code>Option&lt;thread::JoinHandle&lt;()&gt;&gt;</code> anywhere we accessed <code>worker.thread</code>. Idiomatic Rust uses <code>Option</code> quite a bit, but when you find yourself wrapping something you know will always be present in an <code>Option</code> as a workaround like this, it’s a good idea to look for alternative approaches to make your code cleaner and less error-prone.</p>
+<p>In this case, a better alternative exists: the <code>Vec::drain</code> method. It accepts a range parameter to specify which items to remove from the vector and returns an iterator of those items. Passing the <code>..</code> range syntax will remove <em>every</em> value from the vector.</p>
+<p>So, we need to update the <code>ThreadPool</code> <code>drop</code> implementation like this:</p>
 <Listing file-name="src/lib.rs">
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use std::{
-</span><span class="boring">    sync::{mpsc, Arc, Mutex},
+</span><span class="boring">    sync::{Arc, Mutex, mpsc},
 </span><span class="boring">    thread,
 </span><span class="boring">};
 </span><span class="boring">
@@ -389,12 +388,14 @@ error: could not compile `hello` (lib) due to 1 previous error
 </span><span class="boring">
 </span><span class="boring">impl Worker {
 </span><span class="boring">    fn new(id: usize, receiver: Arc&lt;Mutex&lt;mpsc::Receiver&lt;Job&gt;&gt;&gt;) -&gt; Worker {
-</span><span class="boring">        let thread = thread::spawn(move || loop {
-</span><span class="boring">            let job = receiver.lock().unwrap().recv().unwrap();
+</span><span class="boring">        let thread = thread::spawn(move || {
+</span><span class="boring">            loop {
+</span><span class="boring">                let job = receiver.lock().unwrap().recv().unwrap();
 </span><span class="boring">
-</span><span class="boring">            println!("Worker {id} got a job; executing.");
+</span><span class="boring">                println!("Worker {id} got a job; executing.");
 </span><span class="boring">
-</span><span class="boring">            job();
+</span><span class="boring">                job();
+</span><span class="boring">            }
 </span><span class="boring">        });
 </span><span class="boring">
 </span><span class="boring">        Worker { id, thread }
@@ -402,14 +403,14 @@ error: could not compile `hello` (lib) due to 1 previous error
 </span><span class="boring">}
 </span><span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>This resolves the compiler error and does not require any other changes to our code.</p>
+<p>This resolves the compiler error and does not require any other changes to our code. Note that, because drop can be called when panicking, the unwrap could also panic and cause a double panic, which immediately crashes the program and ends any cleanup in progress. This is fine for an example program, but it isn’t recommended for production code.</p>
 <h3 id="signaling-to-the-threads-to-stop-listening-for-jobs"><a class="header" href="#signaling-to-the-threads-to-stop-listening-for-jobs">Signaling to the Threads to Stop Listening for Jobs</a></h3>
-<p>With all the changes we’ve made, our code compiles without any warnings. However, the bad news is that this code doesn’t function the way we want it to yet. The key is the logic in the closures run by the threads of the <code>Worker</code> instances: at the moment, we call <code>join</code>, but that won’t shut down the threads because they <code>loop</code> forever looking for jobs. If we try to drop our <code>ThreadPool</code> with our current implementation of <code>drop</code>, the main thread will block forever, waiting for the first thread to finish.</p>
+<p>With all the changes we’ve made, our code compiles without any warnings. However, the bad news is that this code doesn’t function the way we want it to yet. The key is the logic in the closures run by the threads of the <code>Worker</code> instances: At the moment, we call <code>join</code>, but that won’t shut down the threads, because they <code>loop</code> forever looking for jobs. If we try to drop our <code>ThreadPool</code> with our current implementation of <code>drop</code>, the main thread will block forever, waiting for the first thread to finish.</p>
 <p>To fix this problem, we’ll need a change in the <code>ThreadPool</code> <code>drop</code> implementation and then a change in the <code>Worker</code> loop.</p>
-<p>First we’ll change the <code>ThreadPool</code> <code>drop</code> implementation to explicitly drop the <code>sender</code> before waiting for the threads to finish. Listing 21-23 shows the changes to <code>ThreadPool</code> to explicitly drop <code>sender</code>. Unlike with the thread, here we <em>do</em> need to use an <code>Option</code> to be able to move <code>sender</code> out of <code>ThreadPool</code> with <code>Option::take</code>.</p>
-<Listing number="21-23" file-name="src/lib.rs" caption="Explicitly drop `sender` before joining the `Worker` threads">
+<p>First, we’ll change the <code>ThreadPool</code> <code>drop</code> implementation to explicitly drop the <code>sender</code> before waiting for the threads to finish. Listing 21-23 shows the changes to <code>ThreadPool</code> to explicitly drop <code>sender</code>. Unlike with the thread, here we <em>do</em> need to use an <code>Option</code> to be able to move <code>sender</code> out of <code>ThreadPool</code> with <code>Option::take</code>.</p>
+<Listing number="21-23" file-name="src/lib.rs" caption="Explicitly dropping `sender` before joining the `Worker` threads">
 <pre><code class="language-rust noplayground not_desired_behavior"><span class="boring">use std::{
-</span><span class="boring">    sync::{mpsc, Arc, Mutex},
+</span><span class="boring">    sync::{Arc, Mutex, mpsc},
 </span><span class="boring">    thread,
 </span><span class="boring">};
 </span><span class="boring">
@@ -479,12 +480,14 @@ impl Drop for ThreadPool {
 </span><span class="boring">
 </span><span class="boring">impl Worker {
 </span><span class="boring">    fn new(id: usize, receiver: Arc&lt;Mutex&lt;mpsc::Receiver&lt;Job&gt;&gt;&gt;) -&gt; Worker {
-</span><span class="boring">        let thread = thread::spawn(move || loop {
-</span><span class="boring">            let job = receiver.lock().unwrap().recv().unwrap();
+</span><span class="boring">        let thread = thread::spawn(move || {
+</span><span class="boring">            loop {
+</span><span class="boring">                let job = receiver.lock().unwrap().recv().unwrap();
 </span><span class="boring">
-</span><span class="boring">            println!("Worker {id} got a job; executing.");
+</span><span class="boring">                println!("Worker {id} got a job; executing.");
 </span><span class="boring">
-</span><span class="boring">            job();
+</span><span class="boring">                job();
+</span><span class="boring">            }
 </span><span class="boring">        });
 </span><span class="boring">
 </span><span class="boring">        Worker { id, thread }
@@ -494,7 +497,7 @@ impl Drop for ThreadPool {
 <p>Dropping <code>sender</code> closes the channel, which indicates no more messages will be sent. When that happens, all the calls to <code>recv</code> that the <code>Worker</code> instances do in the infinite loop will return an error. In Listing 21-24, we change the <code>Worker</code> loop to gracefully exit the loop in that case, which means the threads will finish when the <code>ThreadPool</code> <code>drop</code> implementation calls <code>join</code> on them.</p>
 <Listing number="21-24" file-name="src/lib.rs" caption="Explicitly breaking out of the loop when `recv` returns an error">
 <pre><code class="language-rust noplayground"><span class="boring">use std::{
-</span><span class="boring">    sync::{mpsc, Arc, Mutex},
+</span><span class="boring">    sync::{Arc, Mutex, mpsc},
 </span><span class="boring">    thread,
 </span><span class="boring">};
 </span><span class="boring">
@@ -561,18 +564,20 @@ impl Drop for ThreadPool {
 </span><span class="boring">
 </span>impl Worker {
     fn new(id: usize, receiver: Arc&lt;Mutex&lt;mpsc::Receiver&lt;Job&gt;&gt;&gt;) -&gt; Worker {
-        let thread = thread::spawn(move || loop {
-            let message = receiver.lock().unwrap().recv();
+        let thread = thread::spawn(move || {
+            loop {
+                let message = receiver.lock().unwrap().recv();
 
-            match message {
-                Ok(job) =&gt; {
-                    println!("Worker {id} got a job; executing.");
+                match message {
+                    Ok(job) =&gt; {
+                        println!("Worker {id} got a job; executing.");
 
-                    job();
-                }
-                Err(_) =&gt; {
-                    println!("Worker {id} disconnected; shutting down.");
-                    break;
+                        job();
+                    }
+                    Err(_) =&gt; {
+                        println!("Worker {id} disconnected; shutting down.");
+                        break;
+                    }
                 }
             }
         });
@@ -586,7 +591,7 @@ impl Drop for ThreadPool {
 <pre><code class="language-rust ignore"><span class="boring">use hello::ThreadPool;
 </span><span class="boring">use std::{
 </span><span class="boring">    fs,
-</span><span class="boring">    io::{prelude::*, BufReader},
+</span><span class="boring">    io::{BufReader, prelude::*},
 </span><span class="boring">    net::{TcpListener, TcpStream},
 </span><span class="boring">    thread,
 </span><span class="boring">    time::Duration,
@@ -631,7 +636,7 @@ impl Drop for ThreadPool {
 </Listing>
 <p>You wouldn’t want a real-world web server to shut down after serving only two requests. This code just demonstrates that the graceful shutdown and cleanup is in working order.</p>
 <p>The <code>take</code> method is defined in the <code>Iterator</code> trait and limits the iteration to the first two items at most. The <code>ThreadPool</code> will go out of scope at the end of <code>main</code>, and the <code>drop</code> implementation will run.</p>
-<p>Start the server with <code>cargo run</code>, and make three requests. The third request should error, and in your terminal you should see output similar to this:</p>
+<p>Start the server with <code>cargo run</code> and make three requests. The third request should error, and in your terminal, you should see output similar to this:</p>
 <!-- manual-regeneration
 cd listings/ch21-web-server/listing-21-25
 cargo run
@@ -658,15 +663,15 @@ Shutting down worker 1
 Shutting down worker 2
 Shutting down worker 3
 </code></pre>
-<p>You might see a different ordering of <code>Worker</code> IDs and messages printed. We can see how this code works from the messages: <code>Worker</code> instances 0 and 3 got the first two requests. The server stopped accepting connections after the second connection, and the <code>Drop</code> implementation on <code>ThreadPool</code> starts executing before <code>Worker</code> 3 even starts its job. Dropping the <code>sender</code> disconnects all the <code>Worker</code> instances and tells them to shut down. The <code>Worker</code> instances each print a message when they disconnect, and then the thread pool calls <code>join</code> to wait for each <code>Worker</code> thread to finish.</p>
-<p>Notice one interesting aspect of this particular execution: the <code>ThreadPool</code> dropped the <code>sender</code>, and before any <code>Worker</code> received an error, we tried to join <code>Worker</code> 0. <code>Worker</code> 0 had not yet gotten an error from <code>recv</code>, so the main thread blocked waiting for <code>Worker</code> 0 to finish. In the meantime, <code>Worker</code> 3 received a job and then all threads received an error. When <code>Worker</code> 0 finished, the main thread waited for the rest of the <code>Worker</code> instances to finish. At that point, they had all exited their loops and stopped.</p>
+<p>You might see a different ordering of <code>Worker</code> IDs and messages printed. We can see how this code works from the messages: <code>Worker</code> instances 0 and 3 got the first two requests. The server stopped accepting connections after the second connection, and the <code>Drop</code> implementation on <code>ThreadPool</code> starts executing before <code>Worker 3</code> even starts its job. Dropping the <code>sender</code> disconnects all the <code>Worker</code> instances and tells them to shut down. The <code>Worker</code> instances each print a message when they disconnect, and then the thread pool calls <code>join</code> to wait for each <code>Worker</code> thread to finish.</p>
+<p>Notice one interesting aspect of this particular execution: The <code>ThreadPool</code> dropped the <code>sender</code>, and before any <code>Worker</code> received an error, we tried to join <code>Worker 0</code>. <code>Worker 0</code> had not yet gotten an error from <code>recv</code>, so the main thread blocked, waiting for <code>Worker 0</code> to finish. In the meantime, <code>Worker 3</code> received a job and then all threads received an error. When <code>Worker 0</code> finished, the main thread waited for the rest of the <code>Worker</code> instances to finish. At that point, they had all exited their loops and stopped.</p>
 <p>Congrats! We’ve now completed our project; we have a basic web server that uses a thread pool to respond asynchronously. We’re able to perform a graceful shutdown of the server, which cleans up all the threads in the pool.</p>
 <p>Here’s the full code for reference:</p>
 <Listing file-name="src/main.rs">
 <pre><code class="language-rust ignore">use hello::ThreadPool;
 use std::{
     fs,
-    io::{prelude::*, BufReader},
+    io::{BufReader, prelude::*},
     net::{TcpListener, TcpStream},
     thread,
     time::Duration,
@@ -711,7 +716,7 @@ fn handle_connection(mut stream: TcpStream) {
 </Listing>
 <Listing file-name="src/lib.rs">
 <pre><code class="language-rust noplayground">use std::{
-    sync::{mpsc, Arc, Mutex},
+    sync::{Arc, Mutex, mpsc},
     thread,
 };
 
@@ -780,18 +785,20 @@ struct Worker {
 
 impl Worker {
     fn new(id: usize, receiver: Arc&lt;Mutex&lt;mpsc::Receiver&lt;Job&gt;&gt;&gt;) -&gt; Worker {
-        let thread = thread::spawn(move || loop {
-            let message = receiver.lock().unwrap().recv();
+        let thread = thread::spawn(move || {
+            loop {
+                let message = receiver.lock().unwrap().recv();
 
-            match message {
-                Ok(job) =&gt; {
-                    println!("Worker {id} got a job; executing.");
+                match message {
+                    Ok(job) =&gt; {
+                        println!("Worker {id} got a job; executing.");
 
-                    job();
-                }
-                Err(_) =&gt; {
-                    println!("Worker {id} disconnected; shutting down.");
-                    break;
+                        job();
+                    }
+                    Err(_) =&gt; {
+                        println!("Worker {id} disconnected; shutting down.");
+                        break;
+                    }
                 }
             }
         });
@@ -809,7 +816,7 @@ impl Worker {
 <li>Add tests of the library’s functionality.</li>
 <li>Change calls to <code>unwrap</code> to more robust error handling.</li>
 <li>Use <code>ThreadPool</code> to perform some task other than serving web requests.</li>
-<li>Find a thread pool crate on <a href="https://crates.io/">crates.io</a> and implement a similar web server using the crate instead. Then compare its API and robustness to the thread pool we implemented.</li>
+<li>Find a thread pool crate on <a href="https://crates.io/">crates.io</a> and implement a similar web server using the crate instead. Then, compare its API and robustness to the thread pool we implemented.</li>
 </ul>
 <h2 id="Подведём-итоги"><a class="header" href="#Подведём-итоги">Подведём итоги</a></h2>
 <p>Well done! You’ve made it to the end of the book! We want to thank you for joining us on this tour of Rust. You’re now ready to implement your own Rust projects and help with other people’s projects. Keep in mind that there is a welcoming community of other Rustaceans who would love to help you with any challenges you encounter on your Rust journey.</p>

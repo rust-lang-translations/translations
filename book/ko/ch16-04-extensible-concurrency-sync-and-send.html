@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Sync와 Send 트레이트로 확장 가능한 동시성 - The Rust Programming Language</title>
+        <title>Extensible Concurrency with Send and Sync - The Rust Programming Language</title>
 
 
         <!-- Custom HTML head -->
@@ -216,23 +216,29 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="sync와-send-트레이트로-확장-가능한-동시성"><a class="header" href="#sync와-send-트레이트로-확장-가능한-동시성"><code>Sync</code>와 <code>Send</code> 트레이트로 확장 가능한 동시성</a></h2>
-<p>흥미롭게도, 러스트 언어는 동시성 기능이 <em>거의</em> 없습니다. 이 장에서 지금까지 이야기한 거의 모든 동시성 기능은 언어가 아닌 표준 라이브러리의 일부였습니다. 동시성을 처리하는 여러분의 옵션은 언어나 표준 라이브러리에 제한되지 않습니다; 여러분은 자신만의 동시성 기능을 작성하거나 다른 사람들이 작성한 것을 사용할 수 있습니다.</p>
-<p>하지만 두 가지 동시성 개념은 언어에 내장되어 있습니다: <code>std::marker</code> 트레이트인 <code>Sync</code>와 <code>Send</code>입니다.</p>
-<h3 id="send를-사용하여-스레드-간-소유권-이동-허용하기"><a class="header" href="#send를-사용하여-스레드-간-소유권-이동-허용하기"><code>Send</code>를 사용하여 스레드 간 소유권 이동 허용하기</a></h3>
-<p><code>Send</code> 마커 트레이트는 <code>Send</code>를 구현한 타입의 값의 소유권이 스레드 간에 이동될 수 있음을 나타냅니다. 거의 모든 러스트 타입은 <code>Send</code>이지만, <code>Rc&lt;T&gt;</code>를 포함한 몇 가지 예외가 있습니다: <code>Rc&lt;T&gt;</code> 값을 클론하여 클론의 소유권을 다른 스레드로 전송하려고 하면 두 스레드가 동시에 참조 카운트를 업데이트할 수 있기 때문에 <code>Send</code>가 될 수 없습니다. 이러한 이유로 <code>Rc&lt;T&gt;</code>는 스레드 안전 성능 페널티를 지불하고 싶지 않은 단일 스레드 상황에서 사용하도록 구현되었습니다.</p>
-<p>따라서, 러스트의 타입 시스템과 트레이트 바운드는 여러분이 실수로 <code>Rc&lt;T&gt;</code> 값을 스레드 간에 안전하지 않게 보내는 일이 없도록 보장합니다. 목록 16-14에서 이를 시도했을 때, 우리는 <code>the trait Send is not implemented for Rc&lt;Mutex&lt;i32&gt;&gt;</code>라는 에러를 얻었습니다. <code>Send</code>인 <code>Arc&lt;T&gt;</code>로 전환했을 때 코드는 컴파일되었습니다.</p>
+                        <!-- Old headings. Do not remove or links may break. -->
+<p><a id="extensible-concurrency-with-the-sync-and-send-traits"></a> <a id="extensible-concurrency-with-the-send-and-sync-traits"></a></p>
+<h2 id="extensible-concurrency-with-send-and-sync"><a class="header" href="#extensible-concurrency-with-send-and-sync">Extensible Concurrency with <code>Send</code> and <code>Sync</code></a></h2>
+<p>Interestingly, almost every concurrency feature we’ve talked about so far in this chapter has been part of the standard library, not the language. Your options for handling concurrency are not limited to the language or the standard library; you can write your own concurrency features or use those written by others.</p>
+<p>However, among the key concurrency concepts that are embedded in the language rather than the standard library are the <code>std::marker</code> traits <code>Send</code> and <code>Sync</code>.</p>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="allowing-transference-of-ownership-between-threads-with-send"></a></p>
+<h3 id="transferring-ownership-between-threads"><a class="header" href="#transferring-ownership-between-threads">Transferring Ownership Between Threads</a></h3>
+<p>The <code>Send</code> marker trait indicates that ownership of values of the type implementing <code>Send</code> can be transferred between threads. Almost every Rust type implements <code>Send</code>, but there are some exceptions, including <code>Rc&lt;T&gt;</code>: This cannot implement <code>Send</code> because if you cloned an <code>Rc&lt;T&gt;</code> value and tried to transfer ownership of the clone to another thread, both threads might update the reference count at the same time. For this reason, <code>Rc&lt;T&gt;</code> is implemented for use in single-threaded situations where you don’t want to pay the thread-safe performance penalty.</p>
+<p>Therefore, Rust’s type system and trait bounds ensure that you can never accidentally send an <code>Rc&lt;T&gt;</code> value across threads unsafely. When we tried to do this in Listing 16-14, we got the error <code>the trait `Send` is not implemented for `Rc&lt;Mutex&lt;i32&gt;&gt;`</code>. When we switched to <code>Arc&lt;T&gt;</code>, which does implement <code>Send</code>, the code compiled.</p>
 <p>Any type composed entirely of <code>Send</code> types is automatically marked as <code>Send</code> as well. Almost all primitive types are <code>Send</code>, aside from raw pointers, which we’ll discuss in Chapter 20.</p>
-<h3 id="sync를-사용하여-여러-스레드에서의-접근-허용하기"><a class="header" href="#sync를-사용하여-여러-스레드에서의-접근-허용하기"><code>Sync</code>를 사용하여 여러 스레드에서의 접근 허용하기</a></h3>
-<p><code>Sync</code> 마커 트레이트는 <code>Sync</code>를 구현한 타입이 여러 스레드에서 참조되기에 안전함을 나타냅니다. 즉, <code>&amp;T</code>(<code>T</code>에 대한 불변 참조)가 <code>Send</code>라면(참조가 다른 스레드로 안전하게 보내질 수 있다는 의미), <code>T</code>는 <code>Sync</code>입니다. <code>Send</code>와 마찬가지로 기본 타입은 <code>Sync</code>이며, <code>Sync</code>인 타입들로만 구성된 타입도 <code>Sync</code>입니다.</p>
-<p>스마트 포인터 <code>Rc&lt;T&gt;</code>는 <code>Send</code>가 아닌 것과 같은 이유로 <code>Sync</code>도 아닙니다. <code>RefCell&lt;T&gt;</code> 타입(15장에서 다루었습니다)과 관련된 <code>Cell&lt;T&gt;</code> 계열의 타입들은 <code>Sync</code>가 아닙니다. <code>RefCell&lt;T&gt;</code>가 런타임에 수행하는 대여 검사 구현은 스레드 안전하지 않습니다. 스마트 포인터 <code>Mutex&lt;T&gt;</code>는 <code>Sync</code>이며, <a href="ch16-03-shared-state.html#sharing-a-mutext-between-multiple-threads">"여러 스레드 간에 <code>Mutex&lt;T&gt;</code> 공유하기"</a><!-- ignore -->에서 본 것처럼 여러 스레드와 접근을 공유하는 데 사용될 수 있습니다.</p>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="allowing-access-from-multiple-threads-with-sync"></a></p>
+<h3 id="accessing-from-multiple-threads"><a class="header" href="#accessing-from-multiple-threads">Accessing from Multiple Threads</a></h3>
+<p>The <code>Sync</code> marker trait indicates that it is safe for the type implementing <code>Sync</code> to be referenced from multiple threads. In other words, any type <code>T</code> implements <code>Sync</code> if <code>&amp;T</code> (an immutable reference to <code>T</code>) implements <code>Send</code>, meaning the reference can be sent safely to another thread. Similar to <code>Send</code>, primitive types all implement <code>Sync</code>, and types composed entirely of types that implement <code>Sync</code> also implement <code>Sync</code>.</p>
+<p>The smart pointer <code>Rc&lt;T&gt;</code> also doesn’t implement <code>Sync</code> for the same reasons that it doesn’t implement <code>Send</code>. The <code>RefCell&lt;T&gt;</code> type (which we talked about in Chapter 15) and the family of related <code>Cell&lt;T&gt;</code> types don’t implement <code>Sync</code>. The implementation of borrow checking that <code>RefCell&lt;T&gt;</code> does at runtime is not thread-safe. The smart pointer <code>Mutex&lt;T&gt;</code> implements <code>Sync</code> and can be used to share access with multiple threads, as you saw in <a href="ch16-03-shared-state.html#shared-access-to-mutext">“Shared Access to <code>Mutex&lt;T&gt;</code>”</a><!-- ignore -->.</p>
 <h3 id="send와-sync를-수동으로-구현하는-것은-안전하지-않습니다"><a class="header" href="#send와-sync를-수동으로-구현하는-것은-안전하지-않습니다"><code>Send</code>와 <code>Sync</code>를 수동으로 구현하는 것은 안전하지 않습니다</a></h3>
-<p><code>Send</code>와 <code>Sync</code> 트레이트로 구성된 타입은 자동으로 <code>Send</code>와 <code>Sync</code>이기도 하므로, 우리는 그러한 트레이트를 수동으로 구현할 필요가 없습니다. 마커 트레이트로서, 구현할 메서드조차 없습니다. 단지 동시성과 관련된 불변성을 강제하는 데 유용할 뿐입니다.</p>
+<p>Because types composed entirely of other types that implement the <code>Send</code> and <code>Sync</code> traits also automatically implement <code>Send</code> and <code>Sync</code>, we don’t have to implement those traits manually. As marker traits, they don’t even have any methods to implement. They’re just useful for enforcing invariants related to concurrency.</p>
 <p>이 트레이트들을 수동으로 구현하는 것은 안전하지 않은 러스트 코드를 구현하는 것을 포함합니다. 20장에서 안전하지 않은 러스트 코드를 사용하는 것에 대해 이야기할 것입니다; 지금으로서 중요한 정보는 <code>Send</code>와 <code>Sync</code> 부분으로 구성되지 않은 새로운 동시성 타입을 구축하는 것은 안전 보장을 유지하기 위해 신중한 생각이 필요하다는 것입니다. <a href="../nomicon/index.html">“The Rustonomicon”</a>에는 이러한 보장과 이를 유지하는 방법에 대한 더 많은 정보가 있습니다.</p>
 <h2 id="요약"><a class="header" href="#요약">요약</a></h2>
-<p>이 책에서 동시성을 보는 것은 이것이 마지막이 아닙니다. 다음 장 전체가 비동기 프로그래밍에 초점을 맞추고 있으며, 21장의 프로젝트는 여기서 논의된 작은 예제들보다 더 현실적인 상황에서 이 장의 개념들을 사용할 것입니다.</p>
+<p>This isn’t the last you’ll see of concurrency in this book: The next chapter focuses on async programming, and the project in Chapter 21 will use the concepts in this chapter in a more realistic situation than the smaller examples discussed here.</p>
 <p>앞서 언급했듯이, 러스트가 동시성을 처리하는 방법 중 언어의 일부인 것은 거의 없기 때문에, 많은 동시성 솔루션이 크레이트로 구현되어 있습니다. 이들은 표준 라이브러리보다 더 빠르게 발전하므로, 멀티스레드 상황에서 사용할 현재의 최첨단 크레이트를 온라인에서 검색해 보세요.</p>
-<p>러스트 표준 라이브러리는 메시지 전달을 위한 채널과 <code>Mutex&lt;T&gt;</code> 및 <code>Arc&lt;T&gt;</code>와 같은, 동시성 컨텍스트에서 사용하기에 안전한 스마트 포인터 타입을 제공합니다. 타입 시스템과 대여 검사기는 이러한 솔루션을 사용하는 코드가 데이터 레이스나 유효하지 않은 참조로 끝나지 않도록 보장합니다. 일단 코드를 컴파일하면, 다른 언어에서 흔히 발생하는 추적하기 어려운 버그 없이 멀티스레드에서 행복하게 실행될 것임을 확신할 수 있습니다. 동시 프로그래밍은 더 이상 두려워할 개념이 아닙니다: 나아가서 두려움 없이 프로그램을 동시적으로 만드세요!</p>
+<p>The Rust standard library provides channels for message passing and smart pointer types, such as <code>Mutex&lt;T&gt;</code> and <code>Arc&lt;T&gt;</code>, that are safe to use in concurrent contexts. The type system and the borrow checker ensure that the code using these solutions won’t end up with data races or invalid references. Once you get your code to compile, you can rest assured that it will happily run on multiple threads without the kinds of hard-to-track-down bugs common in other languages. Concurrent programming is no longer a concept to be afraid of: Go forth and make your programs concurrent, fearlessly!</p>
 
                     </main>
 

@@ -226,17 +226,20 @@
 <li>인터럽트 컨트롤러에서 인터럽트 처리기의 원하는 우선순위를 설정합니다.</li>
 <li>인터럽트 컨트롤러에서 인터럽트 처리기를 활성화합니다.</li>
 </ul>
-<p>예외와 유사하게 <code>cortex-m-rt</code> 크레이트는 인터럽트 처리기를 선언하는 <a href="https://docs.rs/cortex-m-rt-macros/0.1.5/cortex_m_rt_macros/attr.interrupt.html"><code>interrupt</code></a> 속성을 제공합니다. 사용 가능한 인터럽트(및 인터럽트 처리기 테이블에서의 위치)는 일반적으로 SVD 설명에서 <code>svd2rust</code>를 통해 자동으로 생성됩니다.</p>
-<pre><code class="language-rust ignore">// Timer2 인터럽트에 대한 인터럽트 처리기
+<p>Similarly to exceptions, the cortex-m-rt crate exposes an <a href="https://docs.rs/cortex-m-rt-macros/0.1.5/cortex_m_rt_macros/attr.interrupt.html"><code>interrupt</code></a> attribute for declaring interrupt handlers. However, this attribute is only available when the device feature is enabled. That said, this attribute is not intended to be used directly—doing so will result in a compilation error.</p>
+<p>Instead, you should use the re-exported version of the interrupt attribute provided by the device crate (usually generated using svd2rust). This ensures that the compiler can verify that the interrupt actually exists on the target device. The list of available interrupts—and their position in the interrupt vector table—is typically auto-generated from an SVD file by svd2rust.</p>
+<pre><code class="language-rust ignore">use lm3s6965::interrupt; // Re-exported attribute from the device crate
+
+// Timer2 인터럽트에 대한 인터럽트 처리기
 #[interrupt]
-fn TIM2() {
+fn TIMER2A() {
     // ..
     // 생성된 인터럽트 요청의 원인 지우기
 }</code></pre>
 <p>인터럽트 처리기는 예외 처리기와 유사하게 일반 함수처럼 보입니다(인수가 없다는 점 제외). 그러나 특수 호출 규칙으로 인해 펌웨어의 다른 부분에서 직접 호출할 수 없습니다. 그러나 소프트웨어에서 인터럽트 요청을 생성하여 인터럽트 처리기로 전환을 트리거할 수 있습니다.</p>
 <p>예외 처리기와 유사하게 <em>안전한</em> 상태 유지를 위해 인터럽트 처리기 내에 <code>static mut</code> 변수를 선언할 수도 있습니다.</p>
 <pre><code class="language-rust ignore">#[interrupt]
-fn TIM2() {
+fn TIMER2A() {
     static mut COUNT: u32 = 0;
 
     // `COUNT`는 `&amp;mut u32` 유형이며 안전하게 사용할 수 있습니다

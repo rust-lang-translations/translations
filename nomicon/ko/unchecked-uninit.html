@@ -217,7 +217,7 @@
 <p>이 규칙에 대한 흥미로운 예외 중 하나는 배열로 작업할 때입니다. 안전한 러스트는 배열을 부분적으로 초기화하는 것을 허용하지 않습니다. 배열을 초기화할 때는 <code>let x = [val; N]</code>을 사용하여 모든 값을 동일하게 설정하거나, <code>let x = [val1, val2, val3]</code>과 같이 각 요소를 개별적으로 지정해야 합니다. 불행히도 이는 상당히 경직되어 있으며, 특히 배열을 더 점진적이거나 동적인 방식으로 초기화해야 할 때 더욱 그렇습니다.</p>
 <p>비안전한 러스트는 이 문제를 해결하기 위해 강력한 도구인 <a href="../core/mem/union.MaybeUninit.html"><code>MaybeUninit</code></a>를 제공합니다. 이 타입은 아직 완전히 초기화되지 않은 메모리를 다루는 데 사용될 수 있습니다.</p>
 <p><code>MaybeUninit</code>을 사용하면 다음과 같이 배열을 요소별로 하나씩 초기화할 수 있습니다:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::mem::{self, MaybeUninit};
 
@@ -227,12 +227,8 @@
 const SIZE: usize = 10;
 
 let x = {
-    // `MaybeUninit`의 초기화되지 않은 배열을 생성합니다. 여기서 `assume_init`은
-    // 안전합니다. 우리가 여기서 초기화했다고 주장하는 타입은 여러 개의
-    // `MaybeUninit`들이며, 이것들은 초기화를 필요로 하지 않기 때문입니다.
-    let mut x: [MaybeUninit&lt;Box&lt;u32&gt;&gt;; SIZE] = unsafe {
-        MaybeUninit::uninit().assume_init()
-    };
+    // Create an uninitialized array of `MaybeUninit`.
+    let mut x = [const { MaybeUninit::uninit() }; SIZE];
 
     // `MaybeUninit`을 드롭하는 것은 아무 일도 하지 않습니다. 따라서 `ptr::write` 대신
     // 원시 포인터 할당을 사용해도 이전의 초기화되지 않은 값이 드롭되지 않습니다.
@@ -245,12 +241,12 @@ let x = {
     unsafe { mem::transmute::&lt;_, [Box&lt;u32&gt;; SIZE]&gt;(x) }
 };
 
-dbg!(x);
+println!("{x:?}");
 <span class="boring">}</span></code></pre></pre>
 <p>이 코드는 세 단계로 진행됩니다:</p>
 <ol>
 <li>
-<p><code>MaybeUninit&lt;T&gt;</code>의 배열을 생성합니다. 현재의 안정 버전 러스트에서는 이를 위해 unsafe 코드를 사용해야 합니다. 즉, 초기화되지 않은 메모리 조각(<code>MaybeUninit::uninit()</code>)을 취하고 그것을 완전히 초기화했다고 주장(<a href="../core/mem/union.MaybeUninit.html#method.assume_init"><code>assume_init()</code></a>)하는 것입니다. 실제로는 초기화하지 않았기 때문에 이는 어처구니없어 보일 수 있습니다! 이것이 올바른 이유는 배열 자체가 실제로 초기화를 필요로 하지 않는 <code>MaybeUninit</code>들로만 구성되어 있기 때문입니다. 대부분의 다른 타입들에 대해 <code>MaybeUninit::uninit().assume_init()</code>을 수행하는 것은 해당 타입의 유효하지 않은 인스턴스를 생성하게 되며, 따라서 정의되지 않은 동작을 일으키게 됩니다.</p>
+<p>Create an array of <code>MaybeUninit&lt;T&gt;</code>.</p>
 </li>
 <li>
 <p>배열을 초기화합니다. 여기서 미묘한 점은 보통 러스트 타입 검사기가 이미 초기화되었다고 간주하는 값(예: <code>x[i]</code>)에 <code>=</code>을 사용하여 할당할 때, 좌변에 저장되어 있던 이전 값이 드롭된다는 것입니다. 이는 재앙이 될 것입니다. 하지만 이 경우 좌변의 타입은 <code>MaybeUninit&lt;Box&lt;u32&gt;&gt;</code>이며, 이를 드롭하는 것은 아무런 일도 하지 않습니다! 이 <code>drop</code> 이슈에 대한 자세한 논의는 아래를 참조하세요.</p>
@@ -279,7 +275,7 @@ dbg!(x);
 <li><code>T</code> 타입의 배열에 대해서는, <code>base_ptr: *mut T</code>일 때 <code>base_ptr.add(idx)</code>를 사용하여 배열 인덱스 <code>idx</code>의 주소를 계산할 수 있습니다. 이는 메모리상에서 배열이 어떻게 배치되는지에 의존합니다.</li>
 <li>하지만 구조체의 경우, 일반적으로 그것이 어떻게 배치되어 있는지 알 수 없으며, <code>&amp;mut base_ptr.field</code>를 사용할 수도 없습니다. 그렇게 하는 것은 참조를 생성하는 것이기 때문입니다. 따라서 <a href="../reference/types/pointer.html#r-type.pointer.raw.constructor">원시 참조(raw reference)</a> 구문을 주의해서 사용해야 합니다. 이 구문은 중간 참조를 생성하지 않고 필드에 대한 원시 포인터를 생성합니다:</li>
 </ul>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::{ptr, mem::MaybeUninit};
 

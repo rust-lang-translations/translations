@@ -216,36 +216,54 @@
 
                 <div id="content" class="content">
                     <main>
-                        <div class="rule" id="r-attributes.testing"><a class="rule-link" href="#r-attributes.testing" title="attributes.testing"><span>[attributes<wbr>.testing]<span/></a></div>
+                        <p>r[attributes.testing]</p>
 <h1 id="테스팅-속성"><a class="header" href="#테스팅-속성">테스팅 속성</a></h1>
 <p>다음 <a href="../attributes.html">속성들</a>은 테스트를 수행하기 위한 함수를 지정하는 데 사용됩니다. 크레이트를 “test” 모드로 컴파일하면 테스트를 실행하기 위한 테스트 하네스와 함께 테스트 함수들이 빌드됩니다. 테스트 모드를 활성화하면 <a href="../conditional-compilation.html#test"><code>test</code> 조건부 컴파일 옵션</a>도 활성화됩니다.</p>
-<div class="rule" id="r-attributes.testing.test"><a class="rule-link" href="#r-attributes.testing.test" title="attributes.testing.test"><span>[attributes<wbr>.testing<wbr>.test]<span/></a></div>
+<!-- template:attributes -->
+<p>r[attributes.testing.test]</p>
 <h2 id="test-속성"><a class="header" href="#test-속성"><code>test</code> 속성</a></h2>
-<div class="rule" id="r-attributes.testing.test.intro"><a class="rule-link" href="#r-attributes.testing.test.intro" title="attributes.testing.test.intro"><span>[attributes<wbr>.testing<wbr>.test<wbr>.intro]<span/></a></div>
-<p>_<code>test</code> 속성_은 함수를 테스트로서 실행되도록 표시합니다.</p>
-<div class="rule" id="r-attributes.testing.test.enabled"><a class="rule-link" href="#r-attributes.testing.test.enabled" title="attributes.testing.test.enabled"><span>[attributes<wbr>.testing<wbr>.test<wbr>.enabled]<span/></a></div>
-<p>이러한 함수들은 테스트 모드일 때만 컴파일됩니다.</p>
-<div class="rule" id="r-attributes.testing.test.allowed-positions"><a class="rule-link" href="#r-attributes.testing.test.allowed-positions" title="attributes.testing.test.allowed-positions"><span>[attributes<wbr>.testing<wbr>.test<wbr>.allowed-positions]<span/></a></div>
-<p>테스트 함수는 인수를 받지 않는 자유(free) 함수이자 모노모르픽(monomorphic) 함수여야 하며, 반환 타입은 <a href="../../std/process/trait.Termination.html"><code>Termination</code></a> 트레잇을 구현해야 합니다. 예를 들어:</p>
+<p>r[attributes.testing.test.intro] The <em><code>test</code> <a href="../attributes.html">attribute</a></em> marks a function to be executed as a test.</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">pub fn add(left: u64, right: u64) -&gt; u64 { left + right }
+</span>#[test]
+fn it_works() {
+    let result = add(2, 2);
+    assert_eq!(result, 4);
+}
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
+<p>r[attributes.testing.test.syntax] The <code>test</code> attribute uses the [MetaWord] syntax.</p>
+<p>r[attributes.testing.test.allowed-positions] The <code>test</code> attribute may only be applied to <a href="../glossary.html#free-item">free functions</a> that are monomorphic, that take no arguments, and where the return type implements the <a href="std::process::Termination"><code>Termination</code></a> trait.</p>
+<blockquote>
+<p>[!NOTE] Some of types that implement the <a href="std::process::Termination"><code>Termination</code></a> trait include:</p>
 <ul>
 <li><code>()</code></li>
 <li><code>Result&lt;T, E&gt; where T: Termination, E: Debug</code></li>
-<li><code>!</code></li>
 </ul>
-<!-- If the previous section needs updating (from "must take no arguments"
-  onwards, also update it in the crates-and-source-files.md file -->
-<blockquote>
-<p>참고: 테스트 모드는 <code>rustc</code>에 <code>--test</code> 인수를 전달하거나 <code>cargo test</code>를 사용하여 활성화됩니다.</p>
 </blockquote>
-<div class="rule" id="r-attributes.testing.test.success"><a class="rule-link" href="#r-attributes.testing.test.success" title="attributes.testing.test.success"><span>[attributes<wbr>.testing<wbr>.test<wbr>.success]<span/></a></div>
-<p>테스트 하네스는 반환된 값의 <a href="../../std/process/trait.Termination.html#tymethod.report"><code>report</code></a> 메서드를 호출하며, 결과 <a href="../../std/process/struct.ExitCode.html"><code>ExitCode</code></a>가 성공적인 종료를 나타내는지 여부에 따라 테스트를 통과 또는 실패로 분류합니다. 특히:</p>
+<p>r[attributes.testing.test.duplicates] Only the first use of <code>test</code> on a function has effect.</p>
+<blockquote>
+<p>[!NOTE] <code>rustc</code> lints against any use following the first. This may become an error in the future.</p>
+</blockquote>
+<!-- TODO: This is a minor lie. Currently rustc warns that duplicates are ignored, but it then generates multiple test entries with the same name. I would vote for rejecting this in the future. -->
+<p>r[attributes.testing.test.stdlib] The <code>test</code> attribute is exported from the standard library prelude as [<code>std::prelude::v1::test</code>].</p>
+<p>r[attributes.testing.test.enabled] These functions are only compiled when in test mode.</p>
+<blockquote>
+<p>[!NOTE] The test mode is enabled by passing the <code>--test</code> argument to <code>rustc</code> or using <code>cargo test</code>.</p>
+</blockquote>
+<p>r[attributes.testing.test.success] The test harness calls the returned value’s <a href="std::process::Termination::report"><code>report</code></a> method, and classifies the test as passed or failed depending on whether the resulting <a href="std::process::ExitCode"><code>ExitCode</code></a> represents successful termination. In particular:</p>
 <ul>
 <li><code>()</code>를 반환하는 테스트는 종료되고 패닉이 발생하지 않는 한 통과합니다.</li>
 <li><code>Result&lt;(), E&gt;</code>를 반환하는 테스트는 <code>Ok(())</code>를 반환하는 한 통과합니다.</li>
 <li><code>ExitCode::SUCCESS</code>를 반환하는 테스트는 통과하고, <code>ExitCode::FAILURE</code>를 반환하는 테스트는 실패합니다.</li>
 <li>종료되지 않는 테스트는 통과도 실패도 하지 않습니다.</li>
 </ul>
-<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use std::io;
 </span><span class="boring">fn setup_the_thing() -&gt; io::Result&lt;i32&gt; { Ok(1) }
@@ -257,13 +275,30 @@ fn test_the_thing() -&gt; io::Result&lt;()&gt; {
     Ok(())
 }
 <span class="boring">}</span></code></pre></pre>
-<div class="rule" id="r-attributes.testing.ignore"><a class="rule-link" href="#r-attributes.testing.ignore" title="attributes.testing.ignore"><span>[attributes<wbr>.testing<wbr>.ignore]<span/></a></div>
+</blockquote>
+<!-- template:attributes -->
+<p>r[attributes.testing.ignore]</p>
 <h2 id="ignore-속성"><a class="header" href="#ignore-속성"><code>ignore</code> 속성</a></h2>
-<div class="rule" id="r-attributes.testing.ignore.intro"><a class="rule-link" href="#r-attributes.testing.ignore.intro" title="attributes.testing.ignore.intro"><span>[attributes<wbr>.testing<wbr>.ignore<wbr>.intro]<span/></a></div>
-<p><code>test</code> 속성이 지정된 함수에는 <code>ignore</code> 속성도 지정할 수 있습니다. _<code>ignore</code> 속성_은 테스트 하네스에게 해당 함수를 테스트로 실행하지 않도록 지시합니다. 테스트 모드일 때 여전히 컴파일은 됩니다.</p>
-<div class="rule" id="r-attributes.testing.ignore.syntax"><a class="rule-link" href="#r-attributes.testing.ignore.syntax" title="attributes.testing.ignore.syntax"><span>[attributes<wbr>.testing<wbr>.ignore<wbr>.syntax]<span/></a></div>
-<p><code>ignore</code> 속성은 선택적으로 <a href="../attributes.html#meta-item-attribute-syntax"><em>MetaNameValueStr</em></a> 구문을 사용하여 테스트가 무시되는 이유를 명시할 수 있습니다.</p>
-<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+<p>r[attributes.testing.ignore.intro] The <em><code>ignore</code> <a href="../attributes.html">attribute</a></em> can be used with the [<code>test</code> attribute][attributes.testing.test] to tell the test harness to not execute that function as a test.</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+#[ignore]
+fn check_thing() {
+    // …
+}
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
+<blockquote>
+<p>[!NOTE] The <code>rustc</code> test harness supports the <code>--include-ignored</code> flag to force ignored tests to be run.</p>
+</blockquote>
+<p>r[attributes.testing.ignore.syntax] The <code>ignore</code> attribute uses the [MetaWord] and [MetaNameValueStr] syntaxes.</p>
+<p>r[attributes.testing.ignore.reason] The [MetaNameValueStr] form of the <code>ignore</code> attribute provides a way to specify a reason why the test is ignored.</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[test]
 #[ignore = "아직 구현되지 않음"]
@@ -271,18 +306,23 @@ fn mytest() {
     // …
 }
 <span class="boring">}</span></code></pre></pre>
-<blockquote>
-<p><strong>참고</strong>: <code>rustc</code> 테스트 하네스는 무시된 테스트를 강제로 실행하기 위한 <code>--include-ignored</code> 플래그를 지원합니다.</p>
 </blockquote>
-<div class="rule" id="r-attributes.testing.should_panic"><a class="rule-link" href="#r-attributes.testing.should_panic" title="attributes.testing.should_panic"><span>[attributes<wbr>.testing<wbr>.should_panic]<span/></a></div>
+<p>r[attributes.testing.ignore.allowed-positions] The <code>ignore</code> attribute may only be applied to functions annotated with the <code>test</code> attribute.</p>
+<blockquote>
+<p>[!NOTE] <code>rustc</code> ignores use in other positions but lints against it. This may become an error in the future.</p>
+</blockquote>
+<p>r[attributes.testing.ignore.duplicates] Only the first use of <code>ignore</code> on a function has effect.</p>
+<blockquote>
+<p>[!NOTE] <code>rustc</code> lints against any use following the first. This may become an error in the future.</p>
+</blockquote>
+<p>r[attributes.testing.ignore.behavior] Ignored tests are still compiled when in test mode, but they are not executed.</p>
+<!-- template:attributes -->
+<p>r[attributes.testing.should_panic]</p>
 <h2 id="should_panic-속성"><a class="header" href="#should_panic-속성"><code>should_panic</code> 속성</a></h2>
-<div class="rule" id="r-attributes.testing.should_panic.intro"><a class="rule-link" href="#r-attributes.testing.should_panic.intro" title="attributes.testing.should_panic.intro"><span>[attributes<wbr>.testing<wbr>.should_panic<wbr>.intro]<span/></a></div>
-<p><code>()</code>를 반환하고 <code>test</code> 속성이 지정된 함수에는 <code>should_panic</code> 속성도 지정할 수 있습니다.</p>
-<div class="rule" id="r-attributes.testing.should_panic.behavior"><a class="rule-link" href="#r-attributes.testing.should_panic.behavior" title="attributes.testing.should_panic.behavior"><span>[attributes<wbr>.testing<wbr>.should_panic<wbr>.behavior]<span/></a></div>
-<p>_<code>should_panic</code> 속성_은 테스트가 실제로 패닉이 발생한 경우에만 통과하도록 만듭니다.</p>
-<div class="rule" id="r-attributes.testing.should_panic.syntax"><a class="rule-link" href="#r-attributes.testing.should_panic.syntax" title="attributes.testing.should_panic.syntax"><span>[attributes<wbr>.testing<wbr>.should_panic<wbr>.syntax]<span/></a></div>
-<p><code>should_panic</code> 속성은 선택적으로 패닉 메시지 내에 나타나야 하는 입력 문자열을 받을 수 있습니다. 해당 문자열이 메시지 내에서 발견되지 않으면 테스트는 실패합니다. 이 문자열은 <a href="../attributes.html#meta-item-attribute-syntax"><em>MetaNameValueStr</em></a> 구문이나 <code>expected</code> 필드가 있는 <a href="../attributes.html#meta-item-attribute-syntax"><em>MetaListNameValueStr</em></a> 구문을 사용하여 전달할 수 있습니다.</p>
-<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+<p>r[attributes.testing.should_panic.intro] The <em><code>should_panic</code> <a href="../attributes.html">attribute</a></em> causes a test to pass only if the [test function][attributes.testing.test] to which the attribute is applied panics.</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[test]
 #[should_panic(expected = "값들이 일치하지 않음")]
@@ -290,6 +330,56 @@ fn mytest() {
     assert_eq!(1, 2, "값들이 일치하지 않음");
 }
 <span class="boring">}</span></code></pre></pre>
+</blockquote>
+<p>r[attributes.testing.should_panic.syntax] The <code>should_panic</code> attribute has these forms:</p>
+<ul>
+<li>
+<p>[MetaWord]</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+#[should_panic]
+fn mytest() { panic!("error: some message, and more"); }
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
+</li>
+<li>
+<p>[MetaNameValueStr] — The given string must appear within the panic message for the test to pass.</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+#[should_panic = "some message"]
+fn mytest() { panic!("error: some message, and more"); }
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
+</li>
+<li>
+<p>[MetaListNameValueStr] — As with the [MetaNameValueStr] syntax, the given string must appear within the panic message.</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+#[should_panic(expected = "some message")]
+fn mytest() { panic!("error: some message, and more"); }
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
+</li>
+</ul>
+<p>r[attributes.testing.should_panic.allowed-positions] The <code>should_panic</code> attribute may only be applied to functions annotated with the <code>test</code> attribute.</p>
+<blockquote>
+<p>[!NOTE] <code>rustc</code> ignores use in other positions but lints against it. This may become an error in the future.</p>
+</blockquote>
+<p>r[attributes.testing.should_panic.duplicates] Only the first use of <code>should_panic</code> on a function has effect.</p>
+<blockquote>
+<p>[!NOTE] <code>rustc</code> lints against any use following the first with a future-compatibility warning. This may become an error in the future.</p>
+</blockquote>
+<p>r[attributes.testing.should_panic.expected] When the [MetaNameValueStr] form or the [MetaListNameValueStr] form with the <code>expected</code> key is used, the given string must appear somewhere within the panic message for the test to pass.</p>
+<p>r[attributes.testing.should_panic.return] The return type of the test function must be <code>()</code>.</p>
 
                     </main>
 

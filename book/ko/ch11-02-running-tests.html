@@ -218,10 +218,10 @@
                     <main>
                         <h2 id="테스트-실행-방법-제어하기"><a class="header" href="#테스트-실행-방법-제어하기">테스트 실행 방법 제어하기</a></h2>
 <p><code>cargo run</code>이 코드를 컴파일하고 결과 바이너리를 실행하는 것과 마찬가지로, <code>cargo test</code>는 테스트 모드에서 코드를 컴파일하고 결과 테스트 바이너리를 실행합니다. <code>cargo test</code>로 생성된 바이너리의 기본 동작은 모든 테스트를 병렬로 실행하고 테스트 실행 중에 생성된 출력을 캡처하여 출력이 표시되지 않도록 함으로써 테스트 결과와 관련된 출력을 읽기 쉽게 만드는 것입니다. 하지만 커맨드 라인 옵션을 지정하여 이러한 기본 동작을 변경할 수 있습니다.</p>
-<p>어떤 커맨드 라인 옵션은 <code>cargo test</code>로 전달되고, 어떤 옵션은 결과 테스트 바이너리로 전달됩니다. 이 두 종류의 인수를 구분하기 위해, <code>cargo test</code>로 전달될 인수들을 먼저 쓰고 구분자 <code>--</code>를 쓴 다음 테스트 바이너리로 전달될 인수들을 씁니다. <code>cargo test --help</code>를 실행하면 <code>cargo test</code>에서 사용할 수 있는 옵션이 표시되고, <code>cargo test -- --help</code>를 실행하면 구분자 뒤에서 사용할 수 있는 옵션이 표시됩니다. 이러한 옵션들은 <a href="https://doc.rust-lang.org/rustc/index.html">rustc 북</a>의 <a href="https://doc.rust-lang.org/rustc/tests/index.html">“테스트” 섹션</a>에도 문서화되어 있습니다.</p>
+<p>Some command line options go to <code>cargo test</code>, and some go to the resultant test binary. To separate these two types of arguments, you list the arguments that go to <code>cargo test</code> followed by the separator <code>--</code> and then the ones that go to the test binary. Running <code>cargo test --help</code> displays the options you can use with <code>cargo test</code>, and running <code>cargo test -- --help</code> displays the options you can use after the separator. These options are also documented in <a href="https://doc.rust-lang.org/rustc/tests/index.html">the “Tests” section of <em>The <code>rustc</code> Book</em></a>.</p>
 <h3 id="테스트를-병렬-혹은-순차적으로-실행하기"><a class="header" href="#테스트를-병렬-혹은-순차적으로-실행하기">테스트를 병렬 혹은 순차적으로 실행하기</a></h3>
-<p>여러 테스트를 실행할 때, 기본적으로 테스트는 스레드를 사용하여 병렬로 실행됩니다. 이는 테스트가 더 빨리 끝나고 피드백을 더 빨리 받을 수 있음을 의미합니다. 테스트들이 동시에 실행되기 때문에, 여러분은 테스트들이 서로 의존하지 않거나 현재 작업 디렉터리나 환경 변수와 같은 공유 환경을 포함한 어떤 공유 상태에도 의존하지 않도록 보장해야 합니다.</p>
-<p>예를 들어, 각 테스트가 디스크에 _test-output.txt_라는 파일을 만들고 데이터를 쓰는 코드를 실행한다고 가정해 봅시다. 그런 다음 각 테스트는 해당 파일을 읽고 파일이 특정 값을 포함하고 있는지 단언하는데, 이 값은 테스트마다 다릅니다. 테스트가 동시에 실행되기 때문에, 한 테스트가 파일을 쓰고 읽는 사이의 시간에 다른 테스트가 파일을 덮어쓸 수 있습니다. 그러면 두 번째 테스트는 코드가 틀려서가 아니라 테스트들이 병렬로 실행되면서 서로 간섭했기 때문에 실패하게 됩니다. 한 가지 해결책은 각 테스트가 서로 다른 파일에 쓰도록 하는 것이고, 다른 해결책은 테스트를 한 번에 하나씩 실행하는 것입니다.</p>
+<p>When you run multiple tests, by default they run in parallel using threads, meaning they finish running more quickly and you get feedback sooner. Because the tests are running at the same time, you must make sure your tests don’t depend on each other or on any shared state, including a shared environment, such as the current working directory or environment variables.</p>
+<p>For example, say each of your tests runs some code that creates a file on disk named <em>test-output.txt</em> and writes some data to that file. Then, each test reads the data in that file and asserts that the file contains a particular value, which is different in each test. Because the tests run at the same time, one test might overwrite the file in the time between when another test is writing and reading the file. The second test will then fail, not because the code is incorrect but because the tests have interfered with each other while running in parallel. One solution is to make sure each test writes to a different file; another solution is to run the tests one at a time.</p>
 <p>테스트를 병렬로 실행하고 싶지 않거나 사용되는 스레드 수에 대해 더 세밀한 제어를 원한다면, <code>--test-threads</code> 플래그와 사용하고자 하는 스레드 수를 테스트 바이러리에 전달할 수 있습니다. 다음 예제를 살펴보세요:</p>
 <pre><code class="language-console">$ cargo test -- --test-threads=1
 </code></pre>
@@ -266,6 +266,7 @@ failures:
 
 ---- tests::this_test_will_fail stdout ----
 I got the value 8
+
 thread 'tests::this_test_will_fail' panicked at src/lib.rs:19:9:
 assertion `left == right` failed
   left: 10
@@ -307,6 +308,7 @@ failures:
 
 ---- tests::this_test_will_fail stdout ----
 I got the value 8
+
 thread 'tests::this_test_will_fail' panicked at src/lib.rs:19:9:
 assertion `left == right` failed
   left: 10
@@ -322,10 +324,10 @@ test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; 
 error: test failed, to rerun pass `--lib`
 </code></pre>
 <h3 id="이름으로-테스트-하위-집합-실행하기"><a class="header" href="#이름으로-테스트-하위-집합-실행하기">이름으로 테스트 하위 집합 실행하기</a></h3>
-<p>때때로 전체 테스트 모음을 실행하는 데 오랜 시간이 걸릴 수 있습니다. 특정 영역의 코드를 작업 중이라면, 해당 코드와 관련된 테스트만 실행하고 싶을 것입니다. 실행하고 싶은 테스트의 이름을 <code>cargo test</code>의 인수로 전달하여 실행할 테스트를 선택할 수 있습니다.</p>
+<p>Running a full test suite can sometimes take a long time. If you’re working on code in a particular area, you might want to run only the tests pertaining to that code. You can choose which tests to run by passing <code>cargo test</code> the name or names of the test(s) you want to run as an argument.</p>
 <p>테스트 하위 집합을 실행하는 방법을 보여주기 위해, 먼저 목록 11-11과 같이 <code>add_two</code> 함수를 위한 세 개의 테스트를 만들고 그중 어떤 것을 실행할지 선택해 보겠습니다.</p>
 <Listing number="11-11" file-name="src/lib.rs" caption="Three tests with three different names">
-<pre><code class="language-rust noplayground">pub fn add_two(a: usize) -&gt; usize {
+<pre><code class="language-rust noplayground">pub fn add_two(a: u64) -&gt; u64 {
     a + 2
 }
 
@@ -402,7 +404,9 @@ test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; fini
 
 </code></pre>
 <p>이 명령은 이름에 <code>add</code>가 포함된 모든 테스트를 실행하고 <code>one_hundred</code>라는 이름의 테스트는 필터링했습니다. 또한 테스트가 속한 모듈이 테스트 이름의 일부가 되므로, 모듈 이름을 필터링하여 해당 모듈 내의 모든 테스트를 실행할 수도 있습니다.</p>
-<h3 id="명시적으로-요청하지-않는-한-일부-테스트-무시하기"><a class="header" href="#명시적으로-요청하지-않는-한-일부-테스트-무시하기">명시적으로 요청하지 않는 한 일부 테스트 무시하기</a></h3>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="ignoring-some-tests-unless-specifically-requested"></a></p>
+<h3 id="ignoring-tests-unless-specifically-requested"><a class="header" href="#ignoring-tests-unless-specifically-requested">Ignoring Tests Unless Specifically Requested</a></h3>
 <p>때때로 몇몇 특정 테스트는 실행하는 데 시간이 매우 오래 걸릴 수 있으므로, 대부분의 <code>cargo test</code> 실행 시에는 제외하고 싶을 것입니다. 실행하려는 모든 테스트를 인수로 나열하는 대신, 다음과 같이 <code>ignore</code> 속성을 사용하여 시간이 오래 걸리는 테스트를 제외하도록 어노테이션을 달 수 있습니다.</p>
 <p><span class="filename">파일명: src/lib.rs</span></p>
 <pre><code class="language-rust noplayground"><span class="boring">pub fn add(left: u64, right: u64) -&gt; u64 {
@@ -451,7 +455,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
      Running unittests src/lib.rs (target/debug/deps/adder-92948b65e88960b4)
 
 running 1 test
-test expensive_test ... ok
+test tests::expensive_test ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 

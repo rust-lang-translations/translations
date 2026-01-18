@@ -89,6 +89,7 @@
         <link rel="stylesheet" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/cargo.css">
         <link rel="stylesheet" href="../theme/language-picker.css">
 
 
@@ -273,7 +274,11 @@ fn main() {
 <p>There’s a couple of points of note here:</p>
 <ul>
 <li>The script uses the <code>OUT_DIR</code> environment variable to discover where the output files should be located. It can use the process’ current working directory to find where the input files should be located, but in this case we don’t have any input files.</li>
-<li>In general, build scripts should not modify any files outside of <code>OUT_DIR</code>. It may seem fine on the first blush, but it does cause problems when you use such crate as a dependency, because there’s an <em>implicit</em> invariant that sources in <code>.cargo/registry</code> should be immutable. <code>cargo</code> won’t allow such scripts when packaging.</li>
+<li>In general, build scripts should not modify any files outside of <code>OUT_DIR</code>. It may seem fine on the first blush, but it does cause problems when you use such crate as a dependency, because there’s an <em>implicit</em> invariant that sources in <code>.cargo/registry</code> should be immutable. <code>cargo</code> won’t allow such scripts when packaging.
+<ul>
+<li>Sometimes, projects want to check in a generated file, and treat it as source code. However, in this case, the file shouldn’t be generated from <code>build.rs</code>. Instead, have a test or similar which checks that the file precisely matches the generated version <em>and fails if the result doesn’t match</em>, and run that test as part of your CI. (The test can generate a temporary file to compare to, and if you want to update the generated file, you can replace the checked-in file with that temporary file.)</li>
+</ul>
+</li>
 <li>This script is relatively simple as it just writes out a small generated file. One could imagine that other more complex operations could take place such as generating a Rust module from a C header file or another language definition, for example.</li>
 <li>The <a href="build-scripts.html#rerun-if-changed"><code>rerun-if-changed</code> instruction</a> tells Cargo that the build script only needs to re-run if the build script itself changes. Without this line, Cargo will automatically run the build script if any file in the package changes. If your code generation uses some input files, this is where you would print a list of each of those files.</li>
 </ul>
@@ -371,7 +376,7 @@ void hello() {
 // Note the lack of the `#[link]` attribute. We’re delegating the responsibility
 // of selecting what to link over to the build script rather than hard-coding
 // it in the source file.
-extern { fn hello(); }
+unsafe extern { fn hello(); }
 
 fn main() {
     unsafe { hello(); }
@@ -407,7 +412,7 @@ fn main() {
 
 use std::os::raw::{c_uint, c_ulong};
 
-extern "C" {
+unsafe extern "C" {
     pub fn crc32(crc: c_ulong, buf: *const u8, len: c_uint) -&gt; c_ulong;
 }
 
@@ -431,7 +436,7 @@ fn test_crc32() {
 <pre><code class="language-toml"># Cargo.toml
 
 [package]
-name = "zuser"
+name = "z_user"
 version = "0.1.0"
 edition = "2024"
 
@@ -446,15 +451,15 @@ cc = "1.0.46"
 
 fn main() {
     let mut cfg = cc::Build::new();
-    cfg.file("src/zuser.c");
+    cfg.file("src/z_user.c");
     if let Some(include) = std::env::var_os("DEP_Z_INCLUDE") {
         cfg.include(include);
     }
-    cfg.compile("zuser");
-    println!("cargo::rerun-if-changed=src/zuser.c");
+    cfg.compile("z_user");
+    println!("cargo::rerun-if-changed=src/z_user.c");
 }</code></pre>
 <p>With <code>libz-sys</code> doing all the heavy lifting, the C source code may now include the zlib header, and it should find the header, even on systems where it isn’t already installed.</p>
-<pre><code class="language-c">// src/zuser.c
+<pre><code class="language-c">// src/z_user.c
 
 #include "zlib.h"
 

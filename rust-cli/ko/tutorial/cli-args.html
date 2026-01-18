@@ -218,11 +218,11 @@
 <pre><code class="language-console">$ grrs foobar test.txt
 </code></pre>
 <p>우리는 프로그램이 <code>test.txt</code>를 보고 <code>foobar</code>를 포함하는 줄을 인쇄하기를 기대합니다. 하지만 이 두 값을 어떻게 얻을 수 있을까요?</p>
-<p>프로그램 이름 뒤의 텍스트는 종종 “명령줄 인수” 또는 “명령줄 플래그”(특히 <code>--this</code>처럼 보일 때)라고 합니다. 내부적으로 운영 체제는 일반적으로 이를 문자열 목록으로 나타냅니다. 대략적으로 말하면 공백으로 구분됩니다.</p>
-<p>이러한 인수에 대해 생각하고 더 쉽게 작업할 수 있는 것으로 구문 분석하는 방법에는 여러 가지가 있습니다. 또한 프로그램 사용자에게 어떤 인수를 어떤 형식으로 제공해야 하는지 알려야 합니다.</p>
+<p>The text after the name of the program is often called the “command-line arguments”, or “command-line flags” (especially when they look like <code>--this</code>). Internally, the operating system usually represents them as a list of strings. Generally, they get separated by spaces.</p>
+<p>There are many ways to think about these arguments and how to parse them into something easier to work with. You will also need to tell the users of your program which arguments they need to give and in which format they are expected.</p>
 <h2 id="인수-가져오기"><a class="header" href="#인수-가져오기">인수 가져오기</a></h2>
-<p>The standard library contains the function <a href="https://doc.rust-lang.org/1.39.0/std/env/fn.args.html"><code>std::env::args()</code></a> that gives you an <a href="https://doc.rust-lang.org/1.39.0/std/iter/index.html">iterator</a> of the given arguments. The first entry (at index <code>0</code>) will be the name your program was called as (e.g. <code>grrs</code>), the ones that follow are what the user wrote afterwards.</p>
-<p>이러한 방식으로 원시 인수를 얻는 것은 매우 쉽습니다(<code>src/main.rs</code> 파일에서).</p>
+<p>The standard library contains the function <a href="https://doc.rust-lang.org/1.39.0/std/env/fn.args.html"><code>std::env::args()</code></a> that gives you an <a href="https://doc.rust-lang.org/1.39.0/std/iter/index.html">iterator</a> of the given arguments. The first entry (at index <code>0</code>) will be the name used to invoke your program (e.g. <code>grrs</code>). The ones that follow are what the user wrote afterwards.</p>
+<p>Getting the raw arguments this way is straightforward (in file <code>src/main.rs</code>):</p>
 <pre><code class="language-rust ignore">fn main() {
     let pattern = std::env::args().nth(1).expect("no pattern given");
     let path = std::env::args().nth(2).expect("no path given");
@@ -235,20 +235,20 @@
      Running `target/debug/grrs some-pattern some-file`
 pattern: "some-pattern", path: "some-file"
 </code></pre>
-<h2 id="데이터-유형으로서의-cli-인수"><a class="header" href="#데이터-유형으로서의-cli-인수">데이터 유형으로서의 CLI 인수</a></h2>
+<h2 id="cli-arguments-as-data-types"><a class="header" href="#cli-arguments-as-data-types">CLI arguments as data types</a></h2>
 <p>텍스트 뭉치로 생각하는 대신 CLI 인수를 프로그램에 대한 입력을 나타내는 사용자 지정 데이터 유형으로 생각하는 것이 종종 더 좋습니다.</p>
-<p><code>grrs foobar test.txt</code>를 보세요. 두 개의 인수가 있습니다. 첫 번째는 <code>pattern</code>(찾을 문자열)이고 두 번째는 <code>path</code>(찾을 파일)입니다.</p>
-<p>그것들에 대해 더 무엇을 말할 수 있을까요? 음, 우선 둘 다 필요합니다. 기본값에 대해 이야기하지 않았으므로 사용자가 항상 두 값을 제공할 것으로 예상합니다. 또한 유형에 대해 약간 말할 수 있습니다. 패턴은 문자열이어야 하고 두 번째 인수는 파일 경로여야 합니다.</p>
+<p>Looking at <code>grrs foobar test.txt</code>, there are two arguments: first, the <code>pattern</code> (the string to look for), and then, the <code>path</code> (the file to look in).</p>
+<p>What more can we say about them? Well, for a start, both are required. We haven’t talked about any default values, so we expect our users to always provide two values. Furthermore, we can say a bit about their types: The pattern is expected to be a string while the second argument is expected to be a path to a file.</p>
 <p>Rust에서는 처리하는 데이터를 중심으로 프로그램을 구성하는 것이 일반적이므로 이러한 CLI 인수를 보는 방식이 매우 적합합니다. 이것부터 시작해 봅시다(<code>src/main.rs</code> 파일에서 <code>fn main() {</code> 이전).</p>
 <pre><code class="language-rust ignore">struct Cli {
     pattern: String,
     path: std::path::PathBuf,
 }</code></pre>
-<p>이것은 데이터를 저장할 두 개의 필드, 즉 <code>pattern</code>과 <code>path</code>를 가진 새로운 구조체(<a href="https://doc.rust-lang.org/1.39.0/book/ch05-00-structs.html"><code>struct</code></a>)를 정의합니다.</p>
+<p>This defines a new structure (a <a href="https://doc.rust-lang.org/1.39.0/book/ch05-00-structs.html"><code>struct</code></a>) that has two fields to store data in: <code>pattern</code> and <code>path</code>.</p>
 <aside>
 <p><strong>참고:</strong> <a href="https://doc.rust-lang.org/1.39.0/std/path/struct.PathBuf.html"><code>PathBuf</code></a>는 <a href="https://doc.rust-lang.org/1.39.0/std/string/struct.String.html"><code>String</code></a>과 같지만 크로스 플랫폼에서 작동하는 파일 시스템 경로용입니다.</p>
 </aside>
-<p>이제 프로그램이 얻은 실제 인수를 이 형식으로 가져와야 합니다. 한 가지 옵션은 운영 체제에서 얻은 문자열 목록을 수동으로 구문 분석하고 구조를 직접 빌드하는 것입니다. 다음과 같이 보일 것입니다.</p>
+<p>Now, we still need to convert the actual arguments into this form. One option would be to manually parse the list of strings we get from the operating system and build the structure ourselves. It would look something like this:</p>
 <pre><code class="language-rust ignore">fn main() {
     let pattern = std::env::args().nth(1).expect("no pattern given");
     let path = std::env::args().nth(2).expect("no path given");
@@ -262,9 +262,9 @@ pattern: "some-pattern", path: "some-file"
 }</code></pre>
 <p>이것은 작동하지만 그다지 편리하지 않습니다. <code>--pattern="foo"</code> 또는 <code>--pattern "foo"</code>를 지원해야 하는 요구 사항을 어떻게 처리하시겠습니까? <code>--help</code>를 어떻게 구현하시겠습니까?</p>
 <h2 id="clap으로-cli-인수-구문-분석"><a class="header" href="#clap으로-cli-인수-구문-분석">Clap으로 CLI 인수 구문 분석</a></h2>
-<p>더 좋은 방법은 사용 가능한 많은 라이브러리 중 하나를 사용하는 것입니다. 명령줄 인수를 구문 분석하는 가장 인기 있는 라이브러리는 <a href="https://docs.rs/clap/"><code>clap</code></a>입니다. 하위 명령, <a href="https://docs.rs/clap_complete/">셸 완성</a> 및 훌륭한 도움말 메시지를 포함하여 기대하는 모든 기능을 갖추고 있습니다.</p>
+<p>A more convenient way is to use one of the many available libraries. The most popular library for parsing command-line arguments is called <a href="https://docs.rs/clap/"><code>clap</code></a>. It has all the functionality you’d expect, including support for sub-commands, <a href="https://docs.rs/clap_complete/">shell completions</a>, and great help messages.</p>
 <p>먼저 <code>Cargo.toml</code> 파일의 <code>[dependencies]</code> 섹션에 <code>clap = { version = "4.0", features = ["derive"] }</code>를 추가하여 <code>clap</code>을 가져옵니다.</p>
-<p>이제 코드에 <code>use clap::Parser;</code>를 작성하고 <code>struct Cli</code> 바로 위에 <code>#[derive(Parser)]</code>를 추가할 수 있습니다. 그 과정에서 몇 가지 문서 주석도 작성해 봅시다.</p>
+<p>Now, we can write <code>use clap::Parser;</code> in our code and add <code>#[derive(Parser)]</code> right above our <code>struct Cli</code>. Let’s also write some documentation comments along the way.</p>
 <p>다음과 같이 보일 것입니다(<code>src/main.rs</code> 파일에서 <code>fn main() {</code> 이전).</p>
 <pre><code class="language-rust ignore">use clap::Parser;
 
@@ -286,7 +286,7 @@ struct Cli {
     println!("pattern: {:?}, path: {:?}", args.pattern, args.path)
 }</code></pre>
 <p>이렇게 하면 인수를 <code>Cli</code> 구조체로 구문 분석하려고 시도합니다.</p>
-<p>하지만 실패하면 어떻게 될까요? 이것이 이 접근 방식의 장점입니다. Clap은 어떤 필드를 예상해야 하는지, 그리고 예상 형식이 무엇인지 알고 있습니다. <code>--help</code> 메시지를 자동으로 생성하고 <code>--putput</code>을 작성했을 때 <code>--output</code>을 전달하도록 제안하는 훌륭한 오류를 제공할 수 있습니다.</p>
+<p>But what if that fails? That’s the beauty of this approach: Clap knows which fields to expect and their expected format. It can automatically generate a nice <code>--help</code> message as well as give some great errors to suggest you pass <code>--output</code> when you wrote <code>--putput</code>.</p>
 <aside class="note">
 <p><strong>참고:</strong> <code>parse</code> 메서드는 <code>main</code> 함수에서 사용하기 위한 것입니다. 실패하면 오류 또는 도움말 메시지를 인쇄하고 즉시 프로그램을 종료합니다. 다른 곳에서는 사용하지 마세요!</p>
 </aside>

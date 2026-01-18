@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Writing Error Messages to Standard Error Instead of Standard Output - The Rust Programming Language</title>
+        <title>Redirecting Errors to Standard Error - The Rust Programming Language</title>
 
 
         <!-- Custom HTML head -->
@@ -216,7 +216,9 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="writing-error-messages-to-standard-error-instead-of-standard-output"><a class="header" href="#writing-error-messages-to-standard-error-instead-of-standard-output">Writing Error Messages to Standard Error Instead of Standard Output</a></h2>
+                        <!-- Old headings. Do not remove or links may break. -->
+<p><a id="writing-error-messages-to-standard-error-instead-of-standard-output"></a></p>
+<h2 id="redirecting-errors-to-standard-error"><a class="header" href="#redirecting-errors-to-standard-error">Redirecting Errors to Standard Error</a></h2>
 <p>At the moment, we’re writing all of our output to the terminal using the
 <code>println!</code> macro. In most terminals, there are two kinds of output: <em>standard
 output</em> (<code>stdout</code>) for general information and <em>standard error</em> (<code>stderr</code>) for
@@ -226,16 +228,17 @@ screen.</p>
 <p>The <code>println!</code> macro is only capable of printing to standard output, so we have
 to use something else to print to standard error.</p>
 <h3 id="checking-where-errors-are-written"><a class="header" href="#checking-where-errors-are-written">Checking Where Errors Are Written</a></h3>
-<p>First let’s observe how the content printed by <code>minigrep</code> is currently being
+<p>First, let’s observe how the content printed by <code>minigrep</code> is currently being
 written to standard output, including any error messages we want to write to
 standard error instead. We’ll do that by redirecting the standard output stream
 to a file while intentionally causing an error. We won’t redirect the standard
 error stream, so any content sent to standard error will continue to display on
 the screen.</p>
 <p>Command line programs are expected to send error messages to the standard error
-stream so we can still see error messages on the screen even if we redirect the
-standard output stream to a file. Our program is not currently well behaved:
-we’re about to see that it saves the error message output to a file instead!</p>
+stream so that we can still see error messages on the screen even if we
+redirect the standard output stream to a file. Our program is not currently
+well behaved: We’re about to see that it saves the error message output to a
+file instead!</p>
 <p>To demonstrate this behavior, we’ll run the program with <code>&gt;</code> and the file path,
 <em>output.txt</em>, that we want to redirect the standard output stream to. We won’t
 pass any arguments, which should cause an error:</p>
@@ -248,8 +251,8 @@ file. This is what <em>output.txt</em> contains:</p>
 <pre><code class="language-text">Problem parsing arguments: not enough arguments
 </code></pre>
 <p>Yup, our error message is being printed to standard output. It’s much more
-useful for error messages like this to be printed to standard error so only
-data from a successful run ends up in the file. We’ll change that.</p>
+useful for error messages like this to be printed to standard error so that
+only data from a successful run ends up in the file. We’ll change that.</p>
 <h3 id="printing-errors-to-standard-error"><a class="header" href="#printing-errors-to-standard-error">Printing Errors to Standard Error</a></h3>
 <p>We’ll use the code in Listing 12-24 to change how error messages are printed.
 Because of the refactoring we did earlier in this chapter, all the code that
@@ -259,9 +262,11 @@ the two places we were calling <code>println!</code> to print errors to use <cod
 instead.</p>
 <Listing number="12-24" file-name="src/main.rs" caption="Writing error messages to standard error instead of standard output using `eprintln!`">
 <pre><code class="language-rust ignore"><span class="boring">use std::env;
+</span><span class="boring">use std::error::Error;
+</span><span class="boring">use std::fs;
 </span><span class="boring">use std::process;
 </span><span class="boring">
-</span><span class="boring">use minigrep::Config;
+</span><span class="boring">use minigrep::{search, search_case_insensitive};
 </span><span class="boring">
 </span>fn main() {
     let args: Vec&lt;String&gt; = env::args().collect();
@@ -271,11 +276,52 @@ instead.</p>
         process::exit(1);
     });
 
-    if let Err(e) = minigrep::run(config) {
+    if let Err(e) = run(config) {
         eprintln!("Application error: {e}");
         process::exit(1);
     }
-}</code></pre>
+}
+<span class="boring">
+</span><span class="boring">pub struct Config {
+</span><span class="boring">    pub query: String,
+</span><span class="boring">    pub file_path: String,
+</span><span class="boring">    pub ignore_case: bool,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl Config {
+</span><span class="boring">    fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
+</span><span class="boring">        if args.len() &lt; 3 {
+</span><span class="boring">            return Err("not enough arguments");
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        let query = args[1].clone();
+</span><span class="boring">        let file_path = args[2].clone();
+</span><span class="boring">
+</span><span class="boring">        let ignore_case = env::var("IGNORE_CASE").is_ok();
+</span><span class="boring">
+</span><span class="boring">        Ok(Config {
+</span><span class="boring">            query,
+</span><span class="boring">            file_path,
+</span><span class="boring">            ignore_case,
+</span><span class="boring">        })
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">    let contents = fs::read_to_string(config.file_path)?;
+</span><span class="boring">
+</span><span class="boring">    let results = if config.ignore_case {
+</span><span class="boring">        search_case_insensitive(&amp;config.query, &amp;contents)
+</span><span class="boring">    } else {
+</span><span class="boring">        search(&amp;config.query, &amp;contents)
+</span><span class="boring">    };
+</span><span class="boring">
+</span><span class="boring">    for line in results {
+</span><span class="boring">        println!("{line}");
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}</span></code></pre>
 </Listing>
 <p>Let’s now run the program again in the same way, without any arguments and
 redirecting standard output with <code>&gt;</code>:</p>

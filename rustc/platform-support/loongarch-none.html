@@ -186,7 +186,7 @@
                         <a href="https://github.com/rust-lang-translations/project" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/rust-lang/rust/edit/master/src/doc/rustc/src/platform-support/loongarch-none.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/rust-lang/rust/edit/main/src/doc/rustc/src/platform-support/loongarch-none.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -216,18 +216,17 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="loongarch-unknown-none"><a class="header" href="#loongarch-unknown-none"><code>loongarch*-unknown-none*</code></a></h1>
-<p><strong>Tier: 2</strong></p>
-<p>Freestanding/bare-metal LoongArch64 binaries in ELF format: firmware, kernels, etc.</p>
-<div class="table-wrapper"><table><thead><tr><th>Target</th><th>Description</th></tr></thead><tbody>
-<tr><td><code>loongarch64-unknown-none</code></td><td>LoongArch 64-bit, LP64D ABI (freestanding, hard-float)</td></tr>
-<tr><td><code>loongarch64-unknown-none-softfloat</code></td><td>LoongArch 64-bit, LP64S ABI (freestanding, soft-float)</td></tr>
+<p>Freestanding/bare-metal LoongArch binaries in ELF format: firmware, kernels, etc.</p>
+<div class="table-wrapper"><table><thead><tr><th>Target</th><th>Description</th><th>Tier</th></tr></thead><tbody>
+<tr><td><code>loongarch32-unknown-none</code></td><td>LoongArch 32-bit, ILP32D ABI (freestanding, hard-float)</td><td>Tier 3</td></tr>
+<tr><td><code>loongarch32-unknown-none-softfloat</code></td><td>LoongArch 32-bit, ILP32S ABI (freestanding, soft-float)</td><td>Tier 3</td></tr>
+<tr><td><code>loongarch64-unknown-none</code></td><td>LoongArch 64-bit, LP64D ABI (freestanding, hard-float)</td><td>Tier 2</td></tr>
+<tr><td><code>loongarch64-unknown-none-softfloat</code></td><td>LoongArch 64-bit, LP64S ABI (freestanding, soft-float)</td><td>Tier 2</td></tr>
 </tbody></table>
 </div>
 <h2 id="target-maintainers"><a class="header" href="#target-maintainers">Target maintainers</a></h2>
-<ul>
-<li><a href="https://github.com/heiher">WANG Rui</a> <code>wangrui@loongson.cn</code></li>
-<li><a href="https://github.com/xen0n">WANG Xuerui</a> <code>git@xen0n.name</code></li>
-</ul>
+<p><a href="https://github.com/heiher">@heiher</a>
+<a href="https://github.com/xen0n">@xen0n</a></p>
 <h2 id="requirements"><a class="header" href="#requirements">Requirements</a></h2>
 <p>This target is cross-compiled. There is no support for <code>std</code>. There is no
 default allocator, but it's possible to use <code>alloc</code> by supplying an allocator.</p>
@@ -240,20 +239,22 @@ userspace code using the same registers). You can change code generation to use
 additional CPU features via the <code>-C target-feature=</code> codegen options to rustc, or
 via the <code>#[target_feature]</code> mechanism within Rust code.</p>
 <p>By default, code generated with the soft-float target should run on any
-LoongArch64 hardware, with the hard-float target additionally requiring an FPU;
+LoongArch hardware, with the hard-float target additionally requiring an FPU;
 enabling additional target features may raise this baseline.</p>
 <p>Code generated with the targets will use the <code>medium</code> code model by default.
 You can change this using the <code>-C code-model=</code> option to rustc.</p>
-<p>On <code>loongarch64-unknown-none*</code>, <code>extern "C"</code> uses the <a href="https://github.com/loongson/la-abi-specs/blob/release/lapcs.adoc">architecture's standard calling convention</a>.</p>
+<p>On <code>loongarch*-unknown-none*</code>, <code>extern "C"</code> uses the <a href="https://github.com/loongson/la-abi-specs/blob/release/lapcs.adoc">architecture's standard calling convention</a>.</p>
 <p>The targets generate binaries in the ELF format. Any alternate formats or
 special considerations for binary layout will require linker options or linker
 scripts.</p>
 <h2 id="building-the-target"><a class="header" href="#building-the-target">Building the target</a></h2>
 <p>You can build Rust with support for the targets by adding them to the <code>target</code>
-list in <code>config.toml</code>:</p>
+list in <code>bootstrap.toml</code>:</p>
 <pre><code class="language-toml">[build]
 build-stage = 1
 target = [
+  "loongarch32-unknown-none",
+  "loongarch32-unknown-none-softfloat",
   "loongarch64-unknown-none",
   "loongarch64-unknown-none-softfloat",
 ]
@@ -262,20 +263,30 @@ target = [
 <p>As the targets support a variety of different environments and do not support
 <code>std</code>, they do not support running the Rust test suite.</p>
 <h2 id="building-rust-programs"><a class="header" href="#building-rust-programs">Building Rust programs</a></h2>
+<h3 id="loongarch32-unknown-none"><a class="header" href="#loongarch32-unknown-none">loongarch32-unknown-none*</a></h3>
+<p>The <code>loongarch32-unknown-none*</code> targets are Tier 3, so you must build the Rust
+compiler from source to use them.</p>
+<pre><code class="language-sh"># target flag may be used with any cargo or rustc command
+cargo build --target loongarch32-unknown-none
+cargo build --target loongarch32-unknown-none-softfloat
+</code></pre>
+<h3 id="loongarch64-unknown-none"><a class="header" href="#loongarch64-unknown-none">loongarch64-unknown-none*</a></h3>
 <p>Starting with Rust 1.74, precompiled artifacts are provided via <code>rustup</code>:</p>
 <pre><code class="language-sh"># install cross-compile toolchain
 rustup target add loongarch64-unknown-none
+rustup target add loongarch64-unknown-none-softfloat
 # target flag may be used with any cargo or rustc command
 cargo build --target loongarch64-unknown-none
+cargo build --target loongarch64-unknown-none-softfloat
 </code></pre>
 <h2 id="cross-compilation-toolchains-and-c-code"><a class="header" href="#cross-compilation-toolchains-and-c-code">Cross-compilation toolchains and C code</a></h2>
 <p>For cross builds, you will need an appropriate LoongArch C/C++ toolchain for
 linking, or if you want to compile C code along with Rust (such as for Rust
 crates with C dependencies).</p>
-<p>Rust <em>may</em> be able to use an <code>loongarch64-unknown-linux-gnu-</code> toolchain with
+<p>Rust <em>may</em> be able to use an <code>loongarch{32,64}-unknown-linux-{gnu,musl}-</code> toolchain with
 appropriate standalone flags to build for this toolchain (depending on the assumptions
 of that toolchain, see below), or you may wish to use a separate
-<code>loongarch64-unknown-none</code> toolchain.</p>
+<code>loongarch{32,64}-unknown-none</code> toolchain.</p>
 <p>On some LoongArch hosts that use ELF binaries, you <em>may</em> be able to use the host
 C toolchain, if it does not introduce assumptions about the host environment
 that don't match the expectations of a standalone environment. Otherwise, you
@@ -290,7 +301,7 @@ when cross-compiling from a non-LoongArch platform.</p>
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../platform-support/m68k-unknown-linux-gnu.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../platform-support/lynxos178.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -304,7 +315,7 @@ when cross-compiling from a non-LoongArch platform.</p>
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../platform-support/m68k-unknown-linux-gnu.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../platform-support/lynxos178.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

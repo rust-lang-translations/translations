@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Трейты: определение схожего поведения - The Rust Programming Language</title>
+        <title>Defining Shared Behavior with Traits - The Rust Programming Language</title>
 
 
         <!-- Custom HTML head -->
@@ -216,15 +216,17 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="Трейты-определение-схожего-поведения"><a class="header" href="#Трейты-определение-схожего-поведения">Трейты: определение схожего поведения</a></h2>
+                        <!-- Old headings. Do not remove or links may break. -->
+<p><a id="traits-defining-shared-behavior"></a></p>
+<h2 id="defining-shared-behavior-with-traits"><a class="header" href="#defining-shared-behavior-with-traits">Defining Shared Behavior with Traits</a></h2>
 <p><em>Трейт</em> определяет функциональность, которой обладает конкретный тип и которая может использоваться с другими типами. Мы можем использовать трейты для определения общего поведения абстрактным образом. Мы можем использовать <em>ограничение по трейтам</em>, чтобы указать, что обобщённый тип может быть заменён на любой тип с некоторым известным поведением.</p>
 <blockquote>
 <p>Примечание: Трейты схожи с таким механизмом как <em>интерфейсы</em>, но всё же они различаются.</p>
 </blockquote>
 <h3 id="Определение-трейта"><a class="header" href="#Определение-трейта">Определение трейта</a></h3>
 <p>Поведение типа определяется теми методами, которые мы можем вызвать на данном типе. Различные типы разделяют одинаковое поведение, если мы можем вызвать одни и те же методы у этих типов. Определение трейтов — это способ сгруппировать сигнатуры методов вместе для того, чтобы описать общее поведение, необходимое для достижения определённой цели.</p>
-<p>Например, пусть есть несколько структур, которые имеют различные структуру и объём текста: структура <code>NewsArticle</code>, которая содержит новость, напечатанную в каком-то месте мира, и структура <code>Tweet</code>, которая содержит 280 символов текста твита плюс мета-данные, обозначающие, является ли твит новым или ответом на другой твит.</p>
-<p>Мы хотим создать библиотечный крейт новостного агрегатора <code>aggregator</code>, который может отображать сводку данных, сохранённых в экземплярах структур <code>NewsArticle</code> или <code>Tweet</code>. Чтобы реализовать это, нам необходимо иметь возможность получить сводку на основе данных структуры, и мы можем запросить эту сводку, вызвав метод <code>summarize</code>. Листинг 10-12 показывает определение трейта <code>Summary</code>, выражающего это поведение.</p>
+<p>For example, let’s say we have multiple structs that hold various kinds and amounts of text: a <code>NewsArticle</code> struct that holds a news story filed in a particular location and a <code>SocialPost</code> that can have, at most, 280 characters along with metadata that indicates whether it was a new post, a repost, or a reply to another post.</p>
+<p>We want to make a media aggregator library crate named <code>aggregator</code> that can display summaries of data that might be stored in a <code>NewsArticle</code> or <code>SocialPost</code> instance. To do this, we need a summary from each type, and we’ll request that summary by calling a <code>summarize</code> method on an instance. Listing 10-12 shows the definition of a public <code>Summary</code> trait that expresses this behavior.</p>
 <Listing number="10-12" file-name="src/lib.rs" caption="A `Summary` trait that consists of the behavior provided by a `summarize` method">
 <pre><code class="language-rust noplayground">pub trait Summary {
     fn summarize(&amp;self) -&gt; String;
@@ -232,10 +234,10 @@
 </Listing>
 <p>Здесь мы объявляем трейт с использованием ключевого слова <code>trait</code>, а затем указываем его название (в нашем случае — <code>Summary</code>). Также мы объявляем трейт как <code>pub</code>, что позволяет крейтам, зависящим от нашего крейта, использовать наш трейт, примеры чего мы увидим далее. Внутри фигурных скобок объявляются сигнатуры методов, которые описывают поведение типов, реализующих данный трейт; в данном случае, поведение определяется только одной сигнатурой метода <code>fn summarize(&amp;self) -&gt; String</code>.</p>
 <p>После сигнатуры метода, вместо его тела мы пишем точку с запятой. Каждый тип,  реализующий данный трейт, должен будет предоставить свою собственную реализацию данного метода. Компилятор обеспечит, что любой тип, реализующий трейт <code>Summary</code>, будет также иметь и метод <code>summarize</code>, объявленный с точно такой же сигнатурой.</p>
-<p>Трейт может определять сигнатуры нескольких методов: сигнатуры методов перечисляются по одной на каждой строке и должны закачиваться точкой с запятой.</p>
+<p>A trait can have multiple methods in its body: The method signatures are listed one per line, and each line ends in a semicolon.</p>
 <h3 id="Реализация-трейта-для-типа"><a class="header" href="#Реализация-трейта-для-типа">Реализация трейта для типа</a></h3>
-<p>Теперь, после того как мы определили желаемое поведение, используя трейт <code>Summary</code>, можно реализовывать его у типов нашего новостного агрегатора. Листинг 10-13 показывает реализацию трейта <code>Summary</code> для структуры <code>NewsArticle</code>, которая использует для создания сводки в методе <code>summarize</code> заголовок, автора и место публикации статьи. Для структуры <code>Tweet</code> мы определяем реализацию <code>summarize</code>, используя имя пользователя и следующий за ним полный текст твита, полагая, что содержание твита уже ограничено 280 символами.</p>
-<Listing number="10-13" file-name="src/lib.rs" caption="Implementing the `Summary` trait on the `NewsArticle` and `Tweet` types">
+<p>Now that we’ve defined the desired signatures of the <code>Summary</code> trait’s methods, we can implement it on the types in our media aggregator. Listing 10-13 shows an implementation of the <code>Summary</code> trait on the <code>NewsArticle</code> struct that uses the headline, the author, and the location to create the return value of <code>summarize</code>. For the <code>SocialPost</code> struct, we define <code>summarize</code> as the username followed by the entire text of the post, assuming that the post content is already limited to 280 characters.</p>
+<Listing number="10-13" file-name="src/lib.rs" caption="Implementing the `Summary` trait on the `NewsArticle` and `SocialPost` types">
 <pre><code class="language-rust noplayground"><span class="boring">pub trait Summary {
 </span><span class="boring">    fn summarize(&amp;self) -&gt; String;
 </span><span class="boring">}
@@ -253,39 +255,41 @@ impl Summary for NewsArticle {
     }
 }
 
-pub struct Tweet {
+pub struct SocialPost {
     pub username: String,
     pub content: String,
     pub reply: bool,
-    pub retweet: bool,
+    pub repost: bool,
 }
 
-impl Summary for Tweet {
+impl Summary for SocialPost {
     fn summarize(&amp;self) -&gt; String {
         format!("{}: {}", self.username, self.content)
     }
 }</code></pre>
 </Listing>
 <p>Реализация трейта для типа аналогична реализации обычных методов. Разница в том, что после <code>impl</code> мы указываем имя трейта, который мы хотим реализовать, затем используем ключевое слово <code>for</code>, а затем указываем имя типа, для которого мы хотим сделать реализацию трейта. Внутри блока <code>impl</code> мы помещаем сигнатуру метода, объявленную в трейте. Вместо точки с запятой в конце, после каждой сигнатуры пишутся фигурные скобки, и тело метода заполняется конкретным кодом, реализующим поведение, которое мы хотим получить от методов трейта для конкретного типа.</p>
-<p>Теперь, когда наш библиотечный крейт реализовывает трейт <code>Summary</code> для <code>NewsArticle</code> и <code>Tweet</code>, программисты, использующие наш крейт, могут вызывать методы трейта у экземпляров типов <code>NewsArticle</code> и <code>Tweet</code> точно так же, как если бы это были обычные методы. Единственное отличие состоит в том, что программист должен ввести трейт в область видимости точно так же, как и типы. Вот пример того как бинарный крейт может использовать наш новостной агрегатор:</p>
-<pre><code class="language-rust ignore">use aggregator::{Summary, Tweet};
+<p>Now that the library has implemented the <code>Summary</code> trait on <code>NewsArticle</code> and <code>SocialPost</code>, users of the crate can call the trait methods on instances of <code>NewsArticle</code> and <code>SocialPost</code> in the same way we call regular methods. The only difference is that the user must bring the trait into scope as well as the types. Here’s an example of how a binary crate could use our <code>aggregator</code> library crate:</p>
+<pre><code class="language-rust ignore">use aggregator::{SocialPost, Summary};
 
 fn main() {
-    let tweet = Tweet {
+    let post = SocialPost {
         username: String::from("horse_ebooks"),
         content: String::from(
             "конечно, вы уже наверное знаете, народ, ...",
         ),
         reply: false,
-        retweet: false,
+        repost: false,
     };
 
-    println!("1 новый твит: {}", tweet.summarize());
+    println!("1 new post: {}", post.summarize());
 }</code></pre>
-<p>Данный код напечатает: <code>1 новый твит: horse_ebooks: конечно, вы уже наверное знаете, народ, ...</code>.</p>
-<p>Другие крейты, которые зависят от <code>aggregator</code>, также могут включать трейт <code>Summary</code> в область видимости для реализации <code>Summary</code> для своих собственных типов. Одно ограничение, на которое следует обратить внимание, заключается в том, что мы можем реализовать трейт для типа только в том случае, если хотя бы или трейт, или тип определяются <em>нашим</em> крейтом. Например, мы можем реализовать стандартный библиотечный трейт <code>Display</code> на собственном типе <code>Tweet</code> как часть функциональности нашего крейта <code>aggregator</code>, потому что тип <code>Tweet</code> является локальным для крейта <code>aggregator</code>. Также мы можем реализовать <code>Summary</code> для <code>Vec&lt;T&gt;</code> в нашем крейте <code>aggregator</code>, потому что трейт <code>Summary</code> является локальным для нашего крейта <code>aggregator</code>.</p>
-<p>Но мы не можем реализовать чужие трейты для чужих типов. Например, мы не можем реализовать трейт <code>Display</code> для <code>Vec&lt;T&gt;</code> внутри нашего крейта <code>aggregator</code>, потому что и <code>Display</code>, и <code>Vec&lt;T&gt;</code> оба определены в стандартной библиотеке, а не в нашем крейте <code>aggregator</code>. Это ограничение является частью свойства, называемого <em>последовательностью</em> (англ. <em>coherence</em>), а точнее — <em>правила сироты</em> (англ. <em>orphan rule</em>), которое называется так потому, что не представлен родительский тип. Это правило гарантирует, что код других людей не может сломать ваш код, и наоборот. Без этого правила два крейта могли бы реализовать один трейт для одного типа, и Rust не смог бы понять, какой реализацией нужно пользоваться.</p>
-<h3 id="Реализация-поведения-по-умолчанию"><a class="header" href="#Реализация-поведения-по-умолчанию">Реализация поведения по умолчанию</a></h3>
+<p>This code prints <code>1 new post: horse_ebooks: of course, as you probably already know, people</code>.</p>
+<p>Other crates that depend on the <code>aggregator</code> crate can also bring the <code>Summary</code> trait into scope to implement <code>Summary</code> on their own types. One restriction to note is that we can implement a trait on a type only if either the trait or the type, or both, are local to our crate. For example, we can implement standard library traits like <code>Display</code> on a custom type like <code>SocialPost</code> as part of our <code>aggregator</code> crate functionality because the type <code>SocialPost</code> is local to our <code>aggregator</code> crate. We can also implement <code>Summary</code> on <code>Vec&lt;T&gt;</code> in our <code>aggregator</code> crate because the trait <code>Summary</code> is local to our <code>aggregator</code> crate.</p>
+<p>But we can’t implement external traits on external types. For example, we can’t implement the <code>Display</code> trait on <code>Vec&lt;T&gt;</code> within our <code>aggregator</code> crate, because <code>Display</code> and <code>Vec&lt;T&gt;</code> are both defined in the standard library and aren’t local to our <code>aggregator</code> crate. This restriction is part of a property called <em>coherence</em>, and more specifically the <em>orphan rule</em>, so named because the parent type is not present. This rule ensures that other people’s code can’t break your code and vice versa. Without the rule, two crates could implement the same trait for the same type, and Rust wouldn’t know which implementation to use.</p>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="default-implementations"></a></p>
+<h3 id="using-default-implementations"><a class="header" href="#using-default-implementations">Using Default Implementations</a></h3>
 <p>Иногда бывает полезно задать поведение по умолчанию для некоторых или всех методов трейта вместо того, чтобы требовать реализации всех методов для каждого типа. Такое поведение по умолчанию можно будет (уже непосредственно при реализации трейта) как оставить, так и переопределить.</p>
 <p>В Листинге 10-14 показано, мы определяем сводку по умолчанию для метода <code>summarize</code> трейта <code>Summary</code>, вместо того, чтобы определять лишь сигнатуру метода, как мы делали ранее в Листинге 10-12.</p>
 <Listing number="10-14" file-name="src/lib.rs" caption="Defining a `Summary` trait with a default implementation of the `summarize` method">
@@ -304,14 +308,14 @@ fn main() {
 </span><span class="boring">
 </span><span class="boring">impl Summary for NewsArticle {}
 </span><span class="boring">
-</span><span class="boring">pub struct Tweet {
+</span><span class="boring">pub struct SocialPost {
 </span><span class="boring">    pub username: String,
 </span><span class="boring">    pub content: String,
 </span><span class="boring">    pub reply: bool,
-</span><span class="boring">    pub retweet: bool,
+</span><span class="boring">    pub repost: bool,
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">impl Summary for Tweet {
+</span><span class="boring">impl Summary for SocialPost {
 </span><span class="boring">    fn summarize(&amp;self) -&gt; String {
 </span><span class="boring">        format!("{}: {}", self.username, self.content)
 </span><span class="boring">    }
@@ -335,7 +339,7 @@ fn main() {
     println!("Новости! {}", article.summarize());
 <span class="boring">}</span></code></pre>
 <p>Этот код печатает <code>Новости! (Читать далее...)</code>.</p>
-<p>Создание реализации по умолчанию не требует от нас изменений чего-либо в реализации <code>Summary</code> для <code>Tweet</code> из Листинга 10-13. Причина заключается в том, что синтаксис для переопределения реализации по умолчанию является таким же, как синтаксис для реализации метода трейта, который не имеет реализации по умолчанию.</p>
+<p>Creating a default implementation doesn’t require us to change anything about the implementation of <code>Summary</code> on <code>SocialPost</code> in Listing 10-13. The reason is that the syntax for overriding a default implementation is the same as the syntax for implementing a trait method that doesn’t have a default implementation.</p>
 <p>Реализации по умолчанию могут вызывать другие методы в том же трейте, даже если эти другие методы не имеют реализации по умолчанию. Таким образом, трейт может предоставить много полезной функциональности, а от разработчиков требует указывать только небольшую его часть. Например, мы могли бы определить трейт <code>Summary</code>, имеющий метод <code>summarize_author</code> без реализации по умолчанию, а затем определить метод <code>summarize</code> который имеет реализацию по умолчанию, вызывающую метод <code>summarize_author</code>:</p>
 <pre><code class="language-rust noplayground">pub trait Summary {
     fn summarize_author(&amp;self) -&gt; String;
@@ -345,14 +349,14 @@ fn main() {
     }
 }
 <span class="boring">
-</span><span class="boring">pub struct Tweet {
+</span><span class="boring">pub struct SocialPost {
 </span><span class="boring">    pub username: String,
 </span><span class="boring">    pub content: String,
 </span><span class="boring">    pub reply: bool,
-</span><span class="boring">    pub retweet: bool,
+</span><span class="boring">    pub repost: bool,
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">impl Summary for Tweet {
+</span><span class="boring">impl Summary for SocialPost {
 </span><span class="boring">    fn summarize_author(&amp;self) -&gt; String {
 </span><span class="boring">        format!("@{}", self.username)
 </span><span class="boring">    }
@@ -366,37 +370,39 @@ fn main() {
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">pub struct Tweet {
+</span><span class="boring">pub struct SocialPost {
 </span><span class="boring">    pub username: String,
 </span><span class="boring">    pub content: String,
 </span><span class="boring">    pub reply: bool,
-</span><span class="boring">    pub retweet: bool,
+</span><span class="boring">    pub repost: bool,
 </span><span class="boring">}
 </span><span class="boring">
-</span>impl Summary for Tweet {
+</span>impl Summary for SocialPost {
     fn summarize_author(&amp;self) -&gt; String {
         format!("@{}", self.username)
     }
 }</code></pre>
-<p>После того, как мы определим <code>summarize_author</code>, можно вызвать <code>summarize</code> для экземпляров структуры <code>Tweet</code>, и реализация по умолчанию метода <code>summarize</code> будет вызывать определение <code>summarize_author</code>, которое мы уже предоставили. Так как мы реализовали метод <code>summarize_author</code> трейта <code>Summary</code>, то трейт даёт нам поведение метода <code>summarize</code> без необходимости писать ещё какой-либо код. Вот как это выглядит:</p>
-<pre><code class="language-rust ignore"><span class="boring">use aggregator::{self, Summary, Tweet};
+<p>After we define <code>summarize_author</code>, we can call <code>summarize</code> on instances of the <code>SocialPost</code> struct, and the default implementation of <code>summarize</code> will call the definition of <code>summarize_author</code> that we’ve provided. Because we’ve implemented <code>summarize_author</code>, the <code>Summary</code> trait has given us the behavior of the <code>summarize</code> method without requiring us to write any more code. Here’s what that looks like:</p>
+<pre><code class="language-rust ignore"><span class="boring">use aggregator::{self, SocialPost, Summary};
 </span><span class="boring">
 </span><span class="boring">fn main() {
-</span>    let tweet = Tweet {
+</span>    let post = SocialPost {
         username: String::from("horse_ebooks"),
         content: String::from(
             "конечно, вы уже наверное знаете, народ, ...",
         ),
         reply: false,
-        retweet: false,
+        repost: false,
     };
 
-    println!("1 новый твит: {}", tweet.summarize());
+    println!("1 new post: {}", post.summarize());
 <span class="boring">}</span></code></pre>
-<p>Этот код печатает <code>1 новый твит: (Читать далее, от @horse_ebooks...)</code></p>
+<p>This code prints <code>1 new post: (Read more from @horse_ebooks...)</code>.</p>
 <p>Обратите внимание, что невозможно вызвать реализацию по умолчанию из переопределённой реализации того же метода.</p>
-<h3 id="Трейты-как-параметры"><a class="header" href="#Трейты-как-параметры">Трейты как параметры</a></h3>
-<p>Теперь, когда вы знаете, как определять и реализовывать трейты, мы можем изучить, как использовать трейты, чтобы определить функции, которые принимают много различных типов. Мы используем трейт <code>Summary</code> (реализованный для типов <code>NewsArticle</code> и <code>Tweet</code>) в Листинге 10-13, чтобы определить функцию <code>notify</code>, которая вызывает метод <code>summarize</code> для его параметра <code>item</code> некоторого типа, реализующего трейт <code>Summary</code>. Для этого мы используем синтаксис <code>impl Trait</code>:</p>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="traits-as-parameters"></a></p>
+<h3 id="using-traits-as-parameters"><a class="header" href="#using-traits-as-parameters">Using Traits as Parameters</a></h3>
+<p>Now that you know how to define and implement traits, we can explore how to use traits to define functions that accept many different types. We’ll use the <code>Summary</code> trait we implemented on the <code>NewsArticle</code> and <code>SocialPost</code> types in Listing 10-13 to define a <code>notify</code> function that calls the <code>summarize</code> method on its <code>item</code> parameter, which is of some type that implements the <code>Summary</code> trait. To do this, we use the <code>impl Trait</code> syntax, like this:</p>
 <pre><code class="language-rust ignore"><span class="boring">pub trait Summary {
 </span><span class="boring">    fn summarize(&amp;self) -&gt; String;
 </span><span class="boring">}
@@ -414,14 +420,14 @@ fn main() {
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">pub struct Tweet {
+</span><span class="boring">pub struct SocialPost {
 </span><span class="boring">    pub username: String,
 </span><span class="boring">    pub content: String,
 </span><span class="boring">    pub reply: bool,
-</span><span class="boring">    pub retweet: bool,
+</span><span class="boring">    pub repost: bool,
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">impl Summary for Tweet {
+</span><span class="boring">impl Summary for SocialPost {
 </span><span class="boring">    fn summarize(&amp;self) -&gt; String {
 </span><span class="boring">        format!("{}: {}", self.username, self.content)
 </span><span class="boring">    }
@@ -430,7 +436,7 @@ fn main() {
 </span>pub fn notify(item: &amp;impl Summary) {
     println!("Срочные новости! {}", item.summarize());
 }</code></pre>
-<p>Вместо конкретного типа у параметра <code>item</code> указывается ключевое слово <code>impl</code> и имя трейта. Этот параметр может принимать любой тип, который реализует указанный трейт. В теле <code>notify</code> мы можем вызывать любые методы у экземпляра <code>item</code>, которые приходят с трейтом <code>Summary</code>, такие как метод <code>summarize</code>. Мы можем вызвать <code>notify</code> и передать в него любой экземпляр <code>NewsArticle</code> или <code>Tweet</code>. Код, который вызывает данную функцию с любым другим типом, таким как <code>String</code> или <code>i32</code>, не будет компилироваться, потому что эти типы не реализуют трейт <code>Summary</code>.</p>
+<p>Instead of a concrete type for the <code>item</code> parameter, we specify the <code>impl</code> keyword and the trait name. This parameter accepts any type that implements the specified trait. In the body of <code>notify</code>, we can call any methods on <code>item</code> that come from the <code>Summary</code> trait, such as <code>summarize</code>. We can call <code>notify</code> and pass in any instance of <code>NewsArticle</code> or <code>SocialPost</code>. Code that calls the function with any other type, such as a <code>String</code> or an <code>i32</code>, won’t compile, because those types don’t implement <code>Summary</code>.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="fixing-the-largest-function-with-trait-bounds"></a></p>
 <h4 id="Ограничение-по-трейтам"><a class="header" href="#Ограничение-по-трейтам">Ограничение по трейтам</a></h4>
@@ -444,8 +450,10 @@ fn main() {
 <p>Использовать <code>impl Trait</code> удобнее, если мы хотим разрешить функции иметь разные типы для <code>item1</code> и <code>item2</code> (но оба типа должны реализовывать <code>Summary</code>). Если же мы хотим заставить оба параметра иметь один и тот же тип, то нам следует использовать вот такое ограничение по трейту:</p>
 <pre><code class="language-rust ignore">pub fn notify&lt;T: Summary&gt;(item1: &amp;T, item2: &amp;T) {</code></pre>
 <p>Обобщённый тип <code>T</code> указан для типов параметров <code>item1</code> и <code>item2</code> и ограничивает функцию так, что конкретные значения типов аргументов <code>item1</code> и <code>item2</code> должны быть одинаковыми.</p>
-<h4 id="Ограничение-по-нескольким-трейтам-с-помощью-оператора-"><a class="header" href="#Ограничение-по-нескольким-трейтам-с-помощью-оператора-">Ограничение по нескольким трейтам с помощью оператора <code>+</code></a></h4>
-<p>Мы также можем указать ограничение по более чем одному трейту. Допустим, мы хотим, чтобы функция <code>notify</code> могла содержимое свеого аргумента и выводить на экран целиком, и получать его сводку с помощью метода <code>summarize</code>. Для этого мы указываем, что параметр <code>item</code> функции <code>notify</code> должен реализовывать два трейта: <code>Display</code> и <code>Summary</code>. Это делается с помощью оператора <code>+</code>:</p>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="specifying-multiple-trait-bounds-with-the--syntax"></a></p>
+<h4 id="multiple-trait-bounds-with-the--syntax"><a class="header" href="#multiple-trait-bounds-with-the--syntax">Multiple Trait Bounds with the <code>+</code> Syntax</a></h4>
+<p>We can also specify more than one trait bound. Say we wanted <code>notify</code> to use display formatting as well as <code>summarize</code> on <code>item</code>: We specify in the <code>notify</code> definition that <code>item</code> must implement both <code>Display</code> and <code>Summary</code>. We can do so using the <code>+</code> syntax:</p>
 <pre><code class="language-rust ignore">pub fn notify(item: &amp;(impl Summary + Display)) {</code></pre>
 <p>Оператор <code>+</code> также можно использовать и для ограничения обобщённого типа по его трейтам:</p>
 <pre><code class="language-rust ignore">pub fn notify&lt;T: Summary + Display&gt;(item: &amp;T) {</code></pre>
@@ -461,7 +469,7 @@ where
 {
 <span class="boring">    unimplemented!()
 </span><span class="boring">}</span></code></pre>
-<p>Сигнатура этой функции менее загромождена: название функции, список параметров, и возвращаемый тип находятся рядом, а сигнатура не загромождена оговорками про ограничения по трейтам.</p>
+<p>This function’s signature is less cluttered: The function name, parameter list, and return type are close together, similar to a function without lots of trait bounds.</p>
 <h3 id="Возврат-значений-типа-реализующего-определённые-трейты"><a class="header" href="#Возврат-значений-типа-реализующего-определённые-трейты">Возврат значений типа, реализующего определённые трейты</a></h3>
 <p>Также можно использовать запись <code>impl Trait</code> вместо конкретного типа возвращаемого значения в сигнатуре функции, чтобы вернуть значение некоторого типа, реализующего трейт:</p>
 <pre><code class="language-rust ignore"><span class="boring">pub trait Summary {
@@ -481,32 +489,32 @@ where
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">pub struct Tweet {
+</span><span class="boring">pub struct SocialPost {
 </span><span class="boring">    pub username: String,
 </span><span class="boring">    pub content: String,
 </span><span class="boring">    pub reply: bool,
-</span><span class="boring">    pub retweet: bool,
+</span><span class="boring">    pub repost: bool,
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">impl Summary for Tweet {
+</span><span class="boring">impl Summary for SocialPost {
 </span><span class="boring">    fn summarize(&amp;self) -&gt; String {
 </span><span class="boring">        format!("{}: {}", self.username, self.content)
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
 </span>fn returns_summarizable() -&gt; impl Summary {
-    Tweet {
+    SocialPost {
         username: String::from("horse_ebooks"),
         content: String::from(
             "конечно, вы уже наверное знаете, народ, ...",
         ),
         reply: false,
-        retweet: false,
+        repost: false,
     }
 }</code></pre>
-<p>Используя <code>impl Summary</code> для типа возвращаемого значения, мы указываем, что функция <code>returns_summarizable</code> возвращает некоторый тип, который реализует трейт <code>Summary</code>, не обозначая конкретный тип. В этом случае <code>returns_summarizable</code> возвращает <code>Tweet</code>, но код, вызывающий эту функцию, этого не знает.</p>
+<p>By using <code>impl Summary</code> for the return type, we specify that the <code>returns_summarizable</code> function returns some type that implements the <code>Summary</code> trait without naming the concrete type. In this case, <code>returns_summarizable</code> returns a <code>SocialPost</code>, but the code calling this function doesn’t need to know that.</p>
 <p>Возможность возвращать тип, который определяется только реализуемым им трейтом, особенно полезна в контексте замыканий и итераторов, которые мы рассмотрим в Главе 13. Замыкания и итераторы создают типы, которые знает только компилятор, или же типы, которые очень долго указывать. Запись <code>impl Trait</code> позволяет кратко указать, что функция возвращает некоторый тип, который реализует трейт <code>Iterator</code> без необходимости писать очень длинный тип.</p>
-<p>Однако, <code>impl Trait</code> можно использовать, только если функция всегда возвращает значение одного типа. Например, данный код, который возвращает значение или типа <code>NewsArticle</code>, или типа <code>Tweet</code>, но в качестве возвращаемого типа объявляет <code>impl Summary</code>, не будет работать:</p>
+<p>However, you can only use <code>impl Trait</code> if you’re returning a single type. For example, this code that returns either a <code>NewsArticle</code> or a <code>SocialPost</code> with the return type specified as <code>impl Summary</code> wouldn’t work:</p>
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">pub trait Summary {
 </span><span class="boring">    fn summarize(&amp;self) -&gt; String;
 </span><span class="boring">}
@@ -524,14 +532,14 @@ where
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">pub struct Tweet {
+</span><span class="boring">pub struct SocialPost {
 </span><span class="boring">    pub username: String,
 </span><span class="boring">    pub content: String,
 </span><span class="boring">    pub reply: bool,
-</span><span class="boring">    pub retweet: bool,
+</span><span class="boring">    pub repost: bool,
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">impl Summary for Tweet {
+</span><span class="boring">impl Summary for SocialPost {
 </span><span class="boring">    fn summarize(&amp;self) -&gt; String {
 </span><span class="boring">        format!("{}: {}", self.username, self.content)
 </span><span class="boring">    }
@@ -551,19 +559,19 @@ where
             ),
         }
     } else {
-        Tweet {
+        SocialPost {
             username: String::from("horse_ebooks"),
             content: String::from(
                 "конечно, вы уже наверное знаете, народ, ...",
             ),
             reply: false,
-            retweet: false,
+            repost: false,
         }
     }
 }</code></pre>
-<p>Неоднозначность возвращаемого типа не допустима из-за того, как синтаксис <code>impl Trait</code> реализован в компиляторе. Мы рассмотрим, как (всё же) написать функцию с подобным поведением в разделе <a href="ch18-02-trait-objects.html#%D0%98%D1%81%D0%BF%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5-%D1%82%D1%80%D0%B5%D0%B9%D1%82-%D0%BE%D0%B1%D1%8A%D0%B5%D0%BA%D1%82%D0%BE%D0%B2-%D0%BF%D0%BE%D0%B7%D0%B2%D0%BE%D0%BB%D1%8F%D1%8E%D1%89%D0%B8%D1%85-%D0%B8%D1%81%D0%BF%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D1%82%D1%8C-%D0%B7%D0%BD%D0%B0%D1%87%D0%B5%D0%BD%D0%B8%D1%8F-%D1%80%D0%B0%D0%B7%D0%BD%D1%8B%D1%85-%D1%82%D0%B8%D0%BF%D0%BE%D0%B2">"Использование трейт-объектов, позволяющих использовать значения разных типов"</a><!-- ignore --> Главы 18.</p>
+<p>Returning either a <code>NewsArticle</code> or a <code>SocialPost</code> isn’t allowed due to restrictions around how the <code>impl Trait</code> syntax is implemented in the compiler. We’ll cover how to write a function with this behavior in the <a href="ch18-02-trait-objects.html#using-trait-objects-to-abstract-over-shared-behavior">“Using Trait Objects to Abstract over Shared Behavior”</a><!-- ignore --> section of Chapter 18.</p>
 <h3 id="Использование-ограничений-по-трейту-для-избирательной-реализации-методов"><a class="header" href="#Использование-ограничений-по-трейту-для-избирательной-реализации-методов">Использование ограничений по трейту для избирательной реализации методов</a></h3>
-<p>Ограничив по трейту обобщённый тип при блоке <code>impl</code>, мы можем избирательно реализовать методы для тех типов, которые реализуют указанные трейты. Например, тип <code>Pair&lt;T&gt;</code> в Листинге 10-15 всегда реализует функцию <code>new</code>, возвращающую новый экземпляр <code>Pair&lt;T&gt;</code> (напомним из раздела <a href="ch05-03-method-syntax.html#%D0%9E%D0%BF%D1%80%D0%B5%D0%B4%D0%B5%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5-%D0%BC%D0%B5%D1%82%D0%BE%D0%B4%D0%BE%D0%B2">"Определение методов"</a><!-- ignore --> Главы 5, что <code>Self</code> — это псевдоним типа при блоке <code>impl</code>; в нашем случае этим типом является <code>Pair&lt;T&gt;</code>). Но в следующем блоке <code>impl Pair&lt;T&gt;</code> реализует метод <code>cmp_display</code> только в том случае, если его тип <code>T</code> реализует трейт <code>PartialOrd</code> (который позволяет сравнивать значения), и трейт <code>Display</code> (который позволяет печатать значения).</p>
+<p>By using a trait bound with an <code>impl</code> block that uses generic type parameters, we can implement methods conditionally for types that implement the specified traits. For example, the type <code>Pair&lt;T&gt;</code> in Listing 10-15 always implements the <code>new</code> function to return a new instance of <code>Pair&lt;T&gt;</code> (recall from the <a href="ch05-03-method-syntax.html#method-syntax">“Method Syntax”</a><!-- ignore --> section of Chapter 5 that <code>Self</code> is a type alias for the type of the <code>impl</code> block, which in this case is <code>Pair&lt;T&gt;</code>). But in the next <code>impl</code> block, <code>Pair&lt;T&gt;</code> only implements the <code>cmp_display</code> method if its inner type <code>T</code> implements the <code>PartialOrd</code> trait that enables comparison <em>and</em> the <code>Display</code> trait that enables printing.</p>
 <Listing number="10-15" file-name="src/lib.rs" caption="Conditionally implementing methods on a generic type depending on trait bounds">
 <pre><code class="language-rust noplayground">use std::fmt::Display;
 
@@ -593,12 +601,12 @@ impl&lt;T: Display + PartialOrd&gt; Pair&lt;T&gt; {
     // --код сокращён--
 }</code></pre>
 <p>Благодаря такой сплошной реализации можно вызвать метод <code>to_string</code>, определённый трейтом <code>ToString</code>, для любого типа, который реализует трейт <code>Display</code>. Например, мы можем превратить целые числа в их соответствующие значения <code>String</code>, потому что целые числа реализуют трейт <code>Display</code>:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let s = 3.to_string();
 <span class="boring">}</span></code></pre></pre>
 <p>В документации к трейтам, их сплошные реализации можно увидеть в разделе "Implementors".</p>
-<p>Трейты и ограничения по трейтам позволяют нам писать более абстрактный код с помощью параметров обобщённого типа, а также позволяют указать компилятору, что мы хотим, чтобы у обобщённого типа было опредёленное поведение. Затем компилятор может использовать информацию об ограничениях по трейтам, чтобы проверить, что все конкретные типы, используемые в нашем коде, реализуют нужное поведение. В языках с динамической типизацией мы получили бы ошибку во время выполнения, если бы вызвали метод для типа, в котором этот метод не определен. Но Rust переносит эти ошибки на время компиляции, а потому он обязывает нас устранять проблемы ещё до того, как код будет запущен. Кроме того, нам не нужно писать код, который проверяет поведение во время выполнения, потому что мы уже проверили его во время компиляции. Это повышает производительность без необходимости отказываться от гибкости обобщённых типов, функций и методов.</p>
+<p>Traits and trait bounds let us write code that uses generic type parameters to reduce duplication but also specify to the compiler that we want the generic type to have particular behavior. The compiler can then use the trait bound information to check that all the concrete types used with our code provide the correct behavior. In dynamically typed languages, we would get an error at runtime if we called a method on a type that didn’t define the method. But Rust moves these errors to compile time so that we’re forced to fix the problems before our code is even able to run. Additionally, we don’t have to write code that checks for behavior at runtime, because we’ve already checked at compile time. Doing so improves performance without having to give up the flexibility of generics.</p>
 
                     </main>
 

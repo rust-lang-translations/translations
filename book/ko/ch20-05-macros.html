@@ -217,7 +217,7 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="매크로"><a class="header" href="#매크로">매크로</a></h2>
-<p>이 책 전반에 걸쳐 <code>println!</code>과 같은 매크로를 사용해 왔지만, 매크로가 무엇인지 그리고 어떻게 작동하는지에 대해서는 충분히 탐구하지 않았습니다. _매크로(macro)_라는 용어는 러스트의 일련의 기능을 지칭합니다. 여기에는 <code>macro_rules!</code>를 사용하는 <em>선언적(declarative)</em> 매크로와 세 가지 종류의 <em>절차적(procedural)</em> 매크로가 포함됩니다.</p>
+<p>We’ve used macros like <code>println!</code> throughout this book, but we haven’t fully explored what a macro is and how it works. The term <em>macro</em> refers to a family of features in Rust—declarative macros with <code>macro_rules!</code> and three kinds of procedural macros:</p>
 <ul>
 <li>구조체와 열거형에 사용되는 <code>derive</code> 속성으로 추가되는 코드를 지정하는 커스텀 <code>#[derive]</code> 매크로</li>
 <li>모든 아이템에 사용할 수 있는 커스텀 속성을 정의하는 속성형(Attribute-like) 매크로</li>
@@ -226,20 +226,22 @@
 <p>이들 각각에 대해 차례로 살펴보겠지만, 먼저 이미 함수가 있는데 왜 매크로가 필요한지에 대해 알아보겠습니다.</p>
 <h3 id="매크로와-함수의-차이점"><a class="header" href="#매크로와-함수의-차이점">매크로와 함수의 차이점</a></h3>
 <p>근본적으로 매크로는 다른 코드를 작성하는 코드를 작성하는 방식이며, 이를 _메타프로그래밍(metaprogramming)_이라고 합니다. 부록 C에서는 여러분을 위해 다양한 트레이트의 구현을 생성해 주는 <code>derive</code> 속성에 대해 논의합니다. 우리는 또한 책 전반에 걸쳐 <code>println!</code>과 <code>vec!</code> 매크로를 사용해 왔습니다. 이 모든 매크로들은 여러분이 수동으로 작성한 코드보다 더 많은 코드를 생성하기 위해 _확장(expand)_됩니다.</p>
-<p>메타프로그래밍은 여러분이 작성하고 유지 관리해야 하는 코드의 양을 줄이는 데 유용하며, 이는 함수의 역할이기도 합니다. 하지만 매크로는 함수가 갖지 못한 몇 가지 추가적인 능력을 갖추고 있습니다.</p>
-<p>함수 시그니처는 함수가 가진 파라미터의 개수와 타입을 선언해야 합니다. 반면 매크로는 가변 인자를 받을 수 있습니다. 예를 들어 하나의 인수로 <code>println!("hello")</code>를 호출하거나 두 개의 인수로 <code>println!("hello {}", name)</code>를 호출할 수 있습니다. 또한 매크로는 컴파일러가 코드의 의미를 해석하기 전에 확장되므로, 예를 들어 주어진 타입에 대해 트레이트를 구현할 수 있습니다. 함수는 런타임에 호출되고 트레이트는 컴파일 타임에 구현되어야 하므로 함수로는 이를 수행할 수 없습니다.</p>
+<p>Metaprogramming is useful for reducing the amount of code you have to write and maintain, which is also one of the roles of functions. However, macros have some additional powers that functions don’t have.</p>
+<p>A function signature must declare the number and type of parameters the function has. Macros, on the other hand, can take a variable number of parameters: We can call <code>println!("hello")</code> with one argument or <code>println!("hello {}", name)</code> with two arguments. Also, macros are expanded before the compiler interprets the meaning of the code, so a macro can, for example, implement a trait on a given type. A function can’t, because it gets called at runtime and a trait needs to be implemented at compile time.</p>
 <p>함수 대신 매크로를 구현할 때의 단점은 매크로 정의가 함수 정의보다 더 복잡하다는 것입니다. 여러분은 러스트 코드를 작성하는 러스트 코드를 작성하고 있기 때문입니다. 이러한 간접성 때문에 매크로 정의는 일반적으로 함수 정의보다 읽고, 이해하고, 유지 관리하기가 더 어렵습니다.</p>
 <p>매크로와 함수의 또 다른 중요한 차이점은, 함수는 어디서든 정의하고 어디서든 호출할 수 있는 반면, 매크로는 파일에서 호출하기 <em>전에</em> 정의하거나 스코프로 가져와야 한다는 점입니다.</p>
-<h3 id="일반적인-메타프로그래밍을-위한-macro_rules를-사용한-선언적-매크로"><a class="header" href="#일반적인-메타프로그래밍을-위한-macro_rules를-사용한-선언적-매크로">일반적인 메타프로그래밍을 위한 <code>macro_rules!</code>를 사용한 선언적 매크로</a></h3>
-<p>러스트에서 가장 널리 사용되는 매크로 형태는 _선언적 매크로(declarative macro)_입니다. 이들은 때때로 “예제에 의한 매크로(macros by example)”, “<code>macro_rules!</code> 매크로”, 또는 그냥 단순히 “매크로”라고 불리기도 합니다. 선언적 매크로의 핵심은 여러분이 러스트의 <code>match</code> 표현식과 유사한 것을 작성할 수 있게 해준다는 점입니다. 6장에서 논의했듯이, <code>match</code> 표현식은 표현식을 받아 그 결과값을 패턴과 비교한 다음 일치하는 패턴과 연관된 코드를 실행하는 제어 구조입니다. 매크로 또한 특정 코드와 연관된 패턴과 값을 비교합니다. 이 상황에서 값은 매크로에 전달된 리터럴 러스트 소스 코드이며, 패턴은 해당 소스 코드의 구조와 비교됩니다. 그리고 각 패턴과 연관된 코드는 일치할 경우 매크로에 전달된 코드를 대체하게 됩니다. 이 모든 과정은 컴파일 중에 일어납니다.</p>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="declarative-macros-with-macro_rules-for-general-metaprogramming"></a></p>
+<h3 id="declarative-macros-for-general-metaprogramming"><a class="header" href="#declarative-macros-for-general-metaprogramming">Declarative Macros for General Metaprogramming</a></h3>
+<p>The most widely used form of macros in Rust is the <em>declarative macro</em>. These are also sometimes referred to as “macros by example,” “<code>macro_rules!</code> macros,” or just plain “macros.” At their core, declarative macros allow you to write something similar to a Rust <code>match</code> expression. As discussed in Chapter 6, <code>match</code> expressions are control structures that take an expression, compare the resultant value of the expression to patterns, and then run the code associated with the matching pattern. Macros also compare a value to patterns that are associated with particular code: In this situation, the value is the literal Rust source code passed to the macro; the patterns are compared with the structure of that source code; and the code associated with each pattern, when matched, replaces the code passed to the macro. This all happens during compilation.</p>
 <p>매크로를 정의하려면 <code>macro_rules!</code> 구문을 사용합니다. <code>vec!</code> 매크로가 어떻게 정의되어 있는지 살펴보면서 <code>macro_rules!</code>의 사용법을 탐구해 보겠습니다. 8장에서는 특정 값들을 가진 새로운 벡터를 생성하기 위해 <code>vec!</code> 매크로를 사용하는 방법을 다루었습니다. 예를 들어, 다음 매크로는 세 개의 정수를 포함하는 새로운 벡터를 생성합니다.</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let v: Vec&lt;u32&gt; = vec![1, 2, 3];
 <span class="boring">}</span></code></pre></pre>
 <p>우리는 또한 <code>vec!</code> 매크로를 사용하여 두 개의 정수를 가진 벡터나 다섯 개의 문자열 슬라이스를 가진 벡터를 만들 수도 있습니다. 값의 개수나 타입을 미리 알 수 없기 때문에 함수로는 이와 같은 일을 할 수 없습니다.</p>
-<p>예제 20-29는 <code>vec!</code> 매크로의 약간 단순화된 정의를 보여줍니다.</p>
-<Listing number="20-29" file-name="src/lib.rs" caption="A simplified version of the `vec!` macro definition">
+<p>Listing 20-35 shows a slightly simplified definition of the <code>vec!</code> macro.</p>
+<Listing number="20-35" file-name="src/lib.rs" caption="A simplified version of the `vec!` macro definition">
 <pre><code class="language-rust noplayground">#[macro_export]
 macro_rules! vec {
     ( $( $x:expr ),* ) =&gt; {
@@ -254,14 +256,14 @@ macro_rules! vec {
 }</code></pre>
 </Listing>
 <blockquote>
-<p>참고: 표준 라이브러리에 있는 <code>vec!</code> 매크로의 실제 정의에는 미리 적절한 양의 메모리를 할당하는 코드가 포함되어 있습니다. 그 코드는 최적화를 위한 것이며, 예제를 단순하게 만들기 위해 여기서는 포함하지 않았습니다.</p>
+<p>Note: The actual definition of the <code>vec!</code> macro in the standard library includes code to pre-allocate the correct amount of memory up front. That code is an optimization that we don’t include here, to make the example simpler.</p>
 </blockquote>
 <p><code>#[macro_export]</code> 어노테이션은 이 매크로가 정의된 크레이트가 스코프로 들어올 때마다 이 매크로를 사용할 수 있도록 해야 함을 나타냅니다. 이 어노테이션이 없으면 매크로를 스코프로 가져올 수 없습니다.</p>
 <p>그런 다음 <code>macro_rules!</code>와 정의하려는 매크로의 이름을 느낌표 <em>없이</em> 사용하여 매크로 정의를 시작합니다. 이 경우 이름은 <code>vec</code>이며, 매크로 정의의 본문을 나타내는 중괄호가 뒤따릅니다.</p>
 <p><code>vec!</code> 본문의 구조는 <code>match</code> 표현식의 구조와 유사합니다. 여기서는 <code>( $( $x:expr ),* )</code> 패턴을 가진 하나의 암(arm)이 있고, 그 뒤에 <code>=&gt;</code>와 이 패턴에 연관된 코드 블록이 옵니다. 패턴이 일치하면 연관된 코드 블록이 생성됩니다. 이 매크로에는 패턴이 하나뿐이므로 일치하는 유효한 방법도 하나뿐입니다. 다른 패턴은 에러를 발생시킬 것입니다. 더 복잡한 매크로는 두 개 이상의 암을 가질 것입니다.</p>
-<p>매크로 정의에서 사용하는 유효한 패턴 문법은 19장에서 다룬 패턴 문법과는 다른데, 매크로 패턴은 값이 아닌 러스트 코드 구조에 대해 매칭되기 때문입니다. 예제 20-29의 패턴 조각들이 무엇을 의미하는지 살펴보겠습니다. 전체 매크로 패턴 문법은 <a href="../reference/macros-by-example.html">러스트 레퍼런스(Rust Reference)</a>를 참조하세요.</p>
+<p>Valid pattern syntax in macro definitions is different from the pattern syntax covered in Chapter 19 because macro patterns are matched against Rust code structure rather than values. Let’s walk through what the pattern pieces in Listing 20-29 mean; for the full macro pattern syntax, see the <a href="../reference/macros-by-example.html">Rust Reference</a>.</p>
 <p>먼저, 전체 패턴을 감싸기 위해 한 쌍의 소괄호를 사용합니다. 패턴과 일치하는 러스트 코드를 담을 변수를 매크로 시스템에 선언하기 위해 달러 기호(<code>$</code>)를 사용합니다. 달러 기호는 이것이 일반적인 러스트 변수가 아니라 매크로 변수임을 명확히 해줍니다. 다음으로 대체 코드에서 사용할 수 있도록 소괄호 안의 패턴과 일치하는 값들을 캡처하는 소괄호 쌍이 옵니다. <code>$()</code> 안에는 어떤 러스트 표현식과도 일치하고 그 표현식에 <code>$x</code>라는 이름을 부여하는 <code>$x:expr</code>이 있습니다.</p>
-<p><code>$()</code> 뒤에 오는 쉼표는 <code>$()</code> 안의 코드와 일치하는 각 코드 인스턴스 사이에 리터럴 쉼표 구분자가 나타나야 함을 나타냅니다. <code>*</code>는 <code>*</code> 앞에 오는 것이 0번 이상 반복해서 일치할 수 있음을 지정합니다.</p>
+<p>The comma following <code>$()</code> indicates that a literal comma separator character must appear between each instance of the code that matches the code in <code>$()</code>. The <code>*</code> specifies that the pattern matches zero or more of whatever precedes the <code>*</code>.</p>
 <p><code>vec![1, 2, 3];</code>으로 이 매크로를 호출하면, <code>$x</code> 패턴은 세 개의 표현식 <code>1</code>, <code>2</code>, <code>3</code>에 대해 세 번 일치하게 됩니다.</p>
 <p>이제 이 암과 연관된 코드 본문의 패턴을 살펴보겠습니다. <code>$()*</code> 안의 <code>temp_vec.push()</code>는 패턴이 몇 번 일치하느냐에 따라 패턴의 <code>$()</code>와 일치하는 각 부분에 대해 0번 이상 생성됩니다. <code>$x</code>는 일치하는 각 표현식으로 대체됩니다. <code>vec![1, 2, 3];</code>으로 이 매크로를 호출하면, 이 매크로 호출을 대체하여 생성되는 코드는 다음과 같습니다.</p>
 <pre><code class="language-rust ignore">{
@@ -274,20 +276,22 @@ macro_rules! vec {
 <p>우리는 임의의 타입의 인수를 몇 개든 받을 수 있고, 지정된 요소들을 포함하는 벡터를 생성하는 코드를 만들어낼 수 있는 매크로를 정의했습니다.</p>
 <p>매크로를 작성하는 방법에 대해 더 알고 싶다면, 온라인 문서나 다니엘 킵(Daniel Keep)이 시작하고 루카스 비르트(Lukas Wirth)가 이어받은 <a href="https://veykril.github.io/tlborm/">“The Little Book of Rust Macros”</a>와 같은 다른 리소스들을 참고하세요.</p>
 <h3 id="속성으로부터-코드를-생성하는-절차적-매크로"><a class="header" href="#속성으로부터-코드를-생성하는-절차적-매크로">속성으로부터 코드를 생성하는 절차적 매크로</a></h3>
-<p>매크로의 두 번째 형태는 _절차적 매크로(procedural macro)_로, 함수(그리고 프로시저의 일종)와 더 비슷하게 동작합니다. 절차적 매크로는 선언적 매크로처럼 패턴을 매칭하고 코드를 다른 코드로 대체하는 대신, 어떤 코드를 입력으로 받아 그 코드에 대해 작업을 수행하고 결과물로 어떤 코드를 생성합니다. 절차적 매크로에는 커스텀 파생(custom derive), 속성형(attribute-like), 함수형(function-like)의 세 가지 종류가 있으며, 모두 비슷한 방식으로 작동합니다.</p>
-<p>절차적 매크로를 만들 때, 정의는 특별한 크레이트 타입을 가진 자체 크레이트에 위치해야 합니다. 이는 향후 제거되기를 희망하는 복잡한 기술적 이유 때문입니다. 예제 20-30에서는 절차적 매크로를 정의하는 방법을 보여줍니다. 여기서 <code>some_attribute</code>는 특정 매크로 종류를 사용하기 위한 자리표시자입니다.</p>
-<Listing number="20-30" file-name="src/lib.rs" caption="An example of defining a procedural macro">
-<pre><code class="language-rust ignore">use proc_macro;
+<p>The second form of macros is the procedural macro, which acts more like a function (and is a type of procedure). <em>Procedural macros</em> accept some code as an input, operate on that code, and produce some code as an output rather than matching against patterns and replacing the code with other code as declarative macros do. The three kinds of procedural macros are custom <code>derive</code>, attribute-like, and function-like, and all work in a similar fashion.</p>
+<p>When creating procedural macros, the definitions must reside in their own crate with a special crate type. This is for complex technical reasons that we hope to eliminate in the future. In Listing 20-36, we show how to define a procedural macro, where <code>some_attribute</code> is a placeholder for using a specific macro variety.</p>
+<Listing number="20-36" file-name="src/lib.rs" caption="An example of defining a procedural macro">
+<pre><code class="language-rust ignore">use proc_macro::TokenStream;
 
 #[some_attribute]
 pub fn some_name(input: TokenStream) -&gt; TokenStream {
 }</code></pre>
 </Listing>
-<p>절차적 매크로를 정의하는 함수는 <code>TokenStream</code>을 입력으로 받고 <code>TokenStream</code>을 출력으로 생성합니다. <code>TokenStream</code> 타입은 러스트에 포함된 <code>proc_macro</code> 크레이트에 정의되어 있으며 토큰 시퀀스를 나타냅니다. 이것이 매크로의 핵심입니다. 매크로가 작동하는 소스 코드가 입력 <code>TokenStream</code>을 구성하고, 매크로가 생성하는 코드가 출력 <code>TokenStream</code>이 됩니다. 또한 함수에는 우리가 어떤 종류의 절차적 매크로를 만들고 있는지 지정하는 속성이 붙어 있습니다. 동일한 크레이트에 여러 종류의 절차적 매크로를 가질 수 있습니다.</p>
-<p>절차적 매크로의 서로 다른 종류들을 살펴보겠습니다. 커스텀 파생 매크로부터 시작하여, 다른 형태들과의 작은 차이점들을 설명하겠습니다.</p>
-<h3 id="커스텀-derive-매크로를-작성하는-방법"><a class="header" href="#커스텀-derive-매크로를-작성하는-방법">커스텀 <code>derive</code> 매크로를 작성하는 방법</a></h3>
-<p><code>hello_macro</code>라는 이름의 연관 함수 하나를 가진 <code>HelloMacro</code> 트레이트를 정의하는 <code>hello_macro</code> 크레이트를 만들어 봅시다. 사용자가 자신의 각 타입에 대해 <code>HelloMacro</code> 트레이트를 직접 구현하게 하는 대신, 사용자가 자신의 타입에 <code>#[derive(HelloMacro)]</code> 어노테이션을 달면 <code>hello_macro</code> 함수의 기본 구현을 얻을 수 있도록 절차적 매크로를 제공할 것입니다. 기본 구현은 <code>Hello, Macro! My name is TypeName!</code>을 출력하며, 여기서 <code>TypeName</code>은 이 트레이트가 정의된 타입의 이름입니다. 다시 말해, 다른 프로그래머가 우리 크레이트를 사용하여 예제 20-31과 같은 코드를 작성할 수 있게 해주는 크레이트를 작성할 것입니다.</p>
-<Listing number="20-31" file-name="src/main.rs" caption="The code a user of our crate will be able to write when using our procedural macro">
+<p>The function that defines a procedural macro takes a <code>TokenStream</code> as an input and produces a <code>TokenStream</code> as an output. The <code>TokenStream</code> type is defined by the <code>proc_macro</code> crate that is included with Rust and represents a sequence of tokens. This is the core of the macro: The source code that the macro is operating on makes up the input <code>TokenStream</code>, and the code the macro produces is the output <code>TokenStream</code>. The function also has an attribute attached to it that specifies which kind of procedural macro we’re creating. We can have multiple kinds of procedural macros in the same crate.</p>
+<p>Let’s look at the different kinds of procedural macros. We’ll start with a custom <code>derive</code> macro and then explain the small dissimilarities that make the other forms different.</p>
+<!-- Old headings. Do not remove or links may break. -->
+<p><a id="how-to-write-a-custom-derive-macro"></a></p>
+<h3 id="custom-derive-macros"><a class="header" href="#custom-derive-macros">Custom <code>derive</code> Macros</a></h3>
+<p>Let’s create a crate named <code>hello_macro</code> that defines a trait named <code>HelloMacro</code> with one associated function named <code>hello_macro</code>. Rather than making our users implement the <code>HelloMacro</code> trait for each of their types, we’ll provide a procedural macro so that users can annotate their type with <code>#[derive(HelloMacro)]</code> to get a default implementation of the <code>hello_macro</code> function. The default implementation will print <code>Hello, Macro! My name is TypeName!</code> where <code>TypeName</code> is the name of the type on which this trait has been defined. In other words, we’ll write a crate that enables another programmer to write code like Listing 20-37 using our crate.</p>
+<Listing number="20-37" file-name="src/main.rs" caption="The code a user of our crate will be able to write when using our procedural macro">
 <pre><code class="language-rust ignore does_not_compile">use hello_macro::HelloMacro;
 use hello_macro_derive::HelloMacro;
 
@@ -301,13 +305,14 @@ fn main() {
 <p>작업이 완료되면 이 코드는 <code>Hello, Macro! My name is Pancakes!</code>를 출력할 것입니다. 첫 번째 단계는 다음과 같이 새로운 라이브러리 크레이트를 만드는 것입니다.</p>
 <pre><code class="language-console">$ cargo new hello_macro --lib
 </code></pre>
-<p>다음으로, <code>HelloMacro</code> 트레이트와 그 연관 함수를 정의하겠습니다.</p>
-<Listing file-name="src/lib.rs">
+<p>Next, in Listing 20-38, we’ll define the <code>HelloMacro</code> trait and its associated function.</p>
+<Listing file-name="src/lib.rs" number="20-38" caption="A simple trait that we will use with the `derive` macro">
 <pre><code class="language-rust noplayground">pub trait HelloMacro {
     fn hello_macro();
 }</code></pre>
 </Listing>
-<p>트레이트와 그 함수가 준비되었습니다. 이 시점에서 우리 크레이트 사용자는 다음과 같이 트레이트를 구현하여 원하는 기능을 얻을 수 있습니다.</p>
+<p>We have a trait and its function. At this point, our crate user could implement the trait to achieve the desired functionality, as in Listing 20-39.</p>
+<Listing number="20-39" file-name="src/main.rs" caption="How it would look if users wrote a manual implementation of the `HelloMacro` trait">
 <pre><code class="language-rust ignore">use hello_macro::HelloMacro;
 
 struct Pancakes;
@@ -321,9 +326,10 @@ impl HelloMacro for Pancakes {
 fn main() {
     Pancakes::hello_macro();
 }</code></pre>
+</Listing>
 <p>하지만 사용자는 <code>hello_macro</code>를 사용하려는 각 타입에 대해 구현 블록을 작성해야 할 것입니다. 우리는 사용자가 이 작업을 직접 하지 않아도 되도록 하고 싶습니다.</p>
 <p>또한, 트레이트가 구현된 타입의 이름을 출력하는 <code>hello_macro</code> 함수의 기본 구현을 아직 제공할 수 없습니다. 러스트는 리플렉션(reflection) 기능이 없어서 런타임에 타입의 이름을 찾아낼 수 없기 때문입니다. 컴파일 타임에 코드를 생성하기 위해 매크로가 필요합니다.</p>
-<p>다음 단계는 절차적 매크로를 정의하는 것입니다. 이 글을 쓰는 시점에서는 절차적 매크로가 자체 크레이트에 있어야 합니다. 결국 이 제한은 해제될 수도 있습니다. 크레이트와 매크로 크레이트를 구성하는 관례는 다음과 같습니다. <code>foo</code>라는 이름의 크레이트가 있을 때, 커스텀 파생 절차적 매크로 크레이트의 이름은 <code>foo_derive</code>라고 짓습니다. <code>hello_macro</code> 프로젝트 내부에 <code>hello_macro_derive</code>라는 새로운 크레이트를 시작해 봅시다.</p>
+<p>The next step is to define the procedural macro. At the time of this writing, procedural macros need to be in their own crate. Eventually, this restriction might be lifted. The convention for structuring crates and macro crates is as follows: For a crate named <code>foo</code>, a custom <code>derive</code> procedural macro crate is called <code>foo_derive</code>. Let’s start a new crate called <code>hello_macro_derive</code> inside our <code>hello_macro</code> project:</p>
 <pre><code class="language-console">$ cargo new hello_macro_derive --lib
 </code></pre>
 <p>두 크레이트는 밀접하게 연관되어 있으므로, <code>hello_macro</code> 크레이트의 디렉토리 내에 절차적 매크로 크레이트를 생성합니다. 만약 <code>hello_macro</code>에서 트레이트 정의를 변경하면, <code>hello_macro_derive</code>에 있는 절차적 매크로의 구현도 변경해야 합니다. 두 크레이트는 개별적으로 게시되어야 하며, 이 크레이트들을 사용하는 프로그래머는 두 크레이트 모두를 의존성으로 추가하고 둘 다 스코프로 가져와야 합니다. 대신 <code>hello_macro</code> 크레이트가 <code>hello_macro_derive</code>를 의존성으로 사용하게 하고 절차적 매크로 코드를 다시 내보내기(re-export) 하도록 할 수도 있습니다. 하지만 우리가 프로젝트를 구성한 방식은 프로그래머들이 <code>derive</code> 기능을 원하지 않더라도 <code>hello_macro</code>를 사용할 수 있게 해줍니다.</p>
@@ -337,8 +343,8 @@ syn = "2.0"
 quote = "1.0"
 </code></pre>
 </Listing>
-<p>절차적 매크로 정의를 시작하기 위해, 예제 20-32의 코드를 <code>hello_macro_derive</code> 크레이트의 <em>src/lib.rs</em> 파일에 작성하세요. <code>impl_hello_macro</code> 함수의 정의를 추가하기 전까지는 이 코드가 컴파일되지 않는다는 점에 주의하세요.</p>
-<Listing number="20-32" file-name="hello_macro_derive/src/lib.rs" caption="Code that most procedural macro crates will require in order to process Rust code">
+<p>To start defining the procedural macro, place the code in Listing 20-40 into your <em>src/lib.rs</em> file for the <code>hello_macro_derive</code> crate. Note that this code won’t compile until we add a definition for the <code>impl_hello_macro</code> function.</p>
+<Listing number="20-40" file-name="hello_macro_derive/src/lib.rs" caption="Code that most procedural macro crates will require in order to process Rust code">
 <pre><code class="language-rust ignore does_not_compile">use proc_macro::TokenStream;
 use quote::quote;
 
@@ -351,12 +357,12 @@ pub fn hello_macro_derive(input: TokenStream) -&gt; TokenStream {
     impl_hello_macro(&amp;ast)
 }</code></pre>
 </Listing>
-<p><code>TokenStream</code> 파싱을 담당하는 <code>hello_macro_derive</code> 함수와 구문 트리 변환을 담당하는 <code>impl_hello_macro</code> 함수로 코드를 나누었다는 점에 주목하세요. 이렇게 하면 절차적 매크로를 작성하는 것이 더 편리해집니다. 외부 함수(이 경우 <code>hello_macro_derive</code>)의 코드는 여러분이 보거나 만드는 거의 모든 절차적 매크로 크레이트에서 동일할 것입니다. 내부 함수(이 경우 <code>impl_hello_macro</code>)의 본문에 지정하는 코드는 절차적 매크로의 목적에 따라 달라질 것입니다.</p>
-<p>우리는 세 개의 새로운 크레이트인 <code>proc_macro</code>, <a href="https://crates.io/crates/syn"><code>syn</code></a>, <a href="https://crates.io/crates/quote"><code>quote</code></a>를 도입했습니다. <code>proc_macro</code> 크레이트는 러스트에 기본 포함되어 있으므로 _Cargo.toml_의 의존성에 추가할 필요가 없습니다. <code>proc_macro</code> 크레이트는 우리 코드에서 러스트 코드를 읽고 조작할 수 있게 해주는 컴파일러의 API입니다.</p>
-<p><code>syn</code> 크레이트는 문자열 형태의 러스트 코드를 우리가 연산을 수행할 수 있는 데이터 구조로 파싱합니다. <code>quote</code> 크레이트는 <code>syn</code> 데이터 구조를 다시 러스트 코드로 변환합니다. 이 크레이트들은 우리가 처리하고자 하는 어떤 종류의 러스트 코드라도 파싱하는 것을 훨씬 단순하게 만들어 줍니다. 러스트 코드를 위한 완전한 파서를 직접 작성하는 것은 결코 쉬운 일이 아닙니다.</p>
+<p>Notice that we’ve split the code into the <code>hello_macro_derive</code> function, which is responsible for parsing the <code>TokenStream</code>, and the <code>impl_hello_macro</code> function, which is responsible for transforming the syntax tree: This makes writing a procedural macro more convenient. The code in the outer function (<code>hello_macro_derive</code> in this case) will be the same for almost every procedural macro crate you see or create. The code you specify in the body of the inner function (<code>impl_hello_macro</code> in this case) will be different depending on your procedural macro’s purpose.</p>
+<p>We’ve introduced three new crates: <code>proc_macro</code>, <a href="https://crates.io/crates/syn"><code>syn</code></a><!-- ignore -->, and <a href="https://crates.io/crates/quote"><code>quote</code></a><!-- ignore -->. The <code>proc_macro</code> crate comes with Rust, so we didn’t need to add that to the dependencies in <em>Cargo.toml</em>. The <code>proc_macro</code> crate is the compiler’s API that allows us to read and manipulate Rust code from our code.</p>
+<p>The <code>syn</code> crate parses Rust code from a string into a data structure that we can perform operations on. The <code>quote</code> crate turns <code>syn</code> data structures back into Rust code. These crates make it much simpler to parse any sort of Rust code we might want to handle: Writing a full parser for Rust code is no simple task.</p>
 <p><code>hello_macro_derive</code> 함수는 우리 라이브러리의 사용자가 타입에 <code>#[derive(HelloMacro)]</code>를 지정할 때 호출될 것입니다. 이것이 가능한 이유는 여기서 <code>hello_macro_derive</code> 함수에 <code>proc_macro_derive</code> 어노테이션을 달고 우리 트레이트 이름과 일치하는 <code>HelloMacro</code>라는 이름을 지정했기 때문입니다. 이것이 대부분의 절차적 매크로가 따르는 관례입니다.</p>
-<p><code>hello_macro_derive</code> 함수는 먼저 <code>input</code>을 <code>TokenStream</code>에서 우리가 해석하고 연산을 수행할 수 있는 데이터 구조로 변환합니다. 여기서 <code>syn</code>이 사용됩니다. <code>syn</code>의 <code>parse</code> 함수는 <code>TokenStream</code>을 인수로 받아 파싱된 러스트 코드를 나타내는 <code>DeriveInput</code> 구조체를 반환합니다. 예제 20-33은 <code>struct Pancakes;</code> 문자열을 파싱하여 얻은 <code>DeriveInput</code> 구조체의 관련 부분들을 보여줍니다.</p>
-<Listing number="20-33" caption="The `DeriveInput` instance we get when parsing the code that has the macro’s attribute in Listing 20-31">
+<p>The <code>hello_macro_derive</code> function first converts the <code>input</code> from a <code>TokenStream</code> to a data structure that we can then interpret and perform operations on. This is where <code>syn</code> comes into play. The <code>parse</code> function in <code>syn</code> takes a <code>TokenStream</code> and returns a <code>DeriveInput</code> struct representing the parsed Rust code. Listing 20-41 shows the relevant parts of the <code>DeriveInput</code> struct we get from parsing the <code>struct Pancakes;</code> string.</p>
+<Listing number="20-41" caption="The `DeriveInput` instance we get when parsing the code that has the macro’s attribute in Listing 20-37">
 <pre><code class="language-rust ignore">DeriveInput {
     // --생략--
 
@@ -375,11 +381,11 @@ pub fn hello_macro_derive(input: TokenStream) -&gt; TokenStream {
     )
 }</code></pre>
 </Listing>
-<p>이 구조체의 필드들은 우리가 파싱한 러스트 코드가 <code>Pancakes</code>라는 <code>ident</code>(식별자, 즉 이름을 의미)를 가진 유닛 구조체임을 보여줍니다. 이 구조체에는 온갖 종류의 러스트 코드를 설명하기 위한 더 많은 필드들이 있습니다. 자세한 정보는 <a href="https://docs.rs/syn/2.0/syn/struct.DeriveInput.html"><code>syn</code>의 <code>DeriveInput</code> 문서</a>를 참조하세요.</p>
-<p>이제 우리가 포함시키고자 하는 새로운 러스트 코드를 작성할 <code>impl_hello_macro</code> 함수를 정의할 것입니다. 그전에, 우리 파생 매크로의 출력 또한 <code>TokenStream</code>이라는 점에 주목하세요. 반환된 <code>TokenStream</code>은 우리 크레이트 사용자가 작성한 코드에 추가되므로, 사용자가 자신의 크레이트를 컴파일할 때 수정된 <code>TokenStream</code>에 우리가 제공한 추가 기능이 포함되게 됩니다.</p>
+<p>The fields of this struct show that the Rust code we’ve parsed is a unit struct with the <code>ident</code> (<em>identifier</em>, meaning the name) of <code>Pancakes</code>. There are more fields on this struct for describing all sorts of Rust code; check the <a href="https://docs.rs/syn/2.0/syn/struct.DeriveInput.html"><code>syn</code> documentation for <code>DeriveInput</code></a> for more information.</p>
+<p>Soon we’ll define the <code>impl_hello_macro</code> function, which is where we’ll build the new Rust code we want to include. But before we do, note that the output for our <code>derive</code> macro is also a <code>TokenStream</code>. The returned <code>TokenStream</code> is added to the code that our crate users write, so when they compile their crate, they’ll get the extra functionality that we provide in the modified <code>TokenStream</code>.</p>
 <p>여기서 <code>syn::parse</code> 함수 호출이 실패할 경우 <code>hello_macro_derive</code> 함수가 패닉을 일으키도록 <code>unwrap</code>을 호출하고 있음을 눈치채셨을 것입니다. 절차적 매크로 API를 따르기 위해 <code>proc_macro_derive</code> 함수는 <code>Result</code>가 아닌 <code>TokenStream</code>을 반환해야 하므로, 에러 발생 시 우리 절차적 매크로가 패닉을 일으키는 것이 필요합니다. 이 예제에서는 <code>unwrap</code>을 사용하여 단순화했지만, 실제 프로덕션 코드에서는 <code>panic!</code>이나 <code>expect</code>를 사용하여 무엇이 잘못되었는지에 대한 더 구체적인 에러 메시지를 제공해야 합니다.</p>
-<p>이제 어노테이션이 달린 러스트 코드를 <code>TokenStream</code>에서 <code>DeriveInput</code> 인스턴스로 변환하는 코드가 준비되었으므로, 예제 20-34와 같이 해당 타입에 <code>HelloMacro</code> 트레이트를 구현하는 코드를 생성해 봅시다.</p>
-<Listing number="20-34" file-name="hello_macro_derive/src/lib.rs" caption="Implementing the `HelloMacro` trait using the parsed Rust code">
+<p>Now that we have the code to turn the annotated Rust code from a <code>TokenStream</code> into a <code>DeriveInput</code> instance, let’s generate the code that implements the <code>HelloMacro</code> trait on the annotated type, as shown in Listing 20-42.</p>
+<Listing number="20-42" file-name="hello_macro_derive/src/lib.rs" caption="Implementing the `HelloMacro` trait using the parsed Rust code">
 <pre><code class="language-rust ignore"><span class="boring">use proc_macro::TokenStream;
 </span><span class="boring">use quote::quote;
 </span><span class="boring">
@@ -395,45 +401,46 @@ pub fn hello_macro_derive(input: TokenStream) -&gt; TokenStream {
 </span><span class="boring">
 </span>fn impl_hello_macro(ast: &amp;syn::DeriveInput) -&gt; TokenStream {
     let name = &amp;ast.ident;
-    let gen = quote! {
+    let generated = quote! {
         impl HelloMacro for #name {
             fn hello_macro() {
                 println!("Hello, Macro! My name is {}!", stringify!(#name));
             }
         }
     };
-    gen.into()
+    generated.into()
 }</code></pre>
 </Listing>
-<p><code>ast.ident</code>를 사용하여 어노테이션이 달린 타입의 이름(식별자)을 담고 있는 <code>Ident</code> 구조체 인스턴스를 얻습니다. 예제 20-33의 구조체는 예제 20-31의 코드에 대해 <code>impl_hello_macro</code> 함수를 실행할 때 얻게 되는 <code>ident</code>가 <code>"Pancakes"</code>라는 값을 가진 <code>ident</code> 필드를 갖게 될 것임을 보여줍니다. 따라서 예제 20-34의 <code>name</code> 변수는 출력 시 예제 20-31에 있는 구조체의 이름인 <code>"Pancakes"</code> 문자열이 될 <code>Ident</code> 구조체 인스턴스를 포함하게 됩니다.</p>
-<p><code>quote!</code> 매크로는 우리가 반환하고자 하는 러스트 코드를 정의할 수 있게 해줍니다. 컴파일러는 <code>quote!</code> 매크로 실행의 직접적인 결과와는 다른 것을 기대하므로, 이를 <code>TokenStream</code>으로 변환해야 합니다. 우리는 <code>into</code> 메서드를 호출함으로써 이를 수행하며, 이 메서드는 중간 표현(intermediate representation)을 소비하고 필요한 <code>TokenStream</code> 타입의 값을 반환합니다.</p>
-<p><code>quote!</code> 매크로는 매우 멋진 템플릿 메커니즘도 제공합니다. <code>#name</code>이라고 입력하면 <code>quote!</code>는 이를 <code>name</code> 변수의 값으로 대체합니다. 일반 매크로가 작동하는 방식과 유사한 반복 작업도 수행할 수 있습니다. 자세한 소개는 <a href="https://docs.rs/quote"><code>quote</code> 크레이트 문서</a>를 확인하세요.</p>
+<p>We get an <code>Ident</code> struct instance containing the name (identifier) of the annotated type using <code>ast.ident</code>. The struct in Listing 20-41 shows that when we run the <code>impl_hello_macro</code> function on the code in Listing 20-37, the <code>ident</code> we get will have the <code>ident</code> field with a value of <code>"Pancakes"</code>. Thus, the <code>name</code> variable in Listing 20-42 will contain an <code>Ident</code> struct instance that, when printed, will be the string <code>"Pancakes"</code>, the name of the struct in Listing 20-37.</p>
+<p>The <code>quote!</code> macro lets us define the Rust code that we want to return. The compiler expects something different from the direct result of the <code>quote!</code> macro’s execution, so we need to convert it to a <code>TokenStream</code>. We do this by calling the <code>into</code> method, which consumes this intermediate representation and returns a value of the required <code>TokenStream</code> type.</p>
+<p>The <code>quote!</code> macro also provides some very cool templating mechanics: We can enter <code>#name</code>, and <code>quote!</code> will replace it with the value in the variable <code>name</code>. You can even do some repetition similar to the way regular macros work. Check out <a href="https://docs.rs/quote">the <code>quote</code> crate’s docs</a> for a thorough introduction.</p>
 <p>우리는 절차적 매크로가 사용자가 어노테이션을 단 타입에 대해 <code>HelloMacro</code> 트레이트 구현을 생성하기를 원하며, 이는 <code>#name</code>을 사용하여 얻을 수 있습니다. 트레이트 구현에는 <code>hello_macro</code>라는 하나의 함수가 있으며, 그 본문에는 우리가 제공하고자 하는 기능인 <code>Hello, Macro! My name is</code>와 어노테이션이 달린 타입의 이름을 출력하는 기능이 포함됩니다.</p>
-<p>여기서 사용된 <code>stringify!</code> 매크로는 러스트에 내장되어 있습니다. 이 매크로는 <code>1 + 2</code>와 같은 러스트 표현식을 받아 컴파일 타임에 <code>"1 + 2"</code>와 같은 문자열 리터럴로 변환합니다. 이는 표현식을 평가한 후 결과를 <code>String</code>으로 변환하는 <code>format!</code>이나 <code>println!</code> 매크로와는 다릅니다. <code>#name</code> 입력이 문자 그대로 출력해야 할 표현식일 가능성이 있으므로 <code>stringify!</code>를 사용합니다. 또한 <code>stringify!</code>를 사용하면 컴파일 타임에 <code>#name</code>을 문자열 리터럴로 변환하므로 할당(allocation)을 절약할 수 있습니다.</p>
-<p>이 시점에서 <code>hello_macro</code>와 <code>hello_macro_derive</code> 모두에서 <code>cargo build</code>가 성공적으로 완료되어야 합니다. 이제 이 크레이트들을 예제 20-31의 코드에 연결하여 절차적 매크로가 실제로 작동하는 모습을 확인해 봅시다! <code>cargo new pancakes</code> 명령을 사용하여 <em>projects</em> 디렉토리에 새로운 바이너리 프로젝트를 만듭니다. <code>pancakes</code> 크레이트의 _Cargo.toml_에 <code>hello_macro</code>와 <code>hello_macro_derive</code>를 의존성으로 추가해야 합니다. 만약 여러분의 <code>hello_macro</code>와 <code>hello_macro_derive</code> 버전을 <a href="https://crates.io/">crates.io</a>에 게시한다면 일반적인 의존성이 되겠지만, 그렇지 않다면 다음과 같이 <code>path</code> 의존성으로 지정할 수 있습니다.</p>
-<pre><code class="language-toml">hello_macro = { path = "../hello_macro" }
+<p>The <code>stringify!</code> macro used here is built into Rust. It takes a Rust expression, such as <code>1 + 2</code>, and at compile time turns the expression into a string literal, such as <code>"1 + 2"</code>. This is different from <code>format!</code> or <code>println!</code>, which are macros that evaluate the expression and then turn the result into a <code>String</code>. There is a possibility that the <code>#name</code> input might be an expression to print literally, so we use <code>stringify!</code>. Using <code>stringify!</code> also saves an allocation by converting <code>#name</code> to a string literal at compile time.</p>
+<p>At this point, <code>cargo build</code> should complete successfully in both <code>hello_macro</code> and <code>hello_macro_derive</code>. Let’s hook up these crates to the code in Listing 20-37 to see the procedural macro in action! Create a new binary project in your <em>projects</em> directory using <code>cargo new pancakes</code>. We need to add <code>hello_macro</code> and <code>hello_macro_derive</code> as dependencies in the <code>pancakes</code> crate’s <em>Cargo.toml</em>. If you’re publishing your versions of <code>hello_macro</code> and <code>hello_macro_derive</code> to <a href="https://crates.io/">crates.io</a><!-- ignore -->, they would be regular dependencies; if not, you can specify them as <code>path</code> dependencies as follows:</p>
+<pre><code class="language-toml">[dependencies]
+hello_macro = { path = "../hello_macro" }
 hello_macro_derive = { path = "../hello_macro/hello_macro_derive" }
 </code></pre>
-<p>예제 20-31의 코드를 _src/main.rs_에 넣고 <code>cargo run</code>을 실행하세요. 그러면 <code>Hello, Macro! My name is Pancakes!</code>가 출력될 것입니다. 절차적 매크로를 통한 <code>HelloMacro</code> 트레이트 구현이 <code>pancakes</code> 크레이트에서 직접 구현할 필요 없이 포함되었습니다. <code>#[derive(HelloMacro)]</code>가 트레이트 구현을 추가해 준 것입니다.</p>
-<p>다음으로, 다른 종류의 절차적 매크로들이 커스텀 파생 매크로와 어떻게 다른지 살펴보겠습니다.</p>
-<h3 id="속성형attribute-like-매크로"><a class="header" href="#속성형attribute-like-매크로">속성형(Attribute-Like) 매크로</a></h3>
-<p>속성형 매크로는 커스텀 파생 매크로와 유사하지만, <code>derive</code> 속성을 위한 코드를 생성하는 대신 새로운 속성을 만들 수 있게 해줍니다. 또한 더 유연합니다. <code>derive</code>는 구조체와 열거형에만 작동하는 반면, 속성은 함수와 같은 다른 아이템에도 적용될 수 있습니다. 속성형 매크로의 사용 예시는 다음과 같습니다. 웹 애플리케이션 프레임워크를 사용할 때 함수에 어노테이션을 다는 <code>route</code>라는 이름의 속성이 있다고 해봅시다.</p>
+<p>Put the code in Listing 20-37 into <em>src/main.rs</em>, and run <code>cargo run</code>: It should print <code>Hello, Macro! My name is Pancakes!</code>. The implementation of the <code>HelloMacro</code> trait from the procedural macro was included without the <code>pancakes</code> crate needing to implement it; the <code>#[derive(HelloMacro)]</code> added the trait implementation.</p>
+<p>Next, let’s explore how the other kinds of procedural macros differ from custom <code>derive</code> macros.</p>
+<h3 id="attribute-like-macros"><a class="header" href="#attribute-like-macros">Attribute-Like Macros</a></h3>
+<p>Attribute-like macros are similar to custom <code>derive</code> macros, but instead of generating code for the <code>derive</code> attribute, they allow you to create new attributes. They’re also more flexible: <code>derive</code> only works for structs and enums; attributes can be applied to other items as well, such as functions. Here’s an example of using an attribute-like macro. Say you have an attribute named <code>route</code> that annotates functions when using a web application framework:</p>
 <pre><code class="language-rust ignore">#[route(GET, "/")]
 fn index() {</code></pre>
 <p>이 <code>#[route]</code> 속성은 프레임워크에 의해 절차적 매크로로 정의될 것입니다. 매크로 정의 함수의 시그니처는 다음과 같을 것입니다.</p>
 <pre><code class="language-rust ignore">#[proc_macro_attribute]
 pub fn route(attr: TokenStream, item: TokenStream) -&gt; TokenStream {</code></pre>
 <p>여기에는 <code>TokenStream</code> 타입의 두 파라미터가 있습니다. 첫 번째는 속성의 내용, 즉 <code>GET, "/"</code> 부분을 위한 것입니다. 두 번째는 속성이 붙어 있는 아이템의 본문입니다. 이 경우 <code>fn index() {}</code>와 함수의 나머지 본문이 해당됩니다.</p>
-<p>그 외에 속성형 매크로는 커스텀 파생 매크로와 동일한 방식으로 작동합니다. <code>proc-macro</code> 크레이트 타입을 가진 크레이트를 만들고 원하는 코드를 생성하는 함수를 구현하면 됩니다!</p>
-<h3 id="함수형function-like-매크로"><a class="header" href="#함수형function-like-매크로">함수형(Function-Like) 매크로</a></h3>
-<p>함수형 매크로는 함수 호출처럼 보이는 매크로를 정의합니다. <code>macro_rules!</code> 매크로와 유사하게 함수보다 유연합니다. 예를 들어, 인수의 개수를 미리 알 수 없는 경우에도 사용할 수 있습니다. 하지만 <code>macro_rules!</code> 매크로는 앞서 <a href="#declarative-macros-with-macro_rules-for-general-metaprogramming">“일반적인 메타프로그래밍을 위한 <code>macro_rules!</code>를 사용한 선언적 매크로”</a><!-- ignore --> 섹션에서 논의한 <code>match</code>와 유사한 문법으로만 정의될 수 있습니다. 함수형 매크로는 <code>TokenStream</code> 파라미터를 받으며, 다른 두 종류의 절차적 매크로와 마찬가지로 러스트 코드를 사용하여 해당 <code>TokenStream</code>을 조작하도록 정의됩니다. 함수형 매크로의 예로 다음과 같이 호출될 수 있는 <code>sql!</code> 매크로를 들 수 있습니다.</p>
+<p>Other than that, attribute-like macros work the same way as custom <code>derive</code> macros: You create a crate with the <code>proc-macro</code> crate type and implement a function that generates the code you want!</p>
+<h3 id="function-like-macros"><a class="header" href="#function-like-macros">Function-Like Macros</a></h3>
+<p>Function-like macros define macros that look like function calls. Similarly to <code>macro_rules!</code> macros, they’re more flexible than functions; for example, they can take an unknown number of arguments. However, <code>macro_rules!</code> macros can only be defined using the match-like syntax we discussed in the <a href="#declarative-macros-with-macro_rules-for-general-metaprogramming">“Declarative Macros for General Metaprogramming”</a><!-- ignore --> section earlier. Function-like macros take a <code>TokenStream</code> parameter, and their definition manipulates that <code>TokenStream</code> using Rust code as the other two types of procedural macros do. An example of a function-like macro is an <code>sql!</code> macro that might be called like so:</p>
 <pre><code class="language-rust ignore">let sql = sql!(SELECT * FROM posts WHERE id=1);</code></pre>
 <p>이 매크로는 내부에 있는 SQL 문을 파싱하고 구문적으로 올바른지 확인하는데, 이는 <code>macro_rules!</code> 매크로가 할 수 있는 것보다 훨씬 더 복잡한 처리입니다. <code>sql!</code> 매크로는 다음과 같이 정의될 것입니다.</p>
 <pre><code class="language-rust ignore">#[proc_macro]
 pub fn sql(input: TokenStream) -&gt; TokenStream {</code></pre>
-<p>이 정의는 커스텀 파생 매크로의 시그니처와 유사합니다. 우리는 소괄호 안에 있는 토큰들을 받아서 우리가 생성하고자 하는 코드를 반환합니다.</p>
+<p>This definition is similar to the custom <code>derive</code> macro’s signature: We receive the tokens that are inside the parentheses and return the code we wanted to generate.</p>
 <h2 id="요약"><a class="header" href="#요약">요약</a></h2>
-<p>휴! 이제 여러분의 도구 상자에는 자주 사용하지는 않겠지만 매우 특별한 상황에서 사용할 수 있다는 것을 알고 있는 몇 가지 러스트 기능들이 생겼습니다. 에러 메시지의 제안이나 다른 사람의 코드에서 이러한 개념과 문법을 만났을 때 알아볼 수 있도록 여러 복잡한 주제들을 소개했습니다. 이 장을 해결책으로 안내하는 참고 자료로 활용하세요.</p>
+<p>Whew! Now you have some Rust features in your toolbox that you likely won’t use often, but you’ll know they’re available in very particular circumstances. We’ve introduced several complex topics so that when you encounter them in error message suggestions or in other people’s code, you’ll be able to recognize these concepts and syntax. Use this chapter as a reference to guide you to solutions.</p>
 <p>다음으로, 책 전체에서 논의한 모든 내용을 실습에 적용하여 한 가지 프로젝트를 더 진행해 보겠습니다!</p>
 
                     </main>

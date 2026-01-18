@@ -89,6 +89,7 @@
         <link rel="stylesheet" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/cargo.css">
         <link rel="stylesheet" href="../theme/language-picker.css">
 
 
@@ -286,7 +287,8 @@ rustc-wrapper = "…"           # run this wrapper instead of `rustc`
 rustc-workspace-wrapper = "…" # run this wrapper instead of `rustc` for workspace members
 rustdoc = "rustdoc"           # the doc generator tool
 target = "triple"             # build for the target triple (ignored by `cargo install`)
-target-dir = "target"         # path of where to place all generated artifacts
+target-dir = "target"         # path of where to place generated artifacts
+build-dir = "target"          # path of where to place intermediate build artifacts
 rustflags = ["…", "…"]        # custom flags to pass to all compiler invocations
 rustdocflags = ["…", "…"]     # custom flags to pass to rustdoc
 incremental = true            # whether or not to enable incremental compilation
@@ -305,11 +307,14 @@ browser = "chromium"          # browser to use with `cargo doc --open`,
 ENV_VAR_NAME = "value"
 # Set even if already present in environment
 ENV_VAR_NAME_2 = { value = "value", force = true }
-# Value is relative to .cargo directory containing `config.toml`, make absolute
+# `value` is relative to the parent of `.cargo/config.toml`, env var will be the full absolute path
 ENV_VAR_NAME_3 = { value = "relative/path", relative = true }
 
 [future-incompat-report]
 frequency = 'always' # when to display a notification about a future incompat report
+
+[cache]
+auto-clean-frequency = "1 day"   # How often to perform automatic cache cleaning
 
 [cargo-new]
 vcs = "none"              # VCS to use ('git', 'hg', 'pijul', 'fossil', 'none')
@@ -323,6 +328,7 @@ ssl-version.min = "tlsv1.1" # minimum TLS version
 timeout = 30                # timeout for each HTTP request, in seconds
 low-speed-limit = 10        # network timeout threshold (bytes/sec)
 cainfo = "cert.pem"         # path to Certificate Authority (CA) bundle
+proxy-cainfo = "cert.pem"   # path to proxy Certificate Authority (CA) bundle
 check-revoke = true         # check for SSL certificate revocation
 multiplexing = true         # HTTP/2 multiplexing
 user-agent = "…"            # the user-agent header
@@ -393,6 +399,7 @@ rustflags = ["…", "…"]    # custom flags for `rustc`
 rustdocflags = ["…", "…"] # custom flags for `rustdoc`
 
 [target.&lt;cfg&gt;]
+linker = "…"            # linker to use
 runner = "…"            # wrapper to run executables
 rustflags = ["…", "…"]  # custom flags for `rustc`
 
@@ -407,13 +414,14 @@ metadata_key1 = "value"
 metadata_key2 = "value"
 
 [term]
-quiet = false          # whether cargo output is quiet
-verbose = false        # whether cargo provides verbose output
-color = 'auto'         # whether cargo colorizes output
-hyperlinks = true      # whether cargo inserts links into output
-unicode = true         # whether cargo can render output using non-ASCII unicode characters
-progress.when = 'auto' # whether cargo shows progress bar
-progress.width = 80    # width of progress bar
+quiet = false                    # whether cargo output is quiet
+verbose = false                  # whether cargo provides verbose output
+color = 'auto'                   # whether cargo colorizes output
+hyperlinks = true                # whether cargo inserts links into output
+unicode = true                   # whether cargo can render output using non-ASCII unicode characters
+progress.when = 'auto'           # whether cargo shows progress bar
+progress.width = 80              # width of progress bar
+progress.term-integration = true # whether cargo reports progress to terminal emulator
 </code></pre>
 <h2 id="environment-variables"><a class="header" href="#environment-variables">Environment variables</a></h2>
 <p>Cargo can also be configured through environment variables in addition to the
@@ -464,6 +472,58 @@ cargo --config "target.'cfg(all(target_arch = \"arm\", target_os = \"none\"))'.r
 # Example of overriding a profile setting.
 cargo --config profile.dev.package.image.opt-level=3 …
 </code></pre>
+<h2 id="including-extra-configuration-files"><a class="header" href="#including-extra-configuration-files">Including extra configuration files</a></h2>
+<p>Configuration can include other configuration files using the top-level <code>include</code> key.
+This allows sharing configuration across multiple projects
+or splitting complex configurations into multiple files.</p>
+<h3 id="include"><a class="header" href="#include"><code>include</code></a></h3>
+<ul>
+<li>Type: array of strings or tables</li>
+<li>Default: none</li>
+<li>Environment: not supported</li>
+</ul>
+<p>Loads additional configuration files.
+Paths are relative to the configuration file that includes them.
+Only paths ending with <code>.toml</code> are accepted.</p>
+<p>Supports the following formats:</p>
+<pre><code class="language-toml"># array of paths
+include = [
+    "frodo.toml",
+    "samwise.toml",
+]
+
+# inline tables for more control
+include = [
+    { path = "required.toml" },
+    { path = "optional.toml", optional = true },
+]
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> For better readability and to avoid confusion, it is recommended to:</p>
+<ul>
+<li>Place <code>include</code> at the top of the configuration file</li>
+<li>Put one include per line for clearer version control diffs</li>
+<li>Use inline table syntax when optional includes are needed</li>
+</ul>
+</blockquote>
+<p>When using table syntax, the following fields are supported:</p>
+<ul>
+<li><code>path</code> (string, required): Path to the config file to include.</li>
+<li><code>optional</code> (boolean, default: false): If <code>true</code>, missing files are silently
+skipped instead of causing an error.</li>
+</ul>
+<p>The merge behavior of <code>include</code> is different from other config values:</p>
+<ol>
+<li>Config values are first loaded from the <code>include</code> paths.
+<ul>
+<li>Included files are loaded left to right,
+with values from later files taking precedence over earlier ones.</li>
+<li>This step recurses if included config files also contain <code>include</code> keys.</li>
+</ul>
+</li>
+<li>Then, the config file’s own values are merged on top of the included config,
+taking highest precedence.</li>
+</ol>
 <h2 id="config-relative-paths"><a class="header" href="#config-relative-paths">Config-relative paths</a></h2>
 <p>Paths in config files may be absolute, relative, or a bare name without any path separators.
 Paths for executables without a path separator will use the <code>PATH</code> environment variable to search for the executable.
@@ -629,10 +689,12 @@ the final invocation is <code>$RUSTC_WRAPPER $RUSTC_WORKSPACE_WRAPPER $RUSTC</co
 <li>Environment: <code>CARGO_BUILD_TARGET</code></li>
 </ul>
 <p>The default <a href="../appendix/glossary.html#target" title="&quot;target&quot; (glossary)">target platform triples</a> to compile to.</p>
-<p>This allows passing either a string or an array of strings. Each string value
-is a target platform triple. The selected build targets will be built for each
-of the selected architectures.</p>
-<p>The string value may also be a relative path to a <code>.json</code> target spec file.</p>
+<p>Possible values:</p>
+<ul>
+<li>Any supported target in <code>rustc --print target-list</code>.</li>
+<li><code>"host-tuple"</code>, which will internally be substituted by the host’s target. This can be particularly useful if you’re cross-compiling some crates, and don’t want to specify your host’s machine as a target (for instance, an <code>xtask</code> in a shared project that may be worked on by many hosts).</li>
+<li>A path to a custom target specification. See <a href="../../rustc/targets/custom.html#custom-target-lookup-path">Custom Target Lookup Path</a> for more information.</li>
+</ul>
 <p>Can be overridden with the <code>--target</code> CLI option.</p>
 <pre><code class="language-toml">[build]
 target = ["x86_64-unknown-linux-gnu", "i686-unknown-linux-gnu"]
@@ -646,6 +708,23 @@ target = ["x86_64-unknown-linux-gnu", "i686-unknown-linux-gnu"]
 <p>The path to where all compiler output is placed. The default if not specified
 is a directory named <code>target</code> located at the root of the workspace.</p>
 <p>Can be overridden with the <code>--target-dir</code> CLI option.</p>
+<p>For more information see the <a href="../reference/build-cache.html">build cache documentation</a>.</p>
+<h4 id="buildbuild-dir"><a class="header" href="#buildbuild-dir"><code>build.build-dir</code></a></h4>
+<ul>
+<li>Type: string (path)</li>
+<li>Default: Defaults to the value of <code>build.target-dir</code></li>
+<li>Environment: <code>CARGO_BUILD_BUILD_DIR</code></li>
+</ul>
+<p>The directory where intermediate build artifacts will be stored.
+Intermediate artifacts are produced by Rustc/Cargo during the build process.</p>
+<p>This option supports path templating.</p>
+<p>Available template variables:</p>
+<ul>
+<li><code>{workspace-root}</code> resolves to root of the current workspace.</li>
+<li><code>{cargo-cache-home}</code> resolves to <code>CARGO_HOME</code></li>
+<li><code>{workspace-path-hash}</code> resolves to a hash of the manifest path</li>
+</ul>
+<p>For more information see the <a href="../reference/build-cache.html">build cache documentation</a>.</p>
 <h4 id="buildrustflags"><a class="header" href="#buildrustflags"><code>build.rustflags</code></a></h4>
 <ul>
 <li>Type: string or array of strings</li>
@@ -804,6 +883,35 @@ OPENSSL_DIR = { value = "vendor/openssl", relative = true }
 <li><code>always</code> (default): Always display a notification when a command (e.g. <code>cargo build</code>) produces a future incompat report</li>
 <li><code>never</code>: Never display a notification</li>
 </ul>
+<h3 id="cache"><a class="header" href="#cache"><code>[cache]</code></a></h3>
+<p>The <code>[cache]</code> table defines settings for cargo’s caches.</p>
+<h4 id="global-caches"><a class="header" href="#global-caches">Global caches</a></h4>
+<p>When running <code>cargo</code> commands, Cargo will automatically track which files you are using within the global cache.
+Periodically, Cargo will delete files that have not been used for some period of time.
+It will delete files that have to be downloaded from the network if they have not been used in 3 months. Files that can be generated without network access will be deleted if they have not been used in 1 month.</p>
+<p>The automatic deletion of files only occurs when running commands that are already doing a significant amount of work, such as all of the build commands (<code>cargo build</code>, <code>cargo test</code>, <code>cargo check</code>, etc.), and <code>cargo fetch</code>.</p>
+<p>Automatic deletion is disabled if cargo is offline such as with <code>--offline</code> or <code>--frozen</code> to avoid deleting artifacts that may need to be used if you are offline for a long period of time.</p>
+<blockquote>
+<p><strong>Note</strong>: This tracking is currently only implemented for the global cache in Cargo’s home directory.
+This includes registry indexes and source files downloaded from registries and git dependencies.
+Support for tracking build artifacts is not yet implemented, and tracked in <a href="https://github.com/rust-lang/cargo/issues/13136">cargo#13136</a>.</p>
+<p>Additionally, there is an unstable feature to support <em>manually</em> triggering cache cleaning, and to further customize the configuration options.
+See the <a href="unstable.html#gc">Unstable chapter</a> for more information.</p>
+</blockquote>
+<h4 id="cacheauto-clean-frequency"><a class="header" href="#cacheauto-clean-frequency"><code>cache.auto-clean-frequency</code></a></h4>
+<ul>
+<li>Type: string</li>
+<li>Default: <code>"1 day"</code></li>
+<li>Environment: <code>CARGO_CACHE_AUTO_CLEAN_FREQUENCY</code></li>
+</ul>
+<p>This option defines how often Cargo will automatically delete unused files in the global cache.
+This does <em>not</em> define how old the files must be, those thresholds are described <a href="#global-caches">above</a>.</p>
+<p>It supports the following settings:</p>
+<ul>
+<li><code>"never"</code> — Never deletes old files.</li>
+<li><code>"always"</code> — Checks to delete old files every time Cargo runs.</li>
+<li>An integer followed by “seconds”, “minutes”, “hours”, “days”, “weeks”, or “months” — Checks to delete old files at most the given time frame.</li>
+</ul>
 <h3 id="http"><a class="header" href="#http"><code>[http]</code></a></h3>
 <p>The <code>[http]</code> table defines settings for HTTP behavior. This includes fetching
 crate dependencies and accessing remote git repositories.</p>
@@ -845,6 +953,14 @@ requests, and <code>http_proxy</code> sets it for HTTP requests.</p>
 </ul>
 <p>Path to a Certificate Authority (CA) bundle file, used to verify TLS
 certificates. If not specified, Cargo attempts to use the system certificates.</p>
+<h4 id="httpproxy-cainfo"><a class="header" href="#httpproxy-cainfo"><code>http.proxy-cainfo</code></a></h4>
+<ul>
+<li>Type: string (path)</li>
+<li>Default: falls back to <code>http.cainfo</code> if not set</li>
+<li>Environment: <code>CARGO_HTTP_PROXY_CAINFO</code></li>
+</ul>
+<p>Path to a Certificate Authority (CA) bundle file, used to verify proxy TLS
+certificates.</p>
 <h4 id="httpcheck-revoke"><a class="header" href="#httpcheck-revoke"><code>http.check-revoke</code></a></h4>
 <ul>
 <li>Type: boolean</li>
@@ -1425,6 +1541,13 @@ terminal.</li>
 <li>Environment: <code>CARGO_TERM_PROGRESS_WIDTH</code></li>
 </ul>
 <p>Sets the width for progress bar.</p>
+<h4 id="termprogressterm-integration"><a class="header" href="#termprogressterm-integration"><code>term.progress.term-integration</code></a></h4>
+<ul>
+<li>Type: bool</li>
+<li>Default: auto-detect</li>
+<li>Environment: <code>CARGO_TERM_PROGRESS_TERM_INTEGRATION</code></li>
+</ul>
+<p>Report progress to the terminal emulator for display in places like the task bar.</p>
 
                     </main>
 
