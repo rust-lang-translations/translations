@@ -222,9 +222,9 @@
                     <main>
                         <h1 id="의존성-해결"><a class="header" href="#의존성-해결">의존성 해결</a></h1>
 <p>One of Cargo’s primary tasks is to determine the versions of dependencies to use based on the version requirements specified in each package. This process is called “dependency resolution” and is performed by the “resolver”. The result of the resolution is stored in the <a href="../guide/cargo-toml-vs-cargo-lock.html"><code>Cargo.lock</code> file</a> which “locks” the dependencies to specific versions, and keeps them fixed over time. The <a href="../commands/cargo-tree.html"><code>cargo tree</code></a> command can be used to visualize the result of the resolver.</p>
-<h2 id="constraints-and-heuristics"><a class="header" href="#constraints-and-heuristics">Constraints and Heuristics</a></h2>
-<p>In many cases there is no single “best” dependency resolution. The resolver operates under various constraints and heuristics to find a generally applicable resolution. To understand how these interact, it is helpful to have a coarse understanding of how dependency resolution works.</p>
-<p>This pseudo-code approximates what Cargo’s resolver does:</p>
+<h2 id="제약-조건-및-휴리스틱"><a class="header" href="#제약-조건-및-휴리스틱">제약 조건 및 휴리스틱</a></h2>
+<p>대부분의 경우 단 하나의 “최선“의 의존성 해결책은 없습니다. 리졸버는 일반적으로 적용 가능한 해결책을 찾기 위해 다양한 제약 조건과 휴리스틱 하에서 작동합니다. 이것들이 어떻게 상호 작용하는지 이해하려면 의존성 해결이 어떻게 작동하는지 대략적으로 파악하는 것이 도움이 됩니다.</p>
+<p>이 의사 코드는 Cargo 리졸버가 수행하는 작업을 대략적으로 보여줍니다.</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn resolve(workspace: &amp;[Package], policy: Policy) -&gt; Option&lt;ResolveGraph&gt; {
@@ -235,7 +235,7 @@
 
 fn resolve_next(dep_queue: Queue, resolved: ResolveGraph, policy: Policy) -&gt; Option&lt;ResolveGraph&gt; {
     let Some(dep_spec) = policy.pick_next_dep(&amp;mut dep_queue) else {
-        // Done
+        // 완료
         return Some(resolved);
     };
 
@@ -259,79 +259,79 @@ fn resolve_next(dep_queue: Queue, resolved: ResolveGraph, policy: Policy) -&gt; 
         }
     }
 
-    // No valid solution found, backtrack and `pick_next_version`
+    // 유효한 해결책을 찾지 못함, 백트래킹(backtrack) 후 `pick_next_version` 수행
     None
 }
 <span class="boring">}</span></code></pre></pre>
-<p>Key steps:</p>
+<p>주요 단계:</p>
 <ul>
-<li>Walking dependencies (<code>pick_next_dep</code>): The order dependencies are walked can affect how related version requirements for the same dependency get resolved, see unifying versions, and how much the resolver backtracks, affecting resolver performance,</li>
-<li>Unifying versions (<code>try_unify_version</code>, <code>needs_version_unification</code>): Cargo reuses versions where possible to reduce build times and allow types from common dependencies to be passed between APIs. If multiple versions would have been unified if it wasn’t for conflicts in their <a href="specifying-dependencies.html">dependency specifications</a>, Cargo will backtrack, erroring if no solution is found, rather than selecting multiple versions. A <a href="specifying-dependencies.html">dependency specification</a> or Cargo may decide that a version is undesirable, preferring to backtrack or error rather than use it.</li>
-<li>Preferring versions (<code>pick_next_version</code>): Cargo may decide that it should prefer a specific version, falling back to the next version when backtracking.</li>
+<li>의존성 탐색(<code>pick_next_dep</code>): 의존성을 탐색하는 순서는 동일한 의존성에 대한 관련 버전 요구 사항이 어떻게 해결되는지에 영향을 줄 수 있으며(버전 통합 참조), 리졸버가 얼마나 백트래킹하는지에도 영향을 주어 리졸버 성능에 영향을 미칩니다.</li>
+<li>버전 통합(<code>try_unify_version</code>, <code>needs_version_unification</code>): Cargo는 빌드 시간을 단축하고 공통 의존성의 타입이 API 간에 전달될 수 있도록 가능한 한 버전을 재사용합니다. 만약 <a href="specifying-dependencies.html">의존성 사양</a>의 충돌만 아니었다면 통합되었을 여러 버전이 있는 경우, Cargo는 여러 버전을 선택하는 대신 해결책을 찾지 못하면 오류를 발생시키며 백트래킹합니다. <a href="specifying-dependencies.html">의존성 사양</a> 또는 Cargo는 특정 버전이 바람직하지 않다고 판단하여 해당 버전을 사용하는 대신 백트래킹하거나 오류를 발생시키는 것을 선호할 수 있습니다.</li>
+<li>버전 선호(<code>pick_next_version</code>): Cargo는 특정 버전을 선호하기로 결정할 수 있으며, 백트래킹 시 다음 버전으로 폴백합니다.</li>
 </ul>
-<h3 id="version-numbers"><a class="header" href="#version-numbers">Version numbers</a></h3>
-<p>Generally, Cargo prefers the highest version currently available.</p>
-<p>For example, if you had a package in the resolve graph with:</p>
+<h3 id="버전-번호"><a class="header" href="#버전-번호">버전 번호</a></h3>
+<p>일반적으로 Cargo는 현재 사용 가능한 가장 높은 버전을 선호합니다.</p>
+<p>예를 들어 해결 그래프에 다음과 같은 패키지가 있다면:</p>
 <pre><code class="language-toml">[dependencies]
 bitflags = "*"
 </code></pre>
-<p>If at the time the <code>Cargo.lock</code> file is generated, the greatest version of <code>bitflags</code> is <code>1.2.1</code>, then the package will use <code>1.2.1</code>.</p>
-<p>For an example of a possible exception, see <a href="#rust-version">Rust version</a>.</p>
-<h3 id="version-requirements"><a class="header" href="#version-requirements">Version requirements</a></h3>
-<p>Package specify what versions they support, rejecting all others, through <a href="specifying-dependencies.html#version-requirement-syntax">version requirements</a>.</p>
-<p>For example, if you had a package in the resolve graph with:</p>
+<p><code>Cargo.lock</code> 파일이 생성될 시점에 <code>bitflags</code>의 가장 높은 버전이 <code>1.2.1</code>이라면, 패키지는 <code>1.2.1</code>을 사용하게 됩니다.</p>
+<p>발생 가능한 예외의 예시는 <a href="#rust-version">Rust 버전</a>을 참조하세요.</p>
+<h3 id="버전-요구-사항"><a class="header" href="#버전-요구-사항">버전 요구 사항</a></h3>
+<p>패키지는 <a href="specifying-dependencies.html#version-requirement-syntax">버전 요구 사항</a>을 통해 지원하는 버전을 지정하고 다른 모든 버전은 거부합니다.</p>
+<p>예를 들어 해결 그래프에 다음과 같은 패키지가 있다면:</p>
 <pre><code class="language-toml">[dependencies]
-bitflags = "1.0"  # meaning `&gt;=1.0.0,&lt;2.0.0`
+bitflags = "1.0"  # `&gt;=1.0.0,&lt;2.0.0`을 의미함
 </code></pre>
-<p>If at the time the <code>Cargo.lock</code> file is generated, the greatest version of <code>bitflags</code> is <code>1.2.1</code>, then the package will use <code>1.2.1</code> because it is the greatest within the compatibility range. If <code>2.0.0</code> is published, it will still use <code>1.2.1</code> because <code>2.0.0</code> is considered incompatible.</p>
-<h3 id="semver-compatibility"><a class="header" href="#semver-compatibility">SemVer compatibility</a></h3>
-<p>Cargo assumes packages follow <a href="https://semver.org/">SemVer</a> and will unify dependency versions if they are <a href="https://semver.org/">SemVer</a> compatible according to the <a href="specifying-dependencies.html#default-requirements">Caret version requirements</a>. If two compatible versions cannot be unified because of conflicting version requirements, Cargo will error.</p>
-<p>See the <a href="semver.html">SemVer Compatibility</a> chapter for guidance on what is considered a “compatible” change.</p>
-<p>Examples:</p>
-<p>The following two packages will have their dependencies on <code>bitflags</code> unified because any version picked will be compatible with each other.</p>
-<pre><code class="language-toml"># Package A
+<p><code>Cargo.lock</code> 파일이 생성될 시점에 <code>bitflags</code>의 가장 높은 버전이 <code>1.2.1</code>이라면, 호환 범위 내에서 가장 높으므로 패키지는 <code>1.2.1</code>을 사용하게 됩니다. <code>2.0.0</code>이 게시되더라도 <code>2.0.0</code>은 호환되지 않는 것으로 간주되므로 여전히 <code>1.2.1</code>을 사용합니다.</p>
+<h3 id="semver-호환성"><a class="header" href="#semver-호환성">SemVer 호환성</a></h3>
+<p>Cargo는 패키지가 <a href="https://semver.org/">SemVer</a>를 따른다고 가정하며, <a href="specifying-dependencies.html#default-requirements">캐럿(Caret) 버전 요구 사항</a>에 따라 <a href="https://semver.org/">SemVer</a> 호환되는 경우 의존성 버전을 통합합니다. 버전 요구 사항의 충돌로 인해 호환되는 두 버전을 통합할 수 없는 경우 Cargo는 오류를 발생시킵니다.</p>
+<p>무엇이 “호환되는” 변경으로 간주되는지에 대한 지침은 <a href="semver.html">SemVer 호환성</a> 장을 참조하세요.</p>
+<p>예시:</p>
+<p>다음 두 패키지는 선택된 모든 버전이 서로 호환되므로 <code>bitflags</code>에 대한 의존성이 통합됩니다.</p>
+<pre><code class="language-toml"># 패키지 A
 [dependencies]
-bitflags = "1.0"  # meaning `&gt;=1.0.0,&lt;2.0.0`
+bitflags = "1.0"  # `&gt;=1.0.0,&lt;2.0.0`을 의미함
 
-# Package B
+# 패키지 B
 [dependencies]
-bitflags = "1.1"  # meaning `&gt;=1.1.0,&lt;2.0.0`
+bitflags = "1.1"  # `&gt;=1.1.0,&lt;2.0.0`을 의미함
 </code></pre>
-<p>The following packages will error because the version requirements conflict, selecting two distinct compatible versions.</p>
-<pre><code class="language-toml"># Package A
+<p>다음 패키지들은 버전 요구 사항이 충돌하여 서로 다른 두 호환 버전을 선택하게 되므로 오류가 발생합니다.</p>
+<pre><code class="language-toml"># 패키지 A
 [dependencies]
 log = "=0.4.11"
 
-# Package B
+# 패키지 B
 [dependencies]
 log = "=0.4.8"
 </code></pre>
-<p>The following two packages will not have their dependencies on <code>rand</code> unified because only incompatible versions are available for each. Instead, two different versions (e.g. 0.6.5 and 0.7.3) will be resolved and built. This can lead to potential problems, see the <a href="#version-incompatibility-hazards">Version-incompatibility hazards</a> section for more details.</p>
-<pre><code class="language-toml"># Package A
+<p>다음 두 패키지는 각각에 대해 호환되지 않는 버전만 사용할 수 있으므로 <code>rand</code>에 대한 의존성이 통합되지 않습니다. 대신 두 개의 다른 버전(예: 0.6.5 및 0.7.3)이 해결되어 빌드됩니다. 이는 잠재적인 문제를 일으킬 수 있으므로 자세한 내용은 <a href="#version-incompatibility-hazards">버전 비호환성 위험</a> 섹션을 참조하세요.</p>
+<pre><code class="language-toml"># 패키지 A
 [dependencies]
-rand = "0.7"  # meaning `&gt;=0.7.0,&lt;0.8.0`
+rand = "0.7"  # `&gt;=0.7.0,&lt;0.8.0`을 의미함
 
-# Package B
+# 패키지 B
 [dependencies]
-rand = "0.6"  # meaning `&gt;=0.6.0,&lt;0.7.0`
+rand = "0.6"  # `&gt;=0.6.0,&lt;0.7.0`을 의미함
 </code></pre>
-<p>Generally, the following two packages will not have their dependencies unified because incompatible versions are available that satisfy the version requirements: Instead, two different versions (e.g. 0.6.5 and 0.7.3) will be resolved and built. The application of other constraints or heuristics may cause these to be unified, picking one version (e.g. 0.6.5).</p>
-<pre><code class="language-toml"># Package A
+<p>일반적으로 다음 두 패키지는 버전 요구 사항을 만족하는 호환되지 않는 버전들이 있으므로 의존성이 통합되지 않습니다. 대신 두 개의 다른 버전(예: 0.6.5 및 0.7.3)이 해결되어 빌드됩니다. 다른 제약 조건이나 휴리스틱의 적용으로 인해 이들이 통합되어 한 버전(예: 0.6.5)이 선택될 수도 있습니다.</p>
+<pre><code class="language-toml"># 패키지 A
 [dependencies]
 rand = "&gt;=0.6,&lt;0.8.0"
 
-# Package B
+# 패키지 B
 [dependencies]
-rand = "0.6"  # meaning `&gt;=0.6.0,&lt;0.7.0`
+rand = "0.6"  # `&gt;=0.6.0,&lt;0.7.0`을 의미함
 </code></pre>
-<h4 id="version-incompatibility-hazards"><a class="header" href="#version-incompatibility-hazards">Version-incompatibility hazards</a></h4>
-<p>When multiple versions of a crate appear in the resolve graph, this can cause problems when types from those crates are exposed by the crates using them. This is because the types and items are considered different by the Rust compiler, even if they have the same name. Libraries should take care when publishing a SemVer-incompatible version (for example, publishing <code>2.0.0</code> after <code>1.0.0</code> has been in use), particularly for libraries that are widely used.</p>
-<p>The “<a href="https://github.com/dtolnay/semver-trick">semver trick</a>” is a workaround for this problem of publishing a breaking change while retaining compatibility with older versions. The linked page goes into detail about what the problem is and how to address it. In short, when a library wants to publish a SemVer-breaking release, publish the new release, and also publish a point release of the previous version that reexports the types from the newer version.</p>
+<h4 id="버전-비호환성-위험"><a class="header" href="#버전-비호환성-위험">버전 비호환성 위험</a></h4>
+<p>해결 그래프에 크레이트의 여러 버전이 나타나면, 해당 크레이트를 사용하는 크레이트에 의해 해당 크레이트의 타입이 노출될 때 문제가 발생할 수 있습니다. 이는 이름이 같더라도 Rust 컴파일러가 타입과 아이템을 서로 다른 것으로 간주하기 때문입니다. 라이브러리는 SemVer 비호환 버전(예: <code>1.0.0</code>이 사용 중일 때 <code>2.0.0</code> 게시)을 게시할 때, 특히 널리 사용되는 라이브러리의 경우 주의를 기울여야 합니다.</p>
+<p>“<a href="https://github.com/dtolnay/semver-trick">semver trick</a>“은 이전 버전과의 호환성을 유지하면서 파괴적 변경을 게시하는 문제에 대한 해결 방법입니다. 링크된 페이지는 무엇이 문제이고 어떻게 해결하는지 자세히 설명합니다. 요약하자면, 라이브러리가 SemVer 파괴적 릴리스를 게시하려 할 때, 새 릴리스를 게시함과 동시에 새 버전의 타입을 재내보내는 이전 버전의 포인트 릴리스도 게시하는 것입니다.</p>
 <p>These incompatibilities usually manifest as a compile-time error, but sometimes they will only appear as a runtime misbehavior. For example, let’s say there is a common library named <code>foo</code> that ends up appearing with both version <code>1.0.0</code> and <code>2.0.0</code> in the resolve graph. If <a href="../../std/any/trait.Any.html#method.downcast_ref"><code>downcast_ref</code></a> is used on an object created by a library using version <code>1.0.0</code>, and the code calling <code>downcast_ref</code> is downcasting to a type from version <code>2.0.0</code>, the downcast will fail at runtime.</p>
-<p>It is important to make sure that if you have multiple versions of a library that you are properly using them, especially if it is ever possible for the types from different versions to be used together. The <a href="../commands/cargo-tree.html"><code>cargo tree -d</code></a> command can be used to identify duplicate versions and where they come from. Similarly, it is important to consider the impact on the ecosystem if you publish a SemVer-incompatible version of a popular library.</p>
-<h3 id="lock-file"><a class="header" href="#lock-file">Lock file</a></h3>
+<p>라이브러리의 여러 버전이 있는 경우 이를 적절하게 사용하고 있는지, 특히 서로 다른 버전의 타입이 함께 사용될 가능성이 있는지 확인하는 것이 중요합니다. <a href="../commands/cargo-tree.html"><code>cargo tree -d</code></a> 명령어를 사용하여 중복된 버전과 그 출처를 식별할 수 있습니다. 마찬가지로, 인기 있는 라이브러리의 SemVer 비호환 버전을 게시할 경우 에코시스템에 미칠 영향을 고려하는 것이 중요합니다.</p>
+<h3 id="락-파일-lock-file"><a class="header" href="#락-파일-lock-file">락 파일 (Lock file)</a></h3>
 <p>Cargo gives the highest priority to versions contained in the <a href="../guide/cargo-toml-vs-cargo-lock.html"><code>Cargo.lock</code> file</a>, when used. This is intended to balance reproducible builds with adjusting to changes in the manifest.</p>
-<p>For example, if you had a package in the resolve graph with:</p>
+<p>예를 들어 해결 그래프에 다음과 같은 패키지가 있다면:</p>
 <pre><code class="language-toml">[dependencies]
 bitflags = "*"
 </code></pre>
@@ -343,31 +343,31 @@ bitflags = "1.3.0"
 </code></pre>
 <p><code>bitflags</code> <code>1.2.1</code> does not match this version requirement and so that entry in your <code>Cargo.lock</code> file is ignored and version <code>1.3.5</code> will now be used and recorded in your <code>Cargo.lock</code> file.</p>
 <h3 id="rust-버전"><a class="header" href="#rust-버전">Rust 버전</a></h3>
-<p>To support developing software with a minimum supported <a href="rust-version.html">Rust version</a>, the resolver can take into account a dependency version’s compatibility with your Rust version. This is controlled by the config field <a href="config.html#resolverincompatible-rust-versions"><code>resolver.incompatible-rust-versions</code></a>.</p>
-<p>With the <code>fallback</code> setting, the resolver will prefer packages with a Rust version that is less than or equal to your own Rust version. For example, you are using Rust 1.85 to develop the following package:</p>
+<p>최소 지원 <a href="rust-version.html">Rust 버전</a>으로 소프트웨어를 개발하는 것을 지원하기 위해, 리졸버는 의존성 버전의 Rust 버전 호환성을 고려할 수 있습니다. 이는 구성 필드 <a href="config.html#resolverincompatible-rust-versions"><code>resolver.incompatible-rust-versions</code></a>에 의해 제어됩니다.</p>
+<p><code>fallback</code> 설정을 사용하면, 리졸버는 현재 사용 중인 Rust 버전보다 작거나 같은 Rust 버전을 가진 패키지를 선호합니다. 예를 들어, Rust 1.85를 사용하여 다음 패키지를 개발한다고 가정해 봅시다.</p>
 <pre><code class="language-toml">[package]
 name = "my-cli"
 rust-version = "1.62"
 
 [dependencies]
-clap = "4.0"  # resolves to 4.0.32
+clap = "4.0"  # 4.0.32로 해결됨
 </code></pre>
-<p>The resolver would pick version 4.0.32 because it has a Rust version of 1.60.0.</p>
+<p>리졸버는 1.60.0의 Rust 버전을 가진 4.0.32 버전을 선택할 것입니다.</p>
 <ul>
-<li>4.0.0 is not picked because it is a <a href="#version-numbers">lower version number</a> despite it also having a Rust version of 1.60.0.</li>
-<li>4.5.20 is not picked because it is incompatible with <code>my-cli</code>’s Rust version of 1.62 despite having a much <a href="#version-numbers">higher version</a> and it has a Rust version of 1.74.0 which is compatible with your 1.85 toolchain.</li>
+<li>4.0.0 역시 1.60.0의 Rust 버전을 가지고 있지만, <a href="#version-numbers">버전 번호</a>가 더 낮기 때문에 선택되지 않습니다.</li>
+<li>4.5.20은 훨씬 <a href="#version-numbers">높은 버전</a>이고 1.85 툴체인과 호환되는 1.74.0의 Rust 버전을 가지고 있음에도 불구하고, <code>my-cli</code>의 Rust 버전인 1.62와 호환되지 않으므로 선택되지 않습니다.</li>
 </ul>
-<p>If a version requirement does not include a Rust version compatible dependency version, the resolver won’t error but will instead pick a version, even if its potentially suboptimal. For example, you change the dependency on <code>clap</code>:</p>
+<p>버전 요구 사항에 Rust 버전 호환 의존성 버전이 포함되어 있지 않은 경우, 리졸버는 오류를 발생시키지 않고 잠재적으로 최적이 아닐지라도 버전을 선택합니다. 예를 들어 <code>clap</code>에 대한 의존성을 다음과 같이 변경했다고 합시다.</p>
 <pre><code class="language-toml">[package]
 name = "my-cli"
 rust-version = "1.62"
 
 [dependencies]
-clap = "4.2"  # resolves to 4.5.20
+clap = "4.2"  # 4.5.20으로 해결됨
 </code></pre>
-<p>No version of <code>clap</code> matches that <a href="#version-requirements">version requirement</a> that is compatible with Rust version 1.62. The resolver will then pick an incompatible version, like 4.5.20 despite it having a Rust version of 1.74.</p>
-<p>When the resolver selects a dependency version of a package, it does not know all the workspace members that will eventually have a transitive dependency on that version and so it cannot take into account only the Rust versions relevant for that dependency. The resolver has heuristics to find a “good enough” solution when workspace members have different Rust versions. This applies even for packages in a workspace without a Rust version.</p>
-<p>When a workspace has members with different Rust versions, the resolver may pick a lower dependency version than necessary. For example, you have the following workspace members:</p>
+<p>Rust 버전 1.62와 호환되면서 해당 <a href="#version-requirements">버전 요구 사항</a>을 만족하는 <code>clap</code> 버전이 없습니다. 그러면 리졸버는 1.74의 Rust 버전을 가졌음에도 불구하고 4.5.20과 같이 호환되지 않는 버전을 선택하게 됩니다.</p>
+<p>리졸버가 패키지의 의존성 버전을 선택할 때, 해당 버전에 최종적으로 전이적 의존성을 가질 모든 워크스페이스 구성원을 알 수 없으므로 해당 의존성과 관련된 Rust 버전만 고려할 수는 없습니다. 리졸버는 워크스페이스 구성원들이 서로 다른 Rust 버전을 가질 때 “충분히 좋은” 해결책을 찾기 위한 휴리스틱을 가집니다. 이는 Rust 버전이 없는 워크스페이스 내 패키지에도 적용됩니다.</p>
+<p>워크스페이스 구성원들이 서로 다른 Rust 버전을 가질 때, 리졸버는 필요한 것보다 낮은 의존성 버전을 선택할 수 있습니다. 예를 들어, 다음과 같은 워크스페이스 구성원들이 있다고 합시다.</p>
 <pre><code class="language-toml">[package]
 name = "a"
 rust-version = "1.62"
@@ -376,34 +376,34 @@ rust-version = "1.62"
 name = "b"
 
 [dependencies]
-clap = "4.2"  # resolves to 4.5.20
+clap = "4.2"  # 4.0.32로 해결됨 (패키지 a 때문)
 </code></pre>
-<p>Though package <code>b</code> does not have a Rust version and could use a higher version like 4.5.20, 4.0.32 will be selected because of package <code>a</code>’s Rust version of 1.62.</p>
-<p>Or the resolver may pick too high of a version. For example, you have the following workspace members:</p>
+<p>패키지 <code>b</code>는 Rust 버전이 없어 4.5.20과 같은 더 높은 버전을 사용할 수 있음에도 불구하고, 패키지 <code>a</code>의 Rust 버전인 1.62 때문에 4.0.32가 선택될 것입니다.</p>
+<p>또는 리졸버가 너무 높은 버전을 선택할 수도 있습니다. 예를 들어, 다음과 같은 워크스페이스 구성원들이 있다고 합시다.</p>
 <pre><code class="language-toml">[package]
 name = "a"
 rust-version = "1.62"
 
 [dependencies]
-clap = "4.2"  # resolves to 4.5.20
+clap = "4.2"  # 4.5.20으로 해결됨
 
 [package]
 name = "b"
 
 [dependencies]
-clap = "4.5"  # resolves to 4.5.20
+clap = "4.5"  # 4.5.20으로 해결됨
 </code></pre>
-<p>Though each package has a version requirement for <code>clap</code> that would meet its own Rust version, because of <a href="#version-numbers">version unification</a>, the resolver will need to pick one version that works in both cases and that would be a version like 4.5.20.</p>
+<p>각 패키지가 자신의 Rust 버전을 만족하는 <code>clap</code> 버전 요구 사항을 가지고 있더라도, <a href="#version-numbers">버전 통합</a> 때문에 리졸버는 두 경우 모두에서 작동하는 하나의 버전을 선택해야 하며, 그것은 4.5.20과 같은 버전이 될 것입니다.</p>
 <h3 id="기능"><a class="header" href="#기능">기능</a></h3>
-<p>For the purpose of generating <code>Cargo.lock</code>, the resolver builds the dependency graph as-if all <a href="features.html">features</a> of all <a href="workspaces.html">workspace</a> members are enabled. This ensures that any optional dependencies are available and properly resolved with the rest of the graph when features are added or removed with the <a href="features.html#command-line-feature-options"><code>--features</code> command-line flag</a>. The resolver runs a second time to determine the actual features used when <em>compiling</em> a crate, based on the features selected on the command-line.</p>
-<p>Dependencies are resolved with the union of all features enabled on them. For example, if one package depends on the <a href="https://crates.io/crates/im"><code>im</code></a> package with the <a href="https://github.com/bodil/im-rs/blob/v15.0.0/Cargo.toml#L46"><code>serde</code> dependency</a> enabled and another package depends on it with the <a href="https://github.com/bodil/im-rs/blob/v15.0.0/Cargo.toml#L47"><code>rayon</code> dependency</a> enabled, then <code>im</code> will be built with both features enabled, and the <code>serde</code> and <code>rayon</code> crates will be included in the resolve graph. If no packages depend on <code>im</code> with those features, then those optional dependencies will be ignored, and they will not affect resolution.</p>
-<p>When building multiple packages in a workspace (such as with <code>--workspace</code> or multiple <code>-p</code> flags), the features of the dependencies of all of those packages are unified. If you have a circumstance where you want to avoid that unification for different workspace members, you will need to build them via separate <code>cargo</code> invocations.</p>
-<p>The resolver will skip over versions of packages that are missing required features. For example, if a package depends on version <code>^1</code> of <a href="https://crates.io/crates/regex"><code>regex</code></a> with the <a href="https://github.com/rust-lang/regex/blob/1.3.0/Cargo.toml#L56"><code>perf</code> feature</a>, then the oldest version it can select is <code>1.3.0</code>, because versions prior to that did not contain the <code>perf</code> feature. Similarly, if a feature is removed from a new release, then packages that require that feature will be stuck on the older releases that contain that feature. It is discouraged to remove features in a SemVer-compatible release. Beware that optional dependencies also define an implicit feature, so removing an optional dependency or making it non-optional can cause problems, see <a href="semver.html#cargo-remove-opt-dep">removing an optional dependency</a>.</p>
-<h4 id="feature-resolver-version-2"><a class="header" href="#feature-resolver-version-2">Feature resolver version 2</a></h4>
-<p>When <code>resolver = "2"</code> is specified in <code>Cargo.toml</code> (see <a href="#resolver-versions">resolver versions</a> below), a different feature resolver is used which uses a different algorithm for unifying features. The version <code>"1"</code> resolver will unify features for a package no matter where it is specified. The version <code>"2"</code> resolver will avoid unifying features in the following situations:</p>
+<p><code>Cargo.lock</code>을 생성하기 위해, 리졸버는 모든 <a href="workspaces.html">워크스페이스</a> 구성원의 모든 <a href="features.html">기능(features)</a>이 활성화된 것처럼 의존성 그래프를 빌드합니다. 이는 <a href="features.html#command-line-feature-options"><code>--features</code> 명령줄 플래그</a>를 통해 기능이 추가되거나 제거될 때 모든 선택적 의존성을 사용할 수 있고 나머지 그래프와 적절하게 해결되도록 보장합니다. 리졸버는 명령줄에서 선택된 기능을 기반으로 크레이트를 _컴파일_할 때 실제로 사용되는 기능을 결정하기 위해 두 번째로 실행됩니다.</p>
+<p>의존성은 활성화된 모든 기능의 합집합으로 해결됩니다. 예를 들어, 한 패키지가 <a href="https://github.com/bodil/im-rs/blob/v15.0.0/Cargo.toml#L46"><code>serde</code> 의존성</a>이 활성화된 <a href="https://crates.io/crates/im"><code>im</code></a> 패키지에 의존하고 다른 패키지가 <a href="https://github.com/bodil/im-rs/blob/v15.0.0/Cargo.toml#L47"><code>rayon</code> 의존성</a>이 활성화된 해당 패키지에 의존하는 경우, <code>im</code>은 두 기능이 모두 활성화된 상태로 빌드되며 <code>serde</code> 및 <code>rayon</code> 크레이트가 해결 그래프에 포함됩니다. 해당 기능들을 가진 <code>im</code>에 의존하는 패키지가 없으면 해당 선택적 의존성들은 무시되며 해결에 영향을 주지 않습니다.</p>
+<p>워크스페이스에서 여러 패키지를 빌드할 때(예: <code>--workspace</code> 또는 여러 개의 <code>-p</code> 플래그 사용 시), 해당 패키지들의 모든 의존성 기능들이 통합됩니다. 서로 다른 워크스페이스 구성원에 대해 이러한 통합을 피하고 싶은 상황이라면, 별도의 <code>cargo</code> 호출을 통해 빌드해야 합니다.</p>
+<p>리졸버는 필요한 기능이 누락된 패키지 버전을 건너뜁니다. 예를 들어, 한 패키지가 <a href="https://github.com/rust-lang/regex/blob/1.3.0/Cargo.toml#L56"><code>perf</code> 기능</a>이 활성화된 <a href="https://crates.io/crates/regex"><code>regex</code></a>의 <code>^1</code> 버전에 의존하는 경우, 그 이전 버전들에는 <code>perf</code> 기능이 포함되어 있지 않으므로 선택할 수 있는 가장 오래된 버전은 <code>1.3.0</code>이 됩니다. 마찬가지로 새로운 릴리스에서 기능이 제거되면, 해당 기능을 요구하는 패키지들은 해당 기능이 포함된 이전 릴리스에 고정됩니다. SemVer 호환 릴리스에서 기능을 제거하는 것은 권장되지 않습니다. 선택적 의존성도 암시적 기능을 정의하므로, 선택적 의존성을 제거하거나 비선택적으로 만드는 것은 문제를 일으킬 수 있습니다. <a href="semver.html#cargo-remove-opt-dep">선택적 의존성 제거</a>를 참조하세요.</p>
+<h4 id="기능-리졸버-버전-2"><a class="header" href="#기능-리졸버-버전-2">기능 리졸버 버전 2</a></h4>
+<p><code>Cargo.toml</code>에 <code>resolver = "2"</code>가 지정되면 (아래 <a href="#resolver-versions">리졸버 버전</a> 참조), 기능 통합을 위해 다른 알고리즘을 사용하는 별도의 기능 리졸버가 사용됩니다. 버전 <code>"1"</code> 리졸버는 패키지가 어디에 지정되어 있든 관계없이 해당 패키지의 기능들을 통합합니다. 버전 <code>"2"</code> 리졸버는 다음과 같은 상황에서 기능 통합을 피합니다.</p>
 <ul>
 <li>
-<p>Features for target-specific dependencies are not enabled if the target is not currently being built. For example:</p>
+<p>현재 빌드 중인 타겟이 아닌 경우 타겟별 의존성의 기능은 활성화되지 않습니다. 예를 들어 다음과 같습니다.</p>
 <pre><code class="language-toml">[dependencies.common]
 version = "1.0"
 features = ["f1"]
@@ -412,99 +412,99 @@ features = ["f1"]
 version = "1.0"
 features = ["f2"]
 </code></pre>
-<p>When building this example for a non-Windows platform, the <code>f2</code> feature will <em>not</em> be enabled.</p>
+<p>이 예제를 윈도우가 아닌 플랫폼용으로 빌드할 때, <code>f2</code> 기능은 활성화되지 <em>않습니다</em>.</p>
 </li>
 <li>
-<p>Features enabled on <a href="specifying-dependencies.html#build-dependencies">build-dependencies</a> or proc-macros will not be unified when those same dependencies are used as a normal dependency. For example:</p>
+<p><a href="specifying-dependencies.html#build-dependencies">빌드 의존성(build-dependencies)</a> 또는 절차적 매크로(proc-macro)에서 활성화된 기능들은 해당 의존성이 일반 의존성으로 사용될 때 통합되지 않습니다. 예를 들어 다음과 같습니다.</p>
 <pre><code class="language-toml">[dependencies]
 log = "0.4"
 
 [build-dependencies]
 log = {version = "0.4", features=['std']}
 </code></pre>
-<p>When building the build script, the <code>log</code> crate will be built with the <code>std</code> feature. When building the library of your package, it will not enable the feature.</p>
+<p>빌드 스크립트를 빌드할 때, <code>log</code> 크레이트는 <code>std</code> 기능이 활성화된 상태로 빌드됩니다. 사용자의 패키지 라이브러리를 빌드할 때는 해당 기능이 활성화되지 않습니다.</p>
 </li>
 <li>
-<p>Features enabled on <a href="specifying-dependencies.html#development-dependencies">dev-dependencies</a> will not be unified when those same dependencies are used as a normal dependency, unless those dev-dependencies are currently being built. For example:</p>
+<p><a href="specifying-dependencies.html#development-dependencies">개발 의존성(dev-dependencies)</a>에서 활성화된 기능들은 해당 의존성이 일반 의존성으로 사용될 때 통합되지 않습니다 (단, 해당 개발 의존성이 현재 빌드 중인 경우는 제외). 예를 들어 다음과 같습니다.</p>
 <pre><code class="language-toml">[dependencies]
 serde = {version = "1.0", default-features = false}
 
 [dev-dependencies]
 serde = {version = "1.0", features = ["std"]}
 </code></pre>
-<p>In this example, the library will normally link against <code>serde</code> without the <code>std</code> feature. However, when built as a test or example, it will include the <code>std</code> feature. For example, <code>cargo test</code> or <code>cargo build --all-targets</code> will unify these features. Note that dev-dependencies in dependencies are always ignored, this is only relevant for the top-level package or workspace members.</p>
+<p>이 예시에서 라이브러리는 평소에는 <code>std</code> 기능 없이 <code>serde</code>에 링크됩니다. 하지만 테스트나 예제로 빌드될 때는 <code>std</code> 기능이 포함됩니다. 예를 들어, <code>cargo test</code>나 <code>cargo build --all-targets</code>는 이러한 기능들을 통합합니다. 의존성 내의 개발 의존성은 항상 무시되며, 이는 최상위 패키지 또는 워크스페이스 구성원에게만 해당된다는 점에 유의하세요.</p>
 </li>
 </ul>
 <h3 id="links"><a class="header" href="#links"><code>links</code></a></h3>
-<p>The <a href="manifest.html#the-links-field"><code>links</code> field</a> is used to ensure only one copy of a native library is linked into a binary. The resolver will attempt to find a graph where there is only one instance of each <code>links</code> name. If it is unable to find a graph that satisfies that constraint, it will return an error.</p>
-<p>For example, it is an error if one package depends on <a href="https://crates.io/crates/libgit2-sys"><code>libgit2-sys</code></a> version <code>0.11</code> and another depends on <code>0.12</code>, because Cargo is unable to unify those, but they both link to the <code>git2</code> native library. Due to this requirement, it is encouraged to be very careful when making SemVer-incompatible releases with the <code>links</code> field if your library is in common use.</p>
-<h3 id="yanked-versions"><a class="header" href="#yanked-versions">Yanked versions</a></h3>
-<p><a href="publishing.html#cargo-yank">Yanked releases</a> are those that are marked that they should not be used. When the resolver is building the graph, it will ignore all yanked releases unless they already exist in the <code>Cargo.lock</code> file or are explicitly requested by the <a href="../commands/cargo-update.html#option-cargo-update---precise"><code>--precise</code></a> flag of <code>cargo update</code> (nightly only).</p>
-<h2 id="dependency-updates"><a class="header" href="#dependency-updates">Dependency updates</a></h2>
-<p>Dependency resolution is automatically performed by all Cargo commands that need to know about the dependency graph. For example, <a href="../commands/cargo-build.html"><code>cargo build</code></a> will run the resolver to discover all the dependencies to build. After the first time it runs, the result is stored in the <code>Cargo.lock</code> file. Subsequent commands will run the resolver, keeping dependencies locked to the versions in <code>Cargo.lock</code> <em>if it can</em>.</p>
-<p>If the dependency list in <code>Cargo.toml</code> has been modified, for example changing the version of a dependency from <code>1.0</code> to <code>2.0</code>, then the resolver will select a new version for that dependency that matches the new requirements. If that new dependency introduces new requirements, those new requirements may also trigger additional updates. The <code>Cargo.lock</code> file will be updated with the new result. The <code>--locked</code> or <code>--frozen</code> flags can be used to change this behavior to prevent automatic updates when requirements change, and return an error instead.</p>
-<p><a href="../commands/cargo-update.html"><code>cargo update</code></a> can be used to update the entries in <code>Cargo.lock</code> when new versions are published. Without any options, it will attempt to update all packages in the lock file. The <code>-p</code> flag can be used to target the update for a specific package, and other flags such as <code>--recursive</code> or <code>--precise</code> can be used to control how versions are selected.</p>
-<h2 id="overrides"><a class="header" href="#overrides">Overrides</a></h2>
-<p>Cargo has several mechanisms to override dependencies within the graph. The <a href="overriding-dependencies.html">Overriding Dependencies</a> chapter goes into detail on how to use overrides. The overrides appear as an overlay to a registry, replacing the patched version with the new entry. Otherwise, resolution is performed like normal.</p>
-<h2 id="dependency-kinds"><a class="header" href="#dependency-kinds">Dependency kinds</a></h2>
-<p>There are three kinds of dependencies in a package: normal, <a href="specifying-dependencies.html#build-dependencies">build</a>, and <a href="specifying-dependencies.html#development-dependencies">dev</a>. For the most part these are all treated the same from the perspective of the resolver. One difference is that dev-dependencies for non-workspace members are always ignored, and do not influence resolution.</p>
-<p><a href="specifying-dependencies.html#platform-specific-dependencies">Platform-specific dependencies</a> with the <code>[target]</code> table are resolved as-if all platforms are enabled. In other words, the resolver ignores the platform or <code>cfg</code> expression.</p>
-<h3 id="dev-dependency-cycles"><a class="header" href="#dev-dependency-cycles">dev-dependency cycles</a></h3>
-<p>Usually the resolver does not allow cycles in the graph, but it does allow them for <a href="specifying-dependencies.html#development-dependencies">dev-dependencies</a>. For example, project “foo” has a dev-dependency on “bar”, which has a normal dependency on “foo” (usually as a “path” dependency). This is allowed because there isn’t really a cycle from the perspective of the build artifacts. In this example, the “foo” library is built (which does not need “bar” because “bar” is only used for tests), and then “bar” can be built depending on “foo”, then the “foo” tests can be built linking to “bar”.</p>
-<p>Beware that this can lead to confusing errors. In the case of building library unit tests, there are actually two copies of the library linked into the final test binary: the one that was linked with “bar”, and the one built that contains the unit tests. Similar to the issues highlighted in the <a href="#version-incompatibility-hazards">Version-incompatibility hazards</a> section, the types between the two are not compatible. Be careful when exposing types of “foo” from “bar” in this situation, since the “foo” unit tests won’t treat them the same as the local types.</p>
-<p>If possible, try to split your package into multiple packages and restructure it so that it remains strictly acyclic.</p>
-<h2 id="resolver-versions"><a class="header" href="#resolver-versions">Resolver versions</a></h2>
-<p>Different resolver behavior can be specified through the resolver version in <code>Cargo.toml</code> like this:</p>
+<p><a href="manifest.html#the-links-field"><code>links</code> 필드</a>는 네이티브 라이브러리의 단 한 개의 복사본만 바이너리에 링크되도록 보장하는 데 사용됩니다. 리졸버는 각 <code>links</code> 이름의 인스턴스가 하나만 존재하는 그래프를 찾으려고 시도합니다. 해당 제약 조건을 만족하는 그래프를 찾을 수 없는 경우 오류를 반환합니다.</p>
+<p>예를 들어, 한 패키지가 <a href="https://crates.io/crates/libgit2-sys"><code>libgit2-sys</code></a> <code>0.11</code> 버전에 의존하고 다른 패키지가 <code>0.12</code>에 의존하는 경우, Cargo가 이를 통합할 수 없으면서 둘 다 <code>git2</code> 네이티브 라이브러리에 링크하므로 오류가 발생합니다. 이러한 요구 사항 때문에, 라이브러리가 널리 사용되는 경우 <code>links</code> 필드를 사용하여 SemVer 비호환 릴리스를 만들 때 매우 주의할 것을 권장합니다.</p>
+<h3 id="yank된-버전"><a class="header" href="#yank된-버전">Yank된 버전</a></h3>
+<p><a href="publishing.html#cargo-yank">Yank된 릴리스</a>는 사용해서는 안 된다고 표시된 릴리스들입니다. 리졸버가 그래프를 빌드할 때, <code>Cargo.lock</code> 파일에 이미 존재하거나 <code>cargo update</code>의 <a href="../commands/cargo-update.html#option-cargo-update---precise"><code>--precise</code></a> 플래그(나이틀리 전용)에 의해 명시적으로 요청되지 않는 한 모든 yank된 릴리스를 무시합니다.</p>
+<h2 id="의존성-업데이트"><a class="header" href="#의존성-업데이트">의존성 업데이트</a></h2>
+<p>의존성 해결은 의존성 그래프를 알아야 하는 모든 Cargo 명령어에 의해 자동으로 수행됩니다. 예를 들어, <a href="../commands/cargo-build.html"><code>cargo build</code></a>는 빌드할 모든 의존성을 찾기 위해 리졸버를 실행합니다. 처음 실행된 후 결과는 <code>Cargo.lock</code> 파일에 저장됩니다. 이후의 명령어들은 <em>가능한 한</em> 의존성을 <code>Cargo.lock</code>의 버전에 고정된 상태로 유지하며 리졸버를 실행합니다.</p>
+<p><code>Cargo.toml</code>의 의존성 목록이 수정된 경우(예: 의존성 버전을 <code>1.0</code>에서 <code>2.0</code>으로 변경), 리졸버는 새로운 요구 사항과 일치하는 해당 의존성의 새 버전을 선택합니다. 만약 그 새로운 의존성이 새로운 요구 사항을 도입한다면, 그러한 새로운 요구 사항들이 추가적인 업데이트를 유발할 수도 있습니다. <code>Cargo.lock</code> 파일은 새로운 결과로 업데이트됩니다. <code>--locked</code> 또는 <code>--frozen</code> 플래그를 사용하여 요구 사항이 변경될 때 자동 업데이트를 방지하고 대신 오류를 반환하도록 이 동작을 변경할 수 있습니다.</p>
+<p>새 버전이 게시될 때 <a href="../commands/cargo-update.html"><code>cargo update</code></a>를 사용하여 <code>Cargo.lock</code>의 항목들을 업데이트할 수 있습니다. 옵션 없이 실행하면 락 파일의 모든 패키지 업데이트를 시도합니다. <code>-p</code> 플래그를 사용하여 특정 패키지에 대한 업데이트를 대상으로 삼을 수 있으며, <code>--recursive</code> 또는 <code>--precise</code>와 같은 다른 플래그들을 사용하여 버전 선택 방식을 제어할 수 있습니다.</p>
+<h2 id="재정의overrides"><a class="header" href="#재정의overrides">재정의(Overrides)</a></h2>
+<p>Cargo는 그래프 내의 의존성을 재정의하기 위한 여러 메커니즘을 가지고 있습니다. <a href="overriding-dependencies.html">의존성 재정의</a> 장에서 재정의 사용 방법에 대해 자세히 다룹니다. 재정의는 레지스트리에 대한 오버레이로 나타나며, 패치된 버전을 새 항목으로 대체합니다. 그 외에는 해결 과정이 정상적으로 수행됩니다.</p>
+<h2 id="의존성-종류"><a class="header" href="#의존성-종류">의존성 종류</a></h2>
+<p>패키지에는 세 가지 종류의 의존성이 있습니다: 일반(normal), <a href="specifying-dependencies.html#build-dependencies">빌드(build)</a>, <a href="specifying-dependencies.html#development-dependencies">개발(dev)</a>입니다. 리졸버의 관점에서는 대부분 이들 모두를 동일하게 취급합니다. 한 가지 차이점은 워크스페이스 구성원이 아닌 경우 개발 의존성은 항상 무시되며 해결에 영향을 주지 않는다는 것입니다.</p>
+<p><code>[target]</code> 테이블을 사용하는 <a href="specifying-dependencies.html#platform-specific-dependencies">플랫폼별 의존성</a>은 모든 플랫폼이 활성화된 것처럼 해결됩니다. 즉, 리졸버는 플랫폼이나 <code>cfg</code> 식을 무시합니다.</p>
+<h3 id="개발-의존성-순환"><a class="header" href="#개발-의존성-순환">개발 의존성 순환</a></h3>
+<p>보통 리졸버는 그래프에서 순환(cycles)을 허용하지 않지만, <a href="specifying-dependencies.html#development-dependencies">개발 의존성</a>에 대해서는 허용합니다. 예를 들어, 프로젝트 “foo“가 “bar“를 개발 의존성으로 가지고 있고, “bar“가 “foo“를 일반 의존성(보통 “경로” 의존성으로)으로 가지고 있는 경우입니다. 이는 빌드 산출물 관점에서는 실제 순환이 아니므로 허용됩니다. 이 예에서 “foo” 라이브러리가 먼저 빌드되고(“bar“는 테스트용으로만 쓰이므로 빌드에 필요 없음), 그 다음 “foo“에 의존하는 “bar“가 빌드될 수 있으며, 마지막으로 “bar“를 링크하는 “foo” 테스트가 빌드될 수 있습니다.</p>
+<p>이로 인해 혼란스러운 오류가 발생할 수 있음을 주의하세요. 라이브러리 단위 테스트를 빌드하는 경우, 최종 테스트 바이너리에는 실제로 두 개의 라이브러리 복사본이 링크됩니다: 하나는 “bar“와 링크된 것이고, 다른 하나는 단위 테스트를 포함하여 빌드된 것입니다. <a href="#version-incompatibility-hazards">버전 비호환성 위험</a> 섹션에서 강조된 문제와 유사하게, 이들 두 타입은 서로 호환되지 않습니다. 이 상황에서 “bar“에서 “foo“의 타입을 노출할 때 주의하십시오. “foo” 단위 테스트는 이를 로컬 타입과 동일하게 취급하지 않기 때문입니다.</p>
+<p>가능하다면 패키지를 여러 패키지로 분할하고 구조를 재조정하여 엄격하게 비순환 상태를 유지하도록 하세요.</p>
+<h2 id="리졸버-버전"><a class="header" href="#리졸버-버전">리졸버 버전</a></h2>
+<p>다음과 같이 <code>Cargo.toml</code>의 리졸버 버전을 통해 서로 다른 리졸버 동작을 지정할 수 있습니다.</p>
 <pre><code class="language-toml">[package]
 name = "my-package"
 version = "1.0.0"
 resolver = "2"
 </code></pre>
 <ul>
-<li><code>"1"</code> (default)</li>
-<li><code>"2"</code> (<a href="manifest.html#the-edition-field"><code>edition = "2021"</code></a> default): Introduces changes in <a href="#features">feature unification</a>. See the <a href="features.html#feature-resolver-version-2">features chapter</a> for more details.</li>
-<li><code>"3"</code> (<a href="manifest.html#the-edition-field"><code>edition = "2024"</code></a> default, requires Rust 1.84+): Change the default for <a href="config.html#resolverincompatible-rust-versions"><code>resolver.incompatible-rust-versions</code></a> from <code>allow</code> to <code>fallback</code></li>
+<li><code>"1"</code> (기본값)</li>
+<li><code>"2"</code> (<a href="manifest.html#the-edition-field"><code>edition = "2021"</code></a> 기본값): <a href="#features">기능 통합(feature unification)</a>에 변화를 도입합니다. 자세한 내용은 <a href="features.html#feature-resolver-version-2">기능(features) 장</a>을 참조하세요.</li>
+<li><code>"3"</code> (<a href="manifest.html#the-edition-field"><code>edition = "2024"</code></a> 기본값, Rust 1.84 이상 필요): <a href="config.html#resolverincompatible-rust-versions"><code>resolver.incompatible-rust-versions</code></a>의 기본값을 <code>allow</code>에서 <code>fallback</code>으로 변경합니다.</li>
 </ul>
-<p>The resolver is a global option that affects the entire workspace. The <code>resolver</code> version in dependencies is ignored, only the value in the top-level package will be used. If using a <a href="workspaces.html#virtual-workspace">virtual workspace</a>, the version should be specified in the <code>[workspace]</code> table, for example:</p>
+<p>리졸버는 전체 워크스페이스에 영향을 미치는 전역 옵션입니다. 의존성 내의 <code>resolver</code> 버전은 무시되며, 최상위 패키지의 값만 사용됩니다. <a href="workspaces.html#virtual-workspace">가상 워크스페이스</a>를 사용하는 경우 <code>[workspace]</code> 테이블에 버전을 지정해야 합니다. 예를 들어 다음과 같습니다.</p>
 <pre><code class="language-toml">[workspace]
 members = ["member1", "member2"]
 resolver = "2"
 </code></pre>
 <blockquote>
-<p><strong>MSRV:</strong> Requires 1.51+</p>
+<p><strong>MSRV:</strong> 1.51 이상 필요</p>
 </blockquote>
-<h2 id="recommendations"><a class="header" href="#recommendations">Recommendations</a></h2>
-<p>The following are some recommendations for setting the version within your package, and for specifying dependency requirements. These are general guidelines that should apply to common situations, but of course some situations may require specifying unusual requirements.</p>
+<h2 id="권장-사항"><a class="header" href="#권장-사항">권장 사항</a></h2>
+<p>다음은 패키지 내 버전을 설정하고 의존성 요구 사항을 지정하기 위한 몇 가지 권장 사항입니다. 이는 일반적인 상황에 적용되어야 할 보편적인 지침이지만, 물론 일부 상황에서는 특이한 요구 사항을 지정해야 할 수도 있습니다.</p>
 <ul>
 <li>
-<p>Follow the <a href="semver.html">SemVer guidelines</a> when deciding how to update your version number, and whether or not you will need to make a SemVer-incompatible version change.</p>
+<p>버전 번호를 업데이트하는 방법과 SemVer 비호환 버전 변경이 필요한지 여부를 결정할 때 <a href="semver.html">SemVer 가이드라인</a>을 따르세요.</p>
 </li>
 <li>
-<p>Use caret requirements for dependencies, such as <code>"1.2.3"</code>, for most situations. This ensures that the resolver can be maximally flexible in choosing a version while maintaining build compatibility.</p>
+<p>대부분의 상황에서 의존성에 대해 <code>"1.2.3"</code>과 같은 캐럿 요구 사항을 사용하세요. 이는 리졸버가 빌드 호환성을 유지하면서 버전을 선택할 때 최대한의 유연성을 가질 수 있도록 보장합니다.</p>
 <ul>
-<li>Specify all three components with the version you are currently using. This helps set the minimum version that will be used, and ensures that other users won’t end up with an older version of the dependency that might be missing something that your package requires.</li>
-<li>Avoid <code>*</code> requirements, as they are not allowed on <a href="https://crates.io/">crates.io</a>, and they can pull in SemVer-breaking changes during a normal <code>cargo update</code>.</li>
-<li>Avoid overly broad version requirements. For example, <code>&gt;=2.0.0</code> can pull in any SemVer-incompatible version, like version <code>5.0.0</code>, which can result in broken builds in the future.</li>
-<li>Avoid overly narrow version requirements if possible. For example, if you specify a tilde requirement like <code>bar="~1.3"</code>, and another package specifies a requirement of <code>bar="1.4"</code>, this will fail to resolve, even though minor releases should be compatible.</li>
+<li>현재 사용 중인 버전의 세 가지 구성 요소를 모두 지정하세요. 이는 사용될 최소 버전을 설정하는 데 도움이 되며, 다른 사용자가 사용자의 패키지가 필요로 하는 무언가가 누락된 오래된 버전의 의존성을 사용하게 되는 일을 방지합니다.</li>
+<li><code>*</code> 요구 사항은 <a href="https://crates.io/">crates.io</a>에서 허용되지 않으며, 일반적인 <code>cargo update</code> 중에 SemVer 파괴적 변경을 가져올 수 있으므로 피하세요.</li>
+<li>과도하게 넓은 버전 요구 사항을 피하세요. 예를 들어 <code>&gt;=2.0.0</code>은 <code>5.0.0</code> 버전과 같은 모든 SemVer 비호환 버전을 가져올 수 있으며, 이는 나중에 빌드 오류를 초래할 수 있습니다.</li>
+<li>가능하다면 과도하게 좁은 버전 요구 사항도 피하세요. 예를 들어 <code>bar="~1.3"</code>과 같은 틸드 요구 사항을 지정하고 다른 패키지가 <code>bar="1.4"</code> 요구 사항을 지정한다면, 부 릴리스(minor releases) 간에 호환되어야 함에도 불구하고 해결에 실패하게 됩니다.</li>
 </ul>
 </li>
 <li>
-<p>Try to keep the dependency versions up-to-date with the actual minimum versions that your library requires. For example, if you have a requirement of <code>bar="1.0.12"</code>, and then in a future release you start using new features added in the <code>1.1.0</code> release of “bar”, update your dependency requirement to <code>bar="1.1.0"</code>.</p>
-<p>If you fail to do this, it may not be immediately obvious because Cargo can opportunistically choose the newest version when you run a blanket <code>cargo update</code>. However, if another user depends on your library, and runs <code>cargo update your-library</code>, it will <em>not</em> automatically update “bar” if it is locked in their <code>Cargo.lock</code>. It will only update “bar” in that situation if the dependency declaration is also updated. Failure to do so can cause confusing build errors for the user using <code>cargo update your-library</code>.</p>
+<p>의존성 버전을 라이브러리가 요구하는 실제 최소 버전으로 최신 상태로 유지하도록 노력하세요. 예를 들어 요구 사항이 <code>bar="1.0.12"</code>인데 향후 릴리스에서 “bar“의 <code>1.1.0</code> 릴리스에 추가된 새로운 기능을 사용하기 시작했다면, 의존성 요구 사항을 <code>bar="1.1.0"</code>으로 업데이트하세요.</p>
+<p>이를 소홀히 하면, 일괄적인 <code>cargo update</code> 실행 시 Cargo가 기회주의적으로 최신 버전을 선택할 수 있기 때문에 즉시 드러나지 않을 수 있습니다. 그러나 다른 사용자가 사용자의 라이브러리에 의존하고 <code>cargo update your-library</code>를 실행할 때, “bar“가 그들의 <code>Cargo.lock</code>에 고정되어 있다면 자동으로 업데이트되지 <em>않습니다</em>. 그 상황에서 “bar“는 의존성 선언도 업데이트된 경우에만 업데이트됩니다. 그렇게 하지 않으면 <code>cargo update your-library</code>를 사용하는 사용자에게 혼란스러운 빌드 오류가 발생할 수 있습니다.</p>
 </li>
 <li>
-<p>If two packages are tightly coupled, then an <code>=</code> dependency requirement may help ensure that they stay in sync. For example, a library with a companion proc-macro library will sometimes make assumptions between the two libraries that won’t work well if the two are out of sync (and it is never expected to use the two libraries independently). The parent library can use an <code>=</code> requirement on the proc-macro, and re-export the macros for easy access.</p>
+<p>두 패키지가 밀접하게 결합된 경우, <code>=</code> 의존성 요구 사항이 두 패키지의 동기화 상태를 유지하는 데 도움이 될 수 있습니다. 예를 들어, 동반 절차적 매크로(proc-macro) 라이브러리가 있는 라이브러리는 가끔 두 라이브러리 간에 가정을 하게 되는데, 두 라이브러리가 동기화되지 않으면 제대로 작동하지 않을 수 있습니다 (그리고 두 라이브러리를 독립적으로 사용하는 일은 결코 예상되지 않습니다). 부모 라이브러리는 절차적 매크로에 대해 <code>=</code> 요구 사항을 사용하고, 쉬운 접근을 위해 매크로를 재내보낼 수 있습니다.</p>
 </li>
 <li>
-<p><code>0.0.x</code> versions can be used for packages that are permanently unstable.</p>
+<p><code>0.0.x</code> 버전은 영구적으로 불안정한 패키지에 사용될 수 있습니다.</p>
 </li>
 </ul>
-<p>In general, the stricter you make the dependency requirements, the more likely it will be for the resolver to fail. Conversely, if you use requirements that are too loose, it may be possible for new versions to be published that will break the build.</p>
-<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
-<p>The following illustrates some problems you may experience, and some possible solutions.</p>
-<h3 id="why-was-a-dependency-included"><a class="header" href="#why-was-a-dependency-included">Why was a dependency included?</a></h3>
-<p>Say you see dependency <code>rand</code> in the <code>cargo check</code> output but don’t think it’s needed and want to understand why it’s being pulled in.</p>
-<p>You can run</p>
+<p>일반적으로 의존성 요구 사항을 엄격하게 만들수록 리졸버가 실패할 가능성이 높아집니다. 반대로 요구 사항을 너무 느슨하게 사용하면, 빌드를 깨뜨리는 새 버전이 게시될 가능성이 있습니다.</p>
+<h2 id="문제-해결"><a class="header" href="#문제-해결">문제 해결</a></h2>
+<p>다음은 발생할 수 있는 몇 가지 문제와 가능한 해결책을 보여줍니다.</p>
+<h3 id="의존성이-왜-포함되었나요"><a class="header" href="#의존성이-왜-포함되었나요">의존성이 왜 포함되었나요?</a></h3>
+<p><code>cargo check</code> 출력에 <code>rand</code> 의존성이 표시되는데 이것이 필요하지 않다고 생각되어 왜 끌어와졌는지 이해하고 싶다고 합시다.</p>
+<p>다음을 실행할 수 있습니다.</p>
 <pre><code class="language-console">$ cargo tree --workspace --target all --all-features --invert rand
 rand v0.8.5
 └── ...
@@ -512,8 +512,8 @@ rand v0.8.5
 rand v0.8.5
 └── ...
 </code></pre>
-<h3 id="why-was-that-feature-on-this-dependency-enabled"><a class="header" href="#why-was-that-feature-on-this-dependency-enabled">Why was that feature on this dependency enabled?</a></h3>
-<p>You might identify that it was an activated feature that caused <code>rand</code> to show up.  <strong>To figure out which package activated the feature, you can add the <code>--edges features</code></strong></p>
+<h3 id="이-의존성의-해당-기능이-왜-활성화되었나요"><a class="header" href="#이-의존성의-해당-기능이-왜-활성화되었나요">이 의존성의 해당 기능이 왜 활성화되었나요?</a></h3>
+<p>활성화된 어떤 기능 때문에 <code>rand</code>가 나타났다는 것을 알게 될 수도 있습니다. <strong>어떤 패키지가 그 기능을 활성화했는지 확인하려면 <code>--edges features</code>를 추가하면 됩니다.</strong></p>
 <pre><code class="language-console">$ cargo tree --workspace --target all --all-features --edges features --invert rand
 rand v0.8.5
 └── ...
@@ -521,8 +521,8 @@ rand v0.8.5
 rand v0.8.5
 └── ...
 </code></pre>
-<h3 id="unexpected-dependency-duplication"><a class="header" href="#unexpected-dependency-duplication">Unexpected dependency duplication</a></h3>
-<p>You see multiple instances of <code>rand</code> when you run</p>
+<h3 id="예기치-않은-의존성-중복"><a class="header" href="#예기치-않은-의존성-중복">예기치 않은 의존성 중복</a></h3>
+<p>다음을 실행할 때 <code>rand</code> 인스턴스가 여러 개 표시되는 경우입니다.</p>
 <pre><code class="language-console">$ cargo tree --workspace --target all --all-features --duplicates
 rand v0.7.3
 └── ...
@@ -530,38 +530,38 @@ rand v0.7.3
 rand v0.8.5
 └── ...
 </code></pre>
-<p>The resolver algorithm has converged on a solution that includes two copies of a dependency when one would suffice. For example:</p>
-<pre><code class="language-toml"># Package A
+<p>리졸버 알고리즘이 하나면 충분한 의존성 복사본을 두 개 포함하는 해결책으로 수렴되었습니다. 예를 들어 다음과 같습니다.</p>
+<pre><code class="language-toml"># 패키지 A
 [dependencies]
 rand = "0.7"
 
-# Package B
+# 패키지 B
 [dependencies]
-rand = "&gt;=0.6"  # note: open requirements such as this are discouraged
+rand = "&gt;=0.6"  # 참고: 이와 같이 열린 요구 사항은 권장되지 않습니다
 </code></pre>
-<p>In this example, Cargo may build two copies of the <code>rand</code> crate, even though a single copy at version <code>0.7.3</code> would meet all requirements. This is because the resolver’s algorithm favors building the latest available version of <code>rand</code> for Package B, which is <code>0.8.5</code> at the time of this writing, and that is incompatible with Package A’s specification. The resolver’s algorithm does not currently attempt to “deduplicate” in this situation.</p>
-<p>The use of open-ended version requirements like <code>&gt;=0.6</code> is discouraged in Cargo. But, if you run into this situation, the <a href="../commands/cargo-update.html"><code>cargo update</code></a> command with the <code>--precise</code> flag can be used to manually remove such duplications.</p>
-<h3 id="why-wasnt-a-newer-version-selected"><a class="header" href="#why-wasnt-a-newer-version-selected">Why wasn’t a newer version selected?</a></h3>
-<p>Say you noticed that the latest version of a dependency wasn’t selected when you ran:</p>
+<p>이 예에서 <code>0.7.3</code> 버전의 단일 복사본이 모든 요구 사항을 충족함에도 불구하고, Cargo는 <code>rand</code> 크레이트 복사본 두 개를 빌드할 수 있습니다. 이는 리졸버 알고리즘이 패키지 B에 대해 현재 사용 가능한 최신 <code>rand</code> 버전(이 글을 쓰는 시점에는 <code>0.8.5</code>) 빌드를 선호하며, 이는 패키지 A의 명세와 호환되지 않기 때문입니다. 리졸버 알고리즘은 현재 이 상황에서 “중복 제거(deduplicate)“를 시도하지 않습니다.</p>
+<p>Cargo에서는 <code>&gt;=0.6</code>과 같은 개방형 버전 요구 사항의 사용을 권장하지 않습니다. 하지만 이런 상황에 처하게 된다면, <code>--precise</code> 플래그와 함께 <a href="../commands/cargo-update.html"><code>cargo update</code></a> 명령어를 사용하여 이러한 중복을 수동으로 제거할 수 있습니다.</p>
+<h3 id="왜-더-최신-버전이-선택되지-않았나요"><a class="header" href="#왜-더-최신-버전이-선택되지-않았나요">왜 더 최신 버전이 선택되지 않았나요?</a></h3>
+<p>다음을 실행했을 때 의존성의 최신 버전이 선택되지 않은 것을 발견했다고 합시다.</p>
 <pre><code class="language-console">$ cargo update
 </code></pre>
-<p>You can enable some extra logging to see why this happened:</p>
+<p>왜 이런 일이 발생했는지 확인하기 위해 몇 가지 추가 로깅을 활성화할 수 있습니다.</p>
 <pre><code class="language-console">$ env CARGO_LOG=cargo::core::resolver=trace cargo update
 </code></pre>
-<p><strong>Note:</strong> Cargo log targets and levels may change over time.</p>
-<h3 id="semver-breaking-patch-release-breaks-the-build"><a class="header" href="#semver-breaking-patch-release-breaks-the-build">SemVer-breaking patch release breaks the build</a></h3>
-<p>Sometimes a project may inadvertently publish a point release with a SemVer-breaking change. When users update with <code>cargo update</code>, they will pick up this new release, and then their build may break. In this situation, it is recommended that the project should <a href="publishing.html#cargo-yank">yank</a> the release, and either remove the SemVer-breaking change, or publish it as a new SemVer-major version increase.</p>
-<p>If the change happened in a third-party project, if possible try to (politely!) work with the project to resolve the issue.</p>
-<p>While waiting for the release to be yanked, some workarounds depend on the circumstances:</p>
+<p><strong>참고:</strong> Cargo 로그 타겟 및 레벨은 시간이 지남에 따라 변경될 수 있습니다.</p>
+<h3 id="semver를-파괴하는-패치-릴리스가-빌드를-깨뜨림"><a class="header" href="#semver를-파괴하는-패치-릴리스가-빌드를-깨뜨림">SemVer를 파괴하는 패치 릴리스가 빌드를 깨뜨림</a></h3>
+<p>때로는 프로젝트가 실수로 SemVer 파괴적 변경이 포함된 포인트 릴리스(point release)를 게시할 수 있습니다. 사용자가 <code>cargo update</code>를 통해 업데이트하면 이 새로운 릴리스를 가져오게 되고 빌드가 깨질 수 있습니다. 이런 상황에서 해당 프로젝트는 릴리스를 <a href="publishing.html#cargo-yank">yank</a>하고, SemVer 파괴적 변경을 제거하거나 새로운 SemVer 주 버전(major version) 상향으로 게시할 것을 권장합니다.</p>
+<p>만약 제삼자 프로젝트에서 변경이 발생했다면, 가능하다면 (정중하게!) 해당 프로젝트와 협력하여 문제를 해결해 보세요.</p>
+<p>릴리스가 yank되기를 기다리는 동안, 상황에 따라 몇 가지 우회 방법이 있습니다.</p>
 <ul>
-<li>If your project is the end product (such as a binary executable), just avoid updating the offending package in <code>Cargo.lock</code>. This can be done with the <code>--precise</code> flag in <a href="../commands/cargo-update.html"><code>cargo update</code></a>.</li>
-<li>If you publish a binary on <a href="https://crates.io/">crates.io</a>, then you can temporarily add an <code>=</code> requirement to force the dependency to a specific good version.
+<li>사용자의 프로젝트가 최종 제품(예: 바이너리 실행 파일)이라면, <code>Cargo.lock</code>에서 문제가 되는 패키지를 업데이트하지 않도록 하세요. 이는 <a href="../commands/cargo-update.html"><code>cargo update</code></a>의 <code>--precise</code> 플래그를 통해 수행할 수 있습니다.</li>
+<li><a href="https://crates.io/">crates.io</a>에 바이너리를 게시하는 경우, 일시적으로 <code>=</code> 요구 사항을 추가하여 의존성을 특정 안정 버전으로 강제할 수 있습니다.
 <ul>
-<li>Binary projects can alternatively recommend users to use the <code>--locked</code> flag with <a href="../commands/cargo-install.html"><code>cargo install</code></a> to use the original <code>Cargo.lock</code> that contains the known good version.</li>
+<li>바이너리 프로젝트는 대안으로 사용자에게 <a href="../commands/cargo-install.html"><code>cargo install</code></a> 시 <code>--locked</code> 플래그를 사용하여 알려진 안정 버전이 포함된 원래의 <code>Cargo.lock</code>을 사용하도록 권장할 수 있습니다.</li>
 </ul>
 </li>
-<li>Libraries may also consider publishing a temporary new release with stricter requirements that avoid the troublesome dependency. You may want to consider using range requirements (instead of <code>=</code>) to avoid overly-strict requirements that may conflict with other packages using the same dependency. Once the problem has been resolved, you can publish another point release that relaxes the dependency back to a caret requirement.</li>
-<li>If it looks like the third-party project is unable or unwilling to yank the release, then one option is to update your code to be compatible with the changes, and update the dependency requirement to set the minimum version to the new release. You will also need to consider if this is a SemVer-breaking change of your own library, for example if it exposes types from the dependency.</li>
+<li>라이브러리는 문제가 되는 의존성을 피하기 위해 더 엄격한 요구 사항을 가진 임시 새 릴리스 게시를 고려할 수 있습니다. 동일한 의존성을 사용하는 다른 패키지와 충돌할 수 있는 지나치게 엄격한 요구 사항을 피하기 위해 (<code>=</code> 대신) 범위 요구 사항 사용을 고려할 수도 있습니다. 문제가 해결되면 의존성을 다시 캐럿 요구 사항으로 완화하는 또 다른 포인트 릴리스를 게시할 수 있습니다.</li>
+<li>제삼자 프로젝트가 릴리스를 yank할 수 없거나 의사가 없는 것으로 보인다면, 한 가지 옵션은 사용자의 코드를 변경 사항과 호환되도록 업데이트하고 의존성 요구 사항의 최소 버전을 새 릴리스로 업데이트하는 것입니다. 이때 의존성의 타입을 노출하는 등의 이유로 사용자의 라이브러리에도 SemVer 파괴적 변경이 발생하는지 여부도 고려해야 합니다.</li>
 </ul>
 
                     </main>

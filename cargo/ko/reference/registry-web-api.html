@@ -220,278 +220,273 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="web-api"><a class="header" href="#web-api">Web API</a></h1>
-<p>A registry may host a web API at the location defined in <code>config.json</code> to support any of the actions listed below.</p>
-<p>Cargo includes the <code>Authorization</code> header for requests that require authentication. The header value is the API token. The server should respond with a 403 response code if the token is not valid. Users are expected to visit the registry’s website to obtain a token, and Cargo can store the token using the <a href="../commands/cargo-login.html"><code>cargo login</code></a> command, or by passing the token on the command-line.</p>
+                        <h1 id="웹-api"><a class="header" href="#웹-api">웹 API</a></h1>
+<p>레지스트리는 아래 나열된 작업들을 지원하기 위해 <code>config.json</code>에 정의된 위치에서 웹 API를 호스팅할 수 있습니다.</p>
+<p>Cargo는 인증이 필요한 요청에 <code>Authorization</code> 헤더를 포함합니다. 헤더 값은 API 토큰입니다. 토큰이 유효하지 않은 경우 서버는 403 응답 코드로 응답해야 합니다. 사용자는 레지스트리 웹사이트를 방문하여 토큰을 얻을 수 있으며, Cargo는 <a href="../commands/cargo-login.html"><code>cargo login</code></a> 명령어를 사용하거나 커맨드 라인에서 토큰을 전달받아 저장할 수 있습니다.</p>
 <p>Responses use a 2xx response code for success. Errors should use an appropriate response code, such as 404. Failure responses should have a JSON object with the following structure:</p>
 <pre><code class="language-javascript">{
-    // Array of errors to display to the user.
+    // 사용자에게 표시할 에러 배열입니다.
     "errors": [
         {
-            // The error message as a string.
-            "detail": "error message text"
+            // 문자열 형태의 에러 메시지입니다.
+            "detail": "에러 메시지 텍스트"
         }
     ]
 }
 </code></pre>
-<p>If the response has this structure Cargo will display the detailed message to the user, even if the response code is 200. If the response code indicates an error and the content does not have this structure, Cargo will display to the user a message intended to help debugging the server error. A server returning an <code>errors</code> object allows a registry to provide a more detailed or user-centric error message.</p>
-<p>For backwards compatibility, servers should ignore any unexpected query parameters or JSON fields. If a JSON field is missing, it should be assumed to be null. The endpoints are versioned with the <code>v1</code> component of the path, and Cargo is responsible for handling backwards compatibility fallbacks should any be required in the future.</p>
-<p>Cargo sets the following headers for all requests:</p>
+<p>응답이 이 구조를 가지고 있다면, Cargo는 응답 코드가 200이라 하더라도 상세 메시지를 사용자에게 표시합니다. 응답 코드가 에러를 나타내지만 내용이 이 구조를 가지고 있지 않다면, Cargo는 서버 에러 디버깅을 돕기 위한 메시지를 사용자에게 표시합니다. 서버가 <code>errors</code> 객체를 반환하면 레지스트리가 더 상세하거나 사용자 중심적인 에러 메시지를 제공할 수 있게 됩니다.</p>
+<p>하위 호환성을 위해, 서버는 예상치 못한 쿼리 파라미터나 JSON 필드를 무시해야 합니다. JSON 필드가 누락된 경우 null로 간주해야 합니다. 엔드포인트는 경로의 <code>v1</code> 부분을 통해 버전이 관리되며, 향후 하위 호환성 폴백이 필요한 경우 그 처리는 Cargo의 책임입니다.</p>
+<p>Cargo는 모든 요청에 대해 다음과 같은 헤더를 설정합니다.</p>
 <ul>
-<li><code>Content-Type</code>: <code>application/json</code> (for requests with a body payload)</li>
+<li><code>Content-Type</code>: <code>application/json</code> (바디 페이로드가 있는 요청의 경우)</li>
 <li><code>Accept</code>: <code>application/json</code></li>
-<li><code>User-Agent</code>: The Cargo version such as <code>cargo/1.32.0 (8610973aa 2019-01-02)</code>. This may be modified by the user in a configuration value. Added in 1.29.</li>
+<li><code>User-Agent</code>: <code>cargo/1.32.0 (8610973aa 2019-01-02)</code>와 같은 Cargo 버전 정보입니다. 사용자가 설정값을 통해 이를 수정할 수 있습니다. 1.29 버전에서 추가되었습니다.</li>
 </ul>
-<h2 id="publish"><a class="header" href="#publish">Publish</a></h2>
+<h2 id="배포publish"><a class="header" href="#배포publish">배포(Publish)</a></h2>
 <ul>
-<li>Endpoint: <code>/api/v1/crates/new</code></li>
-<li>Method: PUT</li>
-<li>Authorization: Included</li>
+<li>엔드포인트: <code>/api/v1/crates/new</code></li>
+<li>메서드: PUT</li>
+<li>인증(Authorization): 포함됨</li>
 </ul>
-<p>The publish endpoint is used to publish a new version of a crate. The server should validate the crate, make it available for download, and add it to the index.</p>
-<p>It is not required for the index to be updated before the successful response is sent. After a successful response, Cargo will poll the index for a short period of time to identify that the new crate has been added. If the crate does not appear in the index after a short period of time, then Cargo will display a warning letting the user know that the new crate is not yet available.</p>
-<p>The body of the data sent by Cargo is:</p>
+<p>배포(publish) 엔드포인트는 크레이트의 새 버전을 배포하는 데 사용됩니다. 서버는 크레이트를 검증하고, 다운로드 가능하게 만들며, 인덱스에 추가해야 합니다.</p>
+<p>성공 응답을 보내기 전에 인덱스가 반드시 업데이트되어야 할 필요는 없습니다. 성공 응답을 받은 후 Cargo는 짧은 시간 동안 인덱스를 폴링하여 새 크레이트가 추가되었는지 확인합니다. 일정 시간 후에도 크레이트가 인덱스에 나타나지 않으면 Cargo는 사용자에게 새 크레이트를 아직 사용할 수 없다는 경고를 표시합니다.</p>
+<p>Cargo가 보내는 데이터 본문은 다음과 같습니다.</p>
 <ul>
-<li>32-bit unsigned little-endian integer of the length of JSON data.</li>
-<li>Metadata of the package as a JSON object.</li>
-<li>32-bit unsigned little-endian integer of the length of the <code>.crate</code> file.</li>
-<li>The <code>.crate</code> file.</li>
+<li>JSON 데이터의 길이를 나타내는 32비트 부호 없는 리틀 엔디언 정수.</li>
+<li>JSON 객체 형태의 패키지 메타데이터.</li>
+<li><code>.crate</code> 파일의 길이를 나타내는 32비트 부호 없는 리틀 엔디언 정수.</li>
+<li><code>.crate</code> 파일.</li>
 </ul>
-<p>The following is a commented example of the JSON object. Some notes of some restrictions imposed by <a href="https://crates.io/">crates.io</a> are included only to illustrate some suggestions on types of validation that may be done, and should not be considered as an exhaustive list of restrictions <a href="https://crates.io/">crates.io</a> imposes.</p>
+<p>다음은 주석이 달린 JSON 객체의 예시입니다. <a href="https://crates.io/">crates.io</a>에서 부과하는 일부 제한 사항에 대한 참고 사항은 수행될 수 있는 검증 유형의 예시를 보여주기 위해 포함된 것이며, <a href="https://crates.io/">crates.io</a>가 부과하는 모든 제한 사항 목록으로 간주되어서는 안 됩니다.</p>
 <pre><code class="language-javascript">{
-    // The name of the package.
+    // 패키지의 이름입니다.
     "name": "foo",
-    // The version of the package being published.
+    // 배포 중인 패키지의 버전입니다.
     "vers": "0.1.0",
-    // Array of direct dependencies of the package.
+    // 패키지의 직접적인 의존성 배열입니다.
     "deps": [
         {
-            // Name of the dependency.
-            // If the dependency is renamed from the original package name,
-            // this is the original name. The new package name is stored in
-            // the `explicit_name_in_toml` field.
+            // 의존성의 이름입니다.
+            // 의존성 이름이 원래 패키지 이름에서 변경된 경우, 이는 원래 이름입니다.
+            // 새로운 패키지 이름은 `explicit_name_in_toml` 필드에 저장됩니다.
             "name": "rand",
-            // The semver requirement for this dependency.
+            // 이 의존성에 대한 semver 요구 사항입니다.
             "version_req": "^0.6",
-            // Array of features (as strings) enabled for this dependency.
+            // 이 의존성에 대해 활성화된 기능(feature)들의 배열(문자열)입니다.
             "features": ["i128_support"],
-            // Boolean of whether or not this is an optional dependency.
+            // 이것이 선택적 의존성인지 여부를 나타내는 불리언 값입니다.
             "optional": false,
-            // Boolean of whether or not default features are enabled.
+            // 기본 기능(default features)이 활성화되었는지 여부를 나타내는 불리언 값입니다.
             "default_features": true,
-            // The target platform for the dependency.
-            // null if not a target dependency.
-            // Otherwise, a string such as "cfg(windows)".
+            // 의존성에 대한 타겟 플랫폼입니다.
+            // 타겟 의존성이 아닌 경우 null입니다.
+            // 그 외의 경우, "cfg(windows)"와 같은 문자열입니다.
             "target": null,
-            // The dependency kind.
-            // "dev", "build", or "normal".
+            // 의존성 종류입니다.
+            // "dev", "build", 혹은 "normal"입니다.
             "kind": "normal",
-            // The URL of the index of the registry where this dependency is
-            // from as a string. If not specified or null, it is assumed the
-            // dependency is in the current registry.
+            // 이 의존성의 출처인 레지스트리의 인덱스 URL 문자열입니다.
+            // 지정되지 않았거나 null인 경우, 의존성이 현재 레지스트리에 있는 것으로 간주됩니다.
             "registry": null,
-            // If the dependency is renamed, this is a string of the new
-            // package name. If not specified or null, this dependency is not
-            // renamed.
+            // 의존성 이름이 변경된 경우, 이는 새로운 패키지 이름 문자열입니다.
+            // 지정되지 않았거나 null인 경우, 의존성 이름이 변경되지 않은 것입니다.
             "explicit_name_in_toml": null,
         }
     ],
-    // Set of features defined for the package.
-    // Each feature maps to an array of features or dependencies it enables.
-    // Cargo does not impose limitations on feature names, but crates.io
-    // requires alphanumeric ASCII, `_` or `-` characters.
+    // 패키지에 정의된 기능(feature)들의 집합입니다.
+    // 각 기능은 그것이 활성화하는 기능들이나 의존성들의 배열에 매핑됩니다.
+    // Cargo는 기능 이름에 제한을 두지 않지만, crates.io는 영문자 및 숫자 ASCII, `_`, `-` 문자를 요구합니다.
     "features": {
         "extras": ["rand/simd_support"]
     },
-    // List of strings of the authors.
-    // May be empty.
+    // 저자들의 문자열 리스트입니다.
+    // 비어 있을 수 있습니다.
     "authors": ["Alice &lt;a@example.com&gt;"],
-    // Description field from the manifest.
-    // May be null. crates.io requires at least some content.
+    // 매니페스트의 설명(description) 필드입니다.
+    // null일 수 있습니다. crates.io는 최소한의 내용을 요구합니다.
     "description": null,
-    // String of the URL to the website for this package's documentation.
-    // May be null.
+    // 이 패키지의 문서 웹사이트 URL 문자열입니다.
+    // null일 수 있습니다.
     "documentation": null,
-    // String of the URL to the website for this package's home page.
-    // May be null.
+    // 이 패키지의 홈페이지 URL 문자열입니다.
+    // null일 수 있습니다.
     "homepage": null,
-    // String of the content of the README file.
-    // May be null.
+    // README 파일의 내용 문자열입니다.
+    // null일 수 있습니다.
     "readme": null,
-    // String of a relative path to a README file in the crate.
-    // May be null.
+    // 크레이트 내 README 파일의 상대 경로 문자열입니다.
+    // null일 수 있습니다.
     "readme_file": null,
-    // Array of strings of keywords for the package.
+    // 패키지의 키워드 문자열 배열입니다.
     "keywords": [],
-    // Array of strings of categories for the package.
+    // 패키지의 카테고리 문자열 배열입니다.
     "categories": [],
-    // String of the license for the package.
-    // May be null. crates.io requires either `license` or `license_file` to be set.
+    // 패키지의 라이선스 문자열입니다.
+    // null일 수 있습니다. crates.io는 `license` 혹은 `license_file` 중 하나가 설정되어야 합니다.
     "license": null,
-    // String of a relative path to a license file in the crate.
-    // May be null.
+    // 크레이트 내 라이선스 파일의 상대 경로 문자열입니다.
+    // null일 수 있습니다.
     "license_file": null,
-    // String of the URL to the website for the source repository of this package.
-    // May be null.
+    // 이 패키지의 소스 저장소 웹사이트 URL 문자열입니다.
+    // null일 수 있습니다.
     "repository": null,
-    // Optional object of "status" badges. Each value is an object of
-    // arbitrary string to string mappings.
-    // crates.io has special interpretation of the format of the badges.
+    // "상태(status)" 배지의 선택적 객체입니다. 각 값은 임의의 문자열 대 문자열 매핑 객체입니다.
+    // crates.io는 배지의 형식에 대해 특별한 해석 방식을 가지고 있습니다.
     "badges": {
         "travis-ci": {
             "branch": "master",
             "repository": "rust-lang/cargo"
         }
     },
-    // The `links` string value from the package's manifest, or null if not
-    // specified. This field is optional and defaults to null.
+    // 패키지 매니페스트의 `links` 문자열 값이거나, 지정되지 않은 경우 null입니다.
+    // 이 필드는 선택 사항이며 기본값은 null입니다.
     "links": null,
-    // The minimal supported Rust version (optional)
-    // This must be a valid version requirement without an operator (e.g. no `=`)
+    // 최소 지원 Rust 버전 (선택 사항)
+    // 연산자(예: `=`)가 없는 유효한 버전 요구 사항이어야 합니다.
     "rust_version": null
 }
 </code></pre>
-<p>A successful response includes the JSON object:</p>
+<p>성공적인 응답은 다음과 같은 JSON 객체를 포함합니다.</p>
 <pre><code class="language-javascript">{
-    // Optional object of warnings to display to the user.
+    // 사용자에게 표시할 경고의 선택적 객체입니다.
     "warnings": {
-        // Array of strings of categories that are invalid and ignored.
+        // 유효하지 않아 무시된 카테고리 문자열 배열입니다.
         "invalid_categories": [],
-        // Array of strings of badge names that are invalid and ignored.
+        // 유효하지 않아 무시된 배지 이름 문자열 배열입니다.
         "invalid_badges": [],
-        // Array of strings of arbitrary warnings to display to the user.
+        // 사용자에게 표시할 임의의 경고 문자열 배열입니다.
         "other": []
     }
 }
 </code></pre>
-<h2 id="yank"><a class="header" href="#yank">Yank</a></h2>
+<h2 id="철회yank"><a class="header" href="#철회yank">철회(Yank)</a></h2>
 <ul>
-<li>Endpoint: <code>/api/v1/crates/{crate_name}/{version}/yank</code></li>
-<li>Method: DELETE</li>
-<li>Authorization: Included</li>
+<li>엔드포인트: <code>/api/v1/crates/{crate_name}/{version}/yank</code></li>
+<li>메서드: DELETE</li>
+<li>인증(Authorization): 포함됨</li>
 </ul>
-<p>The yank endpoint will set the <code>yank</code> field of the given version of a crate to <code>true</code> in the index.</p>
-<p>A successful response includes the JSON object:</p>
+<p>철회 엔드포인트는 인덱스에서 해당 크레이트 버전의 <code>yank</code> 필드를 <code>true</code>로 설정합니다.</p>
+<p>성공적인 응답은 다음과 같은 JSON 객체를 포함합니다.</p>
 <pre><code class="language-javascript">{
-    // Indicates the yank succeeded, always true.
+    // 철회가 성공했음을 나타내며, 항상 true입니다.
     "ok": true,
 }
 </code></pre>
-<h2 id="unyank"><a class="header" href="#unyank">Unyank</a></h2>
+<h2 id="철회-취소unyank"><a class="header" href="#철회-취소unyank">철회 취소(Unyank)</a></h2>
 <ul>
-<li>Endpoint: <code>/api/v1/crates/{crate_name}/{version}/unyank</code></li>
-<li>Method: PUT</li>
-<li>Authorization: Included</li>
+<li>엔드포인트: <code>/api/v1/crates/{crate_name}/{version}/unyank</code></li>
+<li>메서드: PUT</li>
+<li>인증(Authorization): 포함됨</li>
 </ul>
-<p>The unyank endpoint will set the <code>yank</code> field of the given version of a crate to <code>false</code> in the index.</p>
-<p>A successful response includes the JSON object:</p>
+<p>철회 취소 엔드포인트는 인덱스에서 해당 크레이트 버전의 <code>yank</code> 필드를 <code>false</code>로 설정합니다.</p>
+<p>성공적인 응답은 다음과 같은 JSON 객체를 포함합니다.</p>
 <pre><code class="language-javascript">{
-    // Indicates the unyank succeeded, always true.
+    // 철회 취소가 성공했음을 나타내며, 항상 true입니다.
     "ok": true,
 }
 </code></pre>
-<h2 id="owners"><a class="header" href="#owners">Owners</a></h2>
-<p>Cargo does not have an inherent notion of users and owners, but it does provide the <code>owner</code> command to assist managing who has authorization to control a crate. It is up to the registry to decide exactly how users and owners are handled. See the <a href="publishing.html#cargo-owner">publishing documentation</a> for a description of how <a href="https://crates.io/">crates.io</a> handles owners via GitHub users and teams.</p>
-<h3 id="owners-list"><a class="header" href="#owners-list">Owners: List</a></h3>
+<h2 id="소유자owners"><a class="header" href="#소유자owners">소유자(Owners)</a></h2>
+<p>Cargo 자체적으로 사용자나 소유자에 대한 개념을 가지고 있지는 않지만, 크레이트를 제어할 권한을 누가 가졌는지 관리하는 것을 돕기 위해 <code>owner</code> 명령어를 제공합니다. 사용자 및 소유자를 어떻게 처리할지는 전적으로 레지스트리에 달려 있습니다. <a href="https://crates.io/">crates.io</a>가 GitHub 사용자 및 팀을 통해 소유자를 어떻게 처리하는지에 대한 설명은 <a href="publishing.html#cargo-owner">배포 관련 문서</a>를 참조하세요.</p>
+<h3 id="소유자-목록"><a class="header" href="#소유자-목록">소유자: 목록</a></h3>
 <ul>
-<li>Endpoint: <code>/api/v1/crates/{crate_name}/owners</code></li>
-<li>Method: GET</li>
-<li>Authorization: Included</li>
+<li>엔드포인트: <code>/api/v1/crates/{crate_name}/owners</code></li>
+<li>메서드: GET</li>
+<li>인증(Authorization): 포함됨</li>
 </ul>
-<p>The owners endpoint returns a list of owners of the crate.</p>
-<p>A successful response includes the JSON object:</p>
+<p>소유자 엔드포인트는 해당 크레이트의 소유자 목록을 반환합니다.</p>
+<p>성공적인 응답은 다음과 같은 JSON 객체를 포함합니다.</p>
 <pre><code class="language-javascript">{
-    // Array of owners of the crate.
+    // 크레이트 소유자들의 배열입니다.
     "users": [
         {
-            // Unique unsigned 32-bit integer of the owner.
+            // 소유자의 고유한 부호 없는 32비트 정수 ID입니다.
             "id": 70,
-            // The unique username of the owner.
+            // 소유자의 고유한 사용자 이름입니다.
             "login": "github:rust-lang:core",
-            // Name of the owner.
-            // This is optional and may be null.
+            // 소유자의 이름입니다.
+            // 이는 선택 사항이며 null일 수 있습니다.
             "name": "Core",
         }
     ]
 }
 </code></pre>
-<h3 id="owners-add"><a class="header" href="#owners-add">Owners: Add</a></h3>
+<h3 id="소유자-추가"><a class="header" href="#소유자-추가">소유자: 추가</a></h3>
 <ul>
-<li>Endpoint: <code>/api/v1/crates/{crate_name}/owners</code></li>
-<li>Method: PUT</li>
-<li>Authorization: Included</li>
+<li>엔드포인트: <code>/api/v1/crates/{crate_name}/owners</code></li>
+<li>메서드: PUT</li>
+<li>인증(Authorization): 포함됨</li>
 </ul>
-<p>A PUT request will send a request to the registry to add a new owner to a crate. It is up to the registry how to handle the request. For example, <a href="https://crates.io/">crates.io</a> sends an invite to the user that they must accept before being added.</p>
-<p>The request should include the following JSON object:</p>
+<p>PUT 요청은 크레이트에 새 소유자를 추가하기 위한 요청을 레지스트리에 보냅니다. 요청을 어떻게 처리할지는 레지스트리에 달려 있습니다. 예를 들어 <a href="https://crates.io/">crates.io</a>는 사용자에게 초대장을 보내고, 사용자가 이를 수락해야 소유자로 추가됩니다.</p>
+<p>요청은 다음과 같은 JSON 객체를 포함해야 합니다.</p>
 <pre><code class="language-javascript">{
-    // Array of `login` strings of owners to add.
+    // 추가할 소유자들의 `login` 문자열 배열입니다.
     "users": ["login_name"]
 }
 </code></pre>
-<p>A successful response includes the JSON object:</p>
+<p>성공적인 응답은 다음과 같은 JSON 객체를 포함합니다.</p>
 <pre><code class="language-javascript">{
-    // Indicates the add succeeded, always true.
+    // 추가가 성공했음을 나타내며, 항상 true입니다.
     "ok": true,
-    // A string to be displayed to the user.
-    "msg": "user ehuss has been invited to be an owner of crate cargo"
+    // 사용자에게 표시될 문자열입니다.
+    "msg": "사용자 ehuss가 cargo 크레이트의 소유자로 초대되었습니다."
 }
 </code></pre>
-<h3 id="owners-remove"><a class="header" href="#owners-remove">Owners: Remove</a></h3>
+<h3 id="소유자-삭제"><a class="header" href="#소유자-삭제">소유자: 삭제</a></h3>
 <ul>
-<li>Endpoint: <code>/api/v1/crates/{crate_name}/owners</code></li>
-<li>Method: DELETE</li>
-<li>Authorization: Included</li>
+<li>엔드포인트: <code>/api/v1/crates/{crate_name}/owners</code></li>
+<li>메서드: DELETE</li>
+<li>인증(Authorization): 포함됨</li>
 </ul>
-<p>A DELETE request will remove an owner from a crate. The request should include the following JSON object:</p>
+<p>DELETE 요청은 크레이트에서 소유자를 삭제합니다. 요청은 다음과 같은 JSON 객체를 포함해야 합니다.</p>
 <pre><code class="language-javascript">{
-    // Array of `login` strings of owners to remove.
+    // 삭제할 소유자들의 `login` 문자열 배열입니다.
     "users": ["login_name"]
 }
 </code></pre>
-<p>A successful response includes the JSON object:</p>
+<p>성공적인 응답은 다음과 같은 JSON 객체를 포함합니다.</p>
 <pre><code class="language-javascript">{
-    // Indicates the remove succeeded, always true.
+    // 삭제가 성공했음을 나타내며, 항상 true입니다.
     "ok": true
-    // A string to be displayed to the user. Currently ignored by cargo.
-    "msg": "owners successfully removed",
+    // 사용자에게 표시될 문자열입니다. 현재 cargo에 의해 무시됩니다.
+    "msg": "소유자가 성공적으로 삭제되었습니다.",
 }
 </code></pre>
-<h2 id="search"><a class="header" href="#search">Search</a></h2>
+<h2 id="검색search"><a class="header" href="#검색search">검색(Search)</a></h2>
 <ul>
-<li>Endpoint: <code>/api/v1/crates</code></li>
-<li>Method: GET</li>
-<li>Query Parameters:
+<li>엔드포인트: <code>/api/v1/crates</code></li>
+<li>메서드: GET</li>
+<li>쿼리 파라미터:
 <ul>
-<li><code>q</code>: The search query string.</li>
-<li><code>per_page</code>: Number of results, default 10, max 100.</li>
+<li><code>q</code>: 검색 쿼리 문자열입니다.</li>
+<li><code>per_page</code>: 결과의 개수입니다. 기본값은 10, 최대값은 100입니다.</li>
 </ul>
 </li>
 </ul>
-<p>The search request will perform a search for crates, using criteria defined on the server.</p>
-<p>A successful response includes the JSON object:</p>
+<p>검색 요청은 서버에 정의된 기준을 사용하여 크레이트 검색을 수행합니다.</p>
+<p>성공적인 응답은 다음과 같은 JSON 객체를 포함합니다.</p>
 <pre><code class="language-javascript">{
-    // Array of results.
+    // 결과 배열.
     "crates": [
         {
-            // Name of the crate.
+            // 크레이트 이름.
             "name": "rand",
-            // The highest version available.
+            // 사용 가능한 가장 높은 버전.
             "max_version": "0.6.1",
-            // Textual description of the crate.
-            "description": "Random number generators and other randomness functionality.\n",
+            // 크레이트에 대한 텍스트 설명.
+            "description": "난수 생성기 및 기타 무작위 기능.\n",
         }
     ],
     "meta": {
-        // Total number of results available on the server.
+        // 서버에서 사용 가능한 총 결과 수.
         "total": 119
     }
 }
 </code></pre>
-<h2 id="login"><a class="header" href="#login">Login</a></h2>
+<h2 id="로그인"><a class="header" href="#로그인">로그인</a></h2>
 <ul>
-<li>Endpoint: <code>/me</code></li>
+<li>엔드포인트: <code>/me</code></li>
 </ul>
-<p>The “login” endpoint is not an actual API request. It exists solely for the <a href="../commands/cargo-login.html"><code>cargo login</code></a> command to display a URL to instruct a user to visit in a web browser to log in and retrieve an API token.</p>
+<p>“login” 엔드포인트는 실제 API 요청이 아닙니다. <a href="../commands/cargo-login.html"><code>cargo login</code></a> 명령어가 사용자에게 웹 브라우저에서 로그인하고 API 토큰을 검색하도록 지시하는 URL을 표시하기 위해 존재합니다.</p>
 
                     </main>
 

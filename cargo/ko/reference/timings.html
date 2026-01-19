@@ -221,39 +221,39 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="빌드-시간-보고"><a class="header" href="#빌드-시간-보고">빌드 시간 보고</a></h1>
-<p>The <code>--timings</code> option gives some information about how long each compilation takes, and tracks concurrency information over time.</p>
+<p><code>--timings</code> 옵션은 각 컴파일이 소요되는 시간에 대한 정보를 제공하고, 시간 경과에 따른 동시성 정보를 추적합니다.</p>
 <pre><code class="language-sh">cargo build --timings
 </code></pre>
-<p>This writes an HTML report in <code>target/cargo-timings/cargo-timing.html</code>. This also writes a copy of the report to the same directory with a timestamp in the filename, if you want to look at older runs.</p>
-<h2 id="reading-the-graphs"><a class="header" href="#reading-the-graphs">Reading the graphs</a></h2>
-<p>There are two tables and two graphs in the output.</p>
-<p>The first table displays the build information of the project, including the number of units built, the maximum number of concurrency, build time, and the version information of the currently used compiler.</p>
-<p><img src="../images/build-info.png" alt="build-info" /></p>
+<p>이것은 <code>target/cargo-timings/cargo-timing.html</code>에 HTML 보고서를 작성합니다. 또한 이전 실행 기록을 보고 싶은 경우를 위해, 파일 이름에 타임스탬프가 포함된 보고서 사본을 동일한 디렉터리에 작성합니다.</p>
+<h2 id="그래프-읽기"><a class="header" href="#그래프-읽기">그래프 읽기</a></h2>
+<p>출력에는 두 개의 표와 두 개의 그래프가 있습니다.</p>
+<p>첫 번째 표는 프로젝트의 빌드 정보를 표시합니다. 여기에는 빌드된 유닛 수, 최대 동시성 수, 빌드 시간, 현재 사용 중인 컴파일러의 버전 정보가 포함됩니다.</p>
+<p><img src="../images/build-info.png" alt="빌드 정보" /></p>
 <p>The “unit” graph shows the duration of each unit over time. A “unit” is a single compiler invocation. There are lines that show which additional units are “unblocked” when a unit finishes. That is, it shows the new units that are now allowed to run because their dependencies are all finished. Hover the mouse over a unit to highlight the lines. This can help visualize the critical path of dependencies. This may change between runs because the units may finish in different orders.</p>
-<p>The “codegen” times are highlighted in a lavender color. In some cases, build pipelining allows units to start when their dependencies are performing code generation. This information is not always displayed (for example, binary units do not show when code generation starts).</p>
-<p>The “custom build” units are <code>build.rs</code> scripts, which when run are highlighted in orange.</p>
-<p><img src="../images/build-unit-time.png" alt="build-unit-time" /></p>
-<p>The second graph shows Cargo’s concurrency over time. The background indicates CPU usage. The three lines are:</p>
+<p>“코드 생성(codegen)” 시간은 연보라색으로 강조 표시됩니다. 어떤 경우에는 빌드 파이프라이닝을 통해 의존성이 코드 생성을 수행 중일 때 유닛이 시작될 수 있습니다. 이 정보가 항상 표시되는 것은 아닙니다 (예를 들어, 바이너리 유닛은 코드 생성이 시작되는 시점을 표시하지 않습니다).</p>
+<p>“커스텀 빌드” 유닛은 <code>build.rs</code> 스크립트이며, 실행 시 주황색으로 강조 표시됩니다.</p>
+<p><img src="../images/build-unit-time.png" alt="빌드 유닛 시간" /></p>
+<p>두 번째 그래프는 시간에 따른 Cargo의 병렬성(concurrency)을 보여줍니다. 배경은 CPU 사용량을 나타냅니다. 세 개의 선은 다음과 같습니다.</p>
 <ul>
-<li>“Waiting” (red) — This is the number of units waiting for a CPU slot to open.</li>
-<li>“Inactive” (blue) — This is the number of units that are waiting for their dependencies to finish.</li>
-<li>“Active” (green) — This is the number of units currently running.</li>
+<li>“대기 중(Waiting)” (빨간색) — CPU 슬롯이 비기를 기다리는 유닛의 수입니다.</li>
+<li>“비활성(Inactive)” (파란색) — 의존성이 완료되기를 기다리는 유닛의 수입니다.</li>
+<li>“활성(Active)” (초록색) — 현재 실행 중인 유닛의 수입니다.</li>
 </ul>
-<p><img src="../images/cargo-concurrency-over-time.png" alt="cargo-concurrency-over-time" /></p>
-<p>Note: This does not show the concurrency in the compiler itself. <code>rustc</code> coordinates with Cargo via the “job server” to stay within the concurrency limit. This currently mostly applies to the code generation phase.</p>
-<p>Tips for addressing compile times:</p>
+<p><img src="../images/cargo-concurrency-over-time.png" alt="시간에 따른 Cargo 병렬성" /></p>
+<p>참고: 이는 컴파일러 자체의 병렬성을 보여주는 것은 아닙니다. <code>rustc</code>는 병렬성 제한 내에서 유지하기 위해 “작업 서버(job server)“를 통해 Cargo와 조율합니다. 현재 이는 주로 코드 생성 단계에 적용됩니다.</p>
+<p>컴파일 시간을 해결하기 위한 팁:</p>
 <ul>
-<li>Look for slow dependencies.
+<li>속도가 느린 의존성을 찾으세요.
 <ul>
-<li>Check if they have features that you may wish to consider disabling.</li>
-<li>Consider trying to remove the dependency completely.</li>
+<li>비활성화를 고려해볼 만한 기능(feature)이 있는지 확인하세요.</li>
+<li>의존성을 완전히 제거하는 것을 고려해보세요.</li>
 </ul>
 </li>
-<li>Look for a crate being built multiple times with different versions. Try to remove the older versions from the dependency graph.</li>
-<li>Split large crates into smaller pieces.</li>
-<li>If there are a large number of crates bottlenecked on a single crate, focus your attention on improving that one crate to improve parallelism.</li>
+<li>서로 다른 버전으로 여러 번 빌드되는 크레이트가 있는지 확인하세요. 의존성 그래프에서 이전 버전을 제거해 보세요.</li>
+<li>큰 크레이트를 작은 조각으로 나누세요.</li>
+<li>단일 크레이트에서 병목 현상이 발생하는 크레이트가 많은 경우, 병렬성을 개선하기 위해 해당 크레이트를 개선하는 데 집중하세요.</li>
 </ul>
-<p>The last table lists the total time and “codegen” time spent on each unit, as well as the features that were enabled during each unit’s compilation.</p>
+<p>마지막 표에는 각 유닛에 소요된 총 시간과 “코드 생성” 시간, 그리고 각 유닛 컴파일 중에 활성화된 기능들이 나열됩니다.</p>
 
                     </main>
 
