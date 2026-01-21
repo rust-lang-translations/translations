@@ -215,10 +215,10 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="unsafe-functions"><a class="header" href="#unsafe-functions">Unsafe functions</a></h1>
+                        <h1 id="unsafe-함수"><a class="header" href="#unsafe-함수">Unsafe 함수</a></h1>
 <h2 id="요약"><a class="header" href="#요약">요약</a></h2>
 <ul>
-<li>The following functions are now marked <a href="../../reference/unsafe-keyword.html#unsafe-functions-unsafe-fn"><code>unsafe</code></a>:
+<li>다음 함수들은 이제 <a href="../../reference/unsafe-keyword.html#unsafe-functions-unsafe-fn"><code>unsafe</code></a>로 표시됩니다:
 <ul>
 <li><a href="../../std/env/fn.set_var.html"><code>std::env::set_var</code></a></li>
 <li><a href="../../std/env/fn.remove_var.html"><code>std::env::remove_var</code></a></li>
@@ -227,34 +227,34 @@
 </li>
 </ul>
 <h2 id="세부-정보"><a class="header" href="#세부-정보">세부 정보</a></h2>
-<p>Over time it has become evident that certain functions in the standard library should have been marked as <code>unsafe</code>. However, adding <code>unsafe</code> to a function can be a breaking change since it requires existing code to be placed in an <code>unsafe</code> block. To avoid the breaking change, these functions are marked as <code>unsafe</code> starting in the 2024 Edition, while not requiring <code>unsafe</code> in previous editions.</p>
+<p>시간이 지남에 따라 표준 라이브러리의 특정 함수들은 <code>unsafe</code>로 표시되었어야 함이 분명해졌습니다. 하지만 함수에 <code>unsafe</code>를 추가하는 것은 기존 코드를 <code>unsafe</code> 블록 안에 넣어야 하기 때문에 호환성을 깨는 변경이 될 수 있습니다. 이러한 호환성 문제를 피하기 위해, 이 함수들은 이전 에디션에서는 <code>unsafe</code>를 요구하지 않지만, 2024 에디션부터는 <code>unsafe</code>로 표시됩니다.</p>
 <h3 id="stdenvset_var-remove_var"><a class="header" href="#stdenvset_var-remove_var"><code>std::env::{set_var, remove_var}</code></a></h3>
 <p>It can be unsound to call <a href="../../std/env/fn.set_var.html"><code>std::env::set_var</code></a> or <a href="../../std/env/fn.remove_var.html"><code>std::env::remove_var</code></a> in a multithreaded program due to safety limitations of the way the process environment is handled on some platforms. The standard library originally defined these as safe functions, but it was later determined that was not correct.</p>
-<p>It is important to ensure that these functions are not called when any other thread might be running. See the <a href="../../std/env/fn.set_var.html#safety">Safety</a> section of the function documentation for more details.</p>
+<p>다른 스레드가 실행 중일 때는 이 함수들이 호출되지 않도록 하는 것이 중요합니다. 더 자세한 내용은 해당 함수 문서의 <a href="../../std/env/fn.set_var.html#safety">Safety</a> 섹션을 참조하세요.</p>
 <h3 id="stdosunixprocesscommandextbefore_exec"><a class="header" href="#stdosunixprocesscommandextbefore_exec"><code>std::os::unix::process::CommandExt::before_exec</code></a></h3>
-<p>The <a href="../../std/os/unix/process/trait.CommandExt.html#method.before_exec"><code>std::os::unix::process::CommandExt::before_exec</code></a> function is a unix-specific function which provides a way to run a closure before calling <code>exec</code>. This function was deprecated in the 1.37 release, and replaced with <a href="../../std/os/unix/process/trait.CommandExt.html#tymethod.pre_exec"><code>pre_exec</code></a> which does the same thing, but is marked as <code>unsafe</code>.</p>
-<p>Even though <code>before_exec</code> is deprecated, it is now correctly marked as <code>unsafe</code> starting in the 2024 Edition. This should help ensure that any legacy code which has not already migrated to <code>pre_exec</code> to require an <code>unsafe</code> block.</p>
-<p>There are very strict safety requirements for the <code>before_exec</code> closure to satisfy. See the <a href="../../std/os/unix/process/trait.CommandExt.html#notes-and-safety">Safety section</a> for more details.</p>
+<p><a href="../../std/os/unix/process/trait.CommandExt.html#method.before_exec"><code>std::os::unix::process::CommandExt::before_exec</code></a> 함수는 <code>exec</code> 호출 전에 클로저를 실행하는 방법을 제공하는 유닉스 전용 함수입니다. 이 함수는 1.37 릴리스에서 사용 중단(deprecated)되었으며, 동일한 작업을 수행하지만 <code>unsafe</code>로 표시된 <a href="../../std/os/unix/process/trait.CommandExt.html#tymethod.pre_exec"><code>pre_exec</code></a>로 대체되었습니다.</p>
+<p><code>before_exec</code>이 사용 중단되었음에도 불구하고, 2024 에디션부터는 <code>unsafe</code>로 올바르게 표시됩니다. 이는 아직 <code>pre_exec</code>으로 마이그레이션하지 않은 레거시 코드가 <code>unsafe</code> 블록을 필요로 하도록 보장하는 데 도움이 될 것입니다.</p>
+<p><code>before_exec</code> 클로저가 충족해야 하는 매우 엄격한 안전 요구 사항이 있습니다. 자세한 내용은 <a href="../../std/os/unix/process/trait.CommandExt.html#notes-and-safety">Safety 섹션</a>을 참조하세요.</p>
 <h2 id="마이그레이션"><a class="header" href="#마이그레이션">마이그레이션</a></h2>
-<p>To make your code compile in both the 2021 and 2024 editions, you will need to make sure that these functions are called only from within <code>unsafe</code> blocks.</p>
-<p><strong>⚠ Caution</strong>: It is important that you manually inspect the calls to these functions and possibly rewrite your code to satisfy the preconditions of those functions. In particular, <code>set_var</code> and <code>remove_var</code> should not be called if there might be multiple threads running. You may need to elect to use a different mechanism other than environment variables to manage your use case.</p>
-<p>The <a href="../../rustc/lints/listing/allowed-by-default.html#deprecated-safe-2024"><code>deprecated_safe_2024</code></a> lint will automatically modify any use of these functions to be wrapped in an <code>unsafe</code> block so that it can compile on both editions. This lint is part of the <code>rust-2024-compatibility</code> lint group, which will automatically be applied when running <code>cargo fix --edition</code>. To migrate your code to be Rust 2024 Edition compatible, run:</p>
+<p>코드가 2021 에디션과 2024 에디션 모두에서 컴파일되게 하려면, 이 함수들이 <code>unsafe</code> 블록 내에서만 호출되도록 해야 합니다.</p>
+<p><strong>⚠ 주의</strong>: 이 함수들에 대한 호출을 수동으로 검사하고, 해당 함수의 전제 조건을 충족하도록 코드를 다시 작성하는 것이 중요합니다. 특히, 여러 스레드가 실행 중일 수 있는 경우 <code>set_var</code>와 <code>remove_var</code>를 호출해서는 안 됩니다. 사용 사례를 관리하기 위해 환경 변수 이외의 다른 메커니즘을 사용하도록 선택해야 할 수도 있습니다.</p>
+<p><a href="../../rustc/lints/listing/allowed-by-default.html#deprecated-safe-2024"><code>deprecated_safe_2024</code></a> 린트는 두 에디션 모두에서 컴파일될 수 있도록, 이러한 함수 사용을 <code>unsafe</code> 블록으로 자동으로 감싸서 수정합니다. 이 린트는 <code>rust-2024-compatibility</code> 린트 그룹의 일부이며, <code>cargo fix --edition</code>을 실행할 때 자동으로 적용됩니다. 코드를 Rust 2024 에디션과 호환되도록 마이그레이션하려면 다음을 실행하세요:</p>
 <pre><code class="language-sh">cargo fix --edition
 </code></pre>
-<p>For example, this will change:</p>
+<p>예를 들어, 이것은 다음과 같이 변경됩니다:</p>
 <pre><pre class="playground"><code class="language-rust">fn main() {
     std::env::set_var("FOO", "123");
 }</code></pre></pre>
-<p>to be:</p>
+<p>변경 후:</p>
 <pre><pre class="playground"><code class="language-rust">fn main() {
-    // TODO: Audit that the environment access only happens in single-threaded code.
+    // TODO: 환경 변수 접근이 단일 스레드 코드에서만 발생하는지 감사(Audit)해야 합니다.
     unsafe { std::env::set_var("FOO", "123") };
 }</code></pre></pre>
-<p>Just beware that this automatic migration will not be able to verify that these functions are being used correctly. It is still your responsibility to manually review their usage.</p>
-<p>Alternatively, you can manually enable the lint to find places these functions are called:</p>
+<p>단, 이 자동 마이그레이션은 이 함수들이 올바르게 사용되고 있는지 검증할 수 없다는 점에 유의하세요. 사용법을 수동으로 검토하는 것은 여전히 여러분의 책임입니다.</p>
+<p>또는, 이 함수들이 호출되는 곳을 찾기 위해 수동으로 린트를 활성화할 수 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Add this to the root of your crate to do a manual migration.
+</span>// 수동 마이그레이션을 수행하려면 크레이트 루트에 이것을 추가하세요.
 #![warn(deprecated_safe_2024)]
 <span class="boring">}</span></code></pre></pre>
 

@@ -218,106 +218,106 @@
                         <h1 id="매치-인체공학-예약"><a class="header" href="#매치-인체공학-예약">매치 인체공학 예약</a></h1>
 <h2 id="요약"><a class="header" href="#요약">요약</a></h2>
 <ul>
-<li>Writing <code>mut</code>, <code>ref</code>, or <code>ref mut</code> on a binding is only allowed within a pattern when the pattern leading up to that binding is fully explicit (i.e. when it does not use match ergonomics).
+<li>바인딩에 <code>mut</code>, <code>ref</code> 또는 <code>ref mut</code>을 작성하는 것은 해당 바인딩으로 이어지는 패턴이 완전히 명시적인 경우(즉, 매치 인간공학을 사용하지 않는 경우)에만 패턴 내에서 허용됩니다.
 <ul>
-<li>Put differently, when the default binding mode is not <code>move</code>, writing <code>mut</code>, <code>ref</code>, or <code>ref mut</code> on a binding is an error.</li>
+<li>달리 표현하면, 기본 바인딩 모드가 <code>move</code>가 아닐 때 바인딩에 <code>mut</code>, <code>ref</code> 또는 <code>ref mut</code>을 작성하는 것은 오류입니다.</li>
 </ul>
 </li>
-<li>Reference patterns (<code>&amp;</code> or <code>&amp;mut</code>) are only allowed within the fully-explicit prefix of a pattern.
+<li>참조 패턴(<code>&amp;</code> 또는 <code>&amp;mut</code>)은 패턴의 완전히 명시적인 접두사 내에서만 허용됩니다.
 <ul>
-<li>Put differently, reference patterns can only match against references in the scrutinee when the default binding mode is <code>move</code>.</li>
+<li>달리 표현하면, 참조 패턴은 기본 바인딩 모드가 <code>move</code>일 때만 검사 대상(scrutinee)의 참조와 매칭될 수 있습니다.</li>
 </ul>
 </li>
 </ul>
 <h2 id="세부-정보"><a class="header" href="#세부-정보">세부 정보</a></h2>
-<h3 id="background"><a class="header" href="#background">Background</a></h3>
-<p>Within <code>match</code>, <code>let</code>, and other constructs, we match a <em>pattern</em> against a <em>scrutinee</em>.  E.g.:</p>
+<h3 id="배경"><a class="header" href="#배경">배경</a></h3>
+<p><code>match</code>, <code>let</code> 및 기타 구문 내에서 우리는 _검사 대상(scrutinee)_에 대해 _패턴_을 매칭합니다. 예:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let &amp;[&amp;mut [ref x]] = &amp;[&amp;mut [()]]; // x: &amp;()
 //  ~~~~~~~~~~~~~~~   ~~~~~~~~~~~~
-//      Pattern        Scrutinee
+//        패턴           검사 대상
 <span class="boring">}</span></code></pre></pre>
-<p>Such a pattern is called fully explicit because it does not elide (i.e. "skip" or "pass") any references within the scrutinee.  By contrast, this otherwise-equivalent pattern is not fully explicit:</p>
+<p>이러한 패턴은 검사 대상 내의 어떤 참조도 생략(즉, "건너뛰기" 또는 "통과")하지 않기 때문에 완전히 명시적(fully explicit)이라고 불립니다. 대조적으로, 기능적으로 동일한 다음 패턴은 완전히 명시적이지 않습니다.</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let [[x]] = &amp;[&amp;mut [()]]; // x: &amp;()
 <span class="boring">}</span></code></pre></pre>
-<p>Patterns such as this are said to be using match ergonomics, originally introduced in <a href="https://github.com/rust-lang/rfcs/pull/2005">RFC 2005</a>.</p>
-<p>Under match ergonomics, as we incrementally match a pattern against a scrutinee, we keep track of the default binding mode.  This mode can be one of <code>move</code>, <code>ref mut</code>, or <code>ref</code>, and it starts as <code>move</code>.  When we reach a binding, unless an explicit binding mode is provided, the default binding mode is used to decide the binding's type.</p>
-<p>For example, here we provide an explicit binding mode, causing <code>x</code> to be bound by reference:</p>
+<p>이와 같은 패턴은 원래 <a href="https://github.com/rust-lang/rfcs/pull/2005">RFC 2005</a>에서 도입된 매치 인간공학을 사용한다고 합니다.</p>
+<p>매치 인간공학하에서, 패턴을 검사 대상에 대해 점진적으로 매칭함에 따라 기본 바인딩 모드를 추적합니다. 이 모드는 <code>move</code>, <code>ref mut</code> 또는 <code>ref</code> 중 하나일 수 있으며, <code>move</code>로 시작합니다. 바인딩에 도달했을 때 명시적인 바인딩 모드가 제공되지 않으면, 기본 바인딩 모드를 사용하여 바인딩의 타입을 결정합니다.</p>
+<p>예를 들어, 여기서 명시적인 바인딩 모드를 제공하여 <code>x</code>가 참조에 의해 바인딩되도록 합니다.</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let ref x = (); // &amp;()
 <span class="boring">}</span></code></pre></pre>
-<p>By contrast:</p>
+<p>대조적으로:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let [x] = &amp;[()]; // &amp;()
 <span class="boring">}</span></code></pre></pre>
-<p>Here, in the pattern, we pass the outer shared reference in the scrutinee.  This causes the default binding mode to switch from <code>move</code> to <code>ref</code>.  Since there is no explicit binding mode specified, the <code>ref</code> binding mode is used when binding <code>x</code>.</p>
-<h3 id="mut-restriction"><a class="header" href="#mut-restriction"><code>mut</code> restriction</a></h3>
-<p>In Rust 2021 and earlier editions, we allow this oddity:</p>
+<p>여기서 패턴에서 우리는 검사 대상의 바깥쪽 공유 참조를 통과시킵니다. 이로 인해 기본 바인딩 모드가 <code>move</code>에서 <code>ref</code>로 전환됩니다. 명시적인 바인딩 모드가 지정되지 않았으므로, <code>x</code>를 바인딩할 때 <code>ref</code> 바인딩 모드가 사용됩니다.</p>
+<h3 id="mut-제약"><a class="header" href="#mut-제약"><code>mut</code> 제약</a></h3>
+<p>Rust 2021 및 이전 에디션에서는 다음과 같은 특이한 허용이 있었습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let [x, mut y] = &amp;[(), ()]; // x: &amp;(), mut y: ()
 <span class="boring">}</span></code></pre></pre>
-<p>Here, because we pass the shared reference in the pattern, the default binding mode switches to <code>ref</code>.  But then, in these editions, writing <code>mut</code> on the binding resets the default binding mode to <code>move</code>.</p>
-<p>This can be surprising as it's not intuitive that mutability should affect the type.</p>
-<p>To leave space to fix this, in Rust 2024 it's an error to write <code>mut</code> on a binding when the default binding mode is not <code>move</code>.  That is, <code>mut</code> can only be written on a binding when the pattern (leading up to that binding) is fully explicit.</p>
-<p>In Rust 2024, we can write the above example as:</p>
+<p>여기서 패턴에 공유 참조를 전달하기 때문에 기본 바인딩 모드가 <code>ref</code>로 전환됩니다. 하지만 이 에디션들에서는 바인딩에 <code>mut</code>을 쓰면 기본 바인딩 모드가 <code>move</code>로 재설정됩니다.</p>
+<p>가변성이 타입에 영향을 미친다는 것은 직관적이지 않기 때문에 놀라울 수 있습니다.</p>
+<p>이 문제를 해결할 여지를 남겨두기 위해, Rust 2024에서는 기본 바인딩 모드가 <code>move</code>가 아닐 때 바인딩에 <code>mut</code>을 쓰는 것이 오류가 됩니다. 즉, <code>mut</code>은 패턴(해당 바인딩까지 이어지는)이 완전히 명시적일 때만 바인딩에 쓸 수 있습니다.</p>
+<p>Rust 2024에서는 위 예제를 다음과 같이 쓸 수 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let &amp;[ref x, mut y] = &amp;[(), ()]; // x: &amp;(), mut y: ()
 <span class="boring">}</span></code></pre></pre>
-<h3 id="ref--ref-mut-restriction"><a class="header" href="#ref--ref-mut-restriction"><code>ref</code> / <code>ref mut</code> restriction</a></h3>
-<p>In Rust 2021 and earlier editions, we allow:</p>
+<h3 id="ref--ref-mut-제약"><a class="header" href="#ref--ref-mut-제약"><code>ref</code> / <code>ref mut</code> 제약</a></h3>
+<p>Rust 2021 및 이전 에디션에서는 다음을 허용합니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let [ref x] = &amp;[()]; // x: &amp;()
 <span class="boring">}</span></code></pre></pre>
-<p>Here, the <code>ref</code> explicit binding mode is redundant, as by passing the shared reference (i.e. not mentioning it in the pattern), the binding mode switches to <code>ref</code>.</p>
-<p>To leave space for other language possibilities, we are disallowing explicit binding modes where they are redundant in Rust 2024.  We can rewrite the above example as simply:</p>
+<p>여기서 <code>ref</code> 명시적 바인딩 모드는 불필요합니다. 공유 참조를 전달함으로써(즉, 패턴에서 언급하지 않음으로써) 바인딩 모드가 <code>ref</code>로 전환되기 때문입니다.</p>
+<p>다른 언어 가능성을 위한 공간을 남겨두기 위해, Rust 2024에서는 중복되는 명시적 바인딩 모드를 허용하지 않습니다. 위 예제는 다음과 같이 간단하게 다시 쓸 수 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let [x] = &amp;[()]; // x: &amp;()
 <span class="boring">}</span></code></pre></pre>
-<h3 id="reference-patterns-restriction"><a class="header" href="#reference-patterns-restriction">Reference patterns restriction</a></h3>
-<p>In Rust 2021 and earlier editions, we allow this oddity:</p>
+<h3 id="참조-패턴-제약"><a class="header" href="#참조-패턴-제약">참조 패턴 제약</a></h3>
+<p>Rust 2021 및 이전 에디션에서는 다음과 같은 특이한 허용이 있었습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let [&amp;x, y] = &amp;[&amp;(), &amp;()]; // x: (), y: &amp;&amp;()
 <span class="boring">}</span></code></pre></pre>
-<p>Here, the <code>&amp;</code> in the pattern both matches against the reference on <code>&amp;()</code> and resets the default binding mode to <code>move</code>.  This can be surprising because the single <code>&amp;</code> in the pattern causes a larger than expected change in the type by removing both layers of references.</p>
-<p>To leave space to fix this, in Rust 2024 it's an error to write <code>&amp;</code> or <code>&amp;mut</code> in the pattern when the default binding mode is not <code>move</code>.  That is, <code>&amp;</code> or <code>&amp;mut</code> can only be written when the pattern (leading up to that point) is fully explicit.</p>
-<p>In Rust 2024, we can write the above example as:</p>
+<p>여기서 패턴의 <code>&amp;</code>는 <code>&amp;()</code>의 참조와 매칭되면서 동시에 기본 바인딩 모드를 <code>move</code>로 재설정합니다. 패턴의 단일 <code>&amp;</code>가 참조의 두 레이어를 모두 제거함으로써 예상보다 큰 타입 변화를 일으키기 때문에 놀라울 수 있습니다.</p>
+<p>이 문제를 해결할 여지를 남겨두기 위해, Rust 2024에서는 기본 바인딩 모드가 <code>move</code>가 아닐 때 패턴에 <code>&amp;</code>나 <code>&amp;mut</code>을 쓰는 것이 오류가 됩니다. 즉, <code>&amp;</code>나 <code>&amp;mut</code>은 패턴(해당 지점까지 이어지는)이 완전히 명시적일 때만 쓸 수 있습니다.</p>
+<p>Rust 2024에서는 위 예제를 다음과 같이 쓸 수 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let &amp;[&amp;x, ref y] = &amp;[&amp;(), &amp;()];
 <span class="boring">}</span></code></pre></pre>
 <h2 id="마이그레이션"><a class="header" href="#마이그레이션">마이그레이션</a></h2>
-<p>The <a href="../../rustc/lints/listing/allowed-by-default.html#rust-2024-incompatible-pat"><code>rust_2024_incompatible_pat</code></a> lint flags patterns that are not allowed in Rust 2024.  This lint is part of the <code>rust-2024-compatibility</code> lint group which is automatically applied when running <code>cargo fix --edition</code>.  This lint will automatically convert affected patterns to fully explicit patterns that work correctly in Rust 2024 and in all prior editions.</p>
-<p>To migrate your code to be compatible with Rust 2024, run:</p>
+<p><a href="../../rustc/lints/listing/allowed-by-default.html#rust-2024-incompatible-pat"><code>rust_2024_incompatible_pat</code></a> 린트는 Rust 2024에서 허용되지 않는 패턴을 표시합니다. 이 린트는 <code>rust-2024-compatibility</code> 린트 그룹의 일부이며 <code>cargo fix --edition</code>을 실행할 때 자동으로 적용됩니다. 이 린트는 영향을 받는 패턴을 Rust 2024 및 모든 이전 에디션에서 올바르게 작동하는 완전히 명시적인 패턴으로 자동 변환합니다.</p>
+<p>코드를 Rust 2024와 호환되도록 마이그레이션하려면 다음을 실행하세요:</p>
 <pre><code class="language-sh">cargo fix --edition
 </code></pre>
-<p>For example, this will convert this...</p>
+<p>예를 들어, 이것은 다음을...</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let [x, mut y] = &amp;[(), ()];
 let [ref x] = &amp;[()];
 let [&amp;x, y] = &amp;[&amp;(), &amp;()];
 <span class="boring">}</span></code></pre></pre>
-<p>...into this:</p>
+<p>...다음과 같이 변환합니다:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let &amp;[ref x, mut y] = &amp;[(), ()];
 let &amp;[ref x] = &amp;[()];
 let &amp;[&amp;x, ref y] = &amp;[&amp;(), &amp;()];
 <span class="boring">}</span></code></pre></pre>
-<p>Alternatively, you can manually enable the lint to find patterns that will need to be migrated:</p>
+<p>대안으로, 마이그레이션이 필요한 패턴을 찾기 위해 수동으로 린트를 활성화할 수 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Add this to the root of your crate to do a manual migration.
+</span>// 수동 마이그레이션을 수행하려면 크레이트 루트에 이것을 추가하세요.
 #![warn(rust_2024_incompatible_pat)]
 <span class="boring">}</span></code></pre></pre>
 

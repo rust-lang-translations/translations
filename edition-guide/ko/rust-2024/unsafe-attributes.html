@@ -218,7 +218,7 @@
                         <h1 id="안전하지-않은-속성"><a class="header" href="#안전하지-않은-속성">안전하지 않은 속성</a></h1>
 <h2 id="요약"><a class="header" href="#요약">요약</a></h2>
 <ul>
-<li>The following attributes must now be marked as <code>unsafe</code>:
+<li>다음 속성들은 이제 <code>unsafe</code>로 표시되어야 합니다:
 <ul>
 <li><a href="../../reference/abi.html#the-export_name-attribute"><code>export_name</code></a></li>
 <li><a href="../../reference/abi.html#the-link_section-attribute"><code>link_section</code></a></li>
@@ -227,46 +227,46 @@
 </li>
 </ul>
 <h2 id="세부-정보"><a class="header" href="#세부-정보">세부 정보</a></h2>
-<p>Rust 1.82 added the ability in all editions to mark certain attributes as <code>unsafe</code> to indicate that they have soundness requirements that must be upheld.<sup class="footnote-reference"><a href="#RFC3325">1</a></sup> The syntax for an unsafe attribute looks like this:</p>
+<p>Rust 1.82는 모든 에디션에서 특정 속성을 <code>unsafe</code>로 표시하여 준수해야 할 건전성 요구 사항이 있음을 나타내는 기능을 추가했습니다.<sup class="footnote-reference"><a href="#RFC3325">1</a></sup> unsafe 속성의 문법은 다음과 같습니다:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// SAFETY: there is no other global function of this name
+</span>// SAFETY: 이 이름을 가진 다른 전역 함수는 없음
 #[unsafe(no_mangle)]
 pub fn example() {}
 <span class="boring">}</span></code></pre></pre>
-<p>Marking the attribute with <code>unsafe</code> highlights that there are safety requirements that must be upheld that the compiler cannot verify on its own.</p>
-<p>Starting with the 2024 Edition, it is now required to mark these attributes as <code>unsafe</code>. The following section describes the safety requirements for these attributes.</p>
+<p>속성을 <code>unsafe</code>로 표시하면 컴파일러가 자체적으로 확인할 수 없는 안전 요구 사항을 준수해야 함을 강조하게 됩니다.</p>
+<p>2024 에디션부터는 이러한 속성을 <code>unsafe</code>로 표시해야 합니다. 다음 섹션에서는 이러한 속성에 대한 안전 요구 사항을 설명합니다.</p>
 <div class="footnote-definition" id="RFC3325"><sup class="footnote-definition-label">1</sup>
-<p>See <a href="https://rust-lang.github.io/rfcs/3325-unsafe-attributes.html">RFC 3325</a> for the original proposal.</p>
+<p>원래 제안은 <a href="https://rust-lang.github.io/rfcs/3325-unsafe-attributes.html">RFC 3325</a>를 참조하세요.</p>
 </div>
-<h3 id="safety-requirements"><a class="header" href="#safety-requirements">Safety requirements</a></h3>
-<p>The <a href="../../reference/abi.html#the-no_mangle-attribute"><code>no_mangle</code></a>, <a href="../../reference/abi.html#the-export_name-attribute"><code>export_name</code></a>, and <a href="../../reference/abi.html#the-link_section-attribute"><code>link_section</code></a> attributes influence the symbol names and linking behavior of items. Care must be taken to ensure that these attributes are used correctly.</p>
-<p>Because the set of symbols across all linked libraries is a global namespace, there can be issues if there is a symbol name collision between libraries. Typically this isn't an issue for normally defined functions because <a href="../../rustc/symbol-mangling/index.html">symbol mangling</a> helps ensure that the symbol name is unique. However, attributes like <code>export_name</code> can upset that assumption of uniqueness.</p>
-<p>For example, in previous editions the following crashes on most Unix-like platforms despite containing only safe code:</p>
+<h3 id="안전-요구-사항"><a class="header" href="#안전-요구-사항">안전 요구 사항</a></h3>
+<p><a href="../../reference/abi.html#the-no_mangle-attribute"><code>no_mangle</code></a>, <a href="../../reference/abi.html#the-export_name-attribute"><code>export_name</code></a>, <a href="../../reference/abi.html#the-link_section-attribute"><code>link_section</code></a> 속성은 항목의 심볼 이름과 링킹 동작에 영향을 줍니다. 이 속성들을 올바르게 사용하도록 주의해야 합니다.</p>
+<p>연결된 모든 라이브러리의 심볼 집합은 전역 네임스페이스이므로 라이브러리 간에 심볼 이름 충돌이 발생하면 문제가 생길 수 있습니다. 일반적으로 <a href="../../rustc/symbol-mangling/index.html">심볼 맹글링</a>이 심볼 이름의 고유성을 보장하는 데 도움이 되기 때문에 일반적인 함수 정의에서는 문제가 되지 않습니다. 하지만 <code>export_name</code>과 같은 속성은 그러한 고유성 가정을 깨뜨릴 수 있습니다.</p>
+<p>예를 들어, 이전 에디션에서는 안전한 코드만 포함되어 있음에도 불구하고 다음 코드가 대부분의 유닉스 계열 플랫폼에서 충돌을 일으킵니다:</p>
 <pre><pre class="playground"><code class="language-rust no_run edition2021">fn main() {
     println!("Hello, world!");
 }
 
 #[export_name = "malloc"]
 fn foo() -&gt; usize { 1 }</code></pre></pre>
-<p>In the 2024 Edition, it is now required to mark these attributes as unsafe to emphasize that it is required to ensure that the symbol is defined correctly:</p>
+<p>2024 에디션에서는 심볼이 올바르게 정의되었는지 확인해야 함을 강조하기 위해 이러한 속성을 unsafe로 표시하는 것이 필수입니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// SAFETY: There should only be a single definition of the loop symbol.
+</span>// SAFETY: loop 심볼의 정의는 하나만 있어야 함.
 #[unsafe(export_name="loop")]
 fn arduino_loop() {
     // ...
 }
 <span class="boring">}</span></code></pre></pre>
 <h2 id="마이그레이션"><a class="header" href="#마이그레이션">마이그레이션</a></h2>
-<p>The <a href="../../rustc/lints/listing/allowed-by-default.html#unsafe-attr-outside-unsafe"><code>unsafe_attr_outside_unsafe</code></a> lint can update these attributes to use the <code>unsafe(...)</code> format. The lint is part of the <code>rust-2024-compatibility</code> lint group which is included in the automatic edition migration. In order to migrate your code to be Rust 2024 Edition compatible, run:</p>
+<p><a href="../../rustc/lints/listing/allowed-by-default.html#unsafe-attr-outside-unsafe"><code>unsafe_attr_outside_unsafe</code></a> 린트는 이러한 속성이 <code>unsafe(...)</code> 형식을 사용하도록 업데이트할 수 있습니다. 이 린트는 자동 에디션 마이그레이션에 포함된 <code>rust-2024-compatibility</code> 린트 그룹의 일부입니다. 코드를 Rust 2024 에디션과 호환되도록 마이그레이션하려면 다음을 실행하세요:</p>
 <pre><code class="language-sh">cargo fix --edition
 </code></pre>
-<p>Just beware that this automatic migration will not be able to verify that these attributes are being used correctly. It is still your responsibility to manually review their usage.</p>
-<p>Alternatively, you can manually enable the lint to find places where these attributes need to be updated.</p>
+<p>단, 이 자동 마이그레이션은 이 속성들이 올바르게 사용되고 있는지 확인할 수 없으므로 주의하세요. 사용법을 수동으로 검토하는 것은 여전히 여러분의 책임입니다.</p>
+<p>대안으로, 이 속성들의 업데이트가 필요한 곳을 찾기 위해 수동으로 린트를 활성화할 수 있습니다.</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Add this to the root of your crate to do a manual migration.
+</span>// 수동 마이그레이션을 수행하려면 크레이트 루트에 이것을 추가하세요.
 #![warn(unsafe_attr_outside_unsafe)]
 <span class="boring">}</span></code></pre></pre>
 

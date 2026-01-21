@@ -250,32 +250,32 @@ bstr = { version = "0.2.16", default-features = false }
 [build-dependencies]
 bstr = "0.2.16"
 </code></pre>
-<p>In our package, we've been using the <a href="https://docs.rs/bstr/0.2.16/bstr/trait.ByteSlice.html#method.words_with_breaks"><code>words_with_breaks</code></a> method from <code>bstr</code>, which requires <code>bstr</code>'s  "unicode" feature to be enabled. This has historically worked because Cargo unified the features of <code>bstr</code> between the two packages. However, after updating to Rust 2021, the new resolver will build <code>bstr</code> twice, once with the default features (as a build dependency), and once with no features (as our normal dependency). Since <code>bstr</code> is now being built without the "unicode" feature, the <code>words_with_breaks</code> method doesn't exist, and the build will fail with an error that the method is missing.</p>
-<p>The solution here is to ensure that the dependency is declared with the features you are actually using. For example:</p>
+<p>우리 패키지에서는 <code>bstr</code>의 <a href="https://docs.rs/bstr/0.2.16/bstr/trait.ByteSlice.html#method.words_with_breaks"><code>words_with_breaks</code></a> 메서드를 사용하고 있는데, 이를 위해서는 <code>bstr</code>의 "unicode" 기능을 활성화해야 합니다. 이는 과거에는 Cargo가 두 패키지 간에 <code>bstr</code>의 기능을 통합했기 때문에 작동했습니다. 하지만 Rust 2021로 업데이트한 후에는, 새로운 리졸버가 <code>bstr</code>을 두 번 빌드하는데, 한 번은 기본 기능으로(빌드 의존성으로서), 다른 한 번은 기능 없이(일반 의존성으로서) 빌드합니다. <code>bstr</code>이 이제 "unicode" 기능 없이 빌드되기 때문에 <code>words_with_breaks</code> 메서드가 존재하지 않으며, 메서드가 없다는 오류와 함께 빌드가 실패합니다.</p>
+<p>해결책은 의존성이 실제로 사용하는 기능과 함께 선언되도록 하는 것입니다. 예를 들면:</p>
 <pre><code class="language-toml">[dependencies]
 bstr = { version = "0.2.16", default-features = false, features = ["unicode"] }
 </code></pre>
-<p>In some cases, this may be a problem with a third-party dependency that you don't have direct control over. You can consider submitting a patch to that project to try to declare the correct set of features for the problematic dependency. Alternatively, you can add features to any dependency from within your own <code>Cargo.toml</code> file. For example, if the <code>bstr</code> example given above was declared in some third-party dependency, you can just copy the correct dependency declaration into your own project. The features will be unified, as long as they match the unification rules of the new resolver. Those are:</p>
+<p>어떤 경우에는, 직접 제어할 수 없는 서드파티 의존성에서 문제가 발생할 수 있습니다. 해당 프로젝트에 패치를 제출하여 문제가 되는 의존성에 대해 올바른 기능 세트를 선언하도록 시도해 볼 수 있습니다. 또는, 자신의 <code>Cargo.toml</code> 파일 내에서 어떤 의존성에든 기능을 추가할 수 있습니다. 예를 들어, 위에 제시된 <code>bstr</code> 예제가 어떤 서드파티 의존성에 선언되어 있다면, 올바른 의존성 선언을 자신의 프로젝트에 복사하기만 하면 됩니다. 새로운 리졸버의 통합 규칙과 일치하는 한 기능들은 통합될 것입니다. 그 규칙들은 다음과 같습니다:</p>
 <ul>
-<li>Features enabled on platform-specific dependencies for targets not currently being built are ignored.</li>
-<li>Build-dependencies and proc-macros do not share features with normal dependencies.</li>
-<li>Dev-dependencies do not activate features unless building a target that needs them (like tests or examples).</li>
+<li>현재 빌드되지 않는 타겟에 대한 플랫폼별 의존성에서 활성화된 기능은 무시됩니다.</li>
+<li>빌드 의존성과 절차적 매크로(proc-macros)는 일반 의존성과 기능을 공유하지 않습니다.</li>
+<li>개발 의존성(Dev-dependencies)은 이를 필요로 하는 타겟(테스트나 예제 등)을 빌드하지 않는 한 기능을 활성화하지 않습니다.</li>
 </ul>
-<p>A real-world example is using <a href="https://crates.io/crates/diesel"><code>diesel</code></a> and <a href="https://crates.io/crates/diesel_migrations"><code>diesel_migrations</code></a>. These packages provide database support, and the database is selected using a feature, like this:</p>
+<p>실제 예로 <a href="https://crates.io/crates/diesel"><code>diesel</code></a>과 <a href="https://crates.io/crates/diesel_migrations"><code>diesel_migrations</code></a>를 사용하는 경우가 있습니다. 이 패키지들은 데이터베이스 지원을 제공하며, 다음과 같이 기능을 사용하여 데이터베이스를 선택합니다:</p>
 <pre><code class="language-toml">[dependencies]
 diesel = { version = "1.4.7", features = ["postgres"] }
 diesel_migrations = "1.4.0"
 </code></pre>
-<p>The problem is that <code>diesel_migrations</code> has an internal proc-macro which itself depends on <code>diesel</code>, and the proc-macro assumes its own copy of <code>diesel</code> has the same features enabled as the rest of the dependency graph. After updating to the new resolver, it fails to build because now there are two copies of <code>diesel</code>, and the one built for the proc-macro is missing the "postgres" feature.</p>
-<p>A solution here is to add <code>diesel</code> as a build-dependency with the required features, for example:</p>
+<p>문제는 <code>diesel_migrations</code>가 내부적으로 <code>diesel</code>에 의존하는 절차적 매크로를 가지고 있는데, 이 절차적 매크로는 자신의 <code>diesel</code> 사본이 나머지 의존성 그래프와 동일한 기능을 활성화하고 있다고 가정한다는 점입니다. 새로운 리졸버로 업데이트한 후에는 <code>diesel</code>의 사본이 두 개가 되고, 절차적 매크로를 위해 빌드된 사본에는 "postgres" 기능이 빠져 있기 때문에 빌드에 실패하게 됩니다.</p>
+<p>해결책은 <code>diesel</code>을 필요한 기능과 함께 빌드 의존성으로 추가하는 것입니다. 예를 들면:</p>
 <pre><code class="language-toml">[build-dependencies]
 diesel = { version = "1.4.7", features = ["postgres"] }
 </code></pre>
-<p>This causes Cargo to add "postgres" as a feature for host dependencies (proc-macros and build-dependencies). Now, the <code>diesel_migrations</code> proc-macro will get the "postgres" feature enabled, and it will build correctly.</p>
-<p>The 2.0 release of <code>diesel</code> (currently in development) does not have this problem as it has been restructured to not have this dependency requirement.</p>
-<h3 id="exploring-features"><a class="header" href="#exploring-features">Exploring features</a></h3>
-<p>The <a href="../../cargo/commands/cargo-tree.html"><code>cargo tree</code></a> command has had substantial improvements to help with the migration to the new resolver. <code>cargo tree</code> can be used to explore the dependency graph, and to see which features are being enabled, and importantly <em>why</em> they are being enabled.</p>
-<p>One option is to use the <code>--duplicates</code> flag (<code>-d</code> for short), which will tell you when a package is being built multiple times. Taking the <code>bstr</code> example from earlier, we might see:</p>
+<p>이렇게 하면 Cargo가 "postgres"를 호스트 의존성(절차적 매크로 및 빌드 의존성)을 위한 기능으로 추가하게 됩니다. 이제 <code>diesel_migrations</code> 절차적 매크로는 "postgres" 기능이 활성화된 상태로 올바르게 빌드될 것입니다.</p>
+<p><code>diesel</code> 2.0 릴리스(현재 개발 중)는 이 종속성 요구 사항이 없도록 구조가 변경되었으므로 이 문제가 발생하지 않습니다.</p>
+<h3 id="기능-탐색"><a class="header" href="#기능-탐색">기능 탐색</a></h3>
+<p><a href="../../cargo/commands/cargo-tree.html"><code>cargo tree</code></a> 명령은 새로운 리졸버로의 이전을 돕기 위해 상당히 개선되었습니다. <code>cargo tree</code>를 사용하여 의존성 그래프를 탐색하고, 어떤 기능이 활성화되었는지, 그리고 중요하게는 <em>왜</em> 활성화되었는지 확인할 수 있습니다.</p>
+<p>한 가지 방법은 <code>--duplicates</code> 플래그(줄여서 <code>-d</code>)를 사용하는 것입니다. 이 플래그는 패키지가 여러 번 빌드될 때 이를 알려줍니다. 앞서 본 <code>bstr</code> 예제를 보면 다음과 같습니다:</p>
 <pre><code class="language-console">&gt; cargo tree -d
 bstr v0.2.16
 └── foo v0.1.0 (/MyProjects/foo)
@@ -286,12 +286,12 @@ bstr v0.2.16
     └── foo v0.1.0 (/MyProjects/foo)
 
 </code></pre>
-<p>This output tells us that <code>bstr</code> is built twice, and shows the chain of dependencies that led to its inclusion in both cases.</p>
-<p>You can print which features each package is using with the <code>-f</code> flag, like this:</p>
+<p>이 출력은 <code>bstr</code>이 두 번 빌드되었음을 알려주며, 두 경우 모두 포함되게 된 의존성 체인을 보여줍니다.</p>
+<p><code>-f</code> 플래그를 사용하여 각 패키지가 어떤 기능을 사용하고 있는지 다음과 같이 출력할 수 있습니다:</p>
 <pre><code class="language-console">cargo tree -f '{p} {f}'
 </code></pre>
-<p>This tells Cargo to change the "format" of the output, where it will print both the package and the enabled features.</p>
-<p>You can also use the <code>-e</code> flag to tell it which "edges" to display. For example, <code>cargo tree -e features</code> will show in-between each dependency which features are being added by each dependency. This option becomes more useful with the <code>-i</code> flag which can be used to "invert" the tree. This allows you to see how features <em>flow</em> into a given dependency. For example, let's say the dependency graph is large, and we're not quite sure who is depending on <code>bstr</code>, the following command will show that:</p>
+<p>이는 Cargo에게 출력의 "형식"을 변경하도록 지시하여, 패키지와 활성화된 기능을 모두 출력하게 합니다.</p>
+<p>또한 <code>-e</code> 플래그를 사용하여 표시할 "엣지(edges)"를 지정할 수 있습니다. 예를 들어, <code>cargo tree -e features</code>는 각 의존성 사이에서 어떤 기능이 각 의존성에 의해 추가되고 있는지 보여줍니다. 이 옵션은 트리를 "반전"시키는 데 사용할 수 있는 <code>-i</code> 플래그와 함께 사용할 때 더 유용합니다. 이를 통해 기능이 특정 의존성으로 어떻게 <em>흘러 들어가는지</em> 볼 수 있습니다. 예를 들어, 의존성 그래프가 크고 누가 <code>bstr</code>에 의존하고 있는지 확실하지 않은 경우, 다음 명령이 이를 보여줍니다:</p>
 <pre><code class="language-console">&gt; cargo tree -e features -i bstr
 bstr v0.2.16
 ├── bstr feature "default"
@@ -308,7 +308,7 @@ bstr v0.2.16
 │   └── bstr feature "default" (*)
 └── bstr feature "unicode" (*)
 </code></pre>
-<p>This snippet of output shows that the project <code>foo</code> depends on <code>bar</code> with the "default" feature. Then, <code>bar</code> depends on <code>bstr</code> as a build-dependency with the "default" feature. We can further see that <code>bstr</code>'s  "default" feature enables "unicode" (among other features).</p>
+<p>이 출력 스니펫은 <code>foo</code> 프로젝트가 "default" 기능을 가진 <code>bar</code>에 의존하고 있음을 보여줍니다. 그리고 <code>bar</code>는 "default" 기능을 가진 <code>bstr</code>에 빌드 의존성으로 의존합니다. 더 나아가 <code>bstr</code>의 "default" 기능이 (다른 기능들 중에서) "unicode"를 활성화한다는 것을 알 수 있습니다.</p>
 
                     </main>
 

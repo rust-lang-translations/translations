@@ -218,10 +218,10 @@
                         <h1 id="static-mut에-대한-참조-금지"><a class="header" href="#static-mut에-대한-참조-금지">static mut에 대한 참조 금지</a></h1>
 <h2 id="요약"><a class="header" href="#요약">요약</a></h2>
 <ul>
-<li>The <a href="../../rustc/lints/listing/warn-by-default.html#static-mut-refs"><code>static_mut_refs</code></a> lint level is now <code>deny</code> by default. This checks for taking a shared or mutable reference to a <code>static mut</code>.</li>
+<li><a href="../../rustc/lints/listing/warn-by-default.html#static-mut-refs"><code>static_mut_refs</code></a> 린트 레벨이 이제 기본적으로 <code>deny</code>입니다. 이는 <code>static mut</code>에 대한 공유 또는 가변 참조를 가져오는 것을 검사합니다.</li>
 </ul>
 <h2 id="세부-정보"><a class="header" href="#세부-정보">세부 정보</a></h2>
-<p>The <a href="../../rustc/lints/listing/warn-by-default.html#static-mut-refs"><code>static_mut_refs</code></a> lint detects taking a reference to a <a href="../../reference/items/static-items.html#mutable-statics"><code>static mut</code></a>. In the 2024 Edition, this lint is now <code>deny</code> by default to emphasize that you should avoid making these references.</p>
+<p><a href="../../rustc/lints/listing/warn-by-default.html#static-mut-refs"><code>static_mut_refs</code></a> 린트는 <a href="../../reference/items/static-items.html#mutable-statics"><code>static mut</code></a>에 대한 참조를 가져오는 것을 감지합니다. 2024 에디션에서는 이러한 참조를 피해야 함을 강조하기 위해 이 린트가 기본적으로 <code>deny</code>로 설정됩니다.</p>
 <!-- edition2024 -->
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -229,60 +229,60 @@
 static mut Y: i32 = 24;
 
 unsafe {
-    let y = &amp;X;             // ERROR: shared reference to mutable static
-    let ref x = X;          // ERROR: shared reference to mutable static
-    let (x, y) = (&amp;X, &amp;Y);  // ERROR: shared reference to mutable static
+    let y = &amp;X;             // ERROR: 가변 static에 대한 공유 참조
+    let ref x = X;          // ERROR: 가변 static에 대한 공유 참조
+    let (x, y) = (&amp;X, &amp;Y);  // ERROR: 가변 static에 대한 공유 참조
 }
 <span class="boring">}</span></code></pre></pre>
-<p>Merely taking such a reference in violation of Rust's mutability XOR aliasing requirement has always been <em>instantaneous</em> <a href="../../reference/behavior-considered-undefined.html">undefined behavior</a>, <strong>even if the reference is never read from or written to</strong>.  Furthermore, upholding mutability XOR aliasing for a <code>static mut</code> requires <em>reasoning about your code globally</em>, which can be particularly difficult in the face of reentrancy and/or multithreading.</p>
-<p>Note that there are some cases where implicit references are automatically created without a visible <code>&amp;</code> operator. For example, these situations will also trigger the lint:</p>
+<p>Rust의 가변성 XOR 앨리어싱 요구 사항을 위반하여 이러한 참조를 가져오는 것은 <strong>해당 참조를 읽거나 쓰지 않더라도</strong> 항상 <em>즉각적인</em> <a href="../../reference/behavior-considered-undefined.html">정의되지 않은 동작</a>이었습니다. 게다가 <code>static mut</code>에 대한 가변성 XOR 앨리어싱을 준수하려면 _코드를 전역적으로 추론_해야 하는데, 이는 재진입성이나 멀티스레딩 상황에서 특히 어려울 수 있습니다.</p>
+<p>보이는 <code>&amp;</code> 연산자 없이 암시적 참조가 자동으로 생성되는 경우가 있다는 점에 유의하세요. 예를 들어, 다음과 같은 상황에서도 린트가 발생합니다:</p>
 <!-- edition2024 -->
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>static mut NUMS: &amp;[u8; 3] = &amp;[0, 1, 2];
 
 unsafe {
-    println!("{NUMS:?}");   // ERROR: shared reference to mutable static
-    let n = NUMS.len();     // ERROR: shared reference to mutable static
+    println!("{NUMS:?}");   // ERROR: 가변 static에 대한 공유 참조
+    let n = NUMS.len();     // ERROR: 가변 static에 대한 공유 참조
 }
 <span class="boring">}</span></code></pre></pre>
-<h2 id="alternatives"><a class="header" href="#alternatives">Alternatives</a></h2>
-<p>Wherever possible, it is <strong>strongly recommended</strong> to use instead an <em>immutable</em> <code>static</code> of a type that provides <em>interior mutability</em> behind some <em>locally-reasoned abstraction</em> (which greatly reduces the complexity of ensuring that Rust's mutability XOR aliasing requirement is upheld).</p>
-<p>In situations where no locally-reasoned abstraction is possible and you are therefore compelled still to reason globally about accesses to your <code>static</code> variable, you must now use raw pointers such as can be obtained via the <a href="../../reference/expressions/operator-expr.html#raw-borrow-operators"><code>&amp;raw const</code> or <code>&amp;raw mut</code> operators</a>.  By first obtaining a raw pointer rather than directly taking a reference, (the safety requirements of) accesses through that pointer will be more familiar to <code>unsafe</code> developers and can be deferred until/limited to smaller regions of code.</p>
-<p>Note that the following examples are just illustrations and are not intended as full-fledged implementations. Do not copy these as-is. There are details for your specific situation that may require alterations to fit your needs. These are intended to help you see different ways to approach your problem.</p>
-<p>It is recommended to read the documentation for the specific types in the standard library, the reference on <a href="../../reference/behavior-considered-undefined.html">undefined behavior</a>, the <a href="../../nomicon/index.html">Rustonomicon</a>, and if you are having questions to reach out on one of the Rust forums such as the <a href="https://users.rust-lang.org/">Users Forum</a>.</p>
-<h3 id="dont-use-globals"><a class="header" href="#dont-use-globals">Don't use globals</a></h3>
-<p>This is probably something you already know, but if possible it is best to avoid mutable global state. Of course this can be a little more awkward or difficult at times, particularly if you need to pass a mutable reference around between many functions.</p>
-<h3 id="atomics"><a class="header" href="#atomics">Atomics</a></h3>
-<p>The <a href="../../std/sync/atomic/index.html">atomic types</a> provide integers, pointers, and booleans that can be used in a <code>static</code> (without <code>mut</code>).</p>
+<h2 id="대안"><a class="header" href="#대안">대안</a></h2>
+<p>가능하다면, Rust의 가변성 XOR 앨리어싱 요구 사항 준수를 보장하는 복잡성을 크게 줄여주는 <em>지역적으로 추론된 추상화</em> 뒤에서 _내부 가변성_을 제공하는 타입의 <em>불변</em> <code>static</code>을 대신 사용하는 것이 <strong>강력히 권장됩니다</strong>.</p>
+<p>지역적으로 추론된 추상화가 불가능하여 어쩔 수 없이 <code>static</code> 변수에 대한 접근을 전역적으로 추론해야 하는 상황이라면, 이제 <a href="../../reference/expressions/operator-expr.html#raw-borrow-operators"><code>&amp;raw const</code> 또는 <code>&amp;raw mut</code> 연산자</a>를 통해 얻을 수 있는 원시 포인터를 사용해야 합니다. 참조를 직접 가져오는 대신 먼저 원시 포인터를 얻음으로써, 해당 포인터를 통한 접근(의 안전 요구 사항)은 <code>unsafe</code> 개발자에게 더 친숙할 것이며 더 작은 코드 영역으로 제한하거나 미룰 수 있습니다.</p>
+<p>다음 예제들은 단지 설명일 뿐이며 완전한 구현을 의도한 것이 아닙니다. 있는 그대로 복사하지 마세요. 여러분의 특정 상황에 맞춰 변경해야 할 세부 사항이 있을 수 있습니다. 이 예제들은 문제에 접근하는 다양한 방법을 보여주기 위한 것입니다.</p>
+<p>표준 라이브러리의 특정 타입에 대한 문서, <a href="../../reference/behavior-considered-undefined.html">정의되지 않은 동작</a>에 대한 참조, <a href="../../nomicon/index.html">Rustonomicon</a>을 읽어보는 것을 권장하며, 질문이 있다면 <a href="https://users.rust-lang.org/">Users Forum</a>과 같은 Rust 포럼에 문의하세요.</p>
+<h3 id="전역-변수-사용하지-않기"><a class="header" href="#전역-변수-사용하지-않기">전역 변수 사용하지 않기</a></h3>
+<p>이미 알고 계시겠지만, 가능하다면 가변 전역 상태는 피하는 것이 가장 좋습니다. 물론 때로는 조금 더 어색하거나 어려울 수 있으며, 특히 많은 함수 사이에서 가변 참조를 전달해야 할 때 그렇습니다.</p>
+<h3 id="아토믹-atomics"><a class="header" href="#아토믹-atomics">아토믹 (Atomics)</a></h3>
+<p><a href="../../std/sync/atomic/index.html">아토믹 타입</a>은 <code>static</code>에서 (<code>mut</code> 없이) 사용할 수 있는 정수, 포인터, 불리언을 제공합니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">use std::sync::atomic::Ordering;
 </span><span class="boring">use std::sync::atomic::AtomicU64;
 </span>
-// Change from this:
+// 이렇게 변경:
 //   static mut COUNTER: u64 = 0;
-// to this:
+// 이것으로:
 static COUNTER: AtomicU64 = AtomicU64::new(0);
 
 fn main() {
-    // Be sure to analyze your use case to determine the correct Ordering to use.
+    // 사용 사례를 분석하여 올바른 Ordering을 사용하도록 하세요.
     COUNTER.fetch_add(1, Ordering::Relaxed);
 }</code></pre></pre>
-<h3 id="mutex-or-rwlock"><a class="header" href="#mutex-or-rwlock">Mutex or RwLock</a></h3>
-<p>When your type is more complex than an atomic, consider using a <a href="../../std/sync/struct.Mutex.html"><code>Mutex</code></a> or <a href="../../std/sync/struct.RwLock.html"><code>RwLock</code></a> to ensure proper access to the global value.</p>
+<h3 id="mutex-또는-rwlock"><a class="header" href="#mutex-또는-rwlock">Mutex 또는 RwLock</a></h3>
+<p>타입이 아토믹보다 더 복잡하다면, <a href="../../std/sync/struct.Mutex.html"><code>Mutex</code></a>나 <a href="../../std/sync/struct.RwLock.html"><code>RwLock</code></a>을 사용하여 전역 값에 대한 올바른 접근을 보장하는 것을 고려하세요.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">use std::sync::Mutex;
 </span><span class="boring">use std::collections::VecDeque;
 </span>
-// Change from this:
+// 이렇게 변경:
 //     static mut QUEUE: VecDeque&lt;String&gt; = VecDeque::new();
-// to this:
+// 이것으로:
 static QUEUE: Mutex&lt;VecDeque&lt;String&gt;&gt; = Mutex::new(VecDeque::new());
 
 fn main() {
     QUEUE.lock().unwrap().push_back(String::from("abc"));
     let first = QUEUE.lock().unwrap().pop_front();
 }</code></pre></pre>
-<h3 id="oncelock-or-lazylock"><a class="header" href="#oncelock-or-lazylock">OnceLock or LazyLock</a></h3>
-<p>If you are using a <code>static mut</code> because you need to do some one-time initialization that can't be <code>const</code>, you can instead reach for <a href="../../std/sync/struct.OnceLock.html"><code>OnceLock</code></a> or <a href="../../std/sync/struct.LazyLock.html"><code>LazyLock</code></a> instead.</p>
+<h3 id="oncelock-또는-lazylock"><a class="header" href="#oncelock-또는-lazylock">OnceLock 또는 LazyLock</a></h3>
+<p><code>const</code>로 할 수 없는 일회성 초기화를 위해 <code>static mut</code>을 사용하고 있다면, 대신 <a href="../../std/sync/struct.OnceLock.html"><code>OnceLock</code></a>이나 <a href="../../std/sync/struct.LazyLock.html"><code>LazyLock</code></a>을 사용할 수 있습니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">use std::sync::LazyLock;
 </span><span class="boring">
 </span><span class="boring">struct GlobalState;
@@ -294,9 +294,9 @@ fn main() {
 </span><span class="boring">    fn example(&amp;self) {}
 </span><span class="boring">}
 </span>
-// Instead of some temporary or uninitialized type like:
+// 다음과 같은 임시 또는 초기화되지 않은 타입 대신:
 //     static mut STATE: Option&lt;GlobalState&gt; = None;
-// use this instead:
+// 대신 이것을 사용하세요:
 static STATE: LazyLock&lt;GlobalState&gt; = LazyLock::new(|| {
     GlobalState::new()
 });
@@ -304,7 +304,7 @@ static STATE: LazyLock&lt;GlobalState&gt; = LazyLock::new(|| {
 fn main() {
     STATE.example();
 }</code></pre></pre>
-<p><a href="../../std/sync/struct.OnceLock.html"><code>OnceLock</code></a> is similar to <a href="../../std/sync/struct.LazyLock.html"><code>LazyLock</code></a>, but can be used if you need to pass information into the constructor, which can work well with single initialization points (like <code>main</code>), or if the inputs are available wherever you access the global.</p>
+<p><a href="../../std/sync/struct.OnceLock.html"><code>OnceLock</code></a>은 <a href="../../std/sync/struct.LazyLock.html"><code>LazyLock</code></a>과 비슷하지만, 생성자에 정보를 전달해야 하는 경우 사용할 수 있습니다. 이는 (<code>main</code>과 같은) 단일 초기화 지점과 잘 작동하거나, 전역 변수에 접근하는 곳 어디에서나 입력을 사용할 수 있는 경우에 유용합니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">use std::sync::OnceLock;
 </span><span class="boring">
 </span><span class="boring">struct GlobalState;
@@ -332,8 +332,8 @@ fn main() {
     // ...
     STATE.get().unwrap().example();
 }</code></pre></pre>
-<h3 id="no_std-one-time-initialization"><a class="header" href="#no_std-one-time-initialization"><code>no_std</code> one-time initialization</a></h3>
-<p>This example is similar to <a href="../../std/sync/struct.OnceLock.html"><code>OnceLock</code></a> in that it provides one-time initialization of a global, but it does not require <code>std</code> which is useful in a <code>no_std</code> context. Assuming your target supports atomics, then you can use an atomic to check for the initialization of the global. The pattern might look something like this:</p>
+<h3 id="no_std-일회성-초기화"><a class="header" href="#no_std-일회성-초기화"><code>no_std</code> 일회성 초기화</a></h3>
+<p>이 예제는 전역 변수의 일회성 초기화를 제공한다는 점에서 <a href="../../std/sync/struct.OnceLock.html"><code>OnceLock</code></a>과 유사하지만, <code>std</code>를 필요로 하지 않아 <code>no_std</code> 환경에서 유용합니다. 타겟이 아토믹을 지원한다고 가정하면, 아토믹을 사용하여 전역 변수의 초기화 여부를 확인할 수 있습니다. 패턴은 다음과 비슷할 것입니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">use core::sync::atomic::AtomicUsize;
 </span><span class="boring">use core::sync::atomic::Ordering;
 </span><span class="boring">
@@ -375,21 +375,21 @@ fn set_global_state(state: GlobalState) {
         )
         .is_ok()
     {
-        // SAFETY: The reads and writes to STATE are guarded with the INITIALIZED guard.
+        // SAFETY: STATE에 대한 읽기 및 쓰기는 INITIALIZED 가드로 보호됩니다.
         unsafe {
             STATE = state;
         }
         STATE_INITIALIZED.store(INITIALIZED, Ordering::SeqCst);
     } else {
-        panic!("already initialized, or concurrent initialization");
+        panic!("이미 초기화되었거나 동시에 초기화 중");
     }
 }
 
 fn get_state() -&gt; &amp;'static GlobalState {
     if STATE_INITIALIZED.load(Ordering::Acquire) != INITIALIZED {
-        panic!("not initialized");
+        panic!("초기화되지 않음");
     } else {
-        // SAFETY: Mutable access is not possible after state has been initialized.
+        // SAFETY: 상태가 초기화된 후에는 가변 접근이 불가능합니다.
         unsafe { &amp;*&amp;raw const STATE }
     }
 }
@@ -402,10 +402,10 @@ fn main() {
     let state = get_state();
     state.example();
 }</code></pre></pre>
-<p>This example assumes you can put some default value in the static before it is initialized (the const <code>default</code> constructor in this example). If that is not possible, consider using either <a href="../../core/mem/union.MaybeUninit.html"><code>MaybeUninit</code></a>, or dynamic trait dispatch (with a dummy type that implements a trait), or some other approach to have a default placeholder.</p>
-<p>There are community-provided crates that can provide similar one-time initialization, such as the <a href="https://crates.io/crates/static_cell"><code>static-cell</code></a> crate (which supports targets that do not have atomics by using <a href="https://crates.io/crates/portable-atomic"><code>portable-atomic</code></a>).</p>
-<h3 id="raw-pointers"><a class="header" href="#raw-pointers">Raw pointers</a></h3>
-<p>In some cases you can continue to use <code>static mut</code>, but avoid creating references. For example, if you just need to pass <a href="../../reference/types/pointer.html#raw-pointers-const-and-mut">raw pointers</a> into a C library, don't create an intermediate reference. Instead you can use <a href="../../reference/expressions/operator-expr.html#raw-borrow-operators">raw borrow operators</a>, like in the following example:</p>
+<p>이 예제는 초기화 전에 static에 기본값을 넣을 수 있다고 가정합니다(이 예제에서는 const <code>default</code> 생성자). 불가능한 경우, <a href="../../core/mem/union.MaybeUninit.html"><code>MaybeUninit</code></a>을 사용하거나, 동적 트레이트 디스패치(트레이트를 구현하는 더미 타입 사용)를 사용하거나, 기본 자리 표시자를 갖는 다른 접근 방식을 고려해보세요.</p>
+<p>비슷한 일회성 초기화를 제공하는 커뮤니티 제공 크레이트들이 있습니다. 예를 들어 <a href="https://crates.io/crates/static_cell"><code>static-cell</code></a> 크레이트(<a href="https://crates.io/crates/portable-atomic"><code>portable-atomic</code></a>을 사용하여 아토믹이 없는 타겟도 지원함)가 있습니다.</p>
+<h3 id="원시-포인터"><a class="header" href="#원시-포인터">원시 포인터</a></h3>
+<p>일부 경우에는 <code>static mut</code>을 계속 사용할 수 있지만, 참조 생성은 피해야 합니다. 예를 들어, <a href="../../reference/types/pointer.html#raw-pointers-const-and-mut">원시 포인터</a>를 C 라이브러리에 전달하기만 하면 되는 경우 중간 참조를 생성하지 마세요. 대신 다음 예제처럼 <a href="../../reference/expressions/operator-expr.html#raw-borrow-operators">원시 대여 연산자</a>를 사용할 수 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2024 no_run"><span class="boring">#[repr(C)]
 </span><span class="boring">struct GlobalState {
 </span><span class="boring">    value: i32
@@ -425,22 +425,22 @@ unsafe extern "C" {
 
 fn main() {
     unsafe {
-        // Change from this:
+        // 이렇게 변경:
         //     example_ffi(&amp;mut STATE as *mut GlobalState);
-        // to this:
+        // 이것으로:
         example_ffi(&amp;raw mut STATE);
     }
 }</code></pre></pre>
-<p>Just beware that you still need to uphold the aliasing constraints around mutable pointers. This may require some internal or external synchronization or proofs about how it is used across threads, interrupt handlers, and reentrancy.</p>
-<h3 id="unsafecell-with-sync"><a class="header" href="#unsafecell-with-sync"><code>UnsafeCell</code> with <code>Sync</code></a></h3>
-<p><a href="../../std/cell/struct.UnsafeCell.html"><code>UnsafeCell</code></a> does not impl <code>Sync</code>, so it cannot be used in a <code>static</code>. You can create your own wrapper around <a href="../../std/cell/struct.UnsafeCell.html"><code>UnsafeCell</code></a> to add a <code>Sync</code> impl so that it can be used in a <code>static</code> to implement interior mutability. This approach can be useful if you have external locks or other guarantees that uphold the safety invariants required for mutable pointers.</p>
-<p>Note that this is largely the same as the <a href="#raw-pointers">raw pointers</a> example. The wrapper helps to emphasize how you are using the type, and focus on which safety requirements you should be careful of. But otherwise they are roughly the same.</p>
+<p>단, 가변 포인터에 대한 앨리어싱 제약 조건은 여전히 준수해야 합니다. 이를 위해서는 내부 또는 외부 동기화가 필요하거나, 스레드, 인터럽트 핸들러, 재진입성에 걸쳐 어떻게 사용되는지에 대한 증명이 필요할 수 있습니다.</p>
+<h3 id="sync와-함께-unsafecell-사용"><a class="header" href="#sync와-함께-unsafecell-사용"><code>Sync</code>와 함께 <code>UnsafeCell</code> 사용</a></h3>
+<p><a href="../../std/cell/struct.UnsafeCell.html"><code>UnsafeCell</code></a>은 <code>Sync</code>를 구현하지 않으므로 <code>static</code>에서 사용할 수 없습니다. <a href="../../std/cell/struct.UnsafeCell.html"><code>UnsafeCell</code></a>을 감싸는 래퍼를 만들어 <code>Sync</code> 구현을 추가하면 <code>static</code>에서 사용하여 내부 가변성을 구현할 수 있습니다. 이 접근 방식은 외부 락이나 가변 포인터에 필요한 안전 불변성을 유지하는 다른 보장이 있는 경우 유용할 수 있습니다.</p>
+<p>이것은 <a href="#raw-pointers">원시 포인터</a> 예제와 거의 동일하다는 점에 유의하세요. 래퍼는 타입을 어떻게 사용하는지 강조하고, 어떤 안전 요구 사항을 주의해야 하는지에 집중하는 데 도움을 줍니다. 하지만 그 외에는 거의 동일합니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use std::cell::UnsafeCell;
 </span><span class="boring">
 </span><span class="boring">fn with_interrupts_disabled&lt;T: Fn()&gt;(f: T) {
-</span><span class="boring">    // A real example would disable interrupts.
+</span><span class="boring">    // 실제 예제에서는 인터럽트를 비활성화할 것입니다.
 </span><span class="boring">    f();
 </span><span class="boring">}
 </span><span class="boring">
@@ -466,23 +466,23 @@ fn set_value(value: i32) {
     with_interrupts_disabled(|| {
         let state = STATE.0.get();
         unsafe {
-            // SAFETY: This value is only ever read in our interrupt handler,
-            // and interrupts are disabled, and we only use this in one thread.
+            // SAFETY: 이 값은 인터럽트 핸들러에서만 읽히며,
+            // 인터럽트는 비활성화되어 있고, 하나의 스레드에서만 사용합니다.
             (*state).value = value;
         }
     });
 }
 <span class="boring">}</span></code></pre></pre>
-<p>The standard library has a nightly-only (unstable) variant of <a href="../../std/cell/struct.UnsafeCell.html"><code>UnsafeCell</code></a> called <a href="../../std/cell/struct.SyncUnsafeCell.html"><code>SyncUnsafeCell</code></a>. This example above shows a very simplified version of the standard library type, but would be used roughly the same way. It can provide even better isolation, so do check out its implementation for more details.</p>
-<p>This example includes a fictional <code>with_interrupts_disabled</code> function which is the type of thing you might see in an embedded environment. For example, the <a href="https://crates.io/crates/critical-section"><code>critical-section</code></a> crate provides a similar kind of functionality that could be used for an embedded environment.</p>
-<h3 id="safe-references"><a class="header" href="#safe-references">Safe references</a></h3>
-<p>In some cases it may be safe to create a reference of a <code>static mut</code>. The whole point of the <a href="../../rustc/lints/listing/warn-by-default.html#static-mut-refs"><code>static_mut_refs</code></a> lint is that this is very hard to do correctly! However, that's not to say it is <em>impossible</em>. If you have a situation where you can guarantee that the aliasing requirements are upheld, such as guaranteeing the static is narrowly scoped (only used in a small module or function), has some internal or external synchronization, accounts for interrupt handlers and reentrancy, panic safety, drop handlers, etc., then taking a reference may be fine.</p>
-<p>There are two approaches you can take for this. You can either allow the <a href="../../rustc/lints/listing/warn-by-default.html#static-mut-refs"><code>static_mut_refs</code></a> lint (preferably as narrowly as you can), or convert raw pointers to a reference, as with <code>&amp;mut *&amp;raw mut MY_STATIC</code>.</p>
+<p>표준 라이브러리에는 <a href="../../std/cell/struct.UnsafeCell.html"><code>UnsafeCell</code></a>의 나이틀리 전용(불안정) 변형인 <a href="../../std/cell/struct.SyncUnsafeCell.html"><code>SyncUnsafeCell</code></a>이 있습니다. 위 예제는 표준 라이브러리 타입의 매우 단순화된 버전을 보여주지만, 대략 같은 방식으로 사용될 것입니다. 더 나은 격리를 제공할 수 있으므로 자세한 내용은 해당 구현을 확인해 보세요.</p>
+<p>이 예제에는 임베디드 환경에서 볼 수 있는 가상의 <code>with_interrupts_disabled</code> 함수가 포함되어 있습니다. 예를 들어, <a href="https://crates.io/crates/critical-section"><code>critical-section</code></a> 크레이트는 임베디드 환경에서 사용할 수 있는 유사한 기능을 제공합니다.</p>
+<h3 id="안전한-참조"><a class="header" href="#안전한-참조">안전한 참조</a></h3>
+<p>어떤 경우에는 <code>static mut</code>의 참조를 생성하는 것이 안전할 수 있습니다. <a href="../../rustc/lints/listing/warn-by-default.html#static-mut-refs"><code>static_mut_refs</code></a> 린트의 핵심은 이것을 올바르게 수행하기가 매우 어렵다는 것입니다! 하지만 _불가능_하다는 말은 아닙니다. static이 좁은 범위(작은 모듈이나 함수 내에서만 사용됨)로 지정되어 있거나, 내부 또는 외부 동기화가 있거나, 인터럽트 핸들러와 재진입성, 패닉 안전성, 드롭 핸들러 등을 고려하는 등 앨리어싱 요구 사항이 준수됨을 보장할 수 있는 상황이라면 참조를 가져오는 것도 괜찮을 수 있습니다.</p>
+<p>이를 위해 두 가지 접근 방식을 취할 수 있습니다. <a href="../../rustc/lints/listing/warn-by-default.html#static-mut-refs"><code>static_mut_refs</code></a> 린트를 허용하거나(가급적 좁은 범위에서), <code>&amp;mut *&amp;raw mut MY_STATIC</code>과 같이 원시 포인터를 참조로 변환할 수 있습니다.</p>
 <!-- TODO: Should we prefer one or the other here? -->
-<h4 id="short-lived-references"><a class="header" href="#short-lived-references">Short-lived references</a></h4>
-<p>If you must create a reference to a <code>static mut</code>, then it is recommended to minimize the scope of how long that reference exists. Avoid squirreling the reference away somewhere, or keeping it alive through a large section of code. Keeping it short-lived helps with auditing, and verifying that exclusive access is maintained for the duration. Using pointers should be your default unit, and only convert the pointer to a reference on demand when absolutely required.</p>
+<h4 id="수명이-짧은-참조"><a class="header" href="#수명이-짧은-참조">수명이 짧은 참조</a></h4>
+<p><code>static mut</code>에 대한 참조를 생성해야 한다면, 그 참조가 존재하는 범위를 최소화하는 것이 좋습니다. 참조를 어딘가에 숨겨두거나 코드의 큰 섹션 동안 계속 살아있게 하지 마세요. 수명을 짧게 유지하면 감사가 쉬워지고 해당 기간 동안 배타적 접근이 유지되는지 확인하는 데 도움이 됩니다. 포인터를 기본 단위로 사용하고, 절대적으로 필요한 경우에만 요청 시 포인터를 참조로 변환하세요.</p>
 <h2 id="마이그레이션"><a class="header" href="#마이그레이션">마이그레이션</a></h2>
-<p>There is no automatic migration to fix these references to <code>static mut</code>. To avoid undefined behavior you must rewrite your code to use a different approach as recommended in the <a href="#alternatives">Alternatives</a> section.</p>
+<p><code>static mut</code>에 대한 이러한 참조를 수정하는 자동 마이그레이션은 없습니다. 정의되지 않은 동작을 피하려면 <a href="#alternatives">대안</a> 섹션에서 권장하는 다른 접근 방식을 사용하도록 코드를 다시 작성해야 합니다.</p>
 
                     </main>
 

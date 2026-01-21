@@ -216,40 +216,40 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="rpit-라이프타임-캡처-규칙"><a class="header" href="#rpit-라이프타임-캡처-규칙">RPIT 라이프타임 캡처 규칙</a></h1>
-<p>This chapter describes changes related to the <strong>Lifetime Capture Rules 2024</strong> introduced in <a href="https://github.com/rust-lang/rfcs/pull/3498">RFC 3498</a>, including how to use opaque type <em>precise capturing</em> (introduced in <a href="https://github.com/rust-lang/rfcs/pull/3617">RFC 3617</a>) to migrate your code.</p>
+<p>이 장에서는 <a href="https://github.com/rust-lang/rfcs/pull/3498">RFC 3498</a>에서 도입된 **라이프타임 캡처 규칙 2024(Lifetime Capture Rules 2024)**와 관련된 변경 사항을 설명하며, 여기에는 코드를 마이그레이션하기 위해 불투명 타입(opaque type)의 <em>정밀 캡처(precise capturing)</em>(<a href="https://github.com/rust-lang/rfcs/pull/3617">RFC 3617</a>에서 도입됨)를 사용하는 방법이 포함됩니다.</p>
 <h2 id="요약"><a class="header" href="#요약">요약</a></h2>
 <ul>
-<li>In Rust 2024, <em>all</em> in-scope generic parameters, including lifetime parameters, are implicitly captured when the <code>use&lt;..&gt;</code> bound is not present.</li>
-<li>Uses of the <code>Captures</code> trick (<code>Captures&lt;..&gt;</code> bounds) and of the outlives trick (e.g. <code>'_</code> bounds) can be replaced by <code>use&lt;..&gt;</code> bounds (in all editions) or removed entirely (in Rust 2024).</li>
+<li>Rust 2024에서는 <code>use&lt;..&gt;</code> 바운드가 없을 때 라이프타임 매개변수를 포함한 범위 내의 <em>모든</em> 제네릭 매개변수가 암시적으로 캡처됩니다.</li>
+<li><code>Captures</code> 트릭(<code>Captures&lt;..&gt;</code> 바운드) 및 outlives 트릭(예: <code>'_</code> 바운드)의 사용은 (모든 에디션에서) <code>use&lt;..&gt;</code> 바운드로 대체되거나 (Rust 2024에서) 완전히 제거될 수 있습니다.</li>
 </ul>
 <h2 id="세부-정보"><a class="header" href="#세부-정보">세부 정보</a></h2>
-<h3 id="capturing"><a class="header" href="#capturing">Capturing</a></h3>
-<p><em>Capturing</em> a generic parameter in an RPIT (return-position impl Trait) opaque type allows for that parameter to be used in the corresponding hidden type.  In Rust 1.82, we added <code>use&lt;..&gt;</code> bounds that allow specifying explicitly which generic parameters to capture.  Those will be helpful for migrating your code to Rust 2024, and will be helpful in this chapter for explaining how the edition-specific implicit capturing rules work.  These <code>use&lt;..&gt;</code> bounds look like this:</p>
+<h3 id="캡처링"><a class="header" href="#캡처링">캡처링</a></h3>
+<p>RPIT(반환 위치 impl Trait) 불투명 타입에서 제네릭 매개변수를 _캡처_하면 해당 매개변수를 해당하는 숨겨진 타입에서 사용할 수 있습니다.  Rust 1.82에서는 캡처할 제네릭 매개변수를 명시적으로 지정할 수 있는 <code>use&lt;..&gt;</code> 바운드를 추가했습니다.  이는 코드를 Rust 2024로 마이그레이션하는 데 도움이 되며, 이 챕터에서 에디션별 암시적 캡처 규칙이 어떻게 작동하는지 설명하는 데에도 유용합니다.  이러한 <code>use&lt;..&gt;</code> 바운드는 다음과 같습니다:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn capture&lt;'a, T&gt;(x: &amp;'a (), y: T) -&gt; impl Sized + use&lt;'a, T&gt; {
     //                                ~~~~~~~~~~~~~~~~~~~~~~~
-    //                             This is the RPIT opaque type.
+    //                             이것은 RPIT 불투명 타입입니다.
     //
-    //                                It captures `'a` and `T`.
+    //                                이것은 `'a`와 `T`를 캡처합니다.
     (x, y)
   //~~~~~~
-  // The hidden type is: `(&amp;'a (), T)`.
+  // 숨겨진 타입은: `(&amp;'a (), T)`입니다.
   //
-  // This type can use `'a` and `T` because they were captured.
+  // 이 타입은 `'a`와 `T`가 캡처되었기 때문에 이를 사용할 수 있습니다.
 }
 <span class="boring">}</span></code></pre></pre>
-<p>The generic parameters that are captured affect how the opaque type can be used.  E.g., this is an error because the lifetime is captured despite the fact that the hidden type does not use the lifetime:</p>
+<p>캡처된 제네릭 매개변수는 불투명 타입을 사용하는 방식에 영향을 미칩니다.  예를 들어, 숨겨진 타입이 라이프타임을 사용하지 않음에도 불구하고 라이프타임이 캡처되기 때문에 다음은 오류입니다:</p>
 <pre><pre class="playground"><code class="language-rust compile_fail"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn capture&lt;'a&gt;(_: &amp;'a ()) -&gt; impl Sized + use&lt;'a&gt; {}
 
 fn test&lt;'a&gt;(x: &amp;'a ()) -&gt; impl Sized + 'static {
     capture(x)
-    //~^ ERROR lifetime may not live long enough
+    //~^ 오류: 라이프타임이 충분히 오래 지속되지 않을 수 있습니다
 }
 <span class="boring">}</span></code></pre></pre>
-<p>Conversely, this is OK:</p>
+<p>반대로, 다음은 괜찮습니다:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn capture&lt;'a&gt;(_: &amp;'a ()) -&gt; impl Sized + use&lt;&gt; {}
@@ -258,122 +258,122 @@ fn test&lt;'a&gt;(x: &amp;'a ()) -&gt; impl Sized + 'static {
     capture(x) //~ OK
 }
 <span class="boring">}</span></code></pre></pre>
-<h3 id="edition-specific-rules-when-no-use-bound-is-present"><a class="header" href="#edition-specific-rules-when-no-use-bound-is-present">Edition-specific rules when no <code>use&lt;..&gt;</code> bound is present</a></h3>
-<p>If the <code>use&lt;..&gt;</code> bound is not present, then the compiler uses edition-specific rules to decide which in-scope generic parameters to capture implicitly.</p>
-<p>In all editions, all in-scope type and const generic parameters are captured implicitly when the <code>use&lt;..&gt;</code> bound is not present.  E.g.:</p>
+<h3 id="use-바운드가-없을-때의-에디션별-규칙"><a class="header" href="#use-바운드가-없을-때의-에디션별-규칙"><code>use&lt;..&gt;</code> 바운드가 없을 때의 에디션별 규칙</a></h3>
+<p><code>use&lt;..&gt;</code> 바운드가 없는 경우, 컴파일러는 에디션별 규칙을 사용하여 범위 내의 어떤 제네릭 매개변수를 암시적으로 캡처할지 결정합니다.</p>
+<p>모든 에디션에서 <code>use&lt;..&gt;</code> 바운드가 없을 때 범위 내의 모든 타입 및 상수 제네릭 매개변수는 암시적으로 캡처됩니다. 예를 들면:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn f_implicit&lt;T, const C: usize&gt;() -&gt; impl Sized {}
 //                                    ~~~~~~~~~~
-//                         No `use&lt;..&gt;` bound is present here.
+//                         여기에 `use&lt;..&gt;` 바운드가 없습니다.
 //
-// In all editions, the above is equivalent to:
+// 모든 에디션에서 위 코드는 다음과 동일합니다:
 fn f_explicit&lt;T, const C: usize&gt;() -&gt; impl Sized + use&lt;T, C&gt; {}
 <span class="boring">}</span></code></pre></pre>
 <p>In Rust 2021 and earlier editions, when the <code>use&lt;..&gt;</code> bound is not present, generic lifetime parameters are only captured when they appear syntactically within a bound in RPIT opaque types in the signature of bare functions and associated functions and methods within inherent impls.  However, starting in Rust 2024, these in-scope generic lifetime parameters are unconditionally captured.  E.g.:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn f_implicit(_: &amp;()) -&gt; impl Sized {}
-// In Rust 2021 and earlier, the above is equivalent to:
+// Rust 2021 및 이전 버전에서 위 코드는 다음과 같습니다:
 fn f_2021(_: &amp;()) -&gt; impl Sized + use&lt;&gt; {}
-// In Rust 2024 and later, it's equivalent to:
+// Rust 2024 및 이후 버전에서 이는 다음과 같습니다:
 fn f_2024(_: &amp;()) -&gt; impl Sized + use&lt;'_&gt; {}
 <span class="boring">}</span></code></pre></pre>
-<p>This makes the behavior consistent with RPIT opaque types in the signature of associated functions and methods within trait impls, uses of RPIT within trait definitions (RPITIT), and opaque <code>Future</code> types created by <code>async fn</code>, all of which implicitly capture all in-scope generic lifetime parameters in all editions when the <code>use&lt;..&gt;</code> bound is not present.</p>
-<h3 id="outer-generic-parameters"><a class="header" href="#outer-generic-parameters">Outer generic parameters</a></h3>
-<p>Generic parameters from an outer impl are considered to be in scope when deciding what is implicitly captured.  E.g.:</p>
+<p>이로써 트레이트 impl 내의 연관 함수 및 메서드 시그니처에 있는 RPIT 불투명 타입, 트레이트 정의 내에서의 RPIT 사용(RPITIT), <code>async fn</code>에 의해 생성된 불투명 <code>Future</code> 타입과 동작이 일관되게 됩니다. 이들은 모두 <code>use&lt;..&gt;</code> 바운드가 없을 때 모든 에디션에서 범위 내의 모든 제네릭 라이프타임 매개변수를 암시적으로 캡처합니다.</p>
+<h3 id="외부-제네릭-매개변수"><a class="header" href="#외부-제네릭-매개변수">외부 제네릭 매개변수</a></h3>
+<p>암시적으로 캡처되는 것을 결정할 때 외부 impl의 제네릭 매개변수는 범위 내에 있는 것으로 간주됩니다.  예:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>struct S&lt;T, const C: usize&gt;((T, [(); C]));
 impl&lt;T, const C: usize&gt; S&lt;T, C&gt; {
 //   ~~~~~~~~~~~~~~~~~
-// These generic parameters are in scope.
+// 이 제네릭 매개변수들은 범위 내에 있습니다.
     fn f_implicit&lt;U&gt;() -&gt; impl Sized {}
     //            ~       ~~~~~~~~~~
-    //            ^ This generic is in scope too.
+    //            ^ 이 제네릭도 범위 내에 있습니다.
     //                    ^
     //                    |
-    //     No `use&lt;..&gt;` bound is present here.
+    //     여기에 `use&lt;..&gt;` 바운드가 없습니다.
     //
-    // In all editions, it's equivalent to:
+    // 모든 에디션에서 이는 다음과 같습니다:
     fn f_explicit&lt;U&gt;() -&gt; impl Sized + use&lt;T, U, C&gt; {}
 }
 <span class="boring">}</span></code></pre></pre>
-<h3 id="lifetimes-from-higher-ranked-binders"><a class="header" href="#lifetimes-from-higher-ranked-binders">Lifetimes from higher-ranked binders</a></h3>
-<p>Similarly, generic lifetime parameters introduced into scope by a higher-ranked <code>for&lt;..&gt;</code> binder are considered to be in scope.  E.g.:</p>
+<h3 id="고차higher-ranked-바인더의-라이프타임"><a class="header" href="#고차higher-ranked-바인더의-라이프타임">고차(higher-ranked) 바인더의 라이프타임</a></h3>
+<p>마찬가지로, 고차 <code>for&lt;..&gt;</code> 바인더에 의해 범위에 도입된 제네릭 라이프타임 매개변수도 범위 내에 있는 것으로 간주됩니다. 예:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>trait Tr&lt;'a&gt; { type Ty; }
 impl Tr&lt;'_&gt; for () { type Ty = (); }
 
 fn f_implicit() -&gt; impl for&lt;'a&gt; Tr&lt;'a, Ty = impl Copy&gt; {}
-// In Rust 2021 and earlier, the above is equivalent to:
+// Rust 2021 및 이전 버전에서 위 코드는 다음과 같습니다:
 fn f_2021() -&gt; impl for&lt;'a&gt; Tr&lt;'a, Ty = impl Copy + use&lt;&gt;&gt; {}
-// In Rust 2024 and later, it's equivalent to:
+// Rust 2024 및 이후 버전에서 이는 다음과 같습니다:
 //fn f_2024() -&gt; impl for&lt;'a&gt; Tr&lt;'a, Ty = impl Copy + use&lt;'a&gt;&gt; {}
 //                                        ~~~~~~~~~~~~~~~~~~~~
-// However, note that the capturing of higher-ranked lifetimes in
-// nested opaque types is not yet supported.
+// 그러나 고차 라이프타임의 캡처는
+// 중첩된 불투명 타입에서는 아직 지원되지 않습니다.
 <span class="boring">}</span></code></pre></pre>
-<h3 id="argument-position-impl-trait-apit"><a class="header" href="#argument-position-impl-trait-apit">Argument position impl Trait (APIT)</a></h3>
-<p>Anonymous (i.e. unnamed) generic parameters created by the use of APIT (argument position impl Trait) are considered to be in scope.  E.g.:</p>
+<h3 id="인수-위치-impl-trait-apit"><a class="header" href="#인수-위치-impl-trait-apit">인수 위치 impl Trait (APIT)</a></h3>
+<p>APIT(인수 위치 impl Trait) 사용으로 생성된 익명(즉, 이름 없는) 제네릭 매개변수도 범위 내에 있는 것으로 간주됩니다.  예:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn f_implicit(_: impl Sized) -&gt; impl Sized {}
 //               ~~~~~~~~~~
-//           This is called APIT.
+//           이것을 APIT라고 부릅니다.
 //
-// The above is *roughly* equivalent to:
+// 위 코드는 *대략* 다음과 같습니다:
 fn f_explicit&lt;_0: Sized&gt;(_: _0) -&gt; impl Sized + use&lt;_0&gt; {}
 <span class="boring">}</span></code></pre></pre>
-<p>Note that the former is not <em>exactly</em> equivalent to the latter because, by naming the generic parameter, turbofish syntax can now be used to provide an argument for it.  There is no way to explicitly include an anonymous generic parameter in a <code>use&lt;..&gt;</code> bound other than by converting it to a named generic parameter.</p>
+<p>전자가 후자와 <em>정확히</em> 동일하지는 않다는 점에 유의하세요. 제네릭 매개변수에 이름을 지정하면 터보피시(turbofish) 구문을 사용하여 인수를 제공할 수 있기 때문입니다. 익명 제네릭 매개변수를 명명된 제네릭 매개변수로 변환하지 않고 <code>use&lt;..&gt;</code> 바운드에 명시적으로 포함할 수 있는 방법은 없습니다.</p>
 <h2 id="마이그레이션"><a class="header" href="#마이그레이션">마이그레이션</a></h2>
-<h3 id="migrating-while-avoiding-overcapturing"><a class="header" href="#migrating-while-avoiding-overcapturing">Migrating while avoiding overcapturing</a></h3>
-<p>The <code>impl_trait_overcaptures</code> lint flags RPIT opaque types that will capture additional lifetimes in Rust 2024.  This lint is part of the <code>rust-2024-compatibility</code> lint group which is automatically applied when running <code>cargo fix --edition</code>.  In most cases, the lint can automatically insert <code>use&lt;..&gt;</code> bounds where needed such that no additional lifetimes are captured in Rust 2024.</p>
-<p>To migrate your code to be compatible with Rust 2024, run:</p>
+<h3 id="과도한-캡처overcapturing를-피하면서-마이그레이션하기"><a class="header" href="#과도한-캡처overcapturing를-피하면서-마이그레이션하기">과도한 캡처(overcapturing)를 피하면서 마이그레이션하기</a></h3>
+<p><code>impl_trait_overcaptures</code> 린트는 Rust 2024에서 추가 라이프타임을 캡처하게 될 RPIT 불투명 타입을 플래그합니다.  이 린트는 <code>cargo fix --edition</code>을 실행할 때 자동으로 적용되는 <code>rust-2024-compatibility</code> 린트 그룹의 일부입니다.  대부분의 경우, 이 린트는 Rust 2024에서 추가 라이프타임이 캡처되지 않도록 필요한 곳에 <code>use&lt;..&gt;</code> 바운드를 자동으로 삽입할 수 있습니다.</p>
+<p>코드를 Rust 2024와 호환되도록 마이그레이션하려면 다음을 실행하세요:</p>
 <pre><code class="language-sh">cargo fix --edition
 </code></pre>
-<p>For example, this will change:</p>
+<p>예를 들어, 이것은 다음과 같이 변경됩니다:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn f&lt;'a&gt;(x: &amp;'a ()) -&gt; impl Sized { *x }
 <span class="boring">}</span></code></pre></pre>
-<p>...into:</p>
+<p>...을 다음으로:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn f&lt;'a&gt;(x: &amp;'a ()) -&gt; impl Sized + use&lt;&gt; { *x }
 <span class="boring">}</span></code></pre></pre>
-<p>Without this <code>use&lt;&gt;</code> bound, in Rust 2024, the opaque type would capture the <code>'a</code> lifetime parameter.  By adding this bound, the migration lint preserves the existing semantics.</p>
-<h3 id="migrating-cases-involving-apit"><a class="header" href="#migrating-cases-involving-apit">Migrating cases involving APIT</a></h3>
-<p>In some cases, the lint cannot make the change automatically because a generic parameter needs to be given a name so that it can appear within a <code>use&lt;..&gt;</code> bound.  In these cases, the lint will alert you that a change may need to be made manually.  E.g., given:</p>
+<p>Rust 2024에서 이 <code>use&lt;&gt;</code> 바운드가 없으면 불투명 타입은 <code>'a</code> 라이프타임 매개변수를 캡처하게 됩니다.  이 바운드를 추가함으로써 마이그레이션 린트는 기존 의미를 보존합니다.</p>
+<h3 id="apit와-관련된-케이스-마이그레이션"><a class="header" href="#apit와-관련된-케이스-마이그레이션">APIT와 관련된 케이스 마이그레이션</a></h3>
+<p>경우에 따라 린트가 변경을 자동으로 수행할 수 없는 경우가 있는데, 이는 제네릭 매개변수가 <code>use&lt;..&gt;</code> 바운드 내에 나타날 수 있도록 이름을 지정해야 하기 때문입니다.  이러한 경우 린트는 수동으로 변경해야 할 수도 있음을 알려줍니다.  예를 들어, 다음과 같은 경우:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn f&lt;'a&gt;(x: &amp;'a (), y: impl Sized) -&gt; impl Sized { (*x, y) }
 //   ^^                ~~~~~~~~~~
-//               This is a use of APIT.
+//               이것은 APIT의 사용입니다.
 //
-//~^ WARN `impl Sized` will capture more lifetimes than possibly intended in edition 2024
-//~| NOTE specifically, this lifetime is in scope but not mentioned in the type's bounds
+//~^ 경고 `impl Sized`는 2024 에디션에서 의도한 것보다 더 많은 라이프타임을 캡처할 것입니다
+//~| 참고 구체적으로, 이 라이프타임은 범위 내에 있지만 타입의 바운드에서 언급되지 않았습니다
 <span class="boring">
 </span><span class="boring">fn test&lt;'a&gt;(x: &amp;'a (), y: ()) -&gt; impl Sized + 'static {
 </span><span class="boring">    f(x, y)
 </span><span class="boring">}
 </span><span class="boring">}</span></code></pre></pre>
-<p>The code cannot be converted automatically because of the use of APIT and the fact that the generic type parameter must be named in the <code>use&lt;..&gt;</code> bound.  To convert this code to Rust 2024 without capturing the lifetime, you must name that type parameter.  E.g.:</p>
+<p>APIT의 사용과 제네릭 타입 매개변수가 <code>use&lt;..&gt;</code> 바운드에서 명명되어야 한다는 사실 때문에 코드를 자동으로 변환할 수 없습니다. 라이프타임을 캡처하지 않고 이 코드를 Rust 2024로 변환하려면 해당 타입 매개변수의 이름을 지정해야 합니다. 예:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">#![deny(impl_trait_overcaptures)]
 </span>fn f&lt;'a, T: Sized&gt;(x: &amp;'a (), y: T) -&gt; impl Sized + use&lt;T&gt; { (*x, y) }
 //       ~~~~~~~~
-// The type parameter has been named here.
+// 여기에 타입 매개변수의 이름이 지정되었습니다.
 <span class="boring">
 </span><span class="boring">fn test&lt;'a&gt;(x: &amp;'a (), y: ()) -&gt; impl Sized + use&lt;&gt; {
 </span><span class="boring">    f(x, y)
 </span><span class="boring">}
 </span><span class="boring">}</span></code></pre></pre>
 <p>Note that this changes the API of the function slightly as a type argument can now be explicitly provided for this parameter using turbofish syntax.  If this is undesired, you might consider instead whether you can simply continue to omit the <code>use&lt;..&gt;</code> bound and allow the lifetime to be captured.  This might be particularly desirable if you might in the future want to use that lifetime in the hidden type and would like to save space for that.</p>
-<h3 id="migrating-away-from-the-captures-trick"><a class="header" href="#migrating-away-from-the-captures-trick">Migrating away from the <code>Captures</code> trick</a></h3>
-<p>Prior to the introduction of precise capturing <code>use&lt;..&gt;</code> bounds in Rust 1.82, correctly capturing a lifetime in an RPIT opaque type often required using the <code>Captures</code> trick.  E.g.:</p>
+<h3 id="captures-트릭에서-마이그레이션하기"><a class="header" href="#captures-트릭에서-마이그레이션하기"><code>Captures</code> 트릭에서 마이그레이션하기</a></h3>
+<p>Rust 1.82에서 정확한 캡처 <code>use&lt;..&gt;</code> 바운드가 도입되기 전에는 RPIT 불투명 타입에서 라이프타임을 올바르게 캡처하려면 종종 <code>Captures</code> 트릭을 사용해야 했습니다.  예:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[doc(hidden)]
@@ -382,7 +382,7 @@ impl&lt;T: ?Sized, U: ?Sized&gt; Captures&lt;T&gt; for U {}
 
 fn f&lt;'a, T&gt;(x: &amp;'a (), y: T) -&gt; impl Sized + Captures&lt;(&amp;'a (), T)&gt; {
 //                                           ~~~~~~~~~~~~~~~~~~~~~
-//                            This is called the `Captures` trick.
+//                            이것을 `Captures` 트릭이라고 부릅니다.
     (x, y)
 }
 <span class="boring">
@@ -390,7 +390,7 @@ fn f&lt;'a, T&gt;(x: &amp;'a (), y: T) -&gt; impl Sized + Captures&lt;(&amp;'a (
 </span><span class="boring">    f(t, x);
 </span><span class="boring">}
 </span><span class="boring">}</span></code></pre></pre>
-<p>With the <code>use&lt;..&gt;</code> bound syntax, the <code>Captures</code> trick is no longer needed and can be replaced with the following in all editions:</p>
+<p><code>use&lt;..&gt;</code> 바운드 구문을 사용하면 <code>Captures</code> 트릭은 더 이상 필요하지 않으며 모든 에디션에서 다음과 같이 대체될 수 있습니다.</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn f&lt;'a, T&gt;(x: &amp;'a (), y: T) -&gt; impl Sized + use&lt;'a, T&gt; {
@@ -401,7 +401,7 @@ fn f&lt;'a, T&gt;(x: &amp;'a (), y: T) -&gt; impl Sized + Captures&lt;(&amp;'a (
 </span><span class="boring">    f(t, x);
 </span><span class="boring">}
 </span><span class="boring">}</span></code></pre></pre>
-<p>In Rust 2024, the <code>use&lt;..&gt;</code> bound can often be omitted entirely, and the above can be written simply as:</p>
+<p>Rust 2024에서는 <code>use&lt;..&gt;</code> 바운드를 완전히 생략할 수 있는 경우가 많으며, 위 코드는 다음과 같이 간단하게 작성할 수 있습니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn f&lt;'a, T&gt;(x: &amp;'a (), y: T) -&gt; impl Sized {
@@ -412,9 +412,9 @@ fn f&lt;'a, T&gt;(x: &amp;'a (), y: T) -&gt; impl Sized + Captures&lt;(&amp;'a (
 </span><span class="boring">    f(t, x);
 </span><span class="boring">}
 </span><span class="boring">}</span></code></pre></pre>
-<p>There is no automatic migration for this, and the <code>Captures</code> trick still works in Rust 2024, but you might want to consider migrating code manually away from using this old trick.</p>
-<h3 id="migrating-away-from-the-outlives-trick"><a class="header" href="#migrating-away-from-the-outlives-trick">Migrating away from the outlives trick</a></h3>
-<p>Prior to the introduction of precise capturing <code>use&lt;..&gt;</code> bounds in Rust 1.82, it was common to use the "outlives trick" when a lifetime needed to be used in the hidden type of some opaque.  E.g.:</p>
+<p>이에 대한 자동 마이그레이션은 없으며 <code>Captures</code> 트릭은 Rust 2024에서도 여전히 작동하지만, 이 오래된 트릭을 사용하는 코드에서 수동으로 마이그레이션하는 것을 고려할 수 있습니다.</p>
+<h3 id="outlives-트릭에서-마이그레이션하기"><a class="header" href="#outlives-트릭에서-마이그레이션하기">Outlives 트릭에서 마이그레이션하기</a></h3>
+<p>Rust 1.82에서 정확한 캡처 <code>use&lt;..&gt;</code> 바운드가 도입되기 전에는 일부 불투명 타입의 숨겨진 타입에서 라이프타임을 사용해야 할 때 "outlives 트릭"을 사용하는 것이 일반적이었습니다. 예:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn f&lt;'a, T: 'a&gt;(x: &amp;'a (), y: T) -&gt; impl Sized + 'a {
@@ -424,11 +424,11 @@ fn f&lt;'a, T&gt;(x: &amp;'a (), y: T) -&gt; impl Sized + Captures&lt;(&amp;'a (
     // This bound is needed only for the trick.
     (x, y)
 //  ~~~~~~
-// The hidden type is `(&amp;'a (), T)`.
+// 숨겨진 타입은 `(&amp;'a (), T)`입니다.
 }
 <span class="boring">}</span></code></pre></pre>
 <p>This trick was less baroque than the <code>Captures</code> trick, but also less correct.  As we can see in the example above, even though any lifetime components within <code>T</code> are independent of the lifetime <code>'a</code>, we're required to add a <code>T: 'a</code> bound in order to make the trick work.  This created undue and surprising restrictions on callers.</p>
-<p>Using precise capturing, you can write the above instead, in all editions, as:</p>
+<p>정밀 캡처를 사용하면 모든 에디션에서 위 코드를 다음과 같이 대신 작성할 수 있습니다.</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn f&lt;T&gt;(x: &amp;(), y: T) -&gt; impl Sized + use&lt;'_, T&gt; {
@@ -439,7 +439,7 @@ fn f&lt;'a, T&gt;(x: &amp;'a (), y: T) -&gt; impl Sized + Captures&lt;(&amp;'a (
 </span><span class="boring">   f(t, x);
 </span><span class="boring">}
 </span><span class="boring">}</span></code></pre></pre>
-<p>In Rust 2024, the <code>use&lt;..&gt;</code> bound can often be omitted entirely, and the above can be written simply as:</p>
+<p>Rust 2024에서는 <code>use&lt;..&gt;</code> 바운드를 완전히 생략할 수 있는 경우가 많으며, 위 코드는 다음과 같이 간단하게 작성할 수 있습니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn f&lt;T&gt;(x: &amp;(), y: T) -&gt; impl Sized {
@@ -450,7 +450,7 @@ fn f&lt;'a, T&gt;(x: &amp;'a (), y: T) -&gt; impl Sized + Captures&lt;(&amp;'a (
 </span><span class="boring">   f(t, x);
 </span><span class="boring">}
 </span><span class="boring">}</span></code></pre></pre>
-<p>There is no automatic migration for this, and the outlives trick still works in Rust 2024, but you might want to consider migrating code manually away from using this old trick.</p>
+<p>이에 대한 자동 마이그레이션은 없으며 outlives 트릭은 Rust 2024에서도 여전히 작동하지만, 이 오래된 트릭을 사용하는 코드에서 수동으로 마이그레이션하는 것을 고려할 수 있습니다.</p>
 
                     </main>
 

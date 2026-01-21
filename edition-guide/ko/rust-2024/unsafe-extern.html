@@ -218,41 +218,41 @@
                         <h1 id="안전하지-않은-extern-블록"><a class="header" href="#안전하지-않은-extern-블록">안전하지 않은 <code>extern</code> 블록</a></h1>
 <h2 id="요약"><a class="header" href="#요약">요약</a></h2>
 <ul>
-<li><a href="../../reference/items/external-blocks.html"><code>extern</code> blocks</a> must now be marked with the <code>unsafe</code> keyword.</li>
+<li><a href="../../reference/items/external-blocks.html"><code>extern</code> 블록</a>은 이제 <code>unsafe</code> 키워드로 표시되어야 합니다.</li>
 </ul>
 <h2 id="세부-정보"><a class="header" href="#세부-정보">세부 정보</a></h2>
-<p>Rust 1.82 added the ability in all editions to mark <a href="../../reference/items/external-blocks.html"><code>extern</code> blocks</a> with the <code>unsafe</code> keyword.<sup class="footnote-reference"><a href="#RFC3484">1</a></sup> Adding the <code>unsafe</code> keyword helps to emphasize that it is the responsibility of the author of the <code>extern</code> block to ensure that the signatures are correct. If the signatures are not correct, then it may result in undefined behavior.</p>
-<p>The syntax for an unsafe <code>extern</code> block looks like this:</p>
+<p>Rust 1.82는 모든 에디션에서 <a href="../../reference/items/external-blocks.html"><code>extern</code> 블록</a>을 <code>unsafe</code> 키워드로 표시할 수 있는 기능을 추가했습니다.<sup class="footnote-reference"><a href="#RFC3484">1</a></sup> <code>unsafe</code> 키워드를 추가하는 것은 시그니처가 올바른지 확인하는 것이 <code>extern</code> 블록 작성자의 책임임을 강조하는 데 도움이 됩니다. 시그니처가 올바르지 않으면 정의되지 않은 동작이 발생할 수 있습니다.</p>
+<p>unsafe <code>extern</code> 블록의 문법은 다음과 같습니다:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>unsafe extern "C" {
-    // sqrt (from libm) may be called with any `f64`
+    // sqrt (libm에서 가져옴)는 어떤 `f64`로도 호출될 수 있음
     pub safe fn sqrt(x: f64) -&gt; f64;
 
-    // strlen (from libc) requires a valid pointer,
-    // so we mark it as being an unsafe fn
+    // strlen (libc에서 가져옴)은 유효한 포인터를 요구하므로,
+    // unsafe fn으로 표시함
     pub unsafe fn strlen(p: *const std::ffi::c_char) -&gt; usize;
 
-    // this function doesn't say safe or unsafe, so it defaults to unsafe
+    // 이 함수는 safe나 unsafe를 명시하지 않았으므로, 기본적으로 unsafe임
     pub fn free(p: *mut core::ffi::c_void);
 
     pub safe static IMPORTANT_BYTES: [u8; 256];
 }
 <span class="boring">}</span></code></pre></pre>
-<p>In addition to being able to mark an <code>extern</code> block as <code>unsafe</code>, you can also specify if individual items in the <code>extern</code> block are <code>safe</code> or <code>unsafe</code>. Items marked as <code>safe</code> can be used without an <code>unsafe</code> block.</p>
-<p>Starting with the 2024 Edition, it is now required to include the <code>unsafe</code> keyword on an <code>extern</code> block. This is intended to make it very clear that there are safety requirements that must be upheld by the extern definitions.</p>
+<p><code>extern</code> 블록을 <code>unsafe</code>로 표시하는 것 외에도, <code>extern</code> 블록 내의 개별 항목이 <code>safe</code>인지 <code>unsafe</code>인지 지정할 수도 있습니다. <code>safe</code>로 표시된 항목은 <code>unsafe</code> 블록 없이 사용할 수 있습니다.</p>
+<p>2024 에디션부터는 <code>extern</code> 블록에 <code>unsafe</code> 키워드를 포함하는 것이 필수입니다. 이는 extern 정의가 준수해야 할 안전 요구 사항이 있음을 매우 명확하게 하기 위함입니다.</p>
 <div class="footnote-definition" id="RFC3484"><sup class="footnote-definition-label">1</sup>
-<p>See <a href="https://github.com/rust-lang/rfcs/blob/master/text/3484-unsafe-extern-blocks.md">RFC 3484</a> for the original proposal.</p>
+<p>원래 제안은 <a href="https://github.com/rust-lang/rfcs/blob/master/text/3484-unsafe-extern-blocks.md">RFC 3484</a>를 참조하세요.</p>
 </div>
 <h2 id="마이그레이션"><a class="header" href="#마이그레이션">마이그레이션</a></h2>
-<p>The <a href="../../rustc/lints/listing/allowed-by-default.html#missing-unsafe-on-extern"><code>missing_unsafe_on_extern</code></a> lint can update <code>extern</code> blocks to add the <code>unsafe</code> keyword. The lint is part of the <code>rust-2024-compatibility</code> lint group which is included in the automatic edition migration. In order to migrate your code to be Rust 2024 Edition compatible, run:</p>
+<p><a href="../../rustc/lints/listing/allowed-by-default.html#missing-unsafe-on-extern"><code>missing_unsafe_on_extern</code></a> 린트는 <code>extern</code> 블록을 업데이트하여 <code>unsafe</code> 키워드를 추가할 수 있습니다. 이 린트는 자동 에디션 마이그레이션에 포함된 <code>rust-2024-compatibility</code> 린트 그룹의 일부입니다. 코드를 Rust 2024 에디션과 호환되도록 마이그레이션하려면 다음을 실행하세요:</p>
 <pre><code class="language-sh">cargo fix --edition
 </code></pre>
-<p>Just beware that this automatic migration will not be able to verify that the signatures in the <code>extern</code> block are correct. It is still your responsibility to manually review their definition.</p>
-<p>Alternatively, you can manually enable the lint to find places where there are <code>unsafe</code> blocks that need to be updated.</p>
+<p>단, 이 자동 마이그레이션은 <code>extern</code> 블록 내의 시그니처가 올바른지 확인할 수 없으므로 주의하세요. 정의를 수동으로 검토하는 것은 여전히 여러분의 책임입니다.</p>
+<p>대안으로, 업데이트가 필요한 <code>unsafe</code> 블록이 있는 곳을 찾기 위해 수동으로 린트를 활성화할 수 있습니다.</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Add this to the root of your crate to do a manual migration.
+</span>// 수동 마이그레이션을 수행하려면 크레이트 루트에 이것을 추가하세요.
 #![warn(missing_unsafe_on_extern)]
 <span class="boring">}</span></code></pre></pre>
 

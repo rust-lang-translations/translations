@@ -218,53 +218,53 @@
                         <h1 id="never-타입-폴백-변경"><a class="header" href="#never-타입-폴백-변경">Never 타입 폴백 변경</a></h1>
 <h2 id="요약"><a class="header" href="#요약">요약</a></h2>
 <ul>
-<li>Never type (<code>!</code>) to any type ("never-to-any") coercions fall back to never type (<code>!</code>) rather than to unit type (<code>()</code>).</li>
+<li>Never 타입(<code>!</code>)에서 임의의 타입으로의("never-to-any") 강제 변환은 이제 유닛 타입(<code>()</code>)이 아닌 never 타입(<code>!</code>)으로 폴백됩니다.</li>
 <li>The <a href="../../rustc/lints/listing/deny-by-default.html#never-type-fallback-flowing-into-unsafe"><code>never_type_fallback_flowing_into_unsafe</code></a> lint is now <code>deny</code> by default.</li>
 </ul>
 <h2 id="세부-정보"><a class="header" href="#세부-정보">세부 정보</a></h2>
-<p>When the compiler sees a value of type <code>!</code> (never) in a <a href="../../reference/type-coercions.html#coercion-sites">coercion site</a>, it implicitly inserts a coercion to allow the type checker to infer any type:</p>
+<p>컴파일러가 <a href="../../reference/type-coercions.html#coercion-sites">강제 변환 위치</a>에서 <code>!</code> (never) 타입의 값을 보면, 타입 검사기가 어떤 타입이든 추론할 수 있도록 암시적으로 강제 변환을 삽입합니다:</p>
 <pre><pre class="playground"><code class="language-rust should_panic"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">#![feature(never_type)]
-</span>// This:
+</span>// 이것은:
 let x: u8 = panic!();
 
-// ...is (essentially) turned by the compiler into:
+// ...컴파일러에 의해 (본질적으로) 다음과 같이 변환됩니다:
 let x: u8 = absurd(panic!());
 
-// ...where `absurd` is the following function
-// (it's sound because `!` always marks unreachable code):
+// ...여기서 `absurd`는 다음 함수입니다
+// (`!`는 항상 도달할 수 없는 코드를 표시하므로 안전합니다):
 fn absurd&lt;T&gt;(x: !) -&gt; T { x }
 <span class="boring">}</span></code></pre></pre>
-<p>This can lead to compilation errors if the type cannot be inferred:</p>
+<p>타입을 추론할 수 없는 경우 컴파일 오류가 발생할 수 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust compile_fail E0282"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">#![feature(never_type)]
 </span><span class="boring">fn absurd&lt;T&gt;(x: !) -&gt; T { x }
-</span>// This:
+</span>// 이것은:
 { panic!() };
 
-// ...gets turned into this:
-{ absurd(panic!()) }; //~ ERROR can't infer the type of `absurd`
+// ...다음과 같이 변환됩니다:
+{ absurd(panic!()) }; //~ ERROR `absurd`의 타입을 추론할 수 없음
 <span class="boring">}</span></code></pre></pre>
-<p>To prevent such errors, the compiler remembers where it inserted <code>absurd</code> calls, and if it can't infer the type, it uses the fallback type instead:</p>
+<p>이러한 오류를 방지하기 위해 컴파일러는 <code>absurd</code> 호출을 삽입한 위치를 기억하고, 타입을 추론할 수 없는 경우 대신 폴백 타입을 사용합니다:</p>
 <pre><pre class="playground"><code class="language-rust should_panic"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">#![feature(never_type)]
 </span><span class="boring">fn absurd&lt;T&gt;(x: !) -&gt; T { x }
-</span>type Fallback = /* An arbitrarily selected type! */ !;
+</span>type Fallback = /* 임의로 선택된 타입! */ !;
 { absurd::&lt;Fallback&gt;(panic!()) }
 <span class="boring">}</span></code></pre></pre>
-<p>This is what is known as "never type fallback".</p>
-<p>Historically, the fallback type has been <code>()</code> (unit).  This caused <code>!</code> to spontaneously coerce to <code>()</code> even when the compiler would not infer <code>()</code> without the fallback.  That was confusing and has prevented the stabilization of the <code>!</code> type.</p>
-<p>In the 2024 edition, the fallback type is now <code>!</code>.  (We plan to make this change across all editions at a later date.)  This makes things work more intuitively.  Now when you pass <code>!</code> and there is no reason to coerce it to something else, it is kept as <code>!</code>.</p>
-<p>In some cases your code might depend on the fallback type being <code>()</code>, so this can cause compilation errors or changes in behavior.</p>
+<p>이것이 바로 "never 타입 폴백"이라고 알려진 것입니다.</p>
+<p>역사적으로 폴백 타입은 <code>()</code> (유닛)이었습니다. 이로 인해 컴파일러가 폴백 없이는 <code>()</code>를 추론하지 않을 때조차 <code>!</code>가 <code>()</code>로 저절로 강제 변환되는 일이 발생했습니다. 이는 혼란스러웠으며 <code>!</code> 타입의 안정화를 막아왔습니다.</p>
+<p>2024 에디션에서는 폴백 타입이 이제 <code>!</code>입니다. (추후 모든 에디션에 걸쳐 이 변경을 적용할 계획입니다.) 이렇게 하면 더 직관적으로 작동합니다. 이제 <code>!</code>를 전달할 때 다른 것으로 강제 변환할 이유가 없다면 <code>!</code>로 유지됩니다.</p>
+<p>어떤 경우에는 코드가 폴백 타입이 <code>()</code>인 것에 의존할 수 있으므로, 이로 인해 컴파일 오류나 동작 변경이 발생할 수 있습니다.</p>
 <h3 id="never_type_fallback_flowing_into_unsafe"><a class="header" href="#never_type_fallback_flowing_into_unsafe"><code>never_type_fallback_flowing_into_unsafe</code></a></h3>
 <p>The default level of the <a href="../../rustc/lints/listing/deny-by-default.html#never-type-fallback-flowing-into-unsafe"><code>never_type_fallback_flowing_into_unsafe</code></a> lint has been raised from <code>warn</code> to <code>deny</code> in the 2024 Edition. This lint helps detect a particular interaction with the fallback to <code>!</code> and <code>unsafe</code> code which may lead to undefined behavior. See the link for a complete description.</p>
 <h2 id="마이그레이션"><a class="header" href="#마이그레이션">마이그레이션</a></h2>
-<p>There is no automatic fix, but there is automatic detection of code that will be broken by the edition change.  While still on a previous edition you will see warnings if your code will be broken.</p>
-<p>The fix is to specify the type explicitly so that the fallback type is not used.  Unfortunately, it might not be trivial to see which type needs to be specified.</p>
-<p>One of the most common patterns broken by this change is using <code>f()?;</code> where <code>f</code> is generic over the <code>Ok</code>-part of the return type:</p>
+<p>자동 수정 기능은 없지만, 에디션 변경으로 인해 깨질 코드를 자동으로 감지하는 기능은 있습니다. 이전 에디션을 사용하는 동안 코드가 깨질 경우 경고가 표시됩니다.</p>
+<p>해결 방법은 폴백 타입이 사용되지 않도록 타입을 명시적으로 지정하는 것입니다. 불행히도 어떤 타입을 지정해야 하는지 파악하는 것이 쉽지 않을 수 있습니다.</p>
+<p>이 변경으로 인해 깨지는 가장 일반적인 패턴 중 하나는 <code>f()?;</code>를 사용하는 경우인데, 여기서 <code>f</code>는 반환 타입의 <code>Ok</code> 부분에 대해 제네릭입니다:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">#![allow(dependency_on_unit_never_type_fallback)]
@@ -277,8 +277,8 @@ f()?;
 <span class="boring">Ok(x)
 </span><span class="boring">}
 </span><span class="boring">}</span></code></pre></pre>
-<p>You might think that, in this example, type <code>T</code> can't be inferred.  However, due to the current desugaring of the <code>?</code> operator, it was inferred as <code>()</code>, and it will now be inferred as <code>!</code>.</p>
-<p>To fix the issue you need to specify the <code>T</code> type explicitly:</p>
+<p>이 예제에서 타입 <code>T</code>를 추론할 수 없다고 생각할 수 있습니다. 하지만 현재 <code>?</code> 연산자의 탈탕(desugaring) 방식 때문에 이전에는 <code>()</code>로 추론되었으나, 이제는 <code>!</code>로 추론됩니다.</p>
+<p>이 문제를 해결하려면 <code>T</code> 타입을 명시적으로 지정해야 합니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">#![deny(dependency_on_unit_never_type_fallback)]
@@ -287,12 +287,12 @@ f()?;
 </span><span class="boring">    Ok(T::default())
 </span><span class="boring">}
 </span>f::&lt;()&gt;()?;
-// ...or:
+// ...또는:
 () = f()?;
 <span class="boring">Ok(x)
 </span><span class="boring">}
 </span><span class="boring">}</span></code></pre></pre>
-<p>Another relatively common case is panicking in a closure:</p>
+<p>비교적 흔한 또 다른 케이스는 클로저 내에서의 패닉입니다:</p>
 <pre><pre class="playground"><code class="language-rust should_panic"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">#![allow(dependency_on_unit_never_type_fallback)]
@@ -305,7 +305,7 @@ fn run&lt;R: Unit&gt;(f: impl FnOnce() -&gt; R) {
 
 run(|| panic!());
 <span class="boring">}</span></code></pre></pre>
-<p>Previously <code>!</code> from the <code>panic!</code> coerced to <code>()</code> which implements <code>Unit</code>.  However now the <code>!</code> is kept as <code>!</code> so this code fails because <code>!</code> doesn't implement <code>Unit</code>.  To fix this you can specify the return type of the closure:</p>
+<p>이전에는 <code>panic!</code>의 <code>!</code>가 <code>Unit</code>을 구현하는 <code>()</code>로 강제 변환되었습니다. 하지만 이제는 <code>!</code>가 <code>!</code>로 유지되므로 <code>!</code>가 <code>Unit</code>을 구현하지 않아 이 코드는 실패합니다. 이 문제를 해결하려면 클로저의 반환 타입을 지정할 수 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2024 should_panic"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">#![deny(dependency_on_unit_never_type_fallback)]
@@ -317,7 +317,7 @@ run(|| panic!());
 </span><span class="boring">}
 </span>run(|| -&gt; () { panic!() });
 <span class="boring">}</span></code></pre></pre>
-<p>A similar case to that of <code>f()?</code> can be seen when using a <code>!</code>-typed expression in one branch and a function with an unconstrained return type in the other:</p>
+<p><code>f()?</code>와 유사한 사례로, 한 분기에서는 <code>!</code> 타입 표현식을 사용하고 다른 분기에서는 반환 타입이 제한되지 않은 함수를 사용할 때 볼 수 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">#![allow(dependency_on_unit_never_type_fallback)]
@@ -327,8 +327,8 @@ run(|| panic!());
     return
 };
 <span class="boring">}</span></code></pre></pre>
-<p>Previously <code>()</code> was inferred as the return type of <code>Default::default()</code> because <code>!</code> from <code>return</code> was spuriously coerced to <code>()</code>.  Now, <code>!</code> will be inferred instead causing this code to not compile because <code>!</code> does not implement <code>Default</code>.</p>
-<p>Again, this can be fixed by specifying the type explicitly:</p>
+<p>이전에는 <code>return</code>의 <code>!</code>가 <code>()</code>로 잘못 강제 변환되었기 때문에 <code>Default::default()</code>의 반환 타입으로 <code>()</code>가 추론되었습니다. 이제는 대신 <code>!</code>가 추론되어 <code>!</code>가 <code>Default</code>를 구현하지 않으므로 이 코드는 컴파일되지 않습니다.</p>
+<p>마찬가지로, 타입을 명시적으로 지정하여 해결할 수 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">#![deny(dependency_on_unit_never_type_fallback)]
@@ -338,7 +338,7 @@ run(|| panic!());
     return
 };
 
-// ...or:
+// ...또는:
 
 if true {
     &lt;() as Default&gt;::default()

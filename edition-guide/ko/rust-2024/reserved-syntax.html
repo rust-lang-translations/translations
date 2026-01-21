@@ -218,22 +218,22 @@
                         <h1 id="예약된-구문"><a class="header" href="#예약된-구문">예약된 구문</a></h1>
 <h2 id="요약"><a class="header" href="#요약">요약</a></h2>
 <ul>
-<li>Unprefixed guarded strings of the form <code>#"foo"#</code> are reserved for future use.</li>
-<li>Two or more <code>#</code> characters are reserved for future use.</li>
+<li><code>#"foo"#</code> 형식의 접두사 없는 보호된 문자열(guarded strings)은 미래의 사용을 위해 예약되었습니다.</li>
+<li>두 개 이상의 <code>#</code> 문자는 미래의 사용을 위해 예약되었습니다.</li>
 </ul>
 <h2 id="세부-정보"><a class="header" href="#세부-정보">세부 정보</a></h2>
-<p><a href="https://rust-lang.github.io/rfcs/3593-unprefixed-guarded-strings.html">RFC 3593</a> reserved syntax in the 2024 Edition for guarded string literals that do not have a prefix to make room for possible future language changes. The 2021 Edition <a href="../rust-2021/reserved-syntax.html">reserved syntax</a> for guarded strings with a prefix, such as <code>ident##"foo"##</code>. The 2024 Edition extends that to also reserve strings without the <code>ident</code> prefix.</p>
-<p>There are two reserved syntaxes:</p>
+<p><a href="https://rust-lang.github.io/rfcs/3593-unprefixed-guarded-strings.html">RFC 3593</a>은 향후 가능한 언어 변경을 위한 공간을 확보하기 위해 2024 에디션에서 접두사가 없는 보호된 문자열 리터럴에 대한 구문을 예약했습니다. 2021 에디션은 <code>ident##"foo"##</code>와 같이 접두사가 있는 보호된 문자열에 대한 <a href="../rust-2021/reserved-syntax.html">구문을 예약</a>했습니다. 2024 에디션은 이를 확장하여 <code>ident</code> 접두사가 없는 문자열도 예약합니다.</p>
+<p>두 가지 예약된 구문이 있습니다:</p>
 <ul>
-<li>One or more <code>#</code> characters immediately followed by a <a href="../../reference/tokens.html#string-literals">string literal</a>.</li>
-<li>Two or more <code>#</code> characters in a row (not separated by whitespace).</li>
+<li>하나 이상의 <code>#</code> 문자가 <a href="../../reference/tokens.html#string-literals">문자열 리터럴</a> 바로 뒤에 오는 경우.</li>
+<li>두 개 이상의 <code>#</code> 문자가 (공백 없이) 연속으로 오는 경우.</li>
 </ul>
-<p>This reservation is done across an edition boundary because of interactions with tokenization and macros. For example, consider this macro:</p>
+<p>이 예약은 토큰화 및 매크로와의 상호작용으로 인해 에디션 경계를 넘어 수행됩니다. 예를 들어, 다음 매크로를 고려해보세요:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>macro_rules! demo {
-    ( $a:tt ) =&gt; { println!("one token") };
-    ( $a:tt $b:tt $c:tt ) =&gt; { println!("three tokens") };
+    ( $a:tt ) =&gt; { println!("하나의 토큰") };
+    ( $a:tt $b:tt $c:tt ) =&gt; { println!("세 개의 토큰") };
 }
 
 demo!("foo");
@@ -241,22 +241,22 @@ demo!(r#"foo"#);
 demo!(#"foo"#);
 demo!(###)
 <span class="boring">}</span></code></pre></pre>
-<p>Prior to the 2024 Edition, this produces:</p>
+<p>2024 에디션 이전에는, 이것은 다음을 생성합니다:</p>
 <pre><code class="language-text">one token
 one token
 three tokens
 three tokens
 </code></pre>
-<p>Starting in the 2024 Edition, the <code>#"foo"#</code> line and the <code>###</code> line now generates a compile error because those forms are now reserved.</p>
+<p>2024 에디션부터는, <code>#"foo"#</code> 라인과 <code>###</code> 라인은 해당 형식이 이제 예약되었기 때문에 컴파일 오류를 발생시킵니다.</p>
 <h2 id="마이그레이션"><a class="header" href="#마이그레이션">마이그레이션</a></h2>
-<p>The <a href="../../rustc/lints/listing/allowed-by-default.html#rust-2024-guarded-string-incompatible-syntax"><code>rust_2024_guarded_string_incompatible_syntax</code></a> lint will identify any tokens that match the reserved syntax, and will suggest a modification to insert spaces where necessary to ensure the tokens continue to be parsed separately.</p>
-<p>The lint is part of the <code>rust-2024-compatibility</code> lint group which is included in the automatic edition migration. In order to migrate your code to be Rust 2024 Edition compatible, run:</p>
+<p><a href="../../rustc/lints/listing/allowed-by-default.html#rust-2024-guarded-string-incompatible-syntax"><code>rust_2024_guarded_string_incompatible_syntax</code></a> 린트(lint)는 예약된 구문과 일치하는 모든 토큰을 식별하고, 토큰이 분리되어 파싱되도록 필요한 곳에 공백을 삽입하는 수정 제안을 할 것입니다.</p>
+<p>이 린트는 자동 에디션 마이그레이션에 포함된 <code>rust-2024-compatibility</code> 린트 그룹의 일부입니다. 코드를 Rust 2024 에디션과 호환되도록 마이그레이션하려면 다음을 실행하세요:</p>
 <pre><code class="language-sh">cargo fix --edition
 </code></pre>
-<p>Alternatively, you can manually enable the lint to find macro calls where you may need to update the tokens:</p>
+<p>또는, 토큰을 업데이트해야 할 수도 있는 매크로 호출을 찾기 위해 수동으로 린트를 활성화할 수 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Add this to the root of your crate to do a manual migration.
+</span>// 수동 마이그레이션을 수행하려면 크레이트 루트에 이것을 추가하세요.
 #![warn(rust_2024_guarded_string_incompatible_syntax)]
 <span class="boring">}</span></code></pre></pre>
 
