@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Remap source paths - The rustc book</title>
+        <title>x86_64-unknown-linux-gnuasan - The rustc book</title>
 
 
         <!-- Custom HTML head -->
@@ -30,9 +30,9 @@
         
                     let canonical_href;
                     if (lang == "en") {
-                        canonical_href = `${base}/remap-source-paths.md`;
+                        canonical_href = `${base}/platform-support/x86_64-unknown-linux-gnuasan.md`;
                     } else {
-                        canonical_href = `${base}/${lang}/remap-source-paths.md`;
+                        canonical_href = `${base}/${lang}/platform-support/x86_64-unknown-linux-gnuasan.md`;
                     }
                     canonical_href = canonical_href.slice(0, -"md".length) + "html";
                     if (canonical_href.endsWith("/index.html")) {
@@ -68,33 +68,33 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon.svg">
-        <link rel="shortcut icon" href="favicon.png">
-        <link rel="stylesheet" href="css/variables.css">
-        <link rel="stylesheet" href="css/general.css">
-        <link rel="stylesheet" href="css/chrome.css">
-        <link rel="stylesheet" href="css/print.css" media="print">
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
 
         <!-- Fonts -->
-        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
-        <link rel="stylesheet" href="fonts/fonts.css">
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="highlight.css">
-        <link rel="stylesheet" href="tomorrow-night.css">
-        <link rel="stylesheet" href="ayu-highlight.css">
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/language-picker.css">
+        <link rel="stylesheet" href="../theme/language-picker.css">
 
 
         <!-- Provide site root to javascript -->
         <script>
-            var path_to_root = "";
+            var path_to_root = "../";
             var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc.js"></script>
+        <script src="../toc.js"></script>
     </head>
     <body>
     <div id="body-container">
@@ -146,7 +146,7 @@
             <!-- populated by js -->
             <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
             <noscript>
-                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
             </noscript>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -180,13 +180,13 @@
                     <h1 class="menu-title">The rustc book</h1>
 
                     <div class="right-buttons">
-                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                         <a href="https://github.com/rust-lang-translations/project" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/rust-lang/rust/edit/main/src/doc/rustc/src/remap-source-paths.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/rust-lang/rust/edit/main/src/doc/rustc/src/platform-support/x86_64-unknown-linux-gnuasan.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -215,72 +215,52 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="remap-source-paths"><a class="header" href="#remap-source-paths">Remap source paths</a></h1>
-<p><code>rustc</code> supports remapping source paths prefixes <strong>as a best effort</strong> in all compiler generated
-output, including compiler diagnostics, debugging information, macro expansions, etc.</p>
-<p>This is useful for normalizing build products, for example, by removing the current directory
-out of the paths emitted into object files.</p>
-<p>The remapping is done via the <code>--remap-path-prefix</code> flag and can be customized via the <code>--remap-path-scope</code> flag.</p>
-<h2 id="--remap-path-prefix"><a class="header" href="#--remap-path-prefix"><code>--remap-path-prefix</code></a></h2>
-<p>It takes a value of the form <code>FROM=TO</code> where a path prefix equal to <code>FROM</code> is rewritten
-to the value <code>TO</code>. <code>FROM</code> may itself contain an <code>=</code> symbol, but <code>TO</code> value may not.</p>
-<p>The replacement is purely textual, with no consideration of the current system's path separator.</p>
-<p>When multiple remappings are given and several of them match, the <strong>last</strong> matching one is applied.</p>
-<h3 id="relative-paths"><a class="header" href="#relative-paths">Relative paths</a></h3>
-<p>Some build systems, such as Cargo, may compile crates using relative paths (for example,
-<code>src/main.rs</code> instead of <code>/home/user/project/src/main.rs)</code>.</p>
-<p><code>rustc</code> preserves these relative paths where possible. However, certain inputs
-(like <code>#[path = "..."]</code>) and outputs (such as debug information) may still contain absolute paths.</p>
-<p>To ensure consistency, it’s recommended to remap both relative and absolute paths.</p>
-<pre><code class="language-bash">rustc --remap-path-prefix "src/=/redacted/src" --remap-path-prefix "/home/user/project=/redacted"
-</code></pre>
-<h3 id="example"><a class="header" href="#example">Example</a></h3>
-<pre><code class="language-bash">rustc --remap-path-prefix "/home/user/project=/redacted"
-</code></pre>
-<p>This example replaces all occurrences of <code>/home/user/project</code> in emitted paths with <code>/redacted</code>.</p>
-<h2 id="--remap-path-scope"><a class="header" href="#--remap-path-scope"><code>--remap-path-scope</code></a></h2>
-<p>Defines which scopes of paths should be remapped by <code>--remap-path-prefix</code>.</p>
-<p>This flag accepts a comma-separated list of values and may be specified multiple times, in which case the scopes are aggregated together.</p>
-<p>The valid scopes are:</p>
+                        <h1 id="x86_64-unknown-linux-gnuasan"><a class="header" href="#x86_64-unknown-linux-gnuasan"><code>x86_64-unknown-linux-gnuasan</code></a></h1>
+<p><strong>Tier: 2</strong></p>
+<p>Target mirroring <code>x86_64-unknown-linux-gnu</code> with AddressSanitizer enabled by
+default.
+The goal of this target is to allow shipping ASAN-instrumented standard
+libraries through rustup, enabling a fully instrumented binary without requiring
+nightly features (build-std).
+Once build-std stabilizes, this target is no longer needed and will be removed.</p>
+<h2 id="target-maintainers"><a class="header" href="#target-maintainers">Target maintainers</a></h2>
 <ul>
-<li><code>macro</code> - apply remappings to the expansion of <code>std::file!()</code> macro. This is where paths in embedded panic messages come from</li>
-<li><code>diagnostics</code> - apply remappings to printed compiler diagnostics</li>
-<li><code>debuginfo</code> - apply remappings to debug information</li>
-<li><code>coverage</code> - apply remappings to coverage information</li>
-<li><code>object</code> - apply remappings to all paths in compiled executables or libraries, but not elsewhere. Currently an alias for <code>macro,coverage,debuginfo</code>.</li>
-<li><code>all</code> (default) - an alias for all of the above, also equivalent to supplying only <code>--remap-path-prefix</code> without <code>--remap-path-scope</code>.</li>
+<li><a href="https://github.com/jakos-sec">@jakos-sec</a></li>
+<li><a href="https://github.com/1c3t3a">@1c3t3a</a></li>
+<li>[@rust-lang/project-exploit-mitigations][project-exploit-mitigations]</li>
 </ul>
-<p>The scopes accepted by <code>--remap-path-scope</code> are not exhaustive - new scopes may be added in future releases for eventual stabilisation.
-This implies that the <code>all</code> scope can correspond to different scopes between releases.</p>
-<h3 id="example-1"><a class="header" href="#example-1">Example</a></h3>
-<pre><code class="language-sh"># With `object` scope only the build outputs will be remapped, the diagnostics won't be remapped.
-rustc --remap-path-prefix=$(PWD)=/remapped --remap-path-scope=object main.rs
+<h2 id="requirements"><a class="header" href="#requirements">Requirements</a></h2>
+<p>The target is for cross-compilation only. Host tools are not supported, since
+there is no need to have the host tools instrumented with ASAN. std is fully
+supported.</p>
+<p>In all other aspects the target is equivalent to <code>x86_64-unknown-linux-gnu</code>.</p>
+<h2 id="building-the-target"><a class="header" href="#building-the-target">Building the target</a></h2>
+<p>The target can be built by enabling it for a rustc build:</p>
+<pre><code class="language-toml">[build]
+target = ["x86_64-unknown-linux-gnuasan"]
 </code></pre>
-<h2 id="caveats-and-limitations"><a class="header" href="#caveats-and-limitations">Caveats and Limitations</a></h2>
-<h3 id="paths-generated-by-linkers"><a class="header" href="#paths-generated-by-linkers">Paths generated by linkers</a></h3>
-<p>On some platforms like <code>x86_64-pc-windows-msvc</code>, the linker may embed absolute host paths and compiler
-arguments into debug info files (like <code>.pdb</code>) independently of <code>rustc</code>.</p>
-<p>Additionally, on Apple platforms, linkers generate <a href="https://wiki.dwarfstd.org/Apple%27s_%22Lazy%22_DWARF_Scheme.md">OSO entries</a> which are not remapped by the compiler
-and need to be manually remapped with <code>-oso_prefix</code>.</p>
-<p>The <code>--remap-path-prefix</code> option does not affect these linker-generated paths.</p>
-<h3 id="textual-replacement-only"><a class="header" href="#textual-replacement-only">Textual replacement only</a></h3>
-<p>The remapping is strictly textual and does not account for different path separator conventions across
-platforms. Care must be taken when specifying prefixes, especially on Windows, where both <code>/</code> and <code>\</code> may
-appear in paths.</p>
-<h3 id="external-tools"><a class="header" href="#external-tools">External tools</a></h3>
-<p>Paths introduced by external tools or environment variables may not be covered by <code>--remap-path-prefix</code>
-unless explicitly accounted for.</p>
-<p>For example, generated code introduced by Cargo's build script may still contain un-remapped paths.</p>
+<h2 id="building-rust-programs"><a class="header" href="#building-rust-programs">Building Rust programs</a></h2>
+<p>Rust programs can be compiled by adding this target via rustup:</p>
+<pre><code class="language-sh">$ rustup target add x86_64-unknown-linux-gnuasan
+</code></pre>
+<p>and then compiling with the target:</p>
+<pre><code class="language-sh">$ rustc foo.rs --target x86_64-unknown-linux-gnuasan
+</code></pre>
+<h2 id="testing"><a class="header" href="#testing">Testing</a></h2>
+<p>Created binaries will run on Linux without any external requirements.</p>
+<h2 id="cross-compilation-toolchains-and-c-code"><a class="header" href="#cross-compilation-toolchains-and-c-code">Cross-compilation toolchains and C code</a></h2>
+<p>The target supports C code and should use the same toolchain target as
+<code>x86_64-unknown-linux-gnu</code>.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="check-cfg/cargo-specifics.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../platform-support/x86_64-unknown-none.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="exploit-mitigations.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../platform-support/xtensa.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -290,11 +270,11 @@ unless explicitly accounted for.</p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="check-cfg/cargo-specifics.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../platform-support/x86_64-unknown-none.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="exploit-mitigations.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../platform-support/xtensa.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
@@ -309,16 +289,16 @@ unless explicitly accounted for.</p>
         </script>
 
 
-        <script src="elasticlunr.min.js"></script>
-        <script src="mark.min.js"></script>
-        <script src="searcher.js"></script>
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
 
-        <script src="clipboard.min.js"></script>
-        <script src="highlight.js"></script>
-        <script src="book.js"></script>
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="theme/language-picker.js"></script>
+        <script src="../theme/language-picker.js"></script>
 
 
     </div>
