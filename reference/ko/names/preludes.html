@@ -243,6 +243,10 @@
 <p>[!NOTE] [<code>std::prelude::rust_2015</code>] and [<code>std::prelude::rust_2018</code>] have the same contents as [<code>std::prelude::v1</code>].</p>
 <p>[<code>core::prelude::rust_2015</code>] and [<code>core::prelude::rust_2018</code>] have the same contents as [<code>core::prelude::v1</code>].</p>
 </blockquote>
+<blockquote>
+<p>[!NOTE] When one of [<code>core::panic!</code>] or [<code>std::panic!</code>] is brought into scope due to the <a href="names.preludes.std">standard library prelude</a>, and a user-written <a href="items.use.glob">glob import</a> brings the other into scope, <code>rustc</code> currently allows use of <code>panic!</code>, even though it is ambiguous. The user-written glob import takes precedence to resolve this ambiguity.</p>
+<p>For details, see [names.resolution.expansion.imports.ambiguity.panic-hack].</p>
+</blockquote>
 <p>r[names.preludes.extern]</p>
 <h2 id="외부-프렐류드"><a class="header" href="#외부-프렐류드">외부 프렐류드</a></h2>
 <p>r[names.preludes.extern.intro] External crates imported with <a href="../items/extern-crates.html"><code>extern crate</code></a> in the root module or provided to the compiler (as with the <code>--extern</code> flag with <code>rustc</code>) are added to the <em>extern prelude</em>. If imported with an alias such as <code>extern crate orig_name as new_name</code>, then the symbol <code>new_name</code> is instead added to the prelude.</p>
@@ -263,13 +267,12 @@ use alloc::rc::Rc;
 <p>Cargo는 오직 절차적 매크로(proc-macro) 크레이트에 대해서만 <code>proc_macro</code>를 외부 프렐류드로 가져옵니다.</p>
 </blockquote>
 <!--
-See https://github.com/rust-lang/rust/issues/57288 for more about the
-alloc/test limitation.
+See https://github.com/rust-lang/rust/issues/57288 for more about the alloc/test limitation.
 -->
 <!-- template:attributes -->
 <p>r[names.preludes.extern.no_std]</p>
 <h3 id="no_std-속성"><a class="header" href="#no_std-속성"><code>no_std</code> 속성</a></h3>
-<p>r[names.preludes.extern.no_std.intro] The <em><code>no_std</code> [attribute][attributes]</em> causes the [<code>std</code>] crate to not be linked automatically, the <a href="names.preludes.std">standard library prelude</a> to instead use the <code>core</code> prelude, and the <a href="#macro_use-prelude"><code>macro_use</code> prelude</a> to instead use the macros exported from the <code>core</code> crate.</p>
+<p>r[names.preludes.extern.no_std.intro] The <em><code>no_std</code> [attribute][attributes]</em> causes the [<code>std</code>] crate to not be linked automatically and the <a href="names.preludes.std">standard library prelude</a> to instead use the <code>core</code> prelude.</p>
 <blockquote>
 <p>[!EXAMPLE]</p>
 <!-- ignore: test infrastructure can't handle no_std -->
@@ -288,7 +291,6 @@ alloc/test limitation.
 <p>[!NOTE] <code>rustc</code> lints against any use following the first.</p>
 </blockquote>
 <p>r[names.preludes.extern.no_std.module] The <code>no_std</code> attribute changes the <a href="names.preludes.std">standard library prelude</a> to use the <code>core</code> prelude instead of the <code>std</code> prelude.</p>
-<p>r[names.preludes.extern.no_std.macro_use] By default, all macros exported from the <code>std</code> crate are added to the <a href="#macro_use-prelude"><code>macro_use</code> prelude</a>. If the <code>no_std</code> attribute is specified, then all macros exported from the <code>core</code> crate are placed into the <a href="#macro_use-prelude"><code>macro_use</code> prelude</a> instead.</p>
 <p>r[names.preludes.extern.no_std.edition2018]</p>
 <blockquote>
 <p>[!EDITION-2018] Before the 2018 edition, <code>std</code> is injected into the crate root by default. If <code>no_std</code> is specified, <code>core</code> is injected instead. Starting with the 2018 edition, regardless of <code>no_std</code> being specified, neither is injected into the crate root.</p>
@@ -350,6 +352,36 @@ mod example {
 <p>[!NOTE] <code>rustc</code> lints against any use following the first.</p>
 </blockquote>
 <p>r[names.preludes.no_implicit_prelude.excluded-preludes] The <code>no_implicit_prelude</code> attribute prevents the <a href="names.preludes.std">standard library prelude</a>, <a href="#extern-prelude">extern prelude</a>, <a href="#macro_use-prelude"><code>macro_use</code> prelude</a>, and the <a href="#tool-prelude">tool prelude</a> from being brought into scope for the module and its descendants.</p>
+<p>r[names.preludes.no_implicit_prelude.implicitly-imported-macros]</p>
+<blockquote>
+<p>[!NOTE] Despite <code>#![no_implicit_prelude]</code>, <code>rustc</code> currently brings certain macros implicitly into scope. Those macros are:</p>
+<ul>
+<li>[<code>assert!</code>]</li>
+<li>[<code>cfg!</code>]</li>
+<li>[<code>cfg_select!</code>]</li>
+<li>[<code>column!</code>]</li>
+<li>[<code>compile_error!</code>]</li>
+<li>[<code>concat!</code>]</li>
+<li>[<code>concat_bytes!</code>]</li>
+<li>[<code>env!</code>]</li>
+<li>[<code>file!</code>]</li>
+<li>[<code>format_args!</code>]</li>
+<li>[<code>include!</code>]</li>
+<li>[<code>include_bytes!</code>]</li>
+<li>[<code>include_str!</code>]</li>
+<li>[<code>line!</code>]</li>
+<li>[<code>module_path!</code>]</li>
+<li>[<code>option_env!</code>]</li>
+<li>[<code>panic!</code>]</li>
+<li>[<code>stringify!</code>]</li>
+<li>[<code>unreachable!</code>]</li>
+</ul>
+<p>E.g., this works:</p>
+<pre><pre class="playground"><code class="language-rust edition2024">#![no_implicit_prelude]
+fn main() { assert!(true); }</code></pre></pre>
+<p>Don’t rely on this behavior; it may be removed in the future. Always bring the items you need into scope explicitly when using <code>#![no_implicit_prelude]</code>.</p>
+<p>For details, see <a href="https://github.com/rust-lang/rust/pull/62086">Rust PR #62086</a> and <a href="https://github.com/rust-lang/rust/pull/139493">Rust PR #139493</a>.</p>
+</blockquote>
 <p>r[names.preludes.no_implicit_prelude.lang] The <code>no_implicit_prelude</code> attribute does not affect the <a href="#language-prelude">language prelude</a>.</p>
 <p>r[names.preludes.no_implicit_prelude.edition2018]</p>
 <blockquote>

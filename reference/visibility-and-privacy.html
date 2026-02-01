@@ -227,24 +227,13 @@
     | `pub` `(` `in` SimplePath `)`
 </code></pre>
 <p>r[vis.intro]
-These two terms are often used interchangeably, and what they are attempting to
-convey is the answer to the question “Can this item be used at this location?”</p>
+These two terms are often used interchangeably, and what they are attempting to convey is the answer to the question “Can this item be used at this location?”</p>
 <p>r[vis.name-hierarchy]
-Rust’s name resolution operates on a global hierarchy of namespaces. Each level
-in the hierarchy can be thought of as some item. The items are one of those
-mentioned above, but also include external crates. Declaring or defining a new
-module can be thought of as inserting a new tree into the hierarchy at the
-location of the definition.</p>
+Rust’s name resolution operates on a global hierarchy of namespaces. Each level in the hierarchy can be thought of as some item. The items are one of those mentioned above, but also include external crates. Declaring or defining a new module can be thought of as inserting a new tree into the hierarchy at the location of the definition.</p>
 <p>r[vis.privacy]
-To control whether interfaces can be used across modules, Rust checks each use
-of an item to see whether it should be allowed or not. This is where privacy
-warnings are generated, or otherwise “you used a private item of another module
-and weren’t allowed to.”</p>
+To control whether interfaces can be used across modules, Rust checks each use of an item to see whether it should be allowed or not. This is where privacy warnings are generated, or otherwise “you used a private item of another module and weren’t allowed to.”</p>
 <p>r[vis.default]
-By default, everything is <em>private</em>, with two exceptions: Associated
-items in a <code>pub</code> Trait are public by default; Enum variants
-in a <code>pub</code> enum are also public by default. When an item is declared as <code>pub</code>,
-it can be thought of as being accessible to the outside world. For example:</p>
+By default, everything is <em>private</em>, with two exceptions: Associated items in a <code>pub</code> Trait are public by default; Enum variants in a <code>pub</code> enum are also public by default. When an item is declared as <code>pub</code>, it can be thought of as being accessible to the outside world. For example:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {}
 </span>// Declare a private struct
 struct Foo;
@@ -260,53 +249,27 @@ pub enum State {
     PubliclyAccessibleState2,
 }</code></pre></pre>
 <p>r[vis.access]
-With the notion of an item being either public or private, Rust allows item
-accesses in two cases:</p>
+With the notion of an item being either public or private, Rust allows item accesses in two cases:</p>
 <ol>
-<li>If an item is public, then it can be accessed externally from some module
-<code>m</code> if you can access all the item’s ancestor modules from <code>m</code>. You can
-also potentially be able to name the item through re-exports. See below.</li>
-<li>If an item is private, it may be accessed by the current module and its
-descendants.</li>
+<li>If an item is public, then it can be accessed externally from some module <code>m</code> if you can access all the item’s ancestor modules from <code>m</code>. You can also potentially be able to name the item through re-exports. See below.</li>
+<li>If an item is private, it may be accessed by the current module and its descendants.</li>
 </ol>
-<p>These two cases are surprisingly powerful for creating module hierarchies
-exposing public APIs while hiding internal implementation details. To help
-explain, here’s a few use cases and what they would entail:</p>
+<p>These two cases are surprisingly powerful for creating module hierarchies exposing public APIs while hiding internal implementation details. To help explain, here’s a few use cases and what they would entail:</p>
 <ul>
 <li>
-<p>A library developer needs to expose functionality to crates which link
-against their library. As a consequence of the first case, this means that
-anything which is usable externally must be <code>pub</code> from the root down to the
-destination item. Any private item in the chain will disallow external
-accesses.</p>
+<p>A library developer needs to expose functionality to crates which link against their library. As a consequence of the first case, this means that anything which is usable externally must be <code>pub</code> from the root down to the destination item. Any private item in the chain will disallow external accesses.</p>
 </li>
 <li>
-<p>A crate needs a global available “helper module” to itself, but it doesn’t
-want to expose the helper module as a public API. To accomplish this, the
-root of the crate’s hierarchy would have a private module which then
-internally has a “public API”. Because the entire crate is a descendant of
-the root, then the entire local crate can access this private module through
-the second case.</p>
+<p>A crate needs a global available “helper module” to itself, but it doesn’t want to expose the helper module as a public API. To accomplish this, the root of the crate’s hierarchy would have a private module which then internally has a “public API”. Because the entire crate is a descendant of the root, then the entire local crate can access this private module through the second case.</p>
 </li>
 <li>
-<p>When writing unit tests for a module, it’s often a common idiom to have an
-immediate child of the module to-be-tested named <code>mod test</code>. This module
-could access any items of the parent module through the second case, meaning
-that internal implementation details could also be seamlessly tested from the
-child module.</p>
+<p>When writing unit tests for a module, it’s often a common idiom to have an immediate child of the module to-be-tested named <code>mod test</code>. This module could access any items of the parent module through the second case, meaning that internal implementation details could also be seamlessly tested from the child module.</p>
 </li>
 </ul>
-<p>In the second case, it mentions that a private item “can be accessed” by the
-current module and its descendants, but the exact meaning of accessing an item
-depends on what the item is.</p>
+<p>In the second case, it mentions that a private item “can be accessed” by the current module and its descendants, but the exact meaning of accessing an item depends on what the item is.</p>
 <p>r[vis.usage]
-Accessing a module, for example, would mean looking inside of it (to import more items). On the other hand, accessing a
-function would mean that it is invoked. Additionally, path expressions and
-import statements are considered to access an item in the sense that the
-import/expression is only valid if the destination is in the current visibility
-scope.</p>
-<p>Here’s an example of a program which exemplifies the three cases outlined
-above:</p>
+Accessing a module, for example, would mean looking inside of it (to import more items). On the other hand, accessing a function would mean that it is invoked. Additionally, path expressions and import statements are considered to access an item in the sense that the import/expression is only valid if the destination is in the current visibility scope.</p>
+<p>Here’s an example of a program which exemplifies the three cases outlined above:</p>
 <pre><pre class="playground"><code class="language-rust edition2024">// This module is private, meaning that no external crate can access this
 // module. Because it is private at the root of this current crate, however, any
 // module in the crate may access any publicly visible item in this module.
@@ -354,20 +317,14 @@ pub mod submodule {
 }
 
 <span class="boring">fn main() {}</span></code></pre></pre>
-<p>For a Rust program to pass the privacy checking pass, all paths must be valid
-accesses given the two rules above. This includes all use statements,
-expressions, types, etc.</p>
+<p>For a Rust program to pass the privacy checking pass, all paths must be valid accesses given the two rules above. This includes all use statements, expressions, types, etc.</p>
 <p>r[vis.scoped]</p>
 <h2 id="pubin-path-pubcrate-pubsuper-and-pubself"><a class="header" href="#pubin-path-pubcrate-pubsuper-and-pubself"><code>pub(in path)</code>, <code>pub(crate)</code>, <code>pub(super)</code>, and <code>pub(self)</code></a></h2>
 <p>r[vis.scoped.intro]
-In addition to public and private, Rust allows users to declare an item as
-visible only within a given scope. The rules for <code>pub</code> restrictions are as
-follows:</p>
+In addition to public and private, Rust allows users to declare an item as visible only within a given scope. The rules for <code>pub</code> restrictions are as follows:</p>
 <p>r[vis.scoped.in]</p>
 <ul>
-<li><code>pub(in path)</code> makes an item visible within the provided <code>path</code>.
-<code>path</code> must be a simple path which resolves to an ancestor module of the item whose visibility is being declared.
-Each identifier in <code>path</code> must refer directly to a module (not to a name introduced by a <code>use</code> statement).</li>
+<li><code>pub(in path)</code> makes an item visible within the provided <code>path</code>. <code>path</code> must be a simple path which resolves to an ancestor module of the item whose visibility is being declared. Each identifier in <code>path</code> must refer directly to a module (not to a name introduced by a <code>use</code> statement).</li>
 </ul>
 <p>r[vis.scoped.crate]</p>
 <ul>
@@ -375,13 +332,11 @@ Each identifier in <code>path</code> must refer directly to a module (not to a n
 </ul>
 <p>r[vis.scoped.super]</p>
 <ul>
-<li><code>pub(super)</code> makes an item visible to the parent module. This is equivalent
-to <code>pub(in super)</code>.</li>
+<li><code>pub(super)</code> makes an item visible to the parent module. This is equivalent to <code>pub(in super)</code>.</li>
 </ul>
 <p>r[vis.scoped.self]</p>
 <ul>
-<li><code>pub(self)</code> makes an item visible to the current module. This is equivalent
-to <code>pub(in self)</code> or not using <code>pub</code> at all.</li>
+<li><code>pub(self)</code> makes an item visible to the current module. This is equivalent to <code>pub(in self)</code> or not using <code>pub</code> at all.</li>
 </ul>
 <p>r[vis.scoped.edition2018]</p>
 <blockquote>
@@ -443,10 +398,7 @@ This syntax only adds another restriction to the visibility of an item. It does 
 <p>r[vis.reexports]</p>
 <h2 id="re-exporting-and-visibility"><a class="header" href="#re-exporting-and-visibility">Re-exporting and visibility</a></h2>
 <p>r[vis.reexports.intro]
-Rust allows publicly re-exporting items through a <code>pub use</code> directive. Because
-this is a public directive, this allows the item to be used in the current
-module through the rules above. It essentially allows public access into the
-re-exported item. For example, this program is valid:</p>
+Rust allows publicly re-exporting items through a <code>pub use</code> directive. Because this is a public directive, this allows the item to be used in the current module through the rules above. It essentially allows public access into the re-exported item. For example, this program is valid:</p>
 <pre><pre class="playground"><code class="language-rust edition2024">pub use self::implementation::api;
 
 mod implementation {
@@ -456,12 +408,9 @@ mod implementation {
 }
 
 <span class="boring">fn main() {}</span></code></pre></pre>
-<p>This means that any external crate referencing <code>implementation::api::f</code> would
-receive a privacy violation, while the path <code>api::f</code> would be allowed.</p>
+<p>This means that any external crate referencing <code>implementation::api::f</code> would receive a privacy violation, while the path <code>api::f</code> would be allowed.</p>
 <p>r[vis.reexports.private-item]
-When re-exporting a private item, it can be thought of as allowing the “privacy
-chain” being short-circuited through the reexport instead of passing through
-the namespace hierarchy as it normally would.</p>
+When re-exporting a private item, it can be thought of as allowing the “privacy chain” being short-circuited through the reexport instead of passing through the namespace hierarchy as it normally would.</p>
 
                     </main>
 

@@ -373,7 +373,7 @@ const _: () = {
     // The error happens when the name with the conflicting candidates
     // is used.
     let x = Ambig; // ERROR: `Ambig` is ambiguous.
-}
+};
 <span class="boring">}</span></code></pre></pre>
 <pre><pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -426,6 +426,28 @@ const _: () = {
 <span class="boring">fn main() {}</span></code></pre></pre>
 <p>r[names.resolution.expansion.imports.ambiguity.glob-vs-outer]
 Names in imports and macro invocations may not be resolved through glob imports when there is another candidate available in an <a href="#r-names.resolution.general.scopes">outer scope</a>.</p>
+<p>r[names.resolution.expansion.imports.ambiguity.panic-hack]</p>
+<blockquote>
+<p>[!NOTE]
+When one of [<code>core::panic!</code>] or [<code>std::panic!</code>] is brought into scope due to the <a href="./preludes.html#r-names.preludes.std">standard library prelude</a>, and a user-written <a href="items.use.glob">glob import</a> brings the other into scope, <code>rustc</code> currently allows use of <code>panic!</code>, even though it is ambiguous. The user-written glob import takes precedence to resolve this ambiguity.</p>
+<p>In Rust 2021 and later, [<code>core::panic!</code>] and [<code>std::panic!</code>] operate identically. But in earlier editions, they differ; only [<code>std::panic!</code>] accepts a [<code>String</code>] as the format argument.</p>
+<p>E.g., this is an error:</p>
+<pre><pre class="playground"><code class="language-rust edition2018 compile_fail E0308">extern crate core;
+use ::core::prelude::v1::*;
+fn main() {
+    panic!(std::string::String::new()); // ERROR.
+}</code></pre></pre>
+<p>And this is accepted:</p>
+<!-- ignore: Can't test with `no_std`. -->
+<pre><code class="language-rust edition2018 ignore">#![no_std]
+extern crate std;
+use ::std::prelude::v1::*;
+fn main() {
+    panic!(std::string::String::new()); // OK.
+}</code></pre>
+<p>Don’t rely on this behavior; the plan is to remove it.</p>
+<p>For details, see <a href="https://github.com/rust-lang/rust/issues/147319">Rust issue #147319</a>.</p>
+</blockquote>
 <pre><pre class="playground"><code class="language-rust compile_fail E0659 edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>mod glob {
@@ -515,9 +537,7 @@ pub fn f() {
 <span class="boring">}</span></code></pre></pre>
 <blockquote>
 <p>[!NOTE]
-This restriction is needed due to implementation details in the compiler,
-specifically the current scope visitation logic and the complexity of supporting
-this behavior. This ambiguity error may be removed in the future.</p>
+This restriction is needed due to implementation details in the compiler, specifically the current scope visitation logic and the complexity of supporting this behavior. This ambiguity error may be removed in the future.</p>
 </blockquote>
 <p>r[names.resolution.expansion.macros]</p>
 <h3 id="macros"><a class="header" href="#macros">Macros</a></h3>
@@ -540,9 +560,7 @@ The compiler will attempt to resolve derive helpers that are used before their a
 </blockquote>
 <blockquote>
 <p>[!NOTE]
-This visitation order may change in the future, such as interleaving the
-visitation of textual and path-based scope candidates based on their lexical
-scopes.</p>
+This visitation order may change in the future, such as interleaving the visitation of textual and path-based scope candidates based on their lexical scopes.</p>
 </blockquote>
 <blockquote>
 <p>[!EDITION-2018]
