@@ -2569,7 +2569,7 @@ to use PGO with Rust.</p>
 <p>As an alternative to directly using the compiler for Profile-Guided Optimization,
 you may choose to go with <code>cargo-pgo</code>, which has an intuitive command-line API
 and saves you the trouble of doing all the manual work. You can read more about
-it in their repository accessible from this link: https://github.com/Kobzol/cargo-pgo</p>
+it in <a href="https://github.com/Kobzol/cargo-pgo">cargo-pgo repository</a>.</p>
 <p>For the sake of completeness, here are the corresponding steps using <code>cargo-pgo</code>:</p>
 <pre><code class="language-bash"># Install if you haven't already
 cargo install cargo-pgo
@@ -2851,18 +2851,32 @@ Using this value is currently not recommended.</li>
 <p>The <code>-C linker-plugin-lto</code> flag allows for deferring the LTO optimization
 to the actual linking step, which in turn allows for performing
 interprocedural optimizations across programming language boundaries if
-all the object files being linked were created by LLVM based toolchains.
-The prime example here would be linking Rust code together with
-Clang-compiled C/C++ code.</p>
+all the object files being linked were created by LLVM-based toolchains
+using the <strong>same</strong> LTO mode: either thin LTO or fat LTO.
+The examples would be linking Rust code together with
+Clang-compiled C/C++ code and LLVM Flang-compiled Fortran code.</p>
 <h2 id="usage-1"><a class="header" href="#usage-1">Usage</a></h2>
-<p>There are two main cases how linker plugin based LTO can be used:</p>
+<p>There are two main cases how linker-plugin-based LTO can be used:</p>
 <ul>
 <li>compiling a Rust <code>staticlib</code> that is used as a C ABI dependency</li>
 <li>compiling a Rust binary where <code>rustc</code> invokes the linker</li>
 </ul>
-<p>In both cases the Rust code has to be compiled with <code>-C linker-plugin-lto</code> and
-the C/C++ code with <code>-flto</code> or <code>-flto=thin</code> so that object files are emitted
-as LLVM bitcode.</p>
+<p>In both cases, the Rust code must be compiled with <code>-C linker-plugin-lto</code>.
+By default, this enables thin LTO, so any interoperable language code must
+also be compiled in thin LTO mode. To use fat LTO with linker-plugin-based LTO,
+the <code>rustc</code> compiler requires the additional <code>-C lto=fat</code> flag, and the
+interoperable language must likewise be compiled in fat LTO mode. Note that
+interoperable language must be compiled using the LLVM infrastructure
+(see more details in <a href="linker-plugin-lto.html#toolchain-compatibility">toolchain compability</a>).</p>
+<p>The following table summarizes how to enable thin LTO and fat LTO in
+different compilers:</p>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Compiler</th><th style="text-align: right">Thin LTO</th><th style="text-align: right">Fat LTO</th></tr></thead><tbody>
+<tr><td style="text-align: left">rustc</td><td style="text-align: right">-Clto=thin</td><td style="text-align: right">-Clto=fat</td></tr>
+<tr><td style="text-align: left">clang</td><td style="text-align: right">-flto=thin</td><td style="text-align: right">-flto=full</td></tr>
+<tr><td style="text-align: left">clang++</td><td style="text-align: right">-flto=thin</td><td style="text-align: right">-flto=full</td></tr>
+<tr><td style="text-align: left">flang</td><td style="text-align: right">-flto=thin (WIP)</td><td style="text-align: right">-flto=full</td></tr>
+</tbody></table>
+</div>
 <h3 id="rust-staticlib-as-dependency-in-cc-program"><a class="header" href="#rust-staticlib-as-dependency-in-cc-program">Rust <code>staticlib</code> as dependency in C/C++ program</a></h3>
 <p>In this case the Rust compiler just has to make sure that the object files in
 the <code>staticlib</code> are in the right format. For linking, a linker with the
@@ -2887,7 +2901,7 @@ clang -flto=thin -fuse-ld=lld -L . -l"name-of-your-rust-lib" -o main -O2 ./cmain
 <p>In this case the linker will be invoked by <code>rustc</code>. We again have to make sure
 that an appropriate linker is used.</p>
 <p>Using <code>rustc</code> directly:</p>
-<pre><code class="language-bash"># Compile C code with `-flto`
+<pre><code class="language-bash"># Compile C code with `-flto=thin`
 clang ./clib.c -flto=thin -c -o ./clib.o -O2
 # Create a static library from the C code
 ar crus ./libxyz.a ./clib.o
@@ -2896,7 +2910,7 @@ ar crus ./libxyz.a ./clib.o
 rustc -Clinker-plugin-lto -L. -Copt-level=2 -Clinker=clang -Clink-arg=-fuse-ld=lld ./main.rs
 </code></pre>
 <p>Using <code>cargo</code> directly:</p>
-<pre><code class="language-bash"># Compile C code with `-flto`
+<pre><code class="language-bash"># Compile C code with `-flto=thin`
 clang ./clib.c -flto=thin -c -o ./clib.o -O2
 # Create a static library from the C code
 ar crus ./libxyz.a ./clib.o
@@ -2904,6 +2918,32 @@ ar crus ./libxyz.a ./clib.o
 # Set the linking arguments via RUSTFLAGS
 RUSTFLAGS="-Clinker-plugin-lto -Clinker=clang -Clink-arg=-fuse-ld=lld" cargo build --release
 </code></pre>
+<h3 id="fortran-code-as-a-dependency-in-rust"><a class="header" href="#fortran-code-as-a-dependency-in-rust">Fortran code as a dependency in Rust</a></h3>
+<p>Rust code can also be linked together with Fortran code compiled by LLVM <code>flang</code>.
+The following examples demonstrate fat LTO usage, as LLVM <code>flang</code> has WIP status for
+thin LTO. The same approach can be applied to compile C and C++ code with fat LTO.</p>
+<p>Using <code>rustc</code> directly:</p>
+<pre><code class="language-bash"># Compile Fortran code with `-flto=full`
+flang ./ftnlib.f90 -flto=full -c -o ./ftnlib.f90.o -O3
+# Create a static library from the Fortran code
+ar crus ./libftn.a ./ftnlib.f90.o
+
+# Invoke `rustc` with the additional arguments, `-Clto=fat` is mandatory
+rustc -Clinker-plugin-lto -Clto=fat -Clink-arg=path/to/libftn.a -Copt-level=3 -Clinker=flang -C default-linker-libraries=yes -Clink-arg=-fuse-ld=lld ./main.rs
+</code></pre>
+<p>Using <code>cargo</code> directly:</p>
+<pre><code class="language-bash"># Compile Fortran code with `-flto=full`
+flang ./ftnlib.f90 -flto=full -c -o ./ftnlib.f90.o -O3
+# Create a static library from the Fortran code
+ar crus ./libftn.a ./ftnlib.f90.o
+
+# Set the linking arguments via RUSTFLAGS, `-Clto=fat` is mandatory
+RUSTFLAGS="-Clinker-plugin-lto -Clto=fat -Clink-arg=path/to/libftn.a -Clinker=flang -C default-linker-libraries=yes -Clink-arg=-fuse-ld=lld" cargo build --release
+</code></pre>
+<p>Note, LLVM <code>flang</code> can be used as a linker driver starting from flang 21.1.8.
+The <code>-C default-linker-libraries=yes</code> option may be omitted if the Fortran
+runtime is not required; however, most Fortran code depends on the runtime,
+so enabling default linker libraries is usually necessary.</p>
 <h3 id="explicitly-specifying-the-linker-plugin-to-be-used-by-rustc"><a class="header" href="#explicitly-specifying-the-linker-plugin-to-be-used-by-rustc">Explicitly specifying the linker plugin to be used by <code>rustc</code></a></h3>
 <p>If one wants to use a linker other than LLD, the LLVM linker plugin has to be
 specified explicitly. Otherwise the linker cannot read the object files. The
@@ -2990,10 +3030,12 @@ for clang, rust in sorted(version_map.items()):
 
 -->
 <p>In order for this kind of LTO to work, the LLVM linker plugin must be able to
-handle the LLVM bitcode produced by both <code>rustc</code> and <code>clang</code>.</p>
-<p>Best results are achieved by using a <code>rustc</code> and <code>clang</code> that are based on the
-exact same version of LLVM. One can use <code>rustc -vV</code> in order to view the LLVM
-used by a given <code>rustc</code> version. Note that the version number given
+handle the LLVM bitcode produced by <code>rustc</code> and by compilers of all
+interoperable languages. A good rule of thumb is to use an LLVM linker plugin
+whose version is at least as new as the newest compiler involved.</p>
+<p>Best results are achieved by using a <code>rustc</code> and LLVM compilers that are based
+on the exact same version of LLVM. One can use <code>rustc -vV</code> in order to view
+the LLVM used by a given <code>rustc</code> version. Note that the version number given
 here is only an approximation as Rust sometimes uses unstable revisions of
 LLVM. However, the approximation is usually reliable.</p>
 <p>The following table shows known good combinations of toolchain versions.</p>
@@ -3011,7 +3053,7 @@ LLVM. However, the approximation is usually reliable.</p>
 <tr><td>1.78 - 1.81</td><td>18</td></tr>
 <tr><td>1.82 - 1.86</td><td>19</td></tr>
 <tr><td>1.87 - 1.90</td><td>20</td></tr>
-<tr><td>1.91 - 1.92</td><td>21</td></tr>
+<tr><td>1.91 - 1.93</td><td>21</td></tr>
 </tbody></table>
 </div>
 <p>Note that the compatibility policy for this feature might change in the future.</p>
@@ -8780,6 +8822,7 @@ recommended to always use <code>--release</code> to avoid running out of space.<
 <p>Also, please note that specifying <code>-C target-cpu</code> is required - here's a list of
 the possible variants:</p>
 <p>https://github.com/llvm/llvm-project/blob/093d4db2f3c874d4683fb01194b00dbb20e5c713/clang/lib/Basic/Targets/AVR.cpp#L32</p>
+<p>Note that devices that have no SRAM are not supported, same as when compiling C/C++ programs with avr-gcc or Clang.</p>
 <h2 id="testing-29"><a class="header" href="#testing-29">Testing</a></h2>
 <p>You can use <a href="https://github.com/buserror/simavr"><code>simavr</code></a> to emulate the
 resulting firmware on your machine:</p>
@@ -9695,12 +9738,18 @@ of targeting hexagon.  You can use <code>clang</code>/<code>lld</code> from the 
 using exclusively public open source repos</a>.</p>
 <p>Also included in that toolchain is the C library that can be used when creating
 dynamically linked executables.</p>
-<pre><code class="language-text"># /opt/clang+llvm-18.1.0-cross-hexagon-unknown-linux-musl/x86_64-linux-gnu/bin/qemu-hexagon -L /opt/clang+llvm-18.1.0-cross-hexagon-unknown-linux-musl/x86_64-linux-gnu/target/hexagon-unknown-linux-musl/usr/ ./hello
+<pre><code class="language-text"># /opt/clang+llvm-VERSION-cross-hexagon-unknown-linux-musl/x86_64-linux-gnu/bin/qemu-hexagon -L /opt/clang+llvm-VERSION-cross-hexagon-unknown-linux-musl/x86_64-linux-gnu/target/hexagon-unknown-linux-musl/usr/ ./hello
 </code></pre>
 <h2 id="linking"><a class="header" href="#linking">Linking</a></h2>
-<p>This target selects <code>rust-lld</code> by default.  Another option to use is
-<a href="https://github.com/qualcomm/eld">eld</a>, which is also provided with
-the opensource hexagon toolchain and the Hexagon SDK.</p>
+<p>This target uses <code>hexagon-unknown-linux-musl-clang</code> as the default linker.
+The linker is available from <a href="https://github.com/quic/toolchain_for_hexagon/releases">the opensource hexagon toolchain</a>
+at paths like <code>/opt/clang+llvm-21.1.8-cross-hexagon-unknown-linux-musl/x86_64-linux-gnu/bin/hexagon-unknown-linux-musl-clang</code>.</p>
+<p>Alternative linkers include:</p>
+<ul>
+<li><a href="https://github.com/qualcomm/eld">eld</a>, which is provided with
+the opensource hexagon toolchain and the Hexagon SDK</li>
+<li><code>rust-lld</code> can be used by specifying <code>-C linker=rust-lld</code></li>
+</ul>
 <h2 id="building-the-target-32"><a class="header" href="#building-the-target-32">Building the target</a></h2>
 <p>Because it is Tier 3, rust does not yet ship pre-compiled artifacts for this
 target.</p>
@@ -9716,9 +9765,9 @@ cxx = "hexagon-unknown-linux-musl-clang++"
 linker = "hexagon-unknown-linux-musl-clang"
 ar = "hexagon-unknown-linux-musl-ar"
 ranlib = "hexagon-unknown-linux-musl-ranlib"
-musl-root = "/opt/clang+llvm-18.1.0-cross-hexagon-unknown-linux-musl/x86_64-linux-gnu/target/hexagon-unknown-linux-musl/usr"
+musl-root = "/opt/clang+llvm-VERSION-cross-hexagon-unknown-linux-musl/x86_64-linux-gnu/target/hexagon-unknown-linux-musl/usr"
 llvm-libunwind = 'in-tree'
-qemu-rootfs = "/opt/clang+llvm-18.1.0-cross-hexagon-unknown-linux-musl/x86_64-linux-gnu/target/hexagon-unknown-linux-musl/usr"
+qemu-rootfs = "/opt/clang+llvm-VERSION-cross-hexagon-unknown-linux-musl/x86_64-linux-gnu/target/hexagon-unknown-linux-musl/usr"
 </code></pre>
 <h2 id="testing-33"><a class="header" href="#testing-33">Testing</a></h2>
 <p>Currently there is no support to run the rustc test suite for this target.</p>
@@ -9732,16 +9781,16 @@ target = "hexagon-unknown-linux-musl"
 [target.hexagon-unknown-linux-musl]
 linker = "hexagon-unknown-linux-musl-clang"
 ar = "hexagon-unknown-linux-musl-ar"
-runner = "qemu-hexagon -L /opt/clang+llvm-18.1.0-cross-hexagon-unknown-linux-musl/x86_64-linux-gnu/target/hexagon-unknown-linux-musl/usr"
+runner = "qemu-hexagon -L /opt/clang+llvm-VERSION-cross-hexagon-unknown-linux-musl/x86_64-linux-gnu/target/hexagon-unknown-linux-musl/usr"
 </code></pre>
 <p>Edit the "runner" in <code>.cargo/config</code> to point to the path to your toolchain's
 C library.</p>
 <pre><code class="language-text">...
-runner = "qemu-hexagon -L /path/to/my/inst/clang+llvm-18.1.0-cross-hexagon-unknown-linux-musl/x86_64-linux-gnu/target/hexagon-unknown-linux-musl/usr"
+runner = "qemu-hexagon -L /path/to/my/inst/clang+llvm-VERSION-cross-hexagon-unknown-linux-musl/x86_64-linux-gnu/target/hexagon-unknown-linux-musl/usr"
 ...
 </code></pre>
 <p>Build/run your rust program with <code>qemu-hexagon</code> in your <code>PATH</code>:</p>
-<pre><code class="language-text">export PATH=/path/to/my/inst/clang+llvm-18.1.0-cross-hexagon-unknown-linux-musl/x86_64-linux-gnu/bin/:$PATH
+<pre><code class="language-text">export PATH=/path/to/my/inst/clang+llvm-VERSION-cross-hexagon-unknown-linux-musl/x86_64-linux-gnu/bin/:$PATH
 cargo run -Zbuild-std -Zbuild-std-features=llvm-libunwind
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="hexagon-unknown-none-elf"><a class="header" href="#hexagon-unknown-none-elf"><code>hexagon-unknown-none-elf</code></a></h1>
@@ -10011,10 +10060,16 @@ suitable for both static images and dynamic shared objects.</p>
 <p>The <a href="https://softwarecenter.qualcomm.com/catalog/item/Hexagon_SDK">Hexagon SDK</a> is
 required for building programs for this target.</p>
 <h2 id="linking-2"><a class="header" href="#linking-2">Linking</a></h2>
-<p>This target selects <code>rust-lld</code> by default.  Another option to use is
-<a href="https://github.com/qualcomm/eld">eld</a>, which is also provided with
+<p>This target uses <code>hexagon-clang</code> from the Hexagon SDK as the default linker.
+The linker is available at paths like
+<code>/opt/Hexagon_SDK/6.4.0.2/tools/HEXAGON_Tools/19.0.04/Tools/bin/hexagon-clang</code>.</p>
+<p>Alternative linkers include:</p>
+<ul>
+<li><a href="https://github.com/qualcomm/eld">eld</a>, which is provided with both
 <a href="https://github.com/quic/toolchain_for_hexagon">the opensource hexagon toolchain</a>
-and the Hexagon SDK.</p>
+and the Hexagon SDK</li>
+<li><code>rust-lld</code> can be used by specifying <code>-C linker=rust-lld</code></li>
+</ul>
 <h2 id="building-the-target-34"><a class="header" href="#building-the-target-34">Building the target</a></h2>
 <p>You can build Rust with support for the target by adding it to the <code>target</code>
 list in <code>bootstrap.toml</code>:</p>
@@ -10421,7 +10476,7 @@ system can be installed either on real hardware such as 68k-based Commodore Amig
 Atari systems or emulated environments such as QEMU version 4.2 or newer or ARAnyM.</p>
 <p>ISO images for installation are provided by the Debian Ports team and can be obtained
 from the Debian CD image server available at:</p>
-<p><a href="https://cdimage.debian.org/cdimage/ports/current/">https://cdimage.debian.org/cdimage/ports/current</a></p>
+<p><a href="https://cdimage.debian.org/cdimage/ports/12.0/m68k/">https://cdimage.debian.org/cdimage/ports/12.0/m68k/</a></p>
 <p>Documentation for Debian/m68k is available on the Debian Wiki at:</p>
 <p><a href="https://wiki.debian.org/M68k">https://wiki.debian.org/M68k</a></p>
 <p>Support is available either through the <code>debian-68k</code> mailing list:</p>
@@ -11247,13 +11302,13 @@ emulation.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="riscv64a23-unknown-linux-gnu"><a class="header" href="#riscv64a23-unknown-linux-gnu"><code>riscv64a23-unknown-linux-gnu</code></a></h1>
 <p><strong>Tier: 2 (without Host Tools)</strong></p>
 <p>RISC-V target using the ratified <a href="https://github.com/riscv/riscv-profiles/blob/main/src/rva23-profile.adoc">RVA23 Profile</a>.
-This target will enable all mandary features of rva23u64 by default.</p>
+This target will enable all mandatory features of rva23u64 by default.</p>
 <h2 id="target-maintainers-80"><a class="header" href="#target-maintainers-80">Target maintainers</a></h2>
 <p><a href="https://github.com/ZhongyaoChen">@ZhongyaoChen</a>
 <a href="https://github.com/CaiWeiran">@CaiWeiran</a></p>
 <h2 id="requirements-72"><a class="header" href="#requirements-72">Requirements</a></h2>
 <p>This target can be sucessfully build on the following platform: ubuntu 24.04 (Linux Kernel version 6.8.0, glibc 2.39).</p>
-<p>Other platforms may work, but are not tested. Please contanct if you encounter any issues.</p>
+<p>Other platforms may work, but are not tested. Please contact us if you encounter any issues.</p>
 <h2 id="building-the-target-51"><a class="header" href="#building-the-target-51">Building the target</a></h2>
 <p>Tier-2 targets are distributed through <code>rustup</code>. Install the target with:</p>
 <pre><code class="language-bash">rustup target add riscv64a23-unknown-linux-gnu
