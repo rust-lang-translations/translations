@@ -286,7 +286,7 @@
 <p>당시에는 나중에 비효율적인 <code>clone</code> 호출을 제거할 것이므로 걱정하지 말라고 말했습니다. 자, 바로 지금이 그때입니다!</p>
 <p>We needed <code>clone</code> here because we have a slice with <code>String</code> elements in the parameter <code>args</code>, but the <code>build</code> function doesn’t own <code>args</code>. To return ownership of a <code>Config</code> instance, we had to clone the values from the <code>query</code> and <code>file_path</code> fields of <code>Config</code> so that the <code>Config</code> instance can own its values.</p>
 <p>반복자에 대한 새로운 지식을 활용하면, <code>build</code> 함수가 슬라이스를 대여하는 대신 반복자의 소유권을 인자로 받도록 변경할 수 있습니다. 슬라이스의 길이를 확인하고 특정 위치를 인덱싱하는 코드 대신 반복자 기능을 사용할 것입니다. 반복자가 값들에 접근하게 되므로 <code>Config::build</code> 함수가 무엇을 하는지 더 명확해질 것입니다.</p>
-<p><code>Config::build</code>가 반복자의 소유권을 가져오고 대여를 사용하는 인덱싱 연산을 중단하면, <code>clone</code>을 호출하여 새로운 메모리 할당을 하는 대신 반복자의 <code>String</code> 값들을 <code>Config</code>로 이동시킬 수 있습니다.</p>
+<p><code>Config::build</code> 가 반복자의 소유권을 가져오고 대여를 사용하는 인덱싱 연산을 중단하면, <code>clone</code> 을 호출하여 새로운 메모리 할당을 하는 대신 반복자의 <code>String</code> 값들을 <code>Config</code> 로 이동시킬 수 있습니다.</p>
 <h4 id="반환된-반복자를-직접-사용하기"><a class="header" href="#반환된-반복자를-직접-사용하기">반환된 반복자를 직접 사용하기</a></h4>
 <p>I/O 프로젝트의 <em>src/main.rs</em> 파일을 여세요. 다음과 같은 모습일 것입니다:</p>
 <p><span class="filename">파일명: src/main.rs</span></p>
@@ -353,7 +353,7 @@
 </span><span class="boring">
 </span><span class="boring">    Ok(())
 </span><span class="boring">}</span></code></pre>
-<p>먼저 목록 12-24에 있었던 <code>main</code> 함수의 시작 부분을 반복자를 사용하는 목록 13-18의 코드로 바꿀 것입니다. <code>Config::build</code>도 업데이트하기 전까지는 컴파일되지 않을 것입니다.</p>
+<p>먼저 목록 12-24에 있었던 <code>main</code> 함수의 시작 부분을 반복자를 사용하는 목록 13-18의 코드로 바꿀 것입니다. <code>Config::build</code> 도 업데이트하기 전까지는 컴파일되지 않을 것입니다.</p>
 <Listing number="13-18" file-name="src/main.rs" caption="Passing the return value of `env::args` to `Config::build`">
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">use std::env;
 </span><span class="boring">use std::error::Error;
@@ -417,7 +417,7 @@
 </span><span class="boring">    Ok(())
 </span><span class="boring">}</span></code></pre>
 </Listing>
-<p><code>env::args</code> 함수는 반복자를 반환합니다! 반복자 값들을 벡터로 수집한 다음 <code>Config::build</code>에 슬라이스를 전달하는 대신, 이제 <code>env::args</code>에서 반환된 반복자의 소유권을 <code>Config::build</code>에 직접 전달합니다.</p>
+<p><code>env::args</code> 함수는 반복자를 반환합니다! 반복자 값들을 벡터로 수집한 다음 <code>Config::build</code> 에 슬라이스를 전달하는 대신, 이제 <code>env::args</code> 에서 반환된 반복자의 소유권을 <code>Config::build</code> 에 직접 전달합니다.</p>
 <p>Next, we need to update the definition of <code>Config::build</code>. Let’s change the signature of <code>Config::build</code> to look like Listing 13-19. This still won’t compile, because we need to update the function body.</p>
 <Listing number="13-19" file-name="src/main.rs" caption="Updating the signature of `Config::build` to expect an iterator">
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">use std::env;
@@ -483,9 +483,9 @@
 </span><span class="boring">    Ok(())
 </span><span class="boring">}</span></code></pre>
 </Listing>
-<p><code>env::args</code> 함수에 대한 표준 라이브러리 문서를 보면 반환되는 반복자의 타입이 <code>std::env::Args</code>임을 알 수 있으며, 이 타입은 <code>Iterator</code> 트레이트를 구현하고 <code>String</code> 값들을 반환합니다.</p>
+<p><code>env::args</code> 함수에 대한 표준 라이브러리 문서를 보면 반환되는 반복자의 타입이 <code>std::env::Args</code> 임을 알 수 있으며, 이 타입은 <code>Iterator</code> 트레이트를 구현하고 <code>String</code> 값들을 반환합니다.</p>
 <p>We’ve updated the signature of the <code>Config::build</code> function so that the parameter <code>args</code> has a generic type with the trait bounds <code>impl Iterator&lt;Item = String&gt;</code> instead of <code>&amp;[String]</code>. This usage of the <code>impl Trait</code> syntax we discussed in the <a href="ch10-02-traits.html#traits-as-parameters">“Using Traits as Parameters”</a><!-- ignore --> section of Chapter 10 means that <code>args</code> can be any type that implements the <code>Iterator</code> trait and returns <code>String</code> items.</p>
-<p>리는 <code>args</code>의 소유권을 가져오고 순회를 통해 <code>args</code>를 변경할 것이므로, <code>args</code> 매개변수 명시에 <code>mut</code> 키워드를 추가하여 가변으로 만들 수 있습니다.</p>
+<p>리는 <code>args</code> 의 소유권을 가져오고 순회를 통해 <code>args</code> 를 변경할 것이므로, <code>args</code> 매개변수 명시에 <code>mut</code> 키워드를 추가하여 가변으로 만들 수 있습니다.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="using-iterator-trait-methods-instead-of-indexing"></a></p>
 <h4 id="using-iterator-trait-methods"><a class="header" href="#using-iterator-trait-methods">Using <code>Iterator</code> Trait Methods</a></h4>

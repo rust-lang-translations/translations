@@ -216,7 +216,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="rpit-라이프타임-캡처-규칙"><a class="header" href="#rpit-라이프타임-캡처-규칙">RPIT 라이프타임 캡처 규칙</a></h1>
-<p>이 장에서는 <a href="https://github.com/rust-lang/rfcs/pull/3498">RFC 3498</a>에서 도입된 **라이프타임 캡처 규칙 2024(Lifetime Capture Rules 2024)**와 관련된 변경 사항을 설명하며, 여기에는 코드를 마이그레이션하기 위해 불투명 타입(opaque type)의 <em>정밀 캡처(precise capturing)</em>(<a href="https://github.com/rust-lang/rfcs/pull/3617">RFC 3617</a>에서 도입됨)를 사용하는 방법이 포함됩니다.</p>
+<p>이 장에서는 <a href="https://github.com/rust-lang/rfcs/pull/3498">RFC 3498</a> 에서 도입된 <strong>라이프타임 캡처 규칙 2024(Lifetime Capture Rules 2024)</strong> 와 관련된 변경 사항을 설명하며, 여기에는 코드를 마이그레이션하기 위해 불투명 타입(opaque type)의 <em>정밀 캡처(precise capturing)</em>(<a href="https://github.com/rust-lang/rfcs/pull/3617">RFC 3617</a> 에서 도입됨)를 사용하는 방법이 포함됩니다.</p>
 <h2 id="요약"><a class="header" href="#요약">요약</a></h2>
 <ul>
 <li>Rust 2024에서는 <code>use&lt;..&gt;</code> 바운드가 없을 때 라이프타임 매개변수를 포함한 범위 내의 <em>모든</em> 제네릭 매개변수가 암시적으로 캡처됩니다.</li>
@@ -224,19 +224,19 @@
 </ul>
 <h2 id="세부-정보"><a class="header" href="#세부-정보">세부 정보</a></h2>
 <h3 id="캡처링"><a class="header" href="#캡처링">캡처링</a></h3>
-<p>RPIT(반환 위치 impl Trait) 불투명 타입에서 제네릭 매개변수를 _캡처_하면 해당 매개변수를 해당하는 숨겨진 타입에서 사용할 수 있습니다.  Rust 1.82에서는 캡처할 제네릭 매개변수를 명시적으로 지정할 수 있는 <code>use&lt;..&gt;</code> 바운드를 추가했습니다.  이는 코드를 Rust 2024로 마이그레이션하는 데 도움이 되며, 이 챕터에서 에디션별 암시적 캡처 규칙이 어떻게 작동하는지 설명하는 데에도 유용합니다.  이러한 <code>use&lt;..&gt;</code> 바운드는 다음과 같습니다:</p>
+<p>RPIT(반환 위치 impl Trait) 불투명 타입에서 제네릭 매개변수를 <em>캡처</em> 하면 해당 매개변수를 해당하는 숨겨진 타입에서 사용할 수 있습니다.  Rust 1.82에서는 캡처할 제네릭 매개변수를 명시적으로 지정할 수 있는 <code>use&lt;..&gt;</code> 바운드를 추가했습니다.  이는 코드를 Rust 2024로 마이그레이션하는 데 도움이 되며, 이 챕터에서 에디션별 암시적 캡처 규칙이 어떻게 작동하는지 설명하는 데에도 유용합니다.  이러한 <code>use&lt;..&gt;</code> 바운드는 다음과 같습니다:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn capture&lt;'a, T&gt;(x: &amp;'a (), y: T) -&gt; impl Sized + use&lt;'a, T&gt; {
     //                                ~~~~~~~~~~~~~~~~~~~~~~~
     //                             이것은 RPIT 불투명 타입입니다.
     //
-    //                                이것은 `'a`와 `T`를 캡처합니다.
+    //                                이것은 `'a` 와 `T` 를 캡처합니다.
     (x, y)
   //~~~~~~
-  // 숨겨진 타입은: `(&amp;'a (), T)`입니다.
+  // 숨겨진 타입은: `(&amp;'a (), T)` 입니다.
   //
-  // 이 타입은 `'a`와 `T`가 캡처되었기 때문에 이를 사용할 수 있습니다.
+  // 이 타입은 `'a` 와 `T` 가 캡처되었기 때문에 이를 사용할 수 있습니다.
 }
 <span class="boring">}</span></code></pre></pre>
 <p>캡처된 제네릭 매개변수는 불투명 타입을 사용하는 방식에 영향을 미칩니다.  예를 들어, 숨겨진 타입이 라이프타임을 사용하지 않음에도 불구하고 라이프타임이 캡처되기 때문에 다음은 오류입니다:</p>
@@ -279,7 +279,7 @@ fn f_2021(_: &amp;()) -&gt; impl Sized + use&lt;&gt; {}
 // Rust 2024 및 이후 버전에서 이는 다음과 같습니다:
 fn f_2024(_: &amp;()) -&gt; impl Sized + use&lt;'_&gt; {}
 <span class="boring">}</span></code></pre></pre>
-<p>이로써 트레이트 impl 내의 연관 함수 및 메서드 시그니처에 있는 RPIT 불투명 타입, 트레이트 정의 내에서의 RPIT 사용(RPITIT), <code>async fn</code>에 의해 생성된 불투명 <code>Future</code> 타입과 동작이 일관되게 됩니다. 이들은 모두 <code>use&lt;..&gt;</code> 바운드가 없을 때 모든 에디션에서 범위 내의 모든 제네릭 라이프타임 매개변수를 암시적으로 캡처합니다.</p>
+<p>이로써 트레이트 impl 내의 연관 함수 및 메서드 시그니처에 있는 RPIT 불투명 타입, 트레이트 정의 내에서의 RPIT 사용(RPITIT), <code>async fn</code> 에 의해 생성된 불투명 <code>Future</code> 타입과 동작이 일관되게 됩니다. 이들은 모두 <code>use&lt;..&gt;</code> 바운드가 없을 때 모든 에디션에서 범위 내의 모든 제네릭 라이프타임 매개변수를 암시적으로 캡처합니다.</p>
 <h3 id="외부-제네릭-매개변수"><a class="header" href="#외부-제네릭-매개변수">외부 제네릭 매개변수</a></h3>
 <p>암시적으로 캡처되는 것을 결정할 때 외부 impl의 제네릭 매개변수는 범위 내에 있는 것으로 간주됩니다.  예:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -329,7 +329,7 @@ fn f_explicit&lt;_0: Sized&gt;(_: _0) -&gt; impl Sized + use&lt;_0&gt; {}
 <p>전자가 후자와 <em>정확히</em> 동일하지는 않다는 점에 유의하세요. 제네릭 매개변수에 이름을 지정하면 터보피시(turbofish) 구문을 사용하여 인수를 제공할 수 있기 때문입니다. 익명 제네릭 매개변수를 명명된 제네릭 매개변수로 변환하지 않고 <code>use&lt;..&gt;</code> 바운드에 명시적으로 포함할 수 있는 방법은 없습니다.</p>
 <h2 id="마이그레이션"><a class="header" href="#마이그레이션">마이그레이션</a></h2>
 <h3 id="과도한-캡처overcapturing를-피하면서-마이그레이션하기"><a class="header" href="#과도한-캡처overcapturing를-피하면서-마이그레이션하기">과도한 캡처(overcapturing)를 피하면서 마이그레이션하기</a></h3>
-<p><code>impl_trait_overcaptures</code> 린트는 Rust 2024에서 추가 라이프타임을 캡처하게 될 RPIT 불투명 타입을 플래그합니다.  이 린트는 <code>cargo fix --edition</code>을 실행할 때 자동으로 적용되는 <code>rust-2024-compatibility</code> 린트 그룹의 일부입니다.  대부분의 경우, 이 린트는 Rust 2024에서 추가 라이프타임이 캡처되지 않도록 필요한 곳에 <code>use&lt;..&gt;</code> 바운드를 자동으로 삽입할 수 있습니다.</p>
+<p><code>impl_trait_overcaptures</code> 린트는 Rust 2024에서 추가 라이프타임을 캡처하게 될 RPIT 불투명 타입을 플래그합니다.  이 린트는 <code>cargo fix --edition</code> 을 실행할 때 자동으로 적용되는 <code>rust-2024-compatibility</code> 린트 그룹의 일부입니다.  대부분의 경우, 이 린트는 Rust 2024에서 추가 라이프타임이 캡처되지 않도록 필요한 곳에 <code>use&lt;..&gt;</code> 바운드를 자동으로 삽입할 수 있습니다.</p>
 <p>코드를 Rust 2024와 호환되도록 마이그레이션하려면 다음을 실행하세요:</p>
 <pre><code class="language-sh">cargo fix --edition
 </code></pre>
@@ -352,7 +352,7 @@ fn f_explicit&lt;_0: Sized&gt;(_: _0) -&gt; impl Sized + use&lt;_0&gt; {}
 //   ^^                ~~~~~~~~~~
 //               이것은 APIT의 사용입니다.
 //
-//~^ 경고 `impl Sized`는 2024 에디션에서 의도한 것보다 더 많은 라이프타임을 캡처할 것입니다
+//~^ 경고 `impl Sized` 는 2024 에디션에서 의도한 것보다 더 많은 라이프타임을 캡처할 것입니다
 //~| 참고 구체적으로, 이 라이프타임은 범위 내에 있지만 타입의 바운드에서 언급되지 않았습니다
 <span class="boring">
 </span><span class="boring">fn test&lt;'a&gt;(x: &amp;'a (), y: ()) -&gt; impl Sized + 'static {
@@ -424,7 +424,7 @@ fn f&lt;'a, T&gt;(x: &amp;'a (), y: T) -&gt; impl Sized + Captures&lt;(&amp;'a (
     // This bound is needed only for the trick.
     (x, y)
 //  ~~~~~~
-// 숨겨진 타입은 `(&amp;'a (), T)`입니다.
+// 숨겨진 타입은 `(&amp;'a (), T)` 입니다.
 }
 <span class="boring">}</span></code></pre></pre>
 <p>This trick was less baroque than the <code>Captures</code> trick, but also less correct.  As we can see in the example above, even though any lifetime components within <code>T</code> are independent of the lifetime <code>'a</code>, we're required to add a <code>T: 'a</code> bound in order to make the trick work.  This created undue and surprising restrictions on callers.</p>

@@ -224,15 +224,15 @@
 <h3 id="에러가-어디에-쓰이는지-확인하기"><a class="header" href="#에러가-어디에-쓰이는지-확인하기">에러가 어디에 쓰이는지 확인하기</a></h3>
 <p>First, let’s observe how the content printed by <code>minigrep</code> is currently being written to standard output, including any error messages we want to write to standard error instead. We’ll do that by redirecting the standard output stream to a file while intentionally causing an error. We won’t redirect the standard error stream, so any content sent to standard error will continue to display on the screen.</p>
 <p>Command line programs are expected to send error messages to the standard error stream so that we can still see error messages on the screen even if we redirect the standard output stream to a file. Our program is not currently well behaved: We’re about to see that it saves the error message output to a file instead!</p>
-<p>이 동작을 증명하기 위해, <code>&gt;</code>와 표준 출력 스트림을 리다이렉션할 파일 경로인 _output.txt_를 사용하여 프로그램을 실행해 보겠습니다. 에러를 유발하기 위해 아무런 인수도 전달하지 않겠습니다:</p>
+<p>이 동작을 증명하기 위해, <code>&gt;</code> 와 표준 출력 스트림을 리다이렉션할 파일 경로인 <em>output.txt</em> 를 사용하여 프로그램을 실행해 보겠습니다. 에러를 유발하기 위해 아무런 인수도 전달하지 않겠습니다:</p>
 <pre><code class="language-console">$ cargo run &gt; output.txt
 </code></pre>
-<p><code>&gt;</code> 문법은 셸에게 표준 출력의 내용을 화면 대신 _output.txt_에 쓰라고 지시합니다. 우리가 기대했던 에러 메시지가 화면에 출력되지 않았으므로, 이는 파일에 기록되었음이 분명합니다. _output.txt_의 내용은 다음과 같습니다:</p>
+<p><code>&gt;</code> 문법은 셸에게 표준 출력의 내용을 화면 대신 <em>output.txt</em> 에 쓰라고 지시합니다. 우리가 기대했던 에러 메시지가 화면에 출력되지 않았으므로, 이는 파일에 기록되었음이 분명합니다. <em>output.txt</em> 의 내용은 다음과 같습니다:</p>
 <pre><code class="language-text">Problem parsing arguments: not enough arguments
 </code></pre>
 <p>Yup, our error message is being printed to standard output. It’s much more useful for error messages like this to be printed to standard error so that only data from a successful run ends up in the file. We’ll change that.</p>
 <h3 id="표준-에러로-에러-출력하기"><a class="header" href="#표준-에러로-에러-출력하기">표준 에러로 에러 출력하기</a></h3>
-<p>목록 12-24의 코드를 사용하여 에러 메시지가 출력되는 방식을 변경해 보겠습니다. 이 장의 앞부분에서 수행한 리팩터링 덕분에, 에러 메시지를 출력하는 모든 코드는 하나의 함수, 즉 <code>main</code>에 모여 있습니다. 표준 라이브러리는 표준 에러 스트림으로 출력하는 <code>eprintln!</code> 매크로를 제공하므로, 에러를 출력하기 위해 <code>println!</code>을 호출하던 두 곳을 <code>eprintln!</code>으로 변경해 봅시다.</p>
+<p>목록 12-24의 코드를 사용하여 에러 메시지가 출력되는 방식을 변경해 보겠습니다. 이 장의 앞부분에서 수행한 리팩터링 덕분에, 에러 메시지를 출력하는 모든 코드는 하나의 함수, 즉 <code>main</code> 에 모여 있습니다. 표준 라이브러리는 표준 에러 스트림으로 출력하는 <code>eprintln!</code> 매크로를 제공하므로, 에러를 출력하기 위해 <code>println!</code> 을 호출하던 두 곳을 <code>eprintln!</code> 으로 변경해 봅시다.</p>
 <Listing number="12-24" file-name="src/main.rs" caption="Writing error messages to standard error instead of standard output using `eprintln!`">
 <pre><code class="language-rust ignore"><span class="boring">use std::env;
 </span><span class="boring">use std::error::Error;
@@ -296,15 +296,15 @@
 </span><span class="boring">    Ok(())
 </span><span class="boring">}</span></code></pre>
 </Listing>
-<p>이제 이전과 같은 방식으로, 인수 없이 그리고 <code>&gt;</code>로 표준 출력을 리다이렉션하여 프로그램을 다시 실행해 봅시다:</p>
+<p>이제 이전과 같은 방식으로, 인수 없이 그리고 <code>&gt;</code> 로 표준 출력을 리다이렉션하여 프로그램을 다시 실행해 봅시다:</p>
 <pre><code class="language-console">$ cargo run &gt; output.txt
 Problem parsing arguments: not enough arguments
 </code></pre>
-<p>이제 화면에서 에러를 볼 수 있고 _output.txt_에는 아무것도 들어있지 않습니다. 이것이 우리가 명령줄 프로그램에 기대하는 동작입니다.</p>
+<p>이제 화면에서 에러를 볼 수 있고 <em>output.txt</em> 에는 아무것도 들어있지 않습니다. 이것이 우리가 명령줄 프로그램에 기대하는 동작입니다.</p>
 <p>에러를 일으키지 않는 인수를 사용하되 여전히 표준 출력을 파일로 리다이렉션하여 프로그램을 다시 실행해 봅시다. 다음과 같이요:</p>
 <pre><code class="language-console">$ cargo run -- to poem.txt &gt; output.txt
 </code></pre>
-<p>터미널에는 아무런 출력도 나타나지 않으며, 결과는 _output.txt_에 담길 것입니다:</p>
+<p>터미널에는 아무런 출력도 나타나지 않으며, 결과는 <em>output.txt</em> 에 담길 것입니다:</p>
 <p><span class="filename">파일명: output.txt</span></p>
 <pre><code class="language-text">Are you nobody, too?
 How dreary to be somebody!

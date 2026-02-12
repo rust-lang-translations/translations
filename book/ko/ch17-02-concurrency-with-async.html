@@ -223,7 +223,7 @@
 <p>많은 경우, 비동기를 사용하여 동시성을 다루는 API는 스레드를 사용하는 것과 매우 유사합니다. 다른 경우에는 꽤 다르게 되기도 합니다. 스레드와 비동기 간에 API가 비슷해 <em>보일</em> 때조차도, 종종 다른 동작을 하며 거의 항상 다른 성능 특성을 가집니다.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="counting"></a></p>
-<h3 id="spawn_task로-새로운-태스크-생성하기"><a class="header" href="#spawn_task로-새로운-태스크-생성하기"><code>spawn_task</code>로 새로운 태스크 생성하기</a></h3>
+<h3 id="spawn_task-로-새로운-태스크-생성하기"><a class="header" href="#spawn_task-로-새로운-태스크-생성하기"><code>spawn_task</code> 로 새로운 태스크 생성하기</a></h3>
 <p>The first operation we tackled in the <a href="ch16-01-threads.html#creating-a-new-thread-with-spawn">“Creating a New Thread with <code>spawn</code>”</a><!-- ignore --> section in Chapter 16 was counting up on two separate threads. Let’s do the same using async. The <code>trpl</code> crate supplies a <code>spawn_task</code> function that looks very similar to the <code>thread::spawn</code> API, and a <code>sleep</code> function that is an async version of the <code>thread::sleep</code> API. We can use these together to implement the counting example, as shown in Listing 17-6.</p>
 <Listing number="17-6" caption="Creating a new task to print one thing while the main task prints something else" file-name="src/main.rs">
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
@@ -250,7 +250,7 @@ fn main() {
 <blockquote>
 <p>Note: From this point forward in the chapter, every example will include this exact same wrapping code with <code>trpl::block_on</code> in <code>main</code>, so we’ll often skip it just as we do with <code>main</code>. Remember to include it in your code!</p>
 </blockquote>
-<p>그런 다음 그 블록 내에 두 개의 루프를 작성하는데, 각 루프는 다음 메시지를 보내기 전에 0.5초(500 밀리초) 동안 기다리는 <code>trpl::sleep</code> 호출을 포함합니다. 루프 하나는 <code>trpl::spawn_task</code>의 본문에 넣고, 다른 하나는 최상위 <code>for</code> 루프에 넣습니다. 또한 <code>sleep</code> 호출 뒤에 <code>await</code>를 추가합니다.</p>
+<p>그런 다음 그 블록 내에 두 개의 루프를 작성하는데, 각 루프는 다음 메시지를 보내기 전에 0.5초(500 밀리초) 동안 기다리는 <code>trpl::sleep</code> 호출을 포함합니다. 루프 하나는 <code>trpl::spawn_task</code> 의 본문에 넣고, 다른 하나는 최상위 <code>for</code> 루프에 넣습니다. 또한 <code>sleep</code> 호출 뒤에 <code>await</code> 를 추가합니다.</p>
 <p>이 코드는 스레드 기반 구현과 유사하게 동작합니다—실행할 때 터미널에서 메시지가 다른 순서로 나타날 수 있다는 점을 포함해서 말이죠:</p>
 <!-- Not extracting output because changes to this output aren't significant;
 the changes are likely to be due to the threads running differently rather than
@@ -265,7 +265,7 @@ hi number 4 from the first task!
 hi number 4 from the second task!
 hi number 5 from the first task!
 </code></pre>
-<p>이 버전은 메인 비동기 블록 본문의 <code>for</code> 루프가 끝나자마자 중지됩니다. 왜냐하면 <code>main</code> 함수가 끝날 때 <code>spawn_task</code>에 의해 생성된 태스크가 종료되기 때문입니다. 태스크가 완료될 때까지 계속 실행되기를 원한다면, 첫 번째 태스크가 완료되기를 기다리기 위해 조인 핸들을 사용해야 합니다. 스레드에서는 <code>join</code> 메서드를 사용하여 스레드 실행이 끝날 때까지 "차단(block)"했습니다. 목록 17-7에서는 태스크 핸들 자체가 퓨처이기 때문에 <code>await</code>를 사용하여 동일한 작업을 수행할 수 있습니다. 그것의 <code>Output</code> 타입은 <code>Result</code>이므로, 기다린 후에 <code>unwrap</code>도 수행합니다.</p>
+<p>이 버전은 메인 비동기 블록 본문의 <code>for</code> 루프가 끝나자마자 중지됩니다. 왜냐하면 <code>main</code> 함수가 끝날 때 <code>spawn_task</code> 에 의해 생성된 태스크가 종료되기 때문입니다. 태스크가 완료될 때까지 계속 실행되기를 원한다면, 첫 번째 태스크가 완료되기를 기다리기 위해 조인 핸들을 사용해야 합니다. 스레드에서는 <code>join</code> 메서드를 사용하여 스레드 실행이 끝날 때까지 "차단(block)"했습니다. 목록 17-7에서는 태스크 핸들 자체가 퓨처이기 때문에 <code>await</code> 를 사용하여 동일한 작업을 수행할 수 있습니다. 그것의 <code>Output</code> 타입은 <code>Result</code> 이므로, 기다린 후에 <code>unwrap</code> 도 수행합니다.</p>
 <Listing number="17-7" caption="Using `await` with a join handle to run a task to completion" file-name="src/main.rs">
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
 </span><span class="boring">
@@ -380,8 +380,8 @@ hi number 9 from the first task!
 <span class="boring">    });
 </span><span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>여기서 우리는 16장에서 스레드와 함께 사용했던 다중 생산자, 단일 소비자 채널 API의 비동기 버전인 <code>trpl::channel</code>을 사용합니다. API의 비동기 버전은 스레드 기반 버전과 조금 다를 뿐입니다: 불변 수신자 <code>rx</code> 대신 가변 수신자를 사용하며, <code>recv</code> 메서드는 값을 직접 생성하는 대신 우리가 기다려야 하는 퓨처를 생성합니다. 이제 우리는 송신자에서 수신자로 메시지를 보낼 수 있습니다. 별도의 스레드나 태스크를 생성할 필요가 없다는 점에 주목하세요; 우리는 단지 <code>rx.recv</code> 호출을 기다리기만 하면 됩니다.</p>
-<p><code>std::mpsc::channel</code>의 동기 <code>Receiver::recv</code> 메서드는 메시지를 받을 때까지 차단합니다. <code>trpl::Receiver::recv</code> 메서드는 비동기이므로 그렇지 않습니다. 차단하는 대신, 메시지를 받거나 채널의 송신 측이 닫힐 때까지 제어를 런타임에 다시 넘깁니다. 반면, <code>send</code> 호출은 차단하지 않으므로 기다리지 않습니다. 우리가 보내는 채널이 제한이 없기 때문에(unbounded) 기다릴 필요가 없습니다.</p>
+<p>여기서 우리는 16장에서 스레드와 함께 사용했던 다중 생산자, 단일 소비자 채널 API의 비동기 버전인 <code>trpl::channel</code> 을 사용합니다. API의 비동기 버전은 스레드 기반 버전과 조금 다를 뿐입니다: 불변 수신자 <code>rx</code> 대신 가변 수신자를 사용하며, <code>recv</code> 메서드는 값을 직접 생성하는 대신 우리가 기다려야 하는 퓨처를 생성합니다. 이제 우리는 송신자에서 수신자로 메시지를 보낼 수 있습니다. 별도의 스레드나 태스크를 생성할 필요가 없다는 점에 주목하세요; 우리는 단지 <code>rx.recv</code> 호출을 기다리기만 하면 됩니다.</p>
+<p><code>std::mpsc::channel</code> 의 동기 <code>Receiver::recv</code> 메서드는 메시지를 받을 때까지 차단합니다. <code>trpl::Receiver::recv</code> 메서드는 비동기이므로 그렇지 않습니다. 차단하는 대신, 메시지를 받거나 채널의 송신 측이 닫힐 때까지 제어를 런타임에 다시 넘깁니다. 반면, <code>send</code> 호출은 차단하지 않으므로 기다리지 않습니다. 우리가 보내는 채널이 제한이 없기 때문에(unbounded) 기다릴 필요가 없습니다.</p>
 <blockquote>
 <p>Note: Because all of this async code runs in an async block in a <code>trpl::block_on</code> call, everything within it can avoid blocking. However, the code <em>outside</em> it will block on the <code>block_on</code> function returning. That’s the whole point of the <code>trpl::block_on</code> function: it lets you <em>choose</em> where to block on some set of async code, and thus where to transition between sync and async code.</p>
 </blockquote>
@@ -415,10 +415,10 @@ hi number 9 from the first task!
 <span class="boring">    });
 </span><span class="boring">}</span></code></pre>
 </Listing>
-<p>메시지를 보내는 것 외에도, 우리는 메시지를 받아야 합니다. 이 경우, 얼마나 많은 메시지가 들어올지 알고 있기 때문에 <code>rx.recv().await</code>를 네 번 호출하여 수동으로 수행할 수 있습니다. 하지만 실제 세계에서는 일반적으로 <em>알 수 없는</em> 수의 메시지를 기다리게 되므로, 더 이상 메시지가 없다고 판단할 때까지 계속 기다려야 합니다.</p>
+<p>메시지를 보내는 것 외에도, 우리는 메시지를 받아야 합니다. 이 경우, 얼마나 많은 메시지가 들어올지 알고 있기 때문에 <code>rx.recv().await</code> 를 네 번 호출하여 수동으로 수행할 수 있습니다. 하지만 실제 세계에서는 일반적으로 <em>알 수 없는</em> 수의 메시지를 기다리게 되므로, 더 이상 메시지가 없다고 판단할 때까지 계속 기다려야 합니다.</p>
 <p>In Listing 16-10, we used a <code>for</code> loop to process all the items received from a synchronous channel. Rust doesn’t yet have a way to use a <code>for</code> loop with an <em>asynchronously produced</em> series of items, however, so we need to use a loop we haven’t seen before: the <code>while let</code> conditional loop. This is the loop version of the <code>if let</code> construct we saw back in the <a href="ch06-03-if-let.html">“Concise Control Flow with <code>if let</code> and <code>let...else</code>”</a><!-- ignore --> section in Chapter 6. The loop will continue executing as long as the pattern it specifies continues to match the value.</p>
-<p><code>rx.recv</code> 호출은 퓨처를 생성하며, 우리는 이를 기다립니다. 런타임은 준비될 때까지 퓨처를 일시 중지합니다. 메시지가 도착하면, 메시지가 도착하는 횟수만큼 퓨처는 <code>Some(message)</code>로 해결됩니다. 채널이 닫히면, 메시지가 도착했는지 여부에 관계없이 퓨처는 대신 <code>None</code>으로 해결되어 더 이상 값이 없음을 나타내며, 따라서 폴링을 중지(즉, 기다림을 중지)해야 합니다.</p>
-<p><code>while let</code> 루프는 이 모든 것을 하나로 묶습니다. <code>rx.recv().await</code> 호출의 결과가 <code>Some(message)</code>이면, <code>if let</code>과 마찬가지로 메시지에 접근하여 루프 본문에서 사용할 수 있습니다. 결과가 <code>None</code>이면 루프가 종료됩니다. 루프가 완료될 때마다 다시 await 지점에 도달하므로, 런타임은 다른 메시지가 도착할 때까지 다시 일시 중지합니다.</p>
+<p><code>rx.recv</code> 호출은 퓨처를 생성하며, 우리는 이를 기다립니다. 런타임은 준비될 때까지 퓨처를 일시 중지합니다. 메시지가 도착하면, 메시지가 도착하는 횟수만큼 퓨처는 <code>Some(message)</code> 로 해결됩니다. 채널이 닫히면, 메시지가 도착했는지 여부에 관계없이 퓨처는 대신 <code>None</code> 으로 해결되어 더 이상 값이 없음을 나타내며, 따라서 폴링을 중지(즉, 기다림을 중지)해야 합니다.</p>
+<p><code>while let</code> 루프는 이 모든 것을 하나로 묶습니다. <code>rx.recv().await</code> 호출의 결과가 <code>Some(message)</code> 이면, <code>if let</code> 과 마찬가지로 메시지에 접근하여 루프 본문에서 사용할 수 있습니다. 결과가 <code>None</code> 이면 루프가 종료됩니다. 루프가 완료될 때마다 다시 await 지점에 도달하므로, 런타임은 다른 메시지가 도착할 때까지 다시 일시 중지합니다.</p>
 <p>The code now successfully sends and receives all of the messages. Unfortunately, there are still a couple of problems. For one thing, the messages do not arrive at half-second intervals. They arrive all at once, 2 seconds (2,000 milliseconds) after we start the program. For another, this program also never exits! Instead, it waits forever for new messages. You will need to shut it down using <kbd>ctrl</kbd>-<kbd>C</kbd>.</p>
 <h4 id="code-within-one-async-block-executes-linearly"><a class="header" href="#code-within-one-async-block-executes-linearly">Code Within One Async Block Executes Linearly</a></h4>
 <p>왜 메시지가 각각의 지연 시간과 함께 도착하지 않고 전체 지연 후 한꺼번에 도착하는지 살펴보는 것부터 시작해 봅시다. 주어진 비동기 블록 내에서, 코드에 <code>await</code> 키워드가 나타나는 순서는 프로그램이 실행될 때 실행되는 순서와 같습니다.</p>
@@ -462,14 +462,14 @@ hi number 9 from the first task!
 <h4 id="moving-ownership-into-an-async-block"><a class="header" href="#moving-ownership-into-an-async-block">Moving Ownership Into an Async Block</a></h4>
 <p>The program still never exits, though, because of the way the <code>while let</code> loop interacts with <code>trpl::join</code>:</p>
 <ul>
-<li><code>trpl::join</code>에서 반환된 퓨처는 전달된 <em>두</em> 퓨처가 모두 완료된 후에만 완료됩니다.</li>
+<li><code>trpl::join</code> 에서 반환된 퓨처는 전달된 <em>두</em> 퓨처가 모두 완료된 후에만 완료됩니다.</li>
 <li>The <code>tx_fut</code> future completes once it finishes sleeping after sending the last message in <code>vals</code>.</li>
 <li>The <code>rx_fut</code> future won’t complete until the <code>while let</code> loop ends.</li>
-<li><code>while let</code> 루프는 <code>rx.recv</code>를 기다리는 과정(await)에서 <code>None</code>이 생성될 때까지 끝나지 않습니다.</li>
-<li><code>rx.recv</code>를 기다리는 과정은 채널의 반대편 끝이 닫힌 후에야 <code>None</code>을 반환합니다.</li>
-<li>채널은 우리가 <code>rx.close</code>를 호출하거나 송신 측인 <code>tx</code>가 드롭될 때만 닫힙니다.</li>
+<li><code>while let</code> 루프는 <code>rx.recv</code> 를 기다리는 과정(await)에서 <code>None</code> 이 생성될 때까지 끝나지 않습니다.</li>
+<li><code>rx.recv</code> 를 기다리는 과정은 채널의 반대편 끝이 닫힌 후에야 <code>None</code> 을 반환합니다.</li>
+<li>채널은 우리가 <code>rx.close</code> 를 호출하거나 송신 측인 <code>tx</code> 가 드롭될 때만 닫힙니다.</li>
 <li>We don’t call <code>rx.close</code> anywhere, and <code>tx</code> won’t be dropped until the outermost async block passed to <code>trpl::block_on</code> ends.</li>
-<li>그 블록은 <code>trpl::join</code>이 완료될 때까지 차단되어 끝날 수 없으며, 이는 우리를 다시 이 목록의 처음으로 되돌려 보냅니다.</li>
+<li>그 블록은 <code>trpl::join</code> 이 완료될 때까지 차단되어 끝날 수 없으며, 이는 우리를 다시 이 목록의 처음으로 되돌려 보냅니다.</li>
 </ul>
 <p>Right now, the async block where we send the messages only <em>borrows</em> <code>tx</code> because sending a message doesn’t require ownership, but if we could <em>move</em> <code>tx</code> into that async block, it would be dropped once that block ends. In the <a href="ch13-01-closures.html#capturing-references-or-moving-ownership">“Capturing References or Moving Ownership”</a><!-- ignore --> section in Chapter 13, you learned how to use the <code>move</code> keyword with closures, and, as discussed in the <a href="ch16-01-threads.html#using-move-closures-with-threads">“Using <code>move</code> Closures with Threads”</a><!-- ignore --> section in Chapter 16, we often need to move data into closures when working with threads. The same basic dynamics apply to async blocks, so the <code>move</code> keyword works with async blocks just as it does with closures.</p>
 <p>In Listing 17-12, we change the block used to send messages from <code>async</code> to <code>async move</code>.</p>
@@ -509,7 +509,7 @@ hi number 9 from the first task!
 </Listing>
 <p>When we run <em>this</em> version of the code, it shuts down gracefully after the last message is sent and received. Next, let’s see what would need to change to send data from more than one future.</p>
 <h4 id="joining-a-number-of-futures-with-the-join-macro"><a class="header" href="#joining-a-number-of-futures-with-the-join-macro">Joining a Number of Futures with the <code>join!</code> Macro</a></h4>
-<p>이 비동기 채널은 다중 생산자 채널이기도 하므로, 목록 17-13과 같이 여러 퓨처에서 메시지를 보내고 싶다면 <code>tx</code>에 대해 <code>clone</code>을 호출할 수 있습니다.</p>
+<p>이 비동기 채널은 다중 생산자 채널이기도 하므로, 목록 17-13과 같이 여러 퓨처에서 메시지를 보내고 싶다면 <code>tx</code> 에 대해 <code>clone</code> 을 호출할 수 있습니다.</p>
 <Listing number="17-13" caption="Using multiple producers with async blocks" file-name="src/main.rs">
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">extern crate trpl; // mdbook 테스트에 필요함
 </span><span class="boring">
@@ -558,7 +558,7 @@ hi number 9 from the first task!
 <span class="boring">    });
 </span><span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>먼저 <code>tx</code>를 클론하여 첫 번째 비동기 블록 외부에서 <code>tx1</code>을 생성합니다. 이전에 <code>tx</code>로 했던 것과 마찬가지로 <code>tx1</code>을 해당 블록으로 이동시킵니다. 그런 다음 나중에 원래의 <code>tx</code>를 <em>새로운</em> 비동기 블록으로 이동시키고, 거기서 약간 더 느린 지연 시간으로 더 많은 메시지를 보냅니다. 우리는 우연히 이 새로운 비동기 블록을 메시지 수신을 위한 비동기 블록 뒤에 두었지만, 그 앞에 두어도 상관없습니다. 핵심은 퓨처가 생성되는 순서가 아니라 기다려지는(await) 순서입니다.</p>
+<p>먼저 <code>tx</code> 를 클론하여 첫 번째 비동기 블록 외부에서 <code>tx1</code> 을 생성합니다. 이전에 <code>tx</code> 로 했던 것과 마찬가지로 <code>tx1</code> 을 해당 블록으로 이동시킵니다. 그런 다음 나중에 원래의 <code>tx</code> 를 <em>새로운</em> 비동기 블록으로 이동시키고, 거기서 약간 더 느린 지연 시간으로 더 많은 메시지를 보냅니다. 우리는 우연히 이 새로운 비동기 블록을 메시지 수신을 위한 비동기 블록 뒤에 두었지만, 그 앞에 두어도 상관없습니다. 핵심은 퓨처가 생성되는 순서가 아니라 기다려지는(await) 순서입니다.</p>
 <p>Both of the async blocks for sending messages need to be <code>async move</code> blocks so that both <code>tx</code> and <code>tx1</code> get dropped when those blocks finish. Otherwise, we’ll end up back in the same infinite loop we started out in.</p>
 <p>Finally, we switch from <code>trpl::join</code> to <code>trpl::join!</code> to handle the additional future: the <code>join!</code> macro awaits an arbitrary number of futures where we know the number of futures at compile time. We’ll discuss awaiting a collection of an unknown number of futures later in this chapter.</p>
 <p>Now we see all the messages from both sending futures, and because the sending futures use slightly different delays after sending, the messages are also received at those different intervals:</p>

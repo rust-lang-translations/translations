@@ -234,9 +234,9 @@ fn main() {
     let clo = Closure { data: (0, 1), func: do_it };
     println!("{}", clo.call());
 }</code></pre></pre>
-<p>만약 이 코드를 <a href="lifetimes.html">수명 섹션</a>에서 했던 것과 같은 방식으로 순진하게 설탕을 제거하려고 하면, 몇 가지 문제에 봉착하게 됩니다.</p>
+<p>만약 이 코드를 <a href="lifetimes.html">수명 섹션</a> 에서 했던 것과 같은 방식으로 순진하게 설탕을 제거하려고 하면, 몇 가지 문제에 봉착하게 됩니다.</p>
 <!-- ignore: desugared code -->
-<pre><code class="language-rust ignore">// 참고: `&amp;'b data.0` 및 `'x: {`는 유효한 구문이 아닙니다!
+<pre><code class="language-rust ignore">// 참고: `&amp;'b data.0` 및 `'x: {` 는 유효한 구문이 아닙니다!
 struct Closure&lt;F&gt; {
     data: (u8, u16),
     func: F,
@@ -258,7 +258,7 @@ fn main() {
         println!("{}", clo.call());
     }
 }</code></pre>
-<p><code>F</code>의 트레잇 바운드에 있는 수명을 도대체 어떻게 표현해야 할까요? 거기에 어떤 수명을 제공해야 하지만, 우리가 신경 쓰는 수명은 <code>call</code>의 본문에 들어가기 전에는 명명할 수 없습니다! 또한 그것은 고정된 수명도 아닙니다. <code>call</code>은 그 시점에 <code>&amp;self</code>가 가지게 되는 <em>어떤</em> 수명과도 작동합니다.</p>
+<p><code>F</code> 의 트레잇 바운드에 있는 수명을 도대체 어떻게 표현해야 할까요? 거기에 어떤 수명을 제공해야 하지만, 우리가 신경 쓰는 수명은 <code>call</code> 의 본문에 들어가기 전에는 명명할 수 없습니다! 또한 그것은 고정된 수명도 아닙니다. <code>call</code> 은 그 시점에 <code>&amp;self</code> 가 가지게 되는 <em>어떤</em> 수명과도 작동합니다.</p>
 <p>이 작업에는 고차 트레잇 바운드(HRTBs)의 마법이 필요합니다. 이를 설탕 제거하는 방식은 다음과 같습니다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">where for&lt;'a&gt; F: Fn(&amp;'a (u8, u16)) -&gt; &amp;'a u8,</code></pre>
@@ -266,7 +266,7 @@ fn main() {
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">where F: for&lt;'a&gt; Fn(&amp;'a (u8, u16)) -&gt; &amp;'a u8,</code></pre>
 <p>(<code>Fn(a, b, c) -&gt; d</code> 자체는 불안정한 <em>진짜</em> <code>Fn</code> 트레잇에 대한 설탕일 뿐입니다)</p>
-<p><code>for&lt;'a&gt;</code>는 "<code>'a</code>의 모든 선택에 대하여"라고 읽을 수 있으며, 기본적으로 F가 만족해야 하는 트레잇 바운드의 _무한한 리스트_를 생성합니다. 강렬하죠. <code>Fn</code> 트레잇 이외의 곳에서 HRTBs를 마주치는 경우는 많지 않으며, 심지어 그런 경우에도 일반적인 케이스를 위한 멋진 마법 설탕이 있습니다.</p>
+<p><code>for&lt;'a&gt;</code> 는 "<code>'a</code> 의 모든 선택에 대하여"라고 읽을 수 있으며, 기본적으로 F가 만족해야 하는 트레잇 바운드의 <em>무한한 리스트</em> 를 생성합니다. 강렬하죠. <code>Fn</code> 트레잇 이외의 곳에서 HRTBs를 마주치는 경우는 많지 않으며, 심지어 그런 경우에도 일반적인 케이스를 위한 멋진 마법 설탕이 있습니다.</p>
 <p>요약하자면, 원래 코드를 더 명시적으로 다음과 같이 다시 쓸 수 있습니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2024">struct Closure&lt;F&gt; {
     data: (u8, u16),

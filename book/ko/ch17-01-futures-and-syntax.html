@@ -217,21 +217,21 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="future와-async-문법"><a class="header" href="#future와-async-문법">Future와 Async 문법</a></h2>
-<p>러스트 비동기 프로그래밍의 핵심 요소는 _퓨처(futures)_와 러스트의 <code>async</code> 및 <code>await</code> 키워드입니다.</p>
+<p>러스트 비동기 프로그래밍의 핵심 요소는 <em>퓨처(futures)</em> 와 러스트의 <code>async</code> 및 <code>await</code> 키워드입니다.</p>
 <p>A <em>future</em> is a value that may not be ready now but will become ready at some point in the future. (This same concept shows up in many languages, sometimes under other names such as <em>task</em> or <em>promise</em>.) Rust provides a <code>Future</code> trait as a building block so that different async operations can be implemented with different data structures but with a common interface. In Rust, futures are types that implement the <code>Future</code> trait. Each future holds its own information about the progress that has been made and what “ready” means.</p>
 <p>You can apply the <code>async</code> keyword to blocks and functions to specify that they can be interrupted and resumed. Within an async block or async function, you can use the <code>await</code> keyword to <em>await a future</em> (that is, wait for it to become ready). Any point where you await a future within an async block or function is a potential spot for that block or function to pause and resume. The process of checking with a future to see if its value is available yet is called <em>polling</em>.</p>
 <p>Some other languages, such as C# and JavaScript, also use <code>async</code> and <code>await</code> keywords for async programming. If you’re familiar with those languages, you may notice some significant differences in how Rust handles the syntax. That’s for good reason, as we’ll see!</p>
-<p>비동기 러스트를 작성할 때, 우리는 대부분 <code>async</code>와 <code>await</code> 키워드를 사용합니다. 러스트는 <code>for</code> 루프를 <code>Iterator</code> 트레이트를 사용하여 동등한 코드로 컴파일하는 것과 마찬가지로, 이들을 <code>Future</code> 트레이트를 사용하여 동등한 코드로 컴파일합니다. 하지만 러스트가 <code>Future</code> 트레이트를 제공하므로, 필요할 때 자신만의 데이터 타입에 대해 이를 구현할 수도 있습니다. 이 장 전반에 걸쳐 보게 될 많은 함수들은 <code>Future</code>에 대한 자체 구현을 가진 타입을 반환합니다. 이 장의 끝에서 트레이트의 정의로 돌아가 작동 방식에 대해 더 자세히 알아볼 것이지만, 지금은 앞으로 나아가기에 충분한 세부 사항입니다.</p>
+<p>비동기 러스트를 작성할 때, 우리는 대부분 <code>async</code> 와 <code>await</code> 키워드를 사용합니다. 러스트는 <code>for</code> 루프를 <code>Iterator</code> 트레이트를 사용하여 동등한 코드로 컴파일하는 것과 마찬가지로, 이들을 <code>Future</code> 트레이트를 사용하여 동등한 코드로 컴파일합니다. 하지만 러스트가 <code>Future</code> 트레이트를 제공하므로, 필요할 때 자신만의 데이터 타입에 대해 이를 구현할 수도 있습니다. 이 장 전반에 걸쳐 보게 될 많은 함수들은 <code>Future</code> 에 대한 자체 구현을 가진 타입을 반환합니다. 이 장의 끝에서 트레이트의 정의로 돌아가 작동 방식에 대해 더 자세히 알아볼 것이지만, 지금은 앞으로 나아가기에 충분한 세부 사항입니다.</p>
 <p>이 모든 것이 다소 추상적으로 느껴질 수 있으므로, 첫 번째 비동기 프로그램인 작은 웹 스크래퍼를 작성해 봅시다. 명령줄에서 두 개의 URL을 전달하고, 두 URL을 동시에 가져와서 먼저 완료되는 URL의 결과를 반환할 것입니다. 이 예제에는 꽤 많은 새로운 문법이 포함되겠지만 걱정하지 마세요. 진행하면서 필요한 모든 것을 설명해 드리겠습니다.</p>
 <h2 id="첫-번째-비동기-프로그램"><a class="header" href="#첫-번째-비동기-프로그램">첫 번째 비동기 프로그램</a></h2>
-<p>이 장의 초점을 생태계의 여러 부분을 조정하는 것보다 비동기를 배우는 데 맞추기 위해, 우리는 <code>trpl</code> 크레이트를 만들었습니다(<code>trpl</code>은 "The Rust Programming Language"의 줄임말입니다). 이 크레이트는 주로 <a href="https://crates.io/crates/futures"><code>futures</code></a><!-- ignore -->와 <a href="https://tokio.rs"><code>tokio</code></a><!-- ignore --> 크레이트에서 필요한 모든 타입, 트레이트, 함수를 다시 내보냅니다. <code>futures</code> 크레이트는 비동기 코드에 대한 러스트 실험의 공식적인 본거지이며, 실제로 <code>Future</code> 트레이트가 원래 설계된 곳입니다. Tokio는 오늘날 러스트에서 가장 널리 사용되는 비동기 런타임이며, 특히 웹 애플리케이션에서 그렇습니다. 그 밖에도 훌륭한 런타임이 있으며, 여러분의 목적에 더 적합할 수도 있습니다. 우리는 <code>trpl</code>의 내부에서 <code>tokio</code> 크레이트를 사용하는데, 이는 잘 테스트되어 있고 널리 사용되기 때문입니다.</p>
+<p>이 장의 초점을 생태계의 여러 부분을 조정하는 것보다 비동기를 배우는 데 맞추기 위해, 우리는 <code>trpl</code> 크레이트를 만들었습니다(<code>trpl</code> 은 "The Rust Programming Language"의 줄임말입니다). 이 크레이트는 주로 <a href="https://crates.io/crates/futures"><code>futures</code></a><!-- ignore -->와 <a href="https://tokio.rs"><code>tokio</code></a><!-- ignore --> 크레이트에서 필요한 모든 타입, 트레이트, 함수를 다시 내보냅니다. <code>futures</code> 크레이트는 비동기 코드에 대한 러스트 실험의 공식적인 본거지이며, 실제로 <code>Future</code> 트레이트가 원래 설계된 곳입니다. Tokio는 오늘날 러스트에서 가장 널리 사용되는 비동기 런타임이며, 특히 웹 애플리케이션에서 그렇습니다. 그 밖에도 훌륭한 런타임이 있으며, 여러분의 목적에 더 적합할 수도 있습니다. 우리는 <code>trpl</code> 의 내부에서 <code>tokio</code> 크레이트를 사용하는데, 이는 잘 테스트되어 있고 널리 사용되기 때문입니다.</p>
 <p>In some cases, <code>trpl</code> also renames or wraps the original APIs to keep you focused on the details relevant to this chapter. If you want to understand what the crate does, we encourage you to check out <a href="https://github.com/rust-lang/book/tree/main/packages/trpl">its source code</a>. You’ll be able to see what crate each re-export comes from, and we’ve left extensive comments explaining what the crate does.</p>
-<p><code>hello-async</code>라는 이름의 새 바이너리 프로젝트를 생성하고 <code>trpl</code> 크레이트를 의존성으로 추가하세요:</p>
+<p><code>hello-async</code> 라는 이름의 새 바이너리 프로젝트를 생성하고 <code>trpl</code> 크레이트를 의존성으로 추가하세요:</p>
 <pre><code class="language-console">$ cargo new hello-async
 $ cd hello-async
 $ cargo add trpl
 </code></pre>
-<p>이제 <code>trpl</code>이 제공하는 다양한 조각들을 사용하여 우리의 첫 번째 비동기 프로그램을 작성할 수 있습니다. 두 개의 웹 페이지를 가져와서 각각 <code>&lt;title&gt;</code> 요소를 추출하고, 그 전체 과정을 먼저 완료하는 페이지의 제목을 출력하는 작은 명령줄 도구를 만들 것입니다.</p>
+<p>이제 <code>trpl</code> 이 제공하는 다양한 조각들을 사용하여 우리의 첫 번째 비동기 프로그램을 작성할 수 있습니다. 두 개의 웹 페이지를 가져와서 각각 <code>&lt;title&gt;</code> 요소를 추출하고, 그 전체 과정을 먼저 완료하는 페이지의 제목을 출력하는 작은 명령줄 도구를 만들 것입니다.</p>
 <h3 id="page_title-함수-정의하기"><a class="header" href="#page_title-함수-정의하기">page_title 함수 정의하기</a></h3>
 <p>Let’s start by writing a function that takes one page URL as a parameter, makes a request to it, and returns the text of the <code>&lt;title&gt;</code> element (see Listing 17-1).</p>
 <Listing number="17-1" file-name="src/main.rs" caption="Defining an async function to get the title element from an HTML page">
@@ -274,7 +274,7 @@ async fn page_title(url: &amp;str) -&gt; Option&lt;String&gt; {
 </span><span class="boring">        .map(|title| title.inner_html())
 </span><span class="boring">}</span></code></pre></pre>
 </Listing>
-<p>이로써 우리는 첫 번째 비동기 함수를 성공적으로 작성했습니다! <code>main</code>에 코드를 추가하여 호출하기 전에, 우리가 작성한 내용과 그 의미에 대해 조금 더 이야기해 봅시다.</p>
+<p>이로써 우리는 첫 번째 비동기 함수를 성공적으로 작성했습니다! <code>main</code> 에 코드를 추가하여 호출하기 전에, 우리가 작성한 내용과 그 의미에 대해 조금 더 이야기해 봅시다.</p>
 <p>When Rust sees a <em>block</em> marked with the <code>async</code> keyword, it compiles it into a unique, anonymous data type that implements the <code>Future</code> trait. When Rust sees a <em>function</em> marked with <code>async</code>, it compiles it into a non-async function whose body is an async block. An async function’s return type is the type of the anonymous data type the compiler creates for that async block.</p>
 <p>Thus, writing <code>async fn</code> is equivalent to writing a function that returns a <em>future</em> of the return type. To the compiler, a function definition such as the <code>async fn page_title</code> in Listing 17-1 is roughly equivalent to a non-async function defined like this:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
@@ -298,9 +298,9 @@ fn page_title(url: &amp;str) -&gt; impl Future&lt;Output = Option&lt;String&gt;&
 <li>The returned value implements the <code>Future</code> trait with an associated type of <code>Output</code>. Notice that the <code>Output</code> type is <code>Option&lt;String&gt;</code>, which is the same as the original return type from the <code>async fn</code> version of <code>page_title</code>.</li>
 <li>원래 함수의 본문에서 호출된 모든 코드는 <code>async move</code> 블록으로 감싸져 있습니다. 블록이 표현식이라는 것을 기억하세요. 이 전체 블록은 함수에서 반환되는 표현식입니다.</li>
 <li>이 비동기 블록은 방금 설명한 대로 <code>Option&lt;String&gt;</code> 타입의 값을 생성합니다. 그 값은 반환 타입의 <code>Output</code> 타입과 일치합니다. 이것은 여러분이 보아온 다른 블록과 같습니다.</li>
-<li>새로운 함수 본문은 <code>url</code> 매개변수를 사용하는 방식 때문에 <code>async move</code> 블록입니다. (<code>async</code>와 <code>async move</code>의 차이점에 대해서는 이 장의 뒷부분에서 더 자세히 이야기할 것입니다.)</li>
+<li>새로운 함수 본문은 <code>url</code> 매개변수를 사용하는 방식 때문에 <code>async move</code> 블록입니다. (<code>async</code> 와 <code>async move</code> 의 차이점에 대해서는 이 장의 뒷부분에서 더 자세히 이야기할 것입니다.)</li>
 </ul>
-<p>이제 <code>main</code>에서 <code>page_title</code>을 호출할 수 있습니다.</p>
+<p>이제 <code>main</code> 에서 <code>page_title</code> 을 호출할 수 있습니다.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id ="determining-a-single-pages-title"></a></p>
 <h3 id="executing-an-async-function-with-a-runtime"><a class="header" href="#executing-an-async-function-with-a-runtime">Executing an Async Function with a Runtime</a></h3>
@@ -452,7 +452,7 @@ async fn page_title(url: &amp;str) -&gt; (&amp;str, Option&lt;String&gt;) {
 }
 <span class="boring">}</span></code></pre></pre>
 <p>The <code>select</code> function returns <code>Left</code> with that future’s output if the first argument wins, and <code>Right</code> with the second future argument’s output if <em>that</em> one wins. This matches the order the arguments appear in when calling the function: the first argument is to the left of the second argument.</p>
-<p>우리는 또한 전달된 동일한 URL을 반환하도록 <code>page_title</code>을 업데이트합니다. 그렇게 하면 먼저 반환된 페이지에 우리가 해결할 수 있는 <code>&lt;title&gt;</code>이 없더라도 여전히 의미 있는 메시지를 출력할 수 있습니다. 해당 정보를 사용할 수 있게 되면, 어떤 URL이 먼저 완료되었는지와 해당 URL의 웹 페이지에 대한 <code>&lt;title&gt;</code>이 있다면 무엇인지를 모두 나타내도록 <code>println!</code> 출력을 업데이트하여 마무리합니다.</p>
+<p>우리는 또한 전달된 동일한 URL을 반환하도록 <code>page_title</code> 을 업데이트합니다. 그렇게 하면 먼저 반환된 페이지에 우리가 해결할 수 있는 <code>&lt;title&gt;</code> 이 없더라도 여전히 의미 있는 메시지를 출력할 수 있습니다. 해당 정보를 사용할 수 있게 되면, 어떤 URL이 먼저 완료되었는지와 해당 URL의 웹 페이지에 대한 <code>&lt;title&gt;</code> 이 있다면 무엇인지를 모두 나타내도록 <code>println!</code> 출력을 업데이트하여 마무리합니다.</p>
 <p>이제 작지만 작동하는 웹 스크래퍼를 만들었습니다! 두 개의 URL을 선택하여 명령줄 도구를 실행해 보세요. 어떤 사이트는 일관되게 다른 사이트보다 빠를 수 있고, 어떤 경우에는 실행할 때마다 더 빠른 사이트가 달라질 수도 있음을 발견할 수 있습니다. 더 중요한 것은 퓨처 작업의 기초를 배웠으므로, 이제 비동기로 무엇을 할 수 있는지 더 깊이 파고들 수 있다는 것입니다.</p>
 <!-- TODO: map source link version to version of Rust? -->
 

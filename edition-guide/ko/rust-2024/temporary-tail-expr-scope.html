@@ -218,7 +218,7 @@
                         <h1 id="꼬리-표현식-임시-스코프"><a class="header" href="#꼬리-표현식-임시-스코프">꼬리 표현식 임시 스코프</a></h1>
 <h2 id="요약"><a class="header" href="#요약">요약</a></h2>
 <ul>
-<li><a href="../../reference/items/functions.html">함수</a> 또는 클로저 본문, 또는 <a href="../../reference/expressions/block-expr.html">블록</a>의 꼬리 표현식을 평가할 때 생성된 임시 값은 이제 지역 변수보다 먼저 삭제될 수 있으며, 때로는 다음으로 큰 임시 스코프로 확장되지 않을 수 있습니다.</li>
+<li><a href="../../reference/items/functions.html">함수</a> 또는 클로저 본문, 또는 <a href="../../reference/expressions/block-expr.html">블록</a> 의 꼬리 표현식을 평가할 때 생성된 임시 값은 이제 지역 변수보다 먼저 삭제될 수 있으며, 때로는 다음으로 큰 임시 스코프로 확장되지 않을 수 있습니다.</li>
 </ul>
 <h2 id="세부-정보"><a class="header" href="#세부-정보">세부 정보</a></h2>
 <p>2024 에디션은 꼬리 표현식의 <a href="../../reference/expressions.html#temporaries">임시 값</a> 삭제 순서를 변경합니다. 2024 에디션 이전에는 꼬리 표현식의 임시 값이 블록 자체보다 오래 살 수 있고 지역 변수 바인딩보다 나중에 삭제된다는 사실이 종종 놀라움으로 다가왔습니다. 다음 예를 참조하세요:</p>
@@ -228,7 +228,7 @@
 <span class="boring">use std::cell::RefCell;
 </span>fn f() -&gt; usize {
     let c = RefCell::new("..");
-    c.borrow().len() // error[E0597]: `c`가 충분히 오래 지속되지 않습니다
+    c.borrow().len() // error[E0597]: `c` 가 충분히 오래 지속되지 않습니다
 }
 <span class="boring">}</span></code></pre></pre>
 <p>2021 에디션에서는 다음과 같은 오류가 발생합니다:</p>
@@ -257,7 +257,7 @@ help: for example, you could save the expression's value in a new local variable
 
 For more information about this error, try `rustc --explain E0597`.
 </code></pre>
-<p>2021 에디션에서는 지역 변수 <code>c</code>가 <code>c.borrow()</code>에 의해 생성된 임시 값보다 먼저 드롭됩니다. 2024 에디션에서는 이를 변경하여 임시 값 <code>c.borrow()</code>가 먼저 드롭되고 이어서 지역 변수 <code>c</code>가 드롭되도록 하여 코드가 예상대로 컴파일되도록 합니다.</p>
+<p>2021 에디션에서는 지역 변수 <code>c</code> 가 <code>c.borrow()</code> 에 의해 생성된 임시 값보다 먼저 드롭됩니다. 2024 에디션에서는 이를 변경하여 임시 값 <code>c.borrow()</code> 가 먼저 드롭되고 이어서 지역 변수 <code>c</code> 가 드롭되도록 하여 코드가 예상대로 컴파일되도록 합니다.</p>
 <h3 id="임시-스코프가-축소될-수-있습니다"><a class="header" href="#임시-스코프가-축소될-수-있습니다">임시 스코프가 축소될 수 있습니다</a></h3>
 <p>When a temporary is created in order to evaluate an expression, the temporary is dropped based on the <a href="../../reference/destructors.html#temporary-scopes">temporary scope rules</a>. Those rules define how long the temporary will be kept alive. Before 2024, temporaries from tail expressions of a block would be extended outside the block to the next temporary scope boundary. In many cases this would be the end of a statement or function body. In 2024, the temporaries of the tail expression may now be dropped immediately at the end of the block (before any local variables in the block).</p>
 <p>이러한 임시 스코프의 축소로 인해 2024년에는 프로그램 컴파일이 실패할 수 있습니다. 예를 들어:</p>
@@ -265,16 +265,16 @@ For more information about this error, try `rustc --explain E0597`.
 fn main() {
     let x = { &amp;String::from("1234") }.len();
 }</code></pre></pre>
-<p>이 예제에서 2021 에디션의 경우 임시 <code>String</code>은 블록 외부로 확장되어 <code>len()</code> 호출을 지나 문장 끝에서 드롭됩니다. 2024 에디션에서는 블록 끝에서 즉시 드롭되므로, 빌려온(borrowed) 상태에서 임시 값이 드롭된다는 컴파일 오류가 발생합니다.</p>
+<p>이 예제에서 2021 에디션의 경우 임시 <code>String</code> 은 블록 외부로 확장되어 <code>len()</code> 호출을 지나 문장 끝에서 드롭됩니다. 2024 에디션에서는 블록 끝에서 즉시 드롭되므로, 빌려온(borrowed) 상태에서 임시 값이 드롭된다는 컴파일 오류가 발생합니다.</p>
 <p>이러한 상황에 대한 해결책은 임시 값이 충분히 오래 유지되도록 블록 표현식을 지역 변수로 끌어내는 것입니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2024">fn main() {
     let s = { &amp;String::from("1234") };
     let x = s.len();
 }</code></pre></pre>
-<p>이 특정 예제는 <a href="../../reference/destructors.html#temporary-lifetime-extension">임시 라이프타임 연장(temporary lifetime extension)</a>을 활용합니다. 임시 라이프타임 연장은 임시 값이 평소보다 더 오래 유지되도록 허용하는 특정 규칙 세트입니다. <code>String</code> 임시 값이 참조 뒤에 있기 때문에, <code>String</code> 임시 값은 다음 문장에서 <code>len()</code>을 호출할 수 있을 만큼 충분히 연장됩니다.</p>
+<p>이 특정 예제는 <a href="../../reference/destructors.html#temporary-lifetime-extension">임시 라이프타임 연장(temporary lifetime extension)</a> 을 활용합니다. 임시 라이프타임 연장은 임시 값이 평소보다 더 오래 유지되도록 허용하는 특정 규칙 세트입니다. <code>String</code> 임시 값이 참조 뒤에 있기 때문에, <code>String</code> 임시 값은 다음 문장에서 <code>len()</code> 을 호출할 수 있을 만큼 충분히 연장됩니다.</p>
 <p><code>if let</code> 표현식의 임시 스코프에 적용된 유사한 변경 사항은 <a href="temporary-if-let-scope.html"><code>if let</code> 임시 스코프</a> 장을 참조하세요.</p>
 <h2 id="마이그레이션"><a class="header" href="#마이그레이션">마이그레이션</a></h2>
-<p>안타깝게도, 테일 표현식의 임시 값 라이프타임을 단축하기 위한 의미 보존형 다시 작성(semantics-preserving rewrites) 방법은 없습니다<sup class="footnote-reference"><a href="#RFC3606">1</a></sup>. <a href="../../rustc/lints/listing/allowed-by-default.html#tail-expr-drop-order"><code>tail_expr_drop_order</code></a> 린트는 테일 표현식에서 사용자 정의, 사소하지 않은 <code>Drop</code> 소멸자가 있는 임시 값이 생성되는지 감지합니다. 이 린트의 경고는 <code>cargo fix --edition</code>을 실행할 때 나타나지만, 그 외에는 자동으로 변경 사항을 만들지 않습니다. 경고를 수동으로 검사하고 조정이 필요한지 여부를 결정하는 것이 권장됩니다.</p>
+<p>안타깝게도, 테일 표현식의 임시 값 라이프타임을 단축하기 위한 의미 보존형 다시 작성(semantics-preserving rewrites) 방법은 없습니다 <sup class="footnote-reference"><a href="#RFC3606">1</a></sup>. <a href="../../rustc/lints/listing/allowed-by-default.html#tail-expr-drop-order"><code>tail_expr_drop_order</code></a> 린트는 테일 표현식에서 사용자 정의, 사소하지 않은 <code>Drop</code> 소멸자가 있는 임시 값이 생성되는지 감지합니다. 이 린트의 경고는 <code>cargo fix --edition</code> 을 실행할 때 나타나지만, 그 외에는 자동으로 변경 사항을 만들지 않습니다. 경고를 수동으로 검사하고 조정이 필요한지 여부를 결정하는 것이 권장됩니다.</p>
 <p>에디션 마이그레이션을 수행하지 않고 이러한 경고를 수동으로 검사하려면 다음과 같이 린트를 활성화할 수 있습니다.</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -282,7 +282,7 @@ fn main() {
 #![warn(tail_expr_drop_order)]
 <span class="boring">}</span></code></pre></pre>
 <div class="footnote-definition" id="RFC3606"><sup class="footnote-definition-label">1</sup>
-<p>자세한 내용은 <a href="https://github.com/rust-lang/rfcs/pull/3606">RFC 3606</a>에 기록되어 있습니다.</p>
+<p>자세한 내용은 <a href="https://github.com/rust-lang/rfcs/pull/3606">RFC 3606</a> 에 기록되어 있습니다.</p>
 </div>
 
                     </main>

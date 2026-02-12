@@ -216,8 +216,8 @@
                         <h1 id="기본-코드"><a class="header" href="#기본-코드">기본 코드</a></h1>
 <p>이제 <code>Arc</code> 구현을 위한 레이아웃을 결정했으니, 기본적인 코드를 만들어 봅시다.</p>
 <h2 id="arc-생성하기"><a class="header" href="#arc-생성하기">Arc 생성하기</a></h2>
-<p>먼저 <code>Arc&lt;T&gt;</code>를 생성하는 방법이 필요합니다.</p>
-<p>이는 꽤 간단합니다. <code>ArcInner&lt;T&gt;</code>를 박스(box)에 넣고 그것에 대한 <code>NonNull&lt;T&gt;</code> 포인터를 얻기만 하면 됩니다.</p>
+<p>먼저 <code>Arc&lt;T&gt;</code> 를 생성하는 방법이 필요합니다.</p>
+<p>이는 꽤 간단합니다. <code>ArcInner&lt;T&gt;</code> 를 박스(box)에 넣고 그것에 대한 <code>NonNull&lt;T&gt;</code> 포인터를 얻기만 하면 됩니다.</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">impl&lt;T&gt; Arc&lt;T&gt; {
     pub fn new(data: T) -&gt; Arc&lt;T&gt; {
@@ -235,25 +235,25 @@
     }
 }</code></pre>
 <h2 id="send와-sync"><a class="header" href="#send와-sync">Send와 Sync</a></h2>
-<p>우리는 동시성 기본 요소를 만들고 있으므로, 이를 스레드 간에 보낼 수 있어야 합니다. 따라서 우리는 <code>Send</code>와 <code>Sync</code> 마커 트레잇을 구현할 수 있습니다. 이에 대한 자세한 내용은 <a href="../send-and-sync.html"><code>Send</code>와 <code>Sync</code> 섹션</a>을 참조하십시오.</p>
+<p>우리는 동시성 기본 요소를 만들고 있으므로, 이를 스레드 간에 보낼 수 있어야 합니다. 따라서 우리는 <code>Send</code> 와 <code>Sync</code> 마커 트레잇을 구현할 수 있습니다. 이에 대한 자세한 내용은 <a href="../send-and-sync.html"><code>Send</code> 와 <code>Sync</code> 섹션</a> 을 참조하십시오.</p>
 <p>이는 다음과 같은 이유로 괜찮습니다:</p>
 <ul>
-<li><code>Arc</code> 내부의 값에 대한 가변 참조를 얻는 것은 오직 해당 데이터를 참조하는 유일한 <code>Arc</code>일 때만 가능합니다 (이는 <code>Drop</code> 시에만 발생합니다).</li>
+<li><code>Arc</code> 내부의 값에 대한 가변 참조를 얻는 것은 오직 해당 데이터를 참조하는 유일한 <code>Arc</code> 일 때만 가능합니다 (이는 <code>Drop</code> 시에만 발생합니다).</li>
 <li>공유된 가변 참조 횟수 계산을 위해 아토믹(atomics)을 사용합니다.</li>
 </ul>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">unsafe impl&lt;T: Sync + Send&gt; Send for Arc&lt;T&gt; {}
 unsafe impl&lt;T: Sync + Send&gt; Sync for Arc&lt;T&gt; {}</code></pre>
-<p>우리는 <code>T: Sync + Send</code> 바운드가 필요합니다. 만약 이러한 바운드를 제공하지 않는다면, <code>Arc</code>를 통해 스레드에 안전하지 않은 값을 스레드 경계를 넘어 공유하는 것이 가능해지며, 이는 데이터 경쟁이나 불건전성을 초래할 수 있기 때문입니다.</p>
-<p>예를 들어, 이러한 바운드가 없다면 <code>Arc&lt;Rc&lt;u32&gt;&gt;</code>가 <code>Sync</code>나 <code>Send</code>가 될 것이고, 이는 <code>Arc</code>로부터 <code>Rc</code>를 클론하여 (완전히 새로운 <code>Rc</code>를 생성하지 않고도) 스레드 간에 전송할 수 있음을 의미합니다. <code>Rc</code>는 스레드에 안전하지 않으므로 이는 데이터 경쟁을 일으킬 것입니다.</p>
+<p>우리는 <code>T: Sync + Send</code> 바운드가 필요합니다. 만약 이러한 바운드를 제공하지 않는다면, <code>Arc</code> 를 통해 스레드에 안전하지 않은 값을 스레드 경계를 넘어 공유하는 것이 가능해지며, 이는 데이터 경쟁이나 불건전성을 초래할 수 있기 때문입니다.</p>
+<p>예를 들어, 이러한 바운드가 없다면 <code>Arc&lt;Rc&lt;u32&gt;&gt;</code> 가 <code>Sync</code> 나 <code>Send</code> 가 될 것이고, 이는 <code>Arc</code> 로부터 <code>Rc</code> 를 클론하여 (완전히 새로운 <code>Rc</code> 를 생성하지 않고도) 스레드 간에 전송할 수 있음을 의미합니다. <code>Rc</code> 는 스레드에 안전하지 않으므로 이는 데이터 경쟁을 일으킬 것입니다.</p>
 <h2 id="arcinner-가져오기"><a class="header" href="#arcinner-가져오기"><code>ArcInner</code> 가져오기</a></h2>
-<p><code>NonNull&lt;T&gt;</code> 포인터를 <code>&amp;T</code>로 역참조하기 위해 <code>NonNull::as_ref</code>를 호출할 수 있습니다. 일반적인 <code>as_ref</code> 함수와 달리 이는 비안전(unsafe)하므로, 다음과 같이 호출해야 합니다:</p>
+<p><code>NonNull&lt;T&gt;</code> 포인터를 <code>&amp;T</code> 로 역참조하기 위해 <code>NonNull::as_ref</code> 를 호출할 수 있습니다. 일반적인 <code>as_ref</code> 함수와 달리 이는 비안전(unsafe)하므로, 다음과 같이 호출해야 합니다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">unsafe { self.ptr.as_ref() }</code></pre>
 <p>우리는 이 코드 조각을 이 코드 내에서 몇 번 사용할 것입니다 (보통 연관된 <code>let</code> 바인딩과 함께).</p>
-<p>이 비안전함은 괜찮습니다. 이 <code>Arc</code>가 살아있는 동안 내부 포인터가 유효함이 보장되기 때문입니다.</p>
+<p>이 비안전함은 괜찮습니다. 이 <code>Arc</code> 가 살아있는 동안 내부 포인터가 유효함이 보장되기 때문입니다.</p>
 <h2 id="역참조"><a class="header" href="#역참조">역참조</a></h2>
-<p>좋습니다. 이제 <code>Arc</code>를 만들 수 있게 되었습니다 (곧 올바르게 클론하고 파괴할 수도 있게 될 것입니다). 그런데 내부의 데이터에는 어떻게 접근할까요?</p>
+<p>좋습니다. 이제 <code>Arc</code> 를 만들 수 있게 되었습니다 (곧 올바르게 클론하고 파괴할 수도 있게 될 것입니다). 그런데 내부의 데이터에는 어떻게 접근할까요?</p>
 <p>지금 우리에게 필요한 것은 <code>Deref</code> 구현입니다.</p>
 <p>트레잇을 임포트해야 합니다:</p>
 <!-- ignore: simplified code -->
@@ -268,7 +268,7 @@ unsafe impl&lt;T: Sync + Send&gt; Sync for Arc&lt;T&gt; {}</code></pre>
         &amp;inner.data
     }
 }</code></pre>
-<p>꽤 간단하죠? 이는 단순히 <code>NonNull</code> 포인터를 <code>ArcInner&lt;T&gt;</code>로 역참조한 다음, 내부 데이터에 대한 참조를 가져옵니다.</p>
+<p>꽤 간단하죠? 이는 단순히 <code>NonNull</code> 포인터를 <code>ArcInner&lt;T&gt;</code> 로 역참조한 다음, 내부 데이터에 대한 참조를 가져옵니다.</p>
 <h2 id="코드"><a class="header" href="#코드">코드</a></h2>
 <p>이 섹션의 모든 코드는 다음과 같습니다:</p>
 <!-- ignore: simplified code -->

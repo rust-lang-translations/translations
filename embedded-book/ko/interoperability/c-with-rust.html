@@ -250,24 +250,24 @@ extern "C" {
 <p>이 정의를 한 번에 한 부분씩 살펴보면서 각 부분을 설명해 봅시다.</p>
 <pre><code class="language-rust ignore">#[repr(C)]
 pub struct CoolStruct { ... }</code></pre>
-<p>기본적으로 Rust는 <code>struct</code>에 포함된 데이터의 순서, 패딩 또는 크기를 보장하지 않습니다. C 코드와의 호환성을 보장하기 위해 <code>#[repr(C)]</code> 속성을 포함하는데, 이는 Rust 컴파일러에게 구조체 내에서 데이터를 구성할 때 C와 동일한 규칙을 항상 사용하도록 지시합니다.</p>
+<p>기본적으로 Rust는 <code>struct</code> 에 포함된 데이터의 순서, 패딩 또는 크기를 보장하지 않습니다. C 코드와의 호환성을 보장하기 위해 <code>#[repr(C)]</code> 속성을 포함하는데, 이는 Rust 컴파일러에게 구조체 내에서 데이터를 구성할 때 C와 동일한 규칙을 항상 사용하도록 지시합니다.</p>
 <pre><code class="language-rust ignore">pub x: cty::c_int,
 pub y: cty::c_int,</code></pre>
-<p>C 또는 C++가 <code>int</code> 또는 <code>char</code>를 정의하는 방식의 유연성 때문에, C의 타입을 Rust의 타입으로 매핑하는 <code>cty</code>에 정의된 기본 데이터 타입을 사용하는 것이 좋습니다.</p>
+<p>C 또는 C++가 <code>int</code> 또는 <code>char</code> 를 정의하는 방식의 유연성 때문에, C의 타입을 Rust의 타입으로 매핑하는 <code>cty</code> 에 정의된 기본 데이터 타입을 사용하는 것이 좋습니다.</p>
 <pre><code class="language-rust ignore">extern "C" { pub fn cool_function( ... ); }</code></pre>
-<p>이 문장은 C ABI를 사용하는 <code>cool_function</code>이라는 함수의 시그니처를 정의합니다. 함수의 본문을 정의하지 않고 시그니처만 정의함으로써, 이 함수의 정의는 다른 곳에서 제공되거나 정적 라이브러리에서 최종 라이브러리 또는 바이너리로 링크되어야 합니다.</p>
+<p>이 문장은 C ABI를 사용하는 <code>cool_function</code> 이라는 함수의 시그니처를 정의합니다. 함수의 본문을 정의하지 않고 시그니처만 정의함으로써, 이 함수의 정의는 다른 곳에서 제공되거나 정적 라이브러리에서 최종 라이브러리 또는 바이너리로 링크되어야 합니다.</p>
 <pre><code class="language-rust ignore">    i: cty::c_int,
     c: cty::c_char,
     cs: *mut CoolStruct</code></pre>
 <p>위의 데이터 타입과 유사하게, 우리는 C 호환 정의를 사용하여 함수 인수의 데이터 타입을 정의합니다. 명확성을 위해 동일한 인수 이름도 유지합니다.</p>
-<p>여기에는 새로운 타입인 <code>*mut CoolStruct</code>가 있습니다. C는 Rust의 참조(예: <code>&amp;mut CoolStruct</code>) 개념이 없으므로, 대신 원시 포인터를 사용합니다. 이 포인터를 역참조하는 것은 <code>unsafe</code>이며, 포인터가 실제로 <code>null</code> 포인터일 수 있으므로 C 또는 C++ 코드와 상호 작용할 때 Rust의 일반적인 보장을 유지하도록 주의해야 합니다.</p>
+<p>여기에는 새로운 타입인 <code>*mut CoolStruct</code> 가 있습니다. C는 Rust의 참조(예: <code>&amp;mut CoolStruct</code>) 개념이 없으므로, 대신 원시 포인터를 사용합니다. 이 포인터를 역참조하는 것은 <code>unsafe</code> 이며, 포인터가 실제로 <code>null</code> 포인터일 수 있으므로 C 또는 C++ 코드와 상호 작용할 때 Rust의 일반적인 보장을 유지하도록 주의해야 합니다.</p>
 <h3 id="인터페이스-자동-생성"><a class="header" href="#인터페이스-자동-생성">인터페이스 자동 생성</a></h3>
 <p>지루하고 오류가 발생하기 쉬운 이러한 인터페이스를 수동으로 생성하는 대신, 이러한 변환을 자동으로 수행하는 <a href="https://github.com/rust-lang/rust-bindgen">bindgen</a>이라는 도구가 있습니다. <a href="https://github.com/rust-lang/rust-bindgen">bindgen</a> 사용 방법에 대한 지침은 <a href="https://rust-lang.github.io/rust-bindgen/">bindgen 사용자 매뉴얼</a>을 참조하십시오. 일반적인 과정은 다음과 같습니다.</p>
 <ol>
 <li>Rust와 함께 사용하려는 인터페이스 또는 데이터 타입을 정의하는 모든 C 또는 C++ 헤더를 수집합니다.</li>
-<li>1단계에서 수집한 각 파일을 <code>#include "..."</code>하는 <code>bindings.h</code> 파일을 작성합니다.</li>
-<li>이 <code>bindings.h</code> 파일을 코드 컴파일에 사용된 모든 컴파일 플래그와 함께 <code>bindgen</code>에 공급합니다. 팁: 생성된 코드를 <code>#![no_std]</code> 호환 가능하게 만들려면 <code>Builder.ctypes_prefix("cty")</code> / <code>--ctypes-prefix=cty</code> 및 <code>Builder.use_core()</code> / <code>--use-core</code>를 사용하세요.</li>
-<li><code>bindgen</code>은 생성된 Rust 코드를 터미널 창의 출력으로 생성합니다. 이 출력은 <code>bindings.rs</code>와 같이 프로젝트의 파일로 파이프될 수 있습니다. 이 파일을 Rust 프로젝트에서 외부 라이브러리로 컴파일 및 링크된 C/C++ 코드와 상호 작용하는 데 사용할 수 있습니다. 팁: 생성된 바인딩의 타입에 <code>cty</code> 접두사가 붙어 있다면 <a href="https://crates.io/crates/cty"><code>cty</code></a> 크레이트를 사용하는 것을 잊지 마세요.</li>
+<li>1단계에서 수집한 각 파일을 <code>#include "..."</code> 하는 <code>bindings.h</code> 파일을 작성합니다.</li>
+<li>이 <code>bindings.h</code> 파일을 코드 컴파일에 사용된 모든 컴파일 플래그와 함께 <code>bindgen</code> 에 공급합니다. 팁: 생성된 코드를 <code>#![no_std]</code> 호환 가능하게 만들려면 <code>Builder.ctypes_prefix("cty")</code> / <code>--ctypes-prefix=cty</code> 및 <code>Builder.use_core()</code> / <code>--use-core</code> 를 사용하세요.</li>
+<li><code>bindgen</code> 은 생성된 Rust 코드를 터미널 창의 출력으로 생성합니다. 이 출력은 <code>bindings.rs</code> 와 같이 프로젝트의 파일로 파이프될 수 있습니다. 이 파일을 Rust 프로젝트에서 외부 라이브러리로 컴파일 및 링크된 C/C++ 코드와 상호 작용하는 데 사용할 수 있습니다. 팁: 생성된 바인딩의 타입에 <code>cty</code> 접두사가 붙어 있다면 <a href="https://crates.io/crates/cty"><code>cty</code></a> 크레이트를 사용하는 것을 잊지 마세요.</li>
 </ol>
 <h2 id="cc-코드-빌드"><a class="header" href="#cc-코드-빌드">C/C++ 코드 빌드</a></h2>
 <p>Rust 컴파일러는 C 또는 C++ 코드(또는 C 인터페이스를 제공하는 다른 언어의 코드)를 직접 컴파일하는 방법을 모르기 때문에, 비 Rust 코드를 미리 컴파일해야 합니다.</p>
@@ -276,19 +276,19 @@ pub y: cty::c_int,</code></pre>
 <p>코드가 소스 프로젝트로 존재하는 경우, 기존 빌드 시스템(<code>make</code>, <code>CMake</code> 등)을 트리거하거나 필요한 컴파일 단계를 <code>cc</code> 크레이트라는 도구를 사용하도록 포팅하여 C/C++ 코드를 정적 라이브러리로 컴파일해야 합니다. 이 두 단계 모두 <code>build.rs</code> 스크립트를 사용해야 합니다.</p>
 <h3 id="rust-buildrs-빌드-스크립트"><a class="header" href="#rust-buildrs-빌드-스크립트">Rust <code>build.rs</code> 빌드 스크립트</a></h3>
 <p>A <code>build.rs</code> 스크립트는 Rust 문법으로 작성된 파일로, 프로젝트의 종속성이 빌드된 후, 프로젝트가 빌드되기 전에 컴파일 머신에서 실행됩니다.</p>
-<p>전체 참조는 <a href="https://doc.rust-lang.org/cargo/reference/build-scripts.html">여기</a>에서 찾을 수 있습니다. <code>build.rs</code> 스크립트는 코드 생성(<a href="https://github.com/rust-lang/rust-bindgen">bindgen</a>을 통해), <code>Make</code>와 같은 외부 빌드 시스템 호출, 또는 <code>cc</code> 크레이트를 사용하여 C/C++를 직접 컴파일하는 데 유용합니다.</p>
+<p>전체 참조는 <a href="https://doc.rust-lang.org/cargo/reference/build-scripts.html">여기</a>에서 찾을 수 있습니다. <code>build.rs</code> 스크립트는 코드 생성(<a href="https://github.com/rust-lang/rust-bindgen">bindgen</a>을 통해), <code>Make</code> 와 같은 외부 빌드 시스템 호출, 또는 <code>cc</code> 크레이트를 사용하여 C/C++를 직접 컴파일하는 데 유용합니다.</p>
 <h3 id="외부-빌드-시스템-트리거링"><a class="header" href="#외부-빌드-시스템-트리거링">외부 빌드 시스템 트리거링</a></h3>
 <p>복잡한 외부 프로젝트 또는 빌드 시스템을 가진 프로젝트의 경우, 상대 경로를 탐색하고 고정된 명령(<code>make library</code> 등)을 호출한 다음 결과 정적 라이브러리를 <code>target</code> 빌드 디렉토리의 적절한 위치로 복사하여 <a href="https://doc.rust-lang.org/std/process/struct.Command.html"><code>std::process::Command</code></a>를 사용하여 다른 빌드 시스템으로 "셸 아웃"하는 것이 가장 쉬울 수 있습니다.</p>
-<p>크레이트가 <code>no_std</code> 임베디드 플랫폼을 대상으로 할 수 있지만, <code>build.rs</code>는 크레이트를 컴파일하는 머신에서만 실행됩니다. 이는 컴파일 호스트에서 실행될 수 있는 모든 Rust 크레이트를 사용할 수 있음을 의미합니다.</p>
+<p>크레이트가 <code>no_std</code> 임베디드 플랫폼을 대상으로 할 수 있지만, <code>build.rs</code> 는 크레이트를 컴파일하는 머신에서만 실행됩니다. 이는 컴파일 호스트에서 실행될 수 있는 모든 Rust 크레이트를 사용할 수 있음을 의미합니다.</p>
 <h3 id="cc-크레이트를-사용하여-cc-코드-빌드"><a class="header" href="#cc-크레이트를-사용하여-cc-코드-빌드"><code>cc</code> 크레이트를 사용하여 C/C++ 코드 빌드</a></h3>
-<p>제한된 종속성 또는 복잡성을 가진 프로젝트, 또는 빌드 시스템을 수정하여 정적 라이브러리(최종 바이너리 또는 실행 파일 대신)를 생성하기 어려운 프로젝트의 경우, 호스트에서 제공하는 컴파일러에 대한 관용적인 Rust 인터페이스를 제공하는 <a href="https://github.com/alexcrichton/cc-rs"><code>cc</code> 크레이트</a>를 활용하는 것이 더 쉬울 수 있습니다.</p>
-<p>단일 C 파일을 정적 라이브러리의 종속성으로 컴파일하는 가장 간단한 경우, <a href="https://github.com/alexcrichton/cc-rs"><code>cc</code> 크레이트</a>를 사용하는 <code>build.rs</code> 스크립트 예시는 다음과 같습니다.</p>
+<p>제한된 종속성 또는 복잡성을 가진 프로젝트, 또는 빌드 시스템을 수정하여 정적 라이브러리(최종 바이너리 또는 실행 파일 대신)를 생성하기 어려운 프로젝트의 경우, 호스트에서 제공하는 컴파일러에 대한 관용적인 Rust 인터페이스를 제공하는 <a href="https://github.com/alexcrichton/cc-rs"><code>cc</code> 크레이트</a> 를 활용하는 것이 더 쉬울 수 있습니다.</p>
+<p>단일 C 파일을 정적 라이브러리의 종속성으로 컴파일하는 가장 간단한 경우, <a href="https://github.com/alexcrichton/cc-rs"><code>cc</code> 크레이트</a> 를 사용하는 <code>build.rs</code> 스크립트 예시는 다음과 같습니다.</p>
 <pre><code class="language-rust ignore">fn main() {
     cc::Build::new()
         .file("src/foo.c")
         .compile("foo");
 }</code></pre>
-<p>The <code>build.rs</code>는 패키지 루트에 배치됩니다. 그러면 <code>cargo build</code>는 패키지 빌드 전에 이를 컴파일하고 실행합니다. <code>libfoo.a</code>라는 이름의 정적 아카이브가 생성되어 <code>target</code> 디렉토리에 배치됩니다.</p>
+<p>The <code>build.rs</code> 는 패키지 루트에 배치됩니다. 그러면 <code>cargo build</code> 는 패키지 빌드 전에 이를 컴파일하고 실행합니다. <code>libfoo.a</code> 라는 이름의 정적 아카이브가 생성되어 <code>target</code> 디렉토리에 배치됩니다.</p>
 
                     </main>
 

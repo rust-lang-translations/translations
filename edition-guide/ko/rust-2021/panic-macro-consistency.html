@@ -218,18 +218,18 @@
                         <h1 id="panic-매크로-일관성"><a class="header" href="#panic-매크로-일관성">Panic 매크로 일관성</a></h1>
 <h2 id="요약"><a class="header" href="#요약">요약</a></h2>
 <ul>
-<li><code>panic!(..)</code>은 이제 <code>println!()</code>처럼 항상 <code>format_args!(..)</code>를 사용합니다.</li>
-<li><code>panic!("{")</code>은 <code>{</code>를 <code>{{</code>로 이스케이프하지 않으면 더 이상 허용되지 않습니다.</li>
-<li><code>x</code>가 문자열 리터럴이 아니면 <code>panic!(x)</code>는 더 이상 허용되지 않습니다.
+<li><code>panic!(..)</code> 은 이제 <code>println!()</code> 처럼 항상 <code>format_args!(..)</code> 를 사용합니다.</li>
+<li><code>panic!("{")</code> 은 <code>{</code> 를 <code>{{</code> 로 이스케이프하지 않으면 더 이상 허용되지 않습니다.</li>
+<li><code>x</code> 가 문자열 리터럴이 아니면 <code>panic!(x)</code> 는 더 이상 허용되지 않습니다.
 <ul>
-<li>문자열이 아닌 페이로드로 패닉하려면 <code>std::panic::panic_any(x)</code>를 사용하십시오.</li>
-<li>또는 <code>panic!("{}", x)</code>를 사용하여 <code>x</code>의 <code>Display</code> 구현을 사용하십시오.</li>
+<li>문자열이 아닌 페이로드로 패닉하려면 <code>std::panic::panic_any(x)</code> 를 사용하십시오.</li>
+<li>또는 <code>panic!("{}", x)</code> 를 사용하여 <code>x</code> 의 <code>Display</code> 구현을 사용하십시오.</li>
 </ul>
 </li>
-<li><code>assert!(expr, ..)</code>에도 동일하게 적용됩니다.</li>
+<li><code>assert!(expr, ..)</code> 에도 동일하게 적용됩니다.</li>
 </ul>
 <h2 id="세부-정보"><a class="header" href="#세부-정보">세부 정보</a></h2>
-<p><code>panic!()</code> 매크로는 Rust에서 가장 잘 알려진 매크로 중 하나입니다. 그러나 하위 호환성으로 인해 변경할 수 없는 <a href="https://github.com/rust-lang/rfcs/blob/master/text/3007-panic-plan.md">몇 가지 미묘한 놀라움</a>이 있습니다.</p>
+<p><code>panic!()</code> 매크로는 Rust에서 가장 잘 알려진 매크로 중 하나입니다. 그러나 하위 호환성으로 인해 변경할 수 없는 <a href="https://github.com/rust-lang/rfcs/blob/master/text/3007-panic-plan.md">몇 가지 미묘한 놀라움</a> 이 있습니다.</p>
 <pre><code class="language-rust ignore">// Rust 2018
 panic!("{}", 1); // Ok, 메시지 "1"로 패닉
 panic!("{}"); // Ok, panics with the message "{}"</code></pre>
@@ -240,19 +240,19 @@ println!(a); // 오류: 첫 번째 인수는 형식 문자열 리터럴이어야
 panic!(a); // Ok: The panic macro doesn't care</code></pre>
 <p>It even accepts non-strings such as <code>panic!(123)</code>, which is uncommon and rarely useful since it produces a surprisingly unhelpful message: <code>panicked at 'Box&lt;Any&gt;'</code>.</p>
 <p>This will especially be a problem once <a href="https://rust-lang.github.io/rfcs/2795-format-args-implicit-identifiers.html">implicit format arguments</a> are stabilized. That feature will make <code>println!("hello {name}")</code> a short-hand for <code>println!("hello {}", name)</code>. However, <code>panic!("hello {name}")</code> would not work as expected, since <code>panic!()</code> doesn't process a single argument as format string.</p>
-<p>이러한 혼란스러운 상황을 피하기 위해 Rust 2021에는 더 일관된 <code>panic!()</code> 매크로가 있습니다. 새 <code>panic!()</code> 매크로는 더 이상 임의의 표현식을 유일한 인수로 허용하지 않습니다. <code>println!()</code>과 마찬가지로 항상 첫 번째 인수를 형식 문자열로 처리합니다. <code>panic!()</code>이 더 이상 임의의 페이로드를 허용하지 않으므로 <a href="https://doc.rust-lang.org/stable/std/panic/fn.panic_any.html"><code>panic_any()</code></a>가 서식이 지정된 문자열 이외의 것으로 패닉하는 유일한 방법이 될 것입니다.</p>
+<p>이러한 혼란스러운 상황을 피하기 위해 Rust 2021에는 더 일관된 <code>panic!()</code> 매크로가 있습니다. 새 <code>panic!()</code> 매크로는 더 이상 임의의 표현식을 유일한 인수로 허용하지 않습니다. <code>println!()</code> 과 마찬가지로 항상 첫 번째 인수를 형식 문자열로 처리합니다. <code>panic!()</code> 이 더 이상 임의의 페이로드를 허용하지 않으므로 <a href="https://doc.rust-lang.org/stable/std/panic/fn.panic_any.html"><code>panic_any()</code></a> 가 서식이 지정된 문자열 이외의 것으로 패닉하는 유일한 방법이 될 것입니다.</p>
 <pre><code class="language-rust ignore">// Rust 2021
 panic!("{}", 1); // Ok, 메시지 "1"로 패닉
 panic!("{}"); // 오류, 인수 누락
 panic!(a); // Error, must be a string literal</code></pre>
-<p>또한 <code>core::panic!()</code>과 <code>std::panic!()</code>은 Rust 2021에서 동일합니다. 현재 이 둘 사이에는 몇 가지 역사적 차이점이 있으며, 이는 <code>#![no_std]</code>를 켜거나 끌 때 눈에 띌 수 있습니다.</p>
+<p>또한 <code>core::panic!()</code> 과 <code>std::panic!()</code> 은 Rust 2021에서 동일합니다. 현재 이 둘 사이에는 몇 가지 역사적 차이점이 있으며, 이는 <code>#![no_std]</code> 를 켜거나 끌 때 눈에 띌 수 있습니다.</p>
 <h2 id="마이그레이션"><a class="header" href="#마이그레이션">마이그레이션</a></h2>
-<p><code>non_fmt_panics</code> 린트는 Rust 2021에서 오류가 발생할 일부 사용되지 않는 동작을 사용하는 <code>panic</code>에 대한 일부 호출이 있을 때마다 트리거됩니다. <code>non_fmt_panics</code> 린트는 1.50 릴리스 이후 모든 에디션에서 기본적으로 경고였습니다(이후 릴리스에서 몇 가지 개선 사항이 적용됨). 코드가 이미 경고가 없다면 Rust 2021을 사용할 준비가 된 것입니다!</p>
+<p><code>non_fmt_panics</code> 린트는 Rust 2021에서 오류가 발생할 일부 사용되지 않는 동작을 사용하는 <code>panic</code> 에 대한 일부 호출이 있을 때마다 트리거됩니다. <code>non_fmt_panics</code> 린트는 1.50 릴리스 이후 모든 에디션에서 기본적으로 경고였습니다(이후 릴리스에서 몇 가지 개선 사항이 적용됨). 코드가 이미 경고가 없다면 Rust 2021을 사용할 준비가 된 것입니다!</p>
 <p>코드를 Rust 2021 에디션과 호환되도록 자동으로 마이그레이션하거나 다음을 실행하여 이미 호환되는지 확인할 수 있습니다.</p>
 <pre><code class="language-sh">cargo fix --edition
 </code></pre>
-<p>수동으로 마이그레이션하도록 선택하거나 필요하다면 모든 패닉 호출을 <code>println</code>과 동일한 서식을 사용하거나 <code>std::panic::panic_any</code>를 사용하여 문자열이 아닌 데이터로 패닉하도록 업데이트해야 합니다.</p>
-<p>예를 들어, <code>panic!(MyStruct)</code>의 경우 <code>std::panic::panic_any</code>를 사용하도록 변환해야 합니다(이것은 매크로가 아닌 함수임에 유의하십시오). <code>std::panic::panic_any(MyStruct)</code>.</p>
+<p>수동으로 마이그레이션하도록 선택하거나 필요하다면 모든 패닉 호출을 <code>println</code> 과 동일한 서식을 사용하거나 <code>std::panic::panic_any</code> 를 사용하여 문자열이 아닌 데이터로 패닉하도록 업데이트해야 합니다.</p>
+<p>예를 들어, <code>panic!(MyStruct)</code> 의 경우 <code>std::panic::panic_any</code> 를 사용하도록 변환해야 합니다(이것은 매크로가 아닌 함수임에 유의하십시오). <code>std::panic::panic_any(MyStruct)</code>.</p>
 <p>In the case of panic messages that include curly braces but the wrong number of arguments (e.g., <code>panic!("Some curlies: {}")</code>), you can panic with the string literal by either using the same syntax as <code>println!</code> (i.e., <code>panic!("{}", "Some curlies: {}")</code>) or by escaping the curly braces (i.e., <code>panic!("Some curlies: {{}}")</code>).</p>
 
                     </main>

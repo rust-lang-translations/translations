@@ -220,8 +220,8 @@
 <p>The code in Listing 21-20 is responding to requests asynchronously through the use of a thread pool, as we intended. We get some warnings about the <code>workers</code>, <code>id</code>, and <code>thread</code> fields that we’re not using in a direct way that reminds us we’re not cleaning up anything. When we use the less elegant <kbd>ctrl</kbd>-<kbd>C</kbd> method to halt the main thread, all other threads are stopped immediately as well, even if they’re in the middle of serving a request.</p>
 <p>Next, then, we’ll implement the <code>Drop</code> trait to call <code>join</code> on each of the threads in the pool so that they can finish the requests they’re working on before closing. Then, we’ll implement a way to tell the threads they should stop accepting new requests and shut down. To see this code in action, we’ll modify our server to accept only two requests before gracefully shutting down its thread pool.</p>
 <p>One thing to notice as we go: None of this affects the parts of the code that handle executing the closures, so everything here would be the same if we were using a thread pool for an async runtime.</p>
-<h3 id="threadpool에-drop-트레이트-구현하기"><a class="header" href="#threadpool에-drop-트레이트-구현하기"><code>ThreadPool</code>에 <code>Drop</code> 트레이트 구현하기</a></h3>
-<p>먼저 스레드 풀에 <code>Drop</code>을 구현하는 것부터 시작하겠습니다. 풀이 드롭될 때, 모든 스레드들이 작업을 마칠 수 있도록 <code>join</code>을 호출해야 합니다. 예제 21-22는 <code>Drop</code> 구현의 첫 번째 시도를 보여줍니다. 이 코드는 아직 제대로 작동하지 않을 것입니다.</p>
+<h3 id="threadpool-에-drop-트레이트-구현하기"><a class="header" href="#threadpool-에-drop-트레이트-구현하기"><code>ThreadPool</code> 에 <code>Drop</code> 트레이트 구현하기</a></h3>
+<p>먼저 스레드 풀에 <code>Drop</code> 을 구현하는 것부터 시작하겠습니다. 풀이 드롭될 때, 모든 스레드들이 작업을 마칠 수 있도록 <code>join</code> 을 호출해야 합니다. 예제 21-22는 <code>Drop</code> 구현의 첫 번째 시도를 보여줍니다. 이 코드는 아직 제대로 작동하지 않을 것입니다.</p>
 <Listing number="21-22" file-name="src/lib.rs" caption="Joining each thread when the thread pool goes out of scope">
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">use std::{
 </span><span class="boring">    sync::{Arc, Mutex, mpsc},
@@ -406,7 +406,7 @@ error: could not compile `hello` (lib) due to 1 previous error
 <p>This resolves the compiler error and does not require any other changes to our code. Note that, because drop can be called when panicking, the unwrap could also panic and cause a double panic, which immediately crashes the program and ends any cleanup in progress. This is fine for an example program, but it isn’t recommended for production code.</p>
 <h3 id="스레드들에게-작업-대기-중단을-신호하기"><a class="header" href="#스레드들에게-작업-대기-중단을-신호하기">스레드들에게 작업 대기 중단을 신호하기</a></h3>
 <p>With all the changes we’ve made, our code compiles without any warnings. However, the bad news is that this code doesn’t function the way we want it to yet. The key is the logic in the closures run by the threads of the <code>Worker</code> instances: At the moment, we call <code>join</code>, but that won’t shut down the threads, because they <code>loop</code> forever looking for jobs. If we try to drop our <code>ThreadPool</code> with our current implementation of <code>drop</code>, the main thread will block forever, waiting for the first thread to finish.</p>
-<p>이 문제를 해결하려면 <code>ThreadPool</code>의 <code>drop</code> 구현을 변경하고, 이어서 <code>Worker</code>의 루프를 변경해야 합니다.</p>
+<p>이 문제를 해결하려면 <code>ThreadPool</code> 의 <code>drop</code> 구현을 변경하고, 이어서 <code>Worker</code> 의 루프를 변경해야 합니다.</p>
 <p>First, we’ll change the <code>ThreadPool</code> <code>drop</code> implementation to explicitly drop the <code>sender</code> before waiting for the threads to finish. Listing 21-23 shows the changes to <code>ThreadPool</code> to explicitly drop <code>sender</code>. Unlike with the thread, here we <em>do</em> need to use an <code>Option</code> to be able to move <code>sender</code> out of <code>ThreadPool</code> with <code>Option::take</code>.</p>
 <Listing number="21-23" file-name="src/lib.rs" caption="Explicitly dropping `sender` before joining the `Worker` threads">
 <pre><code class="language-rust noplayground not_desired_behavior"><span class="boring">use std::{
@@ -494,7 +494,7 @@ impl Drop for ThreadPool {
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 </Listing>
-<p><code>sender</code>를 드롭하면 채널이 닫히며, 이는 더 이상의 메시지가 전송되지 않을 것임을 나타냅니다. 그렇게 되면 무한 루프 내에서 <code>Worker</code> 인스턴스들이 수행하는 모든 <code>recv</code> 호출은 에러를 반환할 것입니다. 예제 21-24에서는 그러한 경우에 루프를 우아하게 빠져나오도록 <code>Worker</code> 루프를 수정합니다. 이는 <code>ThreadPool</code>의 <code>drop</code> 구현이 스레드들에 대해 <code>join</code>을 호출할 때 스레드들이 종료될 수 있음을 의미합니다.</p>
+<p><code>sender</code> 를 드롭하면 채널이 닫히며, 이는 더 이상의 메시지가 전송되지 않을 것임을 나타냅니다. 그렇게 되면 무한 루프 내에서 <code>Worker</code> 인스턴스들이 수행하는 모든 <code>recv</code> 호출은 에러를 반환할 것입니다. 예제 21-24에서는 그러한 경우에 루프를 우아하게 빠져나오도록 <code>Worker</code> 루프를 수정합니다. 이는 <code>ThreadPool</code> 의 <code>drop</code> 구현이 스레드들에 대해 <code>join</code> 을 호출할 때 스레드들이 종료될 수 있음을 의미합니다.</p>
 <Listing number="21-24" file-name="src/lib.rs" caption="Explicitly breaking out of the loop when `recv` returns an error">
 <pre><code class="language-rust noplayground"><span class="boring">use std::{
 </span><span class="boring">    sync::{Arc, Mutex, mpsc},
@@ -586,7 +586,7 @@ impl Drop for ThreadPool {
     }
 }</code></pre>
 </Listing>
-<p>이 코드가 작동하는 모습을 보기 위해, 예제 21-25와 같이 서버가 두 개의 요청만 수락한 후 우아하게 종료되도록 <code>main</code>을 수정하겠습니다.</p>
+<p>이 코드가 작동하는 모습을 보기 위해, 예제 21-25와 같이 서버가 두 개의 요청만 수락한 후 우아하게 종료되도록 <code>main</code> 을 수정하겠습니다.</p>
 <Listing number="21-25" file-name="src/main.rs" caption="Shutting down the server after serving two requests by exiting the loop">
 <pre><code class="language-rust ignore"><span class="boring">use hello::ThreadPool;
 </span><span class="boring">use std::{
@@ -635,7 +635,7 @@ impl Drop for ThreadPool {
 </span><span class="boring">}</span></code></pre>
 </Listing>
 <p>실제 웹 서버가 단 두 개의 요청만 처리하고 종료되는 것을 원하지는 않으실 겁니다. 이 코드는 단지 우아한 종료와 정리가 제대로 작동하는지 보여주기 위한 것입니다.</p>
-<p><code>take</code> 메서드는 <code>Iterator</code> 트레이트에 정의되어 있으며 반복을 최대 처음 두 개의 아이템으로 제한합니다. <code>main</code>의 끝에서 <code>ThreadPool</code>이 스코프를 벗어나게 되고, <code>drop</code> 구현이 실행될 것입니다.</p>
+<p><code>take</code> 메서드는 <code>Iterator</code> 트레이트에 정의되어 있으며 반복을 최대 처음 두 개의 아이템으로 제한합니다. <code>main</code> 의 끝에서 <code>ThreadPool</code> 이 스코프를 벗어나게 되고, <code>drop</code> 구현이 실행될 것입니다.</p>
 <p>Start the server with <code>cargo run</code> and make three requests. The third request should error, and in your terminal, you should see output similar to this:</p>
 <!-- manual-regeneration
 cd listings/ch21-web-server/listing-21-25
@@ -812,10 +812,10 @@ impl Worker {
 </Listing>
 <p>여기서 더 많은 것을 할 수 있습니다! 이 프로젝트를 계속 개선하고 싶다면 다음과 같은 아이디어들이 있습니다.</p>
 <ul>
-<li><code>ThreadPool</code>과 그 공개 메서드들에 더 많은 문서를 추가해 보세요.</li>
+<li><code>ThreadPool</code> 과 그 공개 메서드들에 더 많은 문서를 추가해 보세요.</li>
 <li>라이브러리의 기능에 대한 테스트를 추가해 보세요.</li>
 <li><code>unwrap</code> 호출을 더 견고한 에러 처리 방식으로 변경해 보세요.</li>
-<li>웹 요청 처리 외에 다른 작업을 수행하는 데 <code>ThreadPool</code>을 사용해 보세요.</li>
+<li>웹 요청 처리 외에 다른 작업을 수행하는 데 <code>ThreadPool</code> 을 사용해 보세요.</li>
 <li>Find a thread pool crate on <a href="https://crates.io/">crates.io</a> and implement a similar web server using the crate instead. Then, compare its API and robustness to the thread pool we implemented.</li>
 </ul>
 <h2 id="요약"><a class="header" href="#요약">요약</a></h2>

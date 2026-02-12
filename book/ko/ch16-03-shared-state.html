@@ -231,7 +231,7 @@
 </ol>
 <p>For a real-world metaphor for a mutex, imagine a panel discussion at a conference with only one microphone. Before a panelist can speak, they have to ask or signal that they want to use the microphone. When they get the microphone, they can talk for as long as they want to and then hand the microphone to the next panelist who requests to speak. If a panelist forgets to hand the microphone off when they’re finished with it, no one else is able to speak. If management of the shared microphone goes wrong, the panel won’t work as planned!</p>
 <p>뮤텍스 관리는 올바르게 수행하기가 믿을 수 없을 정도로 까다로울 수 있으며, 이것이 많은 사람들이 채널에 열광하는 이유입니다. 하지만 러스트의 타입 시스템과 소유권 규칙 덕분에 락과 잠금 해제를 잘못할 수 없습니다.</p>
-<h4 id="mutext의-api"><a class="header" href="#mutext의-api"><code>Mutex&lt;T&gt;</code>의 API</a></h4>
+<h4 id="mutext-의-api"><a class="header" href="#mutext-의-api"><code>Mutex&lt;T&gt;</code> 의 API</a></h4>
 <p>As an example of how to use a mutex, let’s start by using a mutex in a single-threaded context, as shown in Listing 16-12.</p>
 <Listing number="16-12" file-name="src/main.rs" caption="Exploring the API of `Mutex<T>` in a single-threaded context for simplicity">
 <pre><pre class="playground"><code class="language-rust edition2024">use std::sync::Mutex;
@@ -248,8 +248,8 @@ fn main() {
 }</code></pre></pre>
 </Listing>
 <p>As with many types, we create a <code>Mutex&lt;T&gt;</code> using the associated function <code>new</code>. To access the data inside the mutex, we use the <code>lock</code> method to acquire the lock. This call will block the current thread so that it can’t do any work until it’s our turn to have the lock.</p>
-<p>락을 보유한 다른 스레드가 패닉 상태에 빠지면 <code>lock</code> 호출은 실패할 것입니다. 그런 경우, 아무도 락을 얻을 수 없으므로, 우리는 그러한 상황에서 <code>unwrap</code>을 선택하여 이 스레드를 패닉 상태로 만들었습니다.</p>
-<p>락을 얻은 후에는 반환 값(이 경우 <code>num</code>)을 내부 데이터에 대한 가변 참조로 취급할 수 있습니다. 타입 시스템은 <code>m</code>의 값을 사용하기 전에 락을 얻도록 보장합니다. <code>m</code>의 타입은 <code>i32</code>가 아니라 <code>Mutex&lt;i32&gt;</code>이므로, <code>i32</code> 값을 사용하려면 <code>lock</code>을 <em>반드시</em> 호출해야 합니다. 우리는 잊어버릴 수 없습니다; 그렇지 않으면 타입 시스템이 내부 <code>i32</code>에 접근하는 것을 허용하지 않을 것입니다.</p>
+<p>락을 보유한 다른 스레드가 패닉 상태에 빠지면 <code>lock</code> 호출은 실패할 것입니다. 그런 경우, 아무도 락을 얻을 수 없으므로, 우리는 그러한 상황에서 <code>unwrap</code> 을 선택하여 이 스레드를 패닉 상태로 만들었습니다.</p>
+<p>락을 얻은 후에는 반환 값(이 경우 <code>num</code>)을 내부 데이터에 대한 가변 참조로 취급할 수 있습니다. 타입 시스템은 <code>m</code> 의 값을 사용하기 전에 락을 얻도록 보장합니다. <code>m</code> 의 타입은 <code>i32</code> 가 아니라 <code>Mutex&lt;i32&gt;</code> 이므로, <code>i32</code> 값을 사용하려면 <code>lock</code> 을 <em>반드시</em> 호출해야 합니다. 우리는 잊어버릴 수 없습니다; 그렇지 않으면 타입 시스템이 내부 <code>i32</code> 에 접근하는 것을 허용하지 않을 것입니다.</p>
 <p>The call to <code>lock</code> returns a type called <code>MutexGuard</code>, wrapped in a <code>LockResult</code> that we handled with the call to <code>unwrap</code>. The <code>MutexGuard</code> type implements <code>Deref</code> to point at our inner data; the type also has a <code>Drop</code> implementation that releases the lock automatically when a <code>MutexGuard</code> goes out of scope, which happens at the end of the inner scope. As a result, we don’t risk forgetting to release the lock and blocking the mutex from being used by other threads because the lock release happens automatically.</p>
 <p>After dropping the lock, we can print the mutex value and see that we were able to change the inner <code>i32</code> to <code>6</code>.</p>
 <!-- Old headings. Do not remove or links may break. -->
@@ -281,7 +281,7 @@ fn main() {
 }</code></pre>
 </Listing>
 <p>We create a <code>counter</code> variable to hold an <code>i32</code> inside a <code>Mutex&lt;T&gt;</code>, as we did in Listing 16-12. Next, we create 10 threads by iterating over a range of numbers. We use <code>thread::spawn</code> and give all the threads the same closure: one that moves the counter into the thread, acquires a lock on the <code>Mutex&lt;T&gt;</code> by calling the <code>lock</code> method, and then adds 1 to the value in the mutex. When a thread finishes running its closure, <code>num</code> will go out of scope and release the lock so that another thread can acquire it.</p>
-<p>메인 스레드에서 우리는 모든 조인 핸들을 수집합니다. 그런 다음 목록 16-2에서 했던 것처럼, 각 핸들에 대해 <code>join</code>을 호출하여 모든 스레드가 종료되었는지 확인합니다. 그 시점에서 메인 스레드는 락을 얻고 이 프로그램의 결과를 출력할 것입니다.</p>
+<p>메인 스레드에서 우리는 모든 조인 핸들을 수집합니다. 그런 다음 목록 16-2에서 했던 것처럼, 각 핸들에 대해 <code>join</code> 을 호출하여 모든 스레드가 종료되었는지 확인합니다. 그 시점에서 메인 스레드는 락을 얻고 이 프로그램의 결과를 출력할 것입니다.</p>
 <p>우리는 이 예제가 컴파일되지 않을 것이라고 암시했습니다. 이제 그 이유를 알아봅시다!</p>
 <pre><code class="language-console">$ cargo run
    Compiling shared-state v0.1.0 (file:///projects/shared-state)
@@ -371,9 +371,9 @@ error: could not compile `shared-state` (bin "shared-state") due to 1 previous e
 </code></pre>
 <p>Wow, that error message is very wordy! Here’s the important part to focus on: <code>`Rc&lt;Mutex&lt;i32&gt;&gt;` cannot be sent between threads safely</code>. The compiler is also telling us the reason why: <code>the trait `Send` is not implemented for `Rc&lt;Mutex&lt;i32&gt;&gt;`</code>. We’ll talk about <code>Send</code> in the next section: It’s one of the traits that ensures that the types we use with threads are meant for use in concurrent situations.</p>
 <p>Unfortunately, <code>Rc&lt;T&gt;</code> is not safe to share across threads. When <code>Rc&lt;T&gt;</code> manages the reference count, it adds to the count for each call to <code>clone</code> and subtracts from the count when each clone is dropped. But it doesn’t use any concurrency primitives to make sure that changes to the count can’t be interrupted by another thread. This could lead to wrong counts—subtle bugs that could in turn lead to memory leaks or a value being dropped before we’re done with it. What we need is a type that is exactly like <code>Rc&lt;T&gt;</code>, but that makes changes to the reference count in a thread-safe way.</p>
-<h4 id="arct를-이용한-원자적-참조-카운팅"><a class="header" href="#arct를-이용한-원자적-참조-카운팅"><code>Arc&lt;T&gt;</code>를 이용한 원자적 참조 카운팅</a></h4>
+<h4 id="arct-를-이용한-원자적-참조-카운팅"><a class="header" href="#arct-를-이용한-원자적-참조-카운팅"><code>Arc&lt;T&gt;</code> 를 이용한 원자적 참조 카운팅</a></h4>
 <p>Fortunately, <code>Arc&lt;T&gt;</code> <em>is</em> a type like <code>Rc&lt;T&gt;</code> that is safe to use in concurrent situations. The <em>a</em> stands for <em>atomic</em>, meaning it’s an <em>atomically reference-counted</em> type. Atomics are an additional kind of concurrency primitive that we won’t cover in detail here: See the standard library documentation for <a href="../std/sync/atomic/index.html"><code>std::sync::atomic</code></a><!-- ignore --> for more details. At this point, you just need to know that atomics work like primitive types but are safe to share across threads.</p>
-<p>그러면 왜 모든 기본 타입이 원자적이지 않은지, 그리고 왜 표준 라이브러리 타입들이 기본적으로 <code>Arc&lt;T&gt;</code>를 사용하도록 구현되지 않았는지 궁금할 수 있습니다. 그 이유는 스레드 안전성에는 정말 필요할 때만 지불하고 싶은 성능 비용이 따르기 때문입니다. 단일 스레드 내의 값에 대해서만 연산을 수행하는 경우, 원자적 요소가 제공하는 보장을 강제할 필요가 없다면 코드가 더 빠르게 실행될 수 있습니다.</p>
+<p>그러면 왜 모든 기본 타입이 원자적이지 않은지, 그리고 왜 표준 라이브러리 타입들이 기본적으로 <code>Arc&lt;T&gt;</code> 를 사용하도록 구현되지 않았는지 궁금할 수 있습니다. 그 이유는 스레드 안전성에는 정말 필요할 때만 지불하고 싶은 성능 비용이 따르기 때문입니다. 단일 스레드 내의 값에 대해서만 연산을 수행하는 경우, 원자적 요소가 제공하는 보장을 강제할 필요가 없다면 코드가 더 빠르게 실행될 수 있습니다.</p>
 <p>Let’s return to our example: <code>Arc&lt;T&gt;</code> and <code>Rc&lt;T&gt;</code> have the same API, so we fix our program by changing the <code>use</code> line, the call to <code>new</code>, and the call to <code>clone</code>. The code in Listing 16-15 will finally compile and run.</p>
 <Listing number="16-15" file-name="src/main.rs" caption="Using an `Arc<T>` to wrap the `Mutex<T>` to be able to share ownership across multiple threads">
 <pre><pre class="playground"><code class="language-rust edition2024">use std::sync::{Arc, Mutex};
@@ -406,14 +406,14 @@ the changes are likely to be due to the threads running differently rather than
 changes in the compiler -->
 <pre><code class="language-text">Result: 10
 </code></pre>
-<p>해냈습니다! 0에서 10까지 셌는데, 별로 인상적이지 않아 보일 수도 있지만, <code>Mutex&lt;T&gt;</code>와 스레드 안전성에 대해 많은 것을 가르쳐주었습니다. 카운터를 증가시키는 것보다 더 복잡한 연산을 수행하기 위해 이 프로그램의 구조를 사용할 수도 있습니다. 이 전략을 사용하여 계산을 독립적인 부분으로 나누고, 그 부분들을 스레드에 분산시킨 다음, <code>Mutex&lt;T&gt;</code>를 사용하여 각 스레드가 자신의 부분으로 최종 결과를 업데이트하게 할 수 있습니다.</p>
+<p>해냈습니다! 0에서 10까지 셌는데, 별로 인상적이지 않아 보일 수도 있지만, <code>Mutex&lt;T&gt;</code> 와 스레드 안전성에 대해 많은 것을 가르쳐주었습니다. 카운터를 증가시키는 것보다 더 복잡한 연산을 수행하기 위해 이 프로그램의 구조를 사용할 수도 있습니다. 이 전략을 사용하여 계산을 독립적인 부분으로 나누고, 그 부분들을 스레드에 분산시킨 다음, <code>Mutex&lt;T&gt;</code> 를 사용하여 각 스레드가 자신의 부분으로 최종 결과를 업데이트하게 할 수 있습니다.</p>
 <p>Note that if you are doing simple numerical operations, there are types simpler than <code>Mutex&lt;T&gt;</code> types provided by the <a href="../std/sync/atomic/index.html"><code>std::sync::atomic</code> module of the standard library</a><!-- ignore -->. These types provide safe, concurrent, atomic access to primitive types. We chose to use <code>Mutex&lt;T&gt;</code> with a primitive type for this example so that we could concentrate on how <code>Mutex&lt;T&gt;</code> works.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="similarities-between-refcelltrct-and-mutextarct"></a></p>
 <h3 id="comparing-refcelltrct-and-mutextarct"><a class="header" href="#comparing-refcelltrct-and-mutextarct">Comparing <code>RefCell&lt;T&gt;</code>/<code>Rc&lt;T&gt;</code> and <code>Mutex&lt;T&gt;</code>/<code>Arc&lt;T&gt;</code></a></h3>
 <p>You might have noticed that <code>counter</code> is immutable but that we could get a mutable reference to the value inside it; this means <code>Mutex&lt;T&gt;</code> provides interior mutability, as the <code>Cell</code> family does. In the same way we used <code>RefCell&lt;T&gt;</code> in Chapter 15 to allow us to mutate contents inside an <code>Rc&lt;T&gt;</code>, we use <code>Mutex&lt;T&gt;</code> to mutate contents inside an <code>Arc&lt;T&gt;</code>.</p>
 <p>Another detail to note is that Rust can’t protect you from all kinds of logic errors when you use <code>Mutex&lt;T&gt;</code>. Recall from Chapter 15 that using <code>Rc&lt;T&gt;</code> came with the risk of creating reference cycles, where two <code>Rc&lt;T&gt;</code> values refer to each other, causing memory leaks. Similarly, <code>Mutex&lt;T&gt;</code> comes with the risk of creating <em>deadlocks</em>. These occur when an operation needs to lock two resources and two threads have each acquired one of the locks, causing them to wait for each other forever. If you’re interested in deadlocks, try creating a Rust program that has a deadlock; then, research deadlock mitigation strategies for mutexes in any language and have a go at implementing them in Rust. The standard library API documentation for <code>Mutex&lt;T&gt;</code> and <code>MutexGuard</code> offers useful information.</p>
-<p><code>Send</code>와 <code>Sync</code> 트레이트 및 이를 커스텀 타입과 함께 사용하는 방법에 대해 이야기하며 이 장을 마무리하겠습니다.</p>
+<p><code>Send</code> 와 <code>Sync</code> 트레이트 및 이를 커스텀 타입과 함께 사용하는 방법에 대해 이야기하며 이 장을 마무리하겠습니다.</p>
 
                     </main>
 

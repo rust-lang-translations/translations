@@ -221,20 +221,20 @@ fn SysTick() {
     // ..
 }</code></pre>
 <p><code>exception</code> 속성 외에 예외 처리기는 일반 함수처럼 보이지만 한 가지 차이점이 더 있습니다. <code>exception</code> 처리기는 소프트웨어에서 호출할 수 <em>없습니다</em>. 이전 예에 따라 <code>SysTick();</code> 문은 컴파일 오류를 발생시킵니다.</p>
-<p>이 동작은 거의 의도된 것이며 기능을 제공하는 데 필요합니다. <code>exception</code> 처리기 _내부_에 선언된 <code>static mut</code> 변수는 <em>안전하게</em> 사용할 수 있습니다.</p>
+<p>이 동작은 거의 의도된 것이며 기능을 제공하는 데 필요합니다. <code>exception</code> 처리기 <em>내부</em> 에 선언된 <code>static mut</code> 변수는 <em>안전하게</em> 사용할 수 있습니다.</p>
 <pre><code class="language-rust ignore">#[exception]
 fn SysTick() {
     static mut COUNT: u32 = 0;
 
-    // `COUNT`는 `&amp;mut u32` 유형으로 변환되었으며 안전하게 사용할 수 있습니다
+    // `COUNT` 는 `&amp;mut u32` 유형으로 변환되었으며 안전하게 사용할 수 있습니다
     *COUNT += 1;
 }</code></pre>
-<p>아시다시피 함수에서 <code>static mut</code> 변수를 사용하면 <a href="https://en.wikipedia.org/wiki/Reentrancy_(computing)"><em>비재진입</em></a>이 됩니다. 둘 이상의 예외/인터럽트 처리기 또는 <code>main</code> 및 하나 이상의 예외/인터럽트 처리기에서 직접 또는 간접적으로 비재진입 함수를 호출하는 것은 정의되지 않은 동작입니다.</p>
-<p>안전한 Rust는 정의되지 않은 동작을 초래해서는 안 되므로 비재진입 함수는 <code>unsafe</code>로 표시해야 합니다. 하지만 방금 <code>exception</code> 처리기가 <code>static mut</code> 변수를 안전하게 사용할 수 있다고 말했습니다. 어떻게 이것이 가능할까요? <code>exception</code> 처리기는 소프트웨어에서 호출할 수 <em>없으므로</em> 재진입이 불가능하기 때문입니다. 이러한 처리기는 물리적으로 비동시적이라고 가정되는 하드웨어 자체에서 호출됩니다.</p>
+<p>아시다시피 함수에서 <code>static mut</code> 변수를 사용하면 <a href="https://en.wikipedia.org/wiki/Reentrancy_(computing)">_비재진입 _</a>이 됩니다. 둘 이상의 예외/인터럽트 처리기 또는 <code>main</code> 및 하나 이상의 예외/인터럽트 처리기에서 직접 또는 간접적으로 비재진입 함수를 호출하는 것은 정의되지 않은 동작입니다.</p>
+<p>안전한 Rust는 정의되지 않은 동작을 초래해서는 안 되므로 비재진입 함수는 <code>unsafe</code> 로 표시해야 합니다. 하지만 방금 <code>exception</code> 처리기가 <code>static mut</code> 변수를 안전하게 사용할 수 있다고 말했습니다. 어떻게 이것이 가능할까요? <code>exception</code> 처리기는 소프트웨어에서 호출할 수 <em>없으므로</em> 재진입이 불가능하기 때문입니다. 이러한 처리기는 물리적으로 비동시적이라고 가정되는 하드웨어 자체에서 호출됩니다.</p>
 <p>결과적으로 임베디드 시스템의 예외 처리기 컨텍스트에서 동일한 처리기의 동시 호출이 없으면 처리기가 정적 가변 변수를 사용하더라도 재진입 문제가 발생하지 않습니다.</p>
 <p>여러 프로세서 코어가 코드를 동시에 실행하는 멀티코어 시스템에서는 예외 처리기 내에서도 재진입 문제의 가능성이 다시 관련됩니다. 각 코어에 자체 예외 처리기 세트가 있을 수 있지만 여러 코어가 동시에 동일한 예외 처리기를 실행하려고 시도하는 시나리오가 여전히 있을 수 있습니다. 멀티코어 환경에서 이 문제를 해결하려면 예외 처리기 내에서 적절한 동기화 메커니즘을 사용하여 코어 간에 공유 리소스에 대한 액세스가 적절하게 조정되도록 해야 합니다. 여기에는 일반적으로 잠금, 세마포어 또는 원자적 연산과 같은 기술을 사용하여 데이터 경쟁을 방지하고 데이터 무결성을 유지하는 것이 포함됩니다.</p>
 <blockquote>
-<p><code>exception</code> 속성은 함수 내의 정적 변수 정의를 <code>unsafe</code> 블록으로 래핑하고 동일한 이름의 <code>&amp;mut</code> 유형의 새 적절한 변수를 제공하여 변환합니다. 따라서 <code>unsafe</code> 블록으로 래핑할 필요 없이 <code>*</code>를 통해 참조를 역참조하여 변수 값에 액세스할 수 있습니다.</p>
+<p><code>exception</code> 속성은 함수 내의 정적 변수 정의를 <code>unsafe</code> 블록으로 래핑하고 동일한 이름의 <code>&amp;mut</code> 유형의 새 적절한 변수를 제공하여 변환합니다. 따라서 <code>unsafe</code> 블록으로 래핑할 필요 없이 <code>*</code> 를 통해 참조를 역참조하여 변수 값에 액세스할 수 있습니다.</p>
 </blockquote>
 <h2 id="완전한-예시"><a class="header" href="#완전한-예시">완전한 예시</a></h2>
 <p>다음은 시스템 타이머를 사용하여 약 1초마다 <code>SysTick</code> 예외를 발생시키는 예입니다. <code>SysTick</code> 예외 처리기는 <code>COUNT</code> 변수에서 호출된 횟수를 추적한 다음 세미호스팅을 사용하여 <code>COUNT</code> 값을 호스트 콘솔에 출력합니다.</p>
@@ -304,12 +304,12 @@ fn SysTick() {
 </code></pre>
 <p>Discovery 보드에서 실행하면 OpenOCD 콘솔에 출력이 표시됩니다. 또한 카운트가 9에 도달해도 프로그램이 중지되지 <em>않습니다</em>.</p>
 <h2 id="기본-예외-처리기"><a class="header" href="#기본-예외-처리기">기본 예외 처리기</a></h2>
-<p><code>exception</code> 속성이 실제로 하는 일은 특정 예외에 대한 기본 예외 처리기를 _재정의_하는 것입니다. 특정 예외에 대한 처리기를 재정의하지 않으면 <code>DefaultHandler</code> 함수에서 처리되며 기본값은 다음과 같습니다.</p>
+<p><code>exception</code> 속성이 실제로 하는 일은 특정 예외에 대한 기본 예외 처리기를 <em>재정의</em> 하는 것입니다. 특정 예외에 대한 처리기를 재정의하지 않으면 <code>DefaultHandler</code> 함수에서 처리되며 기본값은 다음과 같습니다.</p>
 <pre><code class="language-rust ignore">fn DefaultHandler() {
     loop {}
 }</code></pre>
-<p>이 함수는 <code>cortex-m-rt</code> 크레이트에서 제공하며 <code>#[no_mangle]</code>로 표시되어 있으므로 "DefaultHandler"에 중단점을 설정하고 <em>처리되지 않은</em> 예외를 잡을 수 있습니다.</p>
-<p><code>exception</code> 속성을 사용하여 이 <code>DefaultHandler</code>를 재정의할 수 있습니다.</p>
+<p>이 함수는 <code>cortex-m-rt</code> 크레이트에서 제공하며 <code>#[no_mangle]</code> 로 표시되어 있으므로 "DefaultHandler"에 중단점을 설정하고 <em>처리되지 않은</em> 예외를 잡을 수 있습니다.</p>
+<p><code>exception</code> 속성을 사용하여 이 <code>DefaultHandler</code> 를 재정의할 수 있습니다.</p>
 <pre><code class="language-rust ignore">#[exception]
 fn DefaultHandler(irqn: i16) {
     // 사용자 지정 기본 처리기
@@ -320,7 +320,7 @@ fn DefaultHandler(irqn: i16) {
 <p>결과적으로 <code>HardFault</code> 처리기는 <code>fn(&amp;ExceptionFrame) -&gt; !</code> 시그니처를 가져야 합니다. 처리기의 인수는 예외에 의해 스택에 푸시된 레지스터에 대한 포인터입니다. 이러한 레지스터는 예외가 트리거된 순간의 프로세서 상태 스냅샷이며 하드 폴트를 진단하는 데 유용합니다.</p>
 <p>다음은 잘못된 작업(존재하지 않는 메모리 위치 읽기)을 수행하는 예입니다.</p>
 <blockquote>
-<p><strong>참고</strong>: 이 프로그램은 QEMU에서 작동하지 않습니다. 즉, 충돌하지 않습니다. <code>qemu-system-arm -machine lm3s6965evb</code>는 메모리 로드를 확인하지 않고 잘못된 메모리 읽기 시 <code>0</code>을 반환하기 때문입니다.</p>
+<p><strong>참고</strong>: 이 프로그램은 QEMU에서 작동하지 않습니다. 즉, 충돌하지 않습니다. <code>qemu-system-arm -machine lm3s6965evb</code> 는 메모리 로드를 확인하지 않고 잘못된 메모리 읽기 시 <code>0</code> 을 반환하기 때문입니다.</p>
 </blockquote>
 <pre><code class="language-rust ignore">#![no_main]
 #![no_std]
@@ -375,7 +375,7 @@ ResetTrampoline:
  800094a:       ldr     r0, [r0]
  800094c:       b       #-0x4 &lt;ResetTrampoline+0xa&gt;
 </code></pre>
-<p>디스어셈블리에서 프로그램 카운터 <code>0x0800094a</code>의 값을 조회할 수 있습니다. 로드 작업(<code>ldr r0, [r0]</code>)이 예외를 발생시켰음을 알 수 있습니다. <code>ExceptionFrame</code>의 <code>r0</code> 필드는 당시 레지스터 <code>r0</code>의 값이 <code>0x3fff_fffe</code>였음을 알려줍니다.</p>
+<p>디스어셈블리에서 프로그램 카운터 <code>0x0800094a</code> 의 값을 조회할 수 있습니다. 로드 작업(<code>ldr r0, [r0]</code>)이 예외를 발생시켰음을 알 수 있습니다. <code>ExceptionFrame</code> 의 <code>r0</code> 필드는 당시 레지스터 <code>r0</code> 의 값이 <code>0x3fff_fffe</code> 였음을 알려줍니다.</p>
 
                     </main>
 

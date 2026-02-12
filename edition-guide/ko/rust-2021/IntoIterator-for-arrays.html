@@ -218,27 +218,27 @@
                         <h1 id="배열을-위한-intoiterator"><a class="header" href="#배열을-위한-intoiterator">배열을 위한 IntoIterator</a></h1>
 <h2 id="요약"><a class="header" href="#요약">요약</a></h2>
 <ul>
-<li>배열은 <em>모든</em> 에디션에서 <code>IntoIterator</code>를 구현합니다.</li>
-<li><code>IntoIterator::into_iter</code> 호출은 메서드 호출 구문(예: <code>array.into_iter()</code>)을 사용할 때 Rust 2015 및 Rust 2018에서 <em>숨겨져</em> 있습니다. 따라서 <code>array.into_iter()</code>는 이전과 같이 여전히 <code>(&amp;array).into_iter()</code>로 확인됩니다.</li>
-<li><code>array.into_iter()</code>는 Rust 2021에서 <code>IntoIterator::into_iter</code> 호출을 의미하도록 변경됩니다.</li>
+<li>배열은 <em>모든</em> 에디션에서 <code>IntoIterator</code> 를 구현합니다.</li>
+<li><code>IntoIterator::into_iter</code> 호출은 메서드 호출 구문(예: <code>array.into_iter()</code>)을 사용할 때 Rust 2015 및 Rust 2018에서 <em>숨겨져</em> 있습니다. 따라서 <code>array.into_iter()</code> 는 이전과 같이 여전히 <code>(&amp;array).into_iter()</code> 로 확인됩니다.</li>
+<li><code>array.into_iter()</code> 는 Rust 2021에서 <code>IntoIterator::into_iter</code> 호출을 의미하도록 변경됩니다.</li>
 </ul>
 <h2 id="세부-정보"><a class="header" href="#세부-정보">세부 정보</a></h2>
-<p>Rust 1.53까지는 배열에 대한 _참조_만 <code>IntoIterator</code>를 구현합니다. 즉, <code>&amp;[1, 2, 3]</code> 및 <code>&amp;mut [1, 2, 3]</code>에 대해 반복할 수 있지만 <code>[1, 2, 3]</code>에 대해서는 직접 반복할 수 없습니다.</p>
+<p>Rust 1.53까지는 배열에 대한 <em>참조</em> 만 <code>IntoIterator</code> 를 구현합니다. 즉, <code>&amp;[1, 2, 3]</code> 및 <code>&amp;mut [1, 2, 3]</code> 에 대해 반복할 수 있지만 <code>[1, 2, 3]</code> 에 대해서는 직접 반복할 수 없습니다.</p>
 <pre><code class="language-rust ignore">for &amp;e in &amp;[1, 2, 3] {} // 정상 :)
 
 for e in [1, 2, 3] {} // 오류 :(</code></pre>
-<p>이것은 <a href="https://github.com/rust-lang/rust/issues/25725">오래된 문제</a>였지만 해결책은 보이는 것처럼 간단하지 않습니다. 단순히 <a href="https://github.com/rust-lang/rust/pull/65819">트레이트 구현을 추가</a>하면 기존 코드가 깨질 것입니다. <code>array.into_iter()</code>는 <a href="https://doc.rust-lang.org/book/ch05-03-method-syntax.html#wheres-the---operator">메서드 호출 구문이 작동하는 방식</a> 때문에 암시적으로 <code>(&amp;array).into_iter()</code>를 호출하므로 오늘날 이미 컴파일됩니다. 트레이트 구현을 추가하면 의미가 변경됩니다.</p>
+<p>이것은 <a href="https://github.com/rust-lang/rust/issues/25725">오래된 문제</a> 였지만 해결책은 보이는 것처럼 간단하지 않습니다. 단순히 <a href="https://github.com/rust-lang/rust/pull/65819">트레이트 구현을 추가</a> 하면 기존 코드가 깨질 것입니다. <code>array.into_iter()</code> 는 <a href="https://doc.rust-lang.org/book/ch05-03-method-syntax.html#wheres-the---operator">메서드 호출 구문이 작동하는 방식</a> 때문에 암시적으로 <code>(&amp;array).into_iter()</code> 를 호출하므로 오늘날 이미 컴파일됩니다. 트레이트 구현을 추가하면 의미가 변경됩니다.</p>
 <p>일반적으로 이러한 유형의 손상(트레이트 구현 추가)은 '사소한' 것으로 분류되어 허용됩니다. 그러나 이 경우에는 너무 많은 코드가 깨질 것입니다.</p>
 <p>It has been suggested many times to "only implement <code>IntoIterator</code> for arrays in Rust 2021". However, this is simply not possible. You can't have a trait implementation exist in one edition and not in another, since editions can be mixed.</p>
-<p>대신, 트레이트 구현은 <em>모든</em> 에디션(Rust 1.53.0부터 시작)에 추가되었지만 Rust 2021까지 손상을 피하기 위한 작은 핵이 있습니다. Rust 2015 및 2018 코드에서 컴파일러는 이전과 같이 트레이트 구현이 존재하지 않는 것처럼 <code>array.into_iter()</code>를 <code>(&amp;array).into_iter()</code>로 계속 확인합니다. 이것은 <code>.into_iter()</code> 메서드 호출 구문에만 _적용_됩니다. <code>for e in [1, 2, 3]</code>, <code>iter.zip([1, 2, 3])</code> 또는 <code>IntoIterator::into_iter([1, 2, 3])</code>와 같은 다른 구문에는 영향을 미치지 않습니다. 이것들은 <em>모든</em> 에디션에서 작동하기 시작할 것입니다.</p>
+<p>대신, 트레이트 구현은 <em>모든</em> 에디션(Rust 1.53.0부터 시작)에 추가되었지만 Rust 2021까지 손상을 피하기 위한 작은 핵이 있습니다. Rust 2015 및 2018 코드에서 컴파일러는 이전과 같이 트레이트 구현이 존재하지 않는 것처럼 <code>array.into_iter()</code> 를 <code>(&amp;array).into_iter()</code> 로 계속 확인합니다. 이것은 <code>.into_iter()</code> 메서드 호출 구문에만 _적용 _됩니다. <code>for e in [1, 2, 3]</code>, <code>iter.zip([1, 2, 3])</code> 또는 <code>IntoIterator::into_iter([1, 2, 3])</code> 와 같은 다른 구문에는 영향을 미치지 않습니다. 이것들은 <em>모든</em> 에디션에서 작동하기 시작할 것입니다.</p>
 <p>이것이 파손을 피하기 위해 작은 해킹이 필요했다는 것은 안타까운 일이지만, 이 솔루션은 에디션 간의 차이를 절대적인 최소값으로 유지합니다.</p>
 <h2 id="마이그레이션"><a class="header" href="#마이그레이션">마이그레이션</a></h2>
-<p><code>array_into_iter</code> 린트는 Rust 2021에서 의미가 변경될 <code>into_iter()</code>에 대한 일부 호출이 있을 때마다 트리거됩니다. <code>array_into_iter</code> 린트는 1.41 릴리스 이후 모든 에디션에서 기본적으로 경고였습니다(1.55에서 몇 가지 개선 사항이 적용됨). 코드가 이미 경고가 없다면 Rust 2021을 사용할 준비가 된 것입니다!</p>
+<p><code>array_into_iter</code> 린트는 Rust 2021에서 의미가 변경될 <code>into_iter()</code> 에 대한 일부 호출이 있을 때마다 트리거됩니다. <code>array_into_iter</code> 린트는 1.41 릴리스 이후 모든 에디션에서 기본적으로 경고였습니다(1.55에서 몇 가지 개선 사항이 적용됨). 코드가 이미 경고가 없다면 Rust 2021을 사용할 준비가 된 것입니다!</p>
 <p>코드를 Rust 2021 에디션과 호환되도록 자동으로 마이그레이션하거나 다음을 실행하여 이미 호환되는지 확인할 수 있습니다.</p>
 <pre><code class="language-sh">cargo fix --edition
 </code></pre>
 <p>에디션 간의 차이가 작기 때문에 Rust 2021로의 마이그레이션은 매우 간단합니다.</p>
-<p>배열에서 <code>into_iter</code>의 메서드 호출의 경우 구현되는 요소가 참조에서 소유 값으로 변경됩니다.</p>
+<p>배열에서 <code>into_iter</code> 의 메서드 호출의 경우 구현되는 요소가 참조에서 소유 값으로 변경됩니다.</p>
 <p>예를 들어:</p>
 <pre><pre class="playground"><code class="language-rust">fn main() {
   let array = [1u8, 2, 3];
@@ -247,7 +247,7 @@ for e in [1, 2, 3] {} // 오류 :(</code></pre>
     // x is a `u8` in Rust 2021
   }
 }</code></pre></pre>
-<p>Rust 2021에서 마이그레이션하는 가장 간단한 방법은 이전 에디션의 정확한 동작을 유지하기 위해 <code>iter()</code>를 호출하는 것입니다. 이 함수는 참조로 소유된 배열을 반복합니다.</p>
+<p>Rust 2021에서 마이그레이션하는 가장 간단한 방법은 이전 에디션의 정확한 동작을 유지하기 위해 <code>iter()</code> 를 호출하는 것입니다. 이 함수는 참조로 소유된 배열을 반복합니다.</p>
 <pre><pre class="playground"><code class="language-rust">fn main() {
   let array = [1u8, 2, 3];
   for x in array.iter() { // &lt;- This line changed

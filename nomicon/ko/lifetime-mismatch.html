@@ -229,9 +229,9 @@ fn main() {
     foo.share();
     println!("{:?}", loan);
 }</code></pre></pre>
-<p>이 코드가 컴파일될 것이라고 예상할 수 있습니다. 우리는 <code>foo</code>를 일시적으로 가변 대여(mutably borrows)한 후 공유 참조(shared reference)만을 반환하는 <code>mutate_and_share</code>를 호출합니다. 따라서 <code>foo</code>가 가변 대여된 상태가 아니어야 하므로 <code>foo.share()</code>가 성공할 것이라고 예상할 수 있습니다.</p>
+<p>이 코드가 컴파일될 것이라고 예상할 수 있습니다. 우리는 <code>foo</code> 를 일시적으로 가변 대여(mutably borrows)한 후 공유 참조(shared reference)만을 반환하는 <code>mutate_and_share</code> 를 호출합니다. 따라서 <code>foo</code> 가 가변 대여된 상태가 아니어야 하므로 <code>foo.share()</code> 가 성공할 것이라고 예상할 수 있습니다.</p>
 <p>하지만 컴파일을 시도하면:</p>
-<pre><code class="language-text">error[E0502]: `foo`가 이미 가변으로 대여되었으므로 불변으로 대여할 수 없습니다
+<pre><code class="language-text">error[E0502]: `foo` 가 이미 가변으로 대여되었으므로 불변으로 대여할 수 없습니다
   --&gt; src/main.rs:12:5
    |
 11 |     let loan = foo.mutate_and_share();
@@ -240,7 +240,7 @@ fn main() {
    |     ^^^ 여기서 불변 대여가 발생함
 13 |     println!("{:?}", loan);
 </code></pre>
-<p>무슨 일이 일어난 걸까요? 음, 우리는 <a href="lifetimes.html#example-aliasing-a-mutable-reference">이전 섹션의 예제 2</a>와 정확히 같은 논리를 얻게 됩니다. 프로그램의 문법 설탕을 제거하면 다음과 같습니다:</p>
+<p>무슨 일이 일어난 걸까요? 음, 우리는 <a href="lifetimes.html#example-aliasing-a-mutable-reference">이전 섹션의 예제 2</a> 와 정확히 같은 논리를 얻게 됩니다. 프로그램의 문법 설탕을 제거하면 다음과 같습니다:</p>
 <!-- ignore: desugared code -->
 <pre><code class="language-rust ignore">struct Foo;
 
@@ -261,10 +261,10 @@ fn main() {
         }
     }
 }</code></pre>
-<p>수명 시스템은 <code>loan</code>의 수명과 <code>mutate_and_share</code>의 시그니처 때문에 <code>&amp;mut foo</code>의 수명을 <code>'c</code>로 확장해야 합니다. 그런 다음 우리가 <code>share</code>를 호출하려고 할 때, 시스템은 우리가 <code>&amp;'c mut foo</code>를 별칭(alias)하려고 한다는 것을 감지하고 에러를 터뜨립니다!</p>
+<p>수명 시스템은 <code>loan</code> 의 수명과 <code>mutate_and_share</code> 의 시그니처 때문에 <code>&amp;mut foo</code> 의 수명을 <code>'c</code> 로 확장해야 합니다. 그런 다음 우리가 <code>share</code> 를 호출하려고 할 때, 시스템은 우리가 <code>&amp;'c mut foo</code> 를 별칭(alias)하려고 한다는 것을 감지하고 에러를 터뜨립니다!</p>
 <p>이 프로그램은 우리가 실제로 신경 쓰는 참조 의미론에 따르면 분명히 올바르지만, 수명 시스템이 너무 거칠어서(coarse-grained) 이를 처리하지 못합니다.</p>
 <h2 id="부적절하게-축소된-대여improperly-reduced-borrows"><a class="header" href="#부적절하게-축소된-대여improperly-reduced-borrows">부적절하게 축소된 대여(Improperly reduced borrows)</a></h2>
-<p>다음 코드는 컴파일에 실패합니다. 러스트가 변수 <code>map</code>이 두 번 대여되는 것을 보고, 두 번째 대여가 발생하기 전에 첫 번째 대여의 필요성이 사라진다는 것을 추론하지 못하기 때문입니다. 이는 러스트가 보수적으로 첫 번째 대여에 전체 스코프를 사용하도록 대체하기 때문에 발생합니다. 이것은 결국 수정될 것입니다.</p>
+<p>다음 코드는 컴파일에 실패합니다. 러스트가 변수 <code>map</code> 이 두 번 대여되는 것을 보고, 두 번째 대여가 발생하기 전에 첫 번째 대여의 필요성이 사라진다는 것을 추론하지 못하기 때문입니다. 이는 러스트가 보수적으로 첫 번째 대여에 전체 스코프를 사용하도록 대체하기 때문에 발생합니다. 이것은 결국 수정될 것입니다.</p>
 <pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use std::collections::HashMap;
@@ -283,7 +283,7 @@ where
     }
 }
 <span class="boring">}</span></code></pre></pre>
-<p>부과된 수명 제한 때문에 <code>&amp;mut map</code>의 수명이 다른 가변 대여와 겹쳐서 컴파일 에러가 발생합니다:</p>
+<p>부과된 수명 제한 때문에 <code>&amp;mut map</code> 의 수명이 다른 가변 대여와 겹쳐서 컴파일 에러가 발생합니다:</p>
 <pre><code class="language-text">error[E0499]: cannot borrow `*map` as mutable more than once at a time
   --&gt; src/main.rs:12:13
    |

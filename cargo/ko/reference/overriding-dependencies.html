@@ -221,7 +221,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="의존성-재정의하기"><a class="header" href="#의존성-재정의하기">의존성 재정의하기</a></h1>
-<p>의존성을 재정의하려는 욕구는 여러 시나리오를 통해 발생할 수 있습니다. 하지만 대부분은 크레이트가 <a href="https://crates.io/">crates.io</a>에 게시되기 전에 해당 크레이트로 작업할 수 있는 기능으로 요약됩니다. 예를 들면 다음과 같습니다.</p>
+<p>의존성을 재정의하려는 욕구는 여러 시나리오를 통해 발생할 수 있습니다. 하지만 대부분은 크레이트가 <a href="https://crates.io/">crates.io</a> 에 게시되기 전에 해당 크레이트로 작업할 수 있는 기능으로 요약됩니다. 예를 들면 다음과 같습니다.</p>
 <ul>
 <li>작업 중인 크레이트가 작업 중인 훨씬 더 큰 애플리케이션에서도 사용되고 있으며, 해당 큰 애플리케이션 내부에서 라이브러리의 버그 수정을 테스트하고 싶은 경우</li>
 <li>직접 작업하지 않는 상위(upstream) 크레이트의 git 저장소 master 브랜치에 새로운 기능이나 버그 수정이 있어 이를 테스트하고 싶은 경우</li>
@@ -252,10 +252,10 @@
 </li>
 </ul>
 <blockquote>
-<p><strong>참고</strong>: 로컬 패키지의 단일 의존성 선언에 대한 소스를 재정의하는 데 사용할 수 있는 <a href="specifying-dependencies.html#multiple-locations">여러 위치(multiple locations)</a>로 의존성 지정하기를 참조하세요.</p>
+<p><strong>참고</strong>: 로컬 패키지의 단일 의존성 선언에 대한 소스를 재정의하는 데 사용할 수 있는 <a href="specifying-dependencies.html#multiple-locations">여러 위치(multiple locations)</a> 로 의존성 지정하기를 참조하세요.</p>
 </blockquote>
 <h2 id="버그-수정-테스트하기"><a class="header" href="#버그-수정-테스트하기">버그 수정 테스트하기</a></h2>
-<p><a href="https://crates.io/crates/uuid"><code>uuid</code> 크레이트</a>를 사용하여 작업하던 중 버그를 발견했다고 가정해 봅시다. 당신은 매우 진취적인 사람이기에 직접 버그를 수정해 보기로 했습니다! 원래 매니페스트는 다음과 같을 것입니다.</p>
+<p><a href="https://crates.io/crates/uuid"><code>uuid</code> 크레이트</a> 를 사용하여 작업하던 중 버그를 발견했다고 가정해 봅시다. 당신은 매우 진취적인 사람이기에 직접 버그를 수정해 보기로 했습니다! 원래 매니페스트는 다음과 같을 것입니다.</p>
 <pre><code class="language-toml">[package]
 name = "my-library"
 version = "0.1.0"
@@ -263,30 +263,30 @@ version = "0.1.0"
 [dependencies]
 uuid = "1.0"
 </code></pre>
-<p>가장 먼저 할 일은 <a href="https://github.com/uuid-rs/uuid"><code>uuid</code> 저장소</a>를 로컬로 복제하는 것입니다.</p>
+<p>가장 먼저 할 일은 <a href="https://github.com/uuid-rs/uuid"><code>uuid</code> 저장소</a> 를 로컬로 복제하는 것입니다.</p>
 <pre><code class="language-console">$ git clone https://github.com/uuid-rs/uuid.git
 </code></pre>
-<p>다음으로 <code>my-library</code>의 매니페스트를 다음과 같이 수정합니다.</p>
+<p>다음으로 <code>my-library</code> 의 매니페스트를 다음과 같이 수정합니다.</p>
 <pre><code class="language-toml">[patch.crates-io]
 uuid = { path = "../uuid/경로" }
 </code></pre>
-<p>여기서 우리는 <code>crates-io</code> 소스를 새로운 의존성으로 _패칭(patching)_한다고 선언합니다. 이렇게 하면 로컬 패키지의 crates.io 레지스트리에 로컬로 체크아웃된 <code>uuid</code> 버전이 실질적으로 추가됩니다.</p>
-<p>다음으로, 패키지가 crates.io의 복사본 대신 로컬로 체크아웃된 복사본을 사용하도록 <code>uuid</code>의 새 버전을 사용하도록 락 파일을 업데이트해야 합니다. <code>[patch]</code>가 작동하는 방식은 <code>../path/to/uuid</code>에 있는 의존성을 로드한 다음, <code>uuid</code> 버전에 대해 crates.io를 쿼리할 때마다 로컬 버전도 <em>함께</em> 반환하는 것입니다.</p>
-<p>이는 로컬 체크아웃의 버전 번호가 중요하며 패치 사용 여부에 영향을 미친다는 것을 의미합니다. 매니페스트에서 <code>uuid = "1.0"</code>을 선언했으므로 <code>&gt;= 1.0.0, &lt; 2.0.0</code>만 해결(resolve)하며, Cargo의 탐욕적(greedy) 해결 알고리즘은 해당 범위 내에서 최대 버전을 해결함을 의미합니다. 보통 git 저장소의 버전이 이미 crates.io에 게시된 최대 버전보다 크거나 같으므로 문제가 되지 않지만, 이를 염두에 두는 것이 중요합니다!</p>
+<p>여기서 우리는 <code>crates-io</code> 소스를 새로운 의존성으로 <em>패칭(patching)</em> 한다고 선언합니다. 이렇게 하면 로컬 패키지의 crates.io 레지스트리에 로컬로 체크아웃된 <code>uuid</code> 버전이 실질적으로 추가됩니다.</p>
+<p>다음으로, 패키지가 crates.io의 복사본 대신 로컬로 체크아웃된 복사본을 사용하도록 <code>uuid</code> 의 새 버전을 사용하도록 락 파일을 업데이트해야 합니다. <code>[patch]</code> 가 작동하는 방식은 <code>../path/to/uuid</code> 에 있는 의존성을 로드한 다음, <code>uuid</code> 버전에 대해 crates.io를 쿼리할 때마다 로컬 버전도 <em>함께</em> 반환하는 것입니다.</p>
+<p>이는 로컬 체크아웃의 버전 번호가 중요하며 패치 사용 여부에 영향을 미친다는 것을 의미합니다. 매니페스트에서 <code>uuid = "1.0"</code> 을 선언했으므로 <code>&gt;= 1.0.0, &lt; 2.0.0</code> 만 해결(resolve)하며, Cargo의 탐욕적(greedy) 해결 알고리즘은 해당 범위 내에서 최대 버전을 해결함을 의미합니다. 보통 git 저장소의 버전이 이미 crates.io에 게시된 최대 버전보다 크거나 같으므로 문제가 되지 않지만, 이를 염두에 두는 것이 중요합니다!</p>
 <p>어떤 경우든, 보통 지금 필요한 작업은 다음과 같습니다.</p>
 <pre><code class="language-console">$ cargo build
    Compiling uuid v1.0.0 (.../uuid)
    Compiling my-library v0.1.0 (.../my-library)
     Finished dev [unoptimized + debuginfo] target(s) in 0.32 secs
 </code></pre>
-<p>이것으로 끝입니다! 이제 <code>uuid</code>의 로컬 버전으로 빌드하게 됩니다 (빌드 출력의 괄호 안에 있는 경로를 확인하세요). 로컬 경로 버전이 빌드되는 것이 보이지 않는다면 <code>cargo update uuid --precise $version</code>을 실행해야 할 수도 있습니다. 여기서 <code>$version</code>은 로컬로 체크아웃된 <code>uuid</code> 사본의 버전입니다.</p>
+<p>이것으로 끝입니다! 이제 <code>uuid</code> 의 로컬 버전으로 빌드하게 됩니다 (빌드 출력의 괄호 안에 있는 경로를 확인하세요). 로컬 경로 버전이 빌드되는 것이 보이지 않는다면 <code>cargo update uuid --precise $version</code> 을 실행해야 할 수도 있습니다. 여기서 <code>$version</code> 은 로컬로 체크아웃된 <code>uuid</code> 사본의 버전입니다.</p>
 <p>원래 발견했던 버그를 수정한 후 다음에 할 일은 아마도 이를 <code>uuid</code> 크레이트 자체에 풀 리퀘스트로 제출하는 것입니다. 이 작업을 마친 후에는 <code>[patch]</code> 섹션도 업데이트할 수 있습니다. <code>[patch]</code> 내부의 목록은 <code>[dependencies]</code> 섹션과 똑같으므로, 풀 리퀘스트가 병합되면 다음과 같이 <code>path</code> 의존성을 변경할 수 있습니다.</p>
 <pre><code class="language-toml">[patch.crates-io]
 uuid = { git = 'https://github.com/uuid-rs/uuid.git' }
 </code></pre>
 <h2 id="게시되지-않은-부-버전으로-작업하기"><a class="header" href="#게시되지-않은-부-버전으로-작업하기">게시되지 않은 부 버전으로 작업하기</a></h2>
-<p>이제 버그 수정에서 기능 추가로 주제를 바꿔보겠습니다. <code>my-library</code>를 작업하던 중 <code>uuid</code> 크레이트에 완전히 새로운 기능이 필요하다는 것을 발견했습니다. 이 기능을 구현했고, 위에서 <code>[patch]</code>를 사용하여 로컬에서 테스트했으며, 풀 리퀘스트를 제출했습니다. 실제로 게시되기 전에 이를 어떻게 계속 사용하고 테스트하는지 살펴보겠습니다.</p>
-<p>또한 crates.io의 현재 <code>uuid</code> 버전은 <code>1.0.0</code>이지만, 그 이후 git 저장소의 master 브랜치가 <code>1.0.1</code>로 업데이트되었다고 가정해 봅시다. 이 브랜치에는 이전에 제출한 새로운 기능이 포함되어 있습니다. 이 저장소를 사용하기 위해 <code>Cargo.toml</code>을 다음과 같이 수정합니다.</p>
+<p>이제 버그 수정에서 기능 추가로 주제를 바꿔보겠습니다. <code>my-library</code> 를 작업하던 중 <code>uuid</code> 크레이트에 완전히 새로운 기능이 필요하다는 것을 발견했습니다. 이 기능을 구현했고, 위에서 <code>[patch]</code> 를 사용하여 로컬에서 테스트했으며, 풀 리퀘스트를 제출했습니다. 실제로 게시되기 전에 이를 어떻게 계속 사용하고 테스트하는지 살펴보겠습니다.</p>
+<p>또한 crates.io의 현재 <code>uuid</code> 버전은 <code>1.0.0</code> 이지만, 그 이후 git 저장소의 master 브랜치가 <code>1.0.1</code> 로 업데이트되었다고 가정해 봅시다. 이 브랜치에는 이전에 제출한 새로운 기능이 포함되어 있습니다. 이 저장소를 사용하기 위해 <code>Cargo.toml</code> 을 다음과 같이 수정합니다.</p>
 <pre><code class="language-toml">[package]
 name = "my-library"
 version = "0.1.0"
@@ -297,9 +297,9 @@ uuid = "1.0.1"
 [patch.crates-io]
 uuid = { git = 'https://github.com/uuid-rs/uuid.git' }
 </code></pre>
-<p>크레이트가 게시된 후 실제로 필요하게 될 버전인 <code>1.0.1</code>로 <code>uuid</code>에 대한 로컬 의존성을 업데이트했습니다. 하지만 이 버전은 crates.io에 존재하지 않으므로 매니페스트의 <code>[patch]</code> 섹션으로 제공합니다.</p>
-<p>이제 라이브러리가 빌드될 때 git 저장소에서 <code>uuid</code>를 가져오고, crates.io에서 버전을 다운로드하는 대신 저장소 내부의 1.0.1로 해결합니다. 1.0.1이 crates.io에 게시되면 <code>[patch]</code> 섹션을 삭제할 수 있습니다.</p>
-<p><code>[patch]</code>가 <em>전이적으로(transitively)</em> 적용된다는 점도 주목할 가치가 있습니다. 다음과 같이 더 큰 패키지에서 <code>my-library</code>를 사용한다고 가정해 봅시다.</p>
+<p>크레이트가 게시된 후 실제로 필요하게 될 버전인 <code>1.0.1</code> 로 <code>uuid</code> 에 대한 로컬 의존성을 업데이트했습니다. 하지만 이 버전은 crates.io에 존재하지 않으므로 매니페스트의 <code>[patch]</code> 섹션으로 제공합니다.</p>
+<p>이제 라이브러리가 빌드될 때 git 저장소에서 <code>uuid</code> 를 가져오고, crates.io에서 버전을 다운로드하는 대신 저장소 내부의 1.0.1로 해결합니다. 1.0.1이 crates.io에 게시되면 <code>[patch]</code> 섹션을 삭제할 수 있습니다.</p>
+<p><code>[patch]</code> 가 <em>전이적으로(transitively)</em> 적용된다는 점도 주목할 가치가 있습니다. 다음과 같이 더 큰 패키지에서 <code>my-library</code> 를 사용한다고 가정해 봅시다.</p>
 <pre><code class="language-toml">[package]
 name = "my-binary"
 version = "0.1.0"
@@ -311,15 +311,15 @@ uuid = "1.0"
 [patch.crates-io]
 uuid = { git = 'https://github.com/uuid-rs/uuid.git' }
 </code></pre>
-<p><code>[patch]</code>는 <em>전이적으로</em> 적용 가능하지만 _최상위 수준(top level)_에서만 정의될 수 있으므로, <code>my-library</code>의 소비자인 우리는 필요한 경우 <code>[patch]</code> 섹션을 반복해야 합니다. 하지만 여기서는 새로운 <code>uuid</code> 크레이트가 우리의 <code>uuid</code> 의존성과 <code>my-library -&gt; uuid</code> 의존성 _둘 다_에 적용됩니다. <code>uuid</code> 크레이트는 이 전체 크레이트 그래프에 대해 하나의 버전인 1.0.1로 해결되며 git 저장소에서 가져오게 됩니다.</p>
+<p><code>[patch]</code> 는 <em>전이적으로</em> 적용 가능하지만 <em>최상위 수준(top level)</em> 에서만 정의될 수 있으므로, <code>my-library</code> 의 소비자인 우리는 필요한 경우 <code>[patch]</code> 섹션을 반복해야 합니다. 하지만 여기서는 새로운 <code>uuid</code> 크레이트가 우리의 <code>uuid</code> 의존성과 <code>my-library -&gt; uuid</code> 의존성 <em>둘 다</em> 에 적용됩니다. <code>uuid</code> 크레이트는 이 전체 크레이트 그래프에 대해 하나의 버전인 1.0.1로 해결되며 git 저장소에서 가져오게 됩니다.</p>
 <h3 id="저장소-url-재정의하기"><a class="header" href="#저장소-url-재정의하기">저장소 URL 재정의하기</a></h3>
-<p>재정의하려는 의존성이 <code>crates.io</code>에서 로드되지 않는 경우, <code>[patch]</code> 사용법을 약간 변경해야 합니다. 예를 들어 의존성이 git 의존성인 경우 다음과 같이 로컬 경로로 재정의할 수 있습니다.</p>
+<p>재정의하려는 의존성이 <code>crates.io</code> 에서 로드되지 않는 경우, <code>[patch]</code> 사용법을 약간 변경해야 합니다. 예를 들어 의존성이 git 의존성인 경우 다음과 같이 로컬 경로로 재정의할 수 있습니다.</p>
 <pre><code class="language-toml">[patch."https://github.com/your/repository"]
 my-library = { path = "../my-library/경로" }
 </code></pre>
 <p>이게 전부입니다!</p>
 <h2 id="파괴적-변경-사전-게시하기"><a class="header" href="#파괴적-변경-사전-게시하기">파괴적 변경 사전 게시하기</a></h2>
-<p>보통 파괴적 변경을 동반하는 크레이트의 새로운 주 버전으로 작업하는 경우를 살펴보겠습니다. 이전 크레이트의 예를 이어가자면, <code>uuid</code> 크레이트의 2.0.0 버전을 만들려고 합니다. 상위에 모든 변경 사항을 제출한 후, <code>my-library</code>의 매니페스트를 다음과 같이 업데이트할 수 있습니다.</p>
+<p>보통 파괴적 변경을 동반하는 크레이트의 새로운 주 버전으로 작업하는 경우를 살펴보겠습니다. 이전 크레이트의 예를 이어가자면, <code>uuid</code> 크레이트의 2.0.0 버전을 만들려고 합니다. 상위에 모든 변경 사항을 제출한 후, <code>my-library</code> 의 매니페스트를 다음과 같이 업데이트할 수 있습니다.</p>
 <pre><code class="language-toml">[dependencies]
 uuid = "2.0"
 
@@ -338,17 +338,17 @@ uuid = "1.0"
 [patch.crates-io]
 uuid = { git = 'https://github.com/uuid-rs/uuid.git', branch = '2.0.0' }
 </code></pre>
-<p>이 경우 실제로 <code>uuid</code> 크레이트의 두 버전으로 해결됩니다. <code>my-binary</code> 크레이트는 계속해서 <code>uuid</code> 크레이트의 1.x.y 시리즈를 사용하지만, <code>my-library</code> 크레이트는 <code>2.0.0</code> 버전의 <code>uuid</code>를 사용하게 됩니다. 이를 통해 모든 것을 한꺼번에 업데이트하도록 강요받지 않고도 의존성 그래프를 통해 크레이트에 파괴적 변경을 점진적으로 적용할 수 있습니다.</p>
+<p>이 경우 실제로 <code>uuid</code> 크레이트의 두 버전으로 해결됩니다. <code>my-binary</code> 크레이트는 계속해서 <code>uuid</code> 크레이트의 1.x.y 시리즈를 사용하지만, <code>my-library</code> 크레이트는 <code>2.0.0</code> 버전의 <code>uuid</code> 를 사용하게 됩니다. 이를 통해 모든 것을 한꺼번에 업데이트하도록 강요받지 않고도 의존성 그래프를 통해 크레이트에 파괴적 변경을 점진적으로 적용할 수 있습니다.</p>
 <h2 id="여러-버전에-patch-사용하기"><a class="header" href="#여러-버전에-patch-사용하기">여러 버전에 <code>[patch]</code> 사용하기</a></h2>
 <p>의존성 이름을 변경하는 데 사용되는 <code>package</code> 키를 사용하여 동일한 크레이트의 여러 버전을 패치할 수 있습니다. 예를 들어, <code>serde</code> 크레이트의 <code>1.*</code> 시리즈에 사용하고 싶은 버그 수정이 있지만, 동시에 우리 git 저장소에 있는 <code>2.0.0</code> 버전의 serde를 사용하여 프로토타입을 만들고 싶다고 가정해 봅시다. 이를 위해 다음과 같이 구성할 수 있습니다.</p>
 <pre><code class="language-toml">[patch.crates-io]
 serde = { git = 'https://github.com/serde-rs/serde.git' }
 serde2 = { git = 'https://github.com/example/serde.git', package = 'serde', branch = 'v2' }
 </code></pre>
-<p>첫 번째 <code>serde = ...</code> 지시어는 git 저장소에서 serde <code>1.*</code>를 사용해야 함을 나타내고(필요한 버그 수정을 가져옴), 두 번째 <code>serde2 = ...</code> 지시어는 <code>https://github.com/example/serde</code>의 <code>v2</code> 브랜치에서도 <code>serde</code> 패키지를 가져와야 함을 나타냅니다. 여기서는 해당 브랜치의 <code>Cargo.toml</code>이 <code>2.0.0</code> 버전을 명시하고 있다고 가정합니다.</p>
+<p>첫 번째 <code>serde = ...</code> 지시어는 git 저장소에서 serde <code>1.*</code> 를 사용해야 함을 나타내고(필요한 버그 수정을 가져옴), 두 번째 <code>serde2 = ...</code> 지시어는 <code>https://github.com/example/serde</code> 의 <code>v2</code> 브랜치에서도 <code>serde</code> 패키지를 가져와야 함을 나타냅니다. 여기서는 해당 브랜치의 <code>Cargo.toml</code> 이 <code>2.0.0</code> 버전을 명시하고 있다고 가정합니다.</p>
 <p><code>package</code> 키를 사용할 때 여기서 <code>serde2</code> 식별자는 실제로 무시됩니다. 우리는 단지 다른 패치된 크레이트와 충돌하지 않는 고유한 이름이 필요할 뿐입니다.</p>
 <h2 id="patch-섹션"><a class="header" href="#patch-섹션"><code>[patch]</code> 섹션</a></h2>
-<p><code>Cargo.toml</code>의 <code>[patch]</code> 섹션은 의존성을 다른 사본으로 재정의하는 데 사용될 수 있습니다. 구문은 <a href="specifying-dependencies.html"><code>[dependencies]</code></a> 섹션과 유사합니다.</p>
+<p><code>Cargo.toml</code> 의 <code>[patch]</code> 섹션은 의존성을 다른 사본으로 재정의하는 데 사용될 수 있습니다. 구문은 <a href="specifying-dependencies.html"><code>[dependencies]</code></a> 섹션과 유사합니다.</p>
 <pre><code class="language-toml">[patch.crates-io]
 foo = { git = 'https://github.com/example/foo.git' }
 bar = { path = 'my/local/bar' }
@@ -360,32 +360,32 @@ git = 'https://github.com/example/baz.git'
 baz = { git = 'https://github.com/example/patched-baz.git', branch = 'my-branch' }
 </code></pre>
 <blockquote>
-<p><strong>참고</strong>: <code>[patch]</code> 테이블은 <code>.cargo/config.toml</code> 파일이나 <code>--config 'patch.crates-io.rand.path="rand"'</code>와 같은 CLI 옵션을 통해 <a href="config.html">구성 옵션</a>으로 지정할 수도 있습니다. 이는 커밋하고 싶지 않은 로컬 전용 변경 사항이나 임시로 패치를 테스트할 때 유용할 수 있습니다.</p>
+<p><strong>참고</strong>: <code>[patch]</code> 테이블은 <code>.cargo/config.toml</code> 파일이나 <code>--config 'patch.crates-io.rand.path="rand"'</code> 와 같은 CLI 옵션을 통해 <a href="config.html">구성 옵션</a> 으로 지정할 수도 있습니다. 이는 커밋하고 싶지 않은 로컬 전용 변경 사항이나 임시로 패치를 테스트할 때 유용할 수 있습니다.</p>
 </blockquote>
-<p><code>[patch]</code> 테이블은 의존성과 유사한 하위 테이블들로 구성됩니다. <code>[patch]</code> 뒤의 각 키는 패치하려는 소스의 URL 또는 레지스트리 이름입니다. <code>crates-io</code>라는 이름을 사용하여 기본 레지스트리인 <a href="https://crates.io/">crates.io</a>를 재정의할 수 있습니다. 위의 예에서 첫 번째 <code>[patch]</code>는 <a href="https://crates.io/">crates.io</a>를 재정의하는 것을 보여주고, 두 번째 <code>[patch]</code>는 git 소스를 재정의하는 것을 보여줍니다.</p>
-<p>이러한 테이블의 각 항목은 매니페스트의 <code>[dependencies]</code> 섹션에 있는 것과 동일한 일반적인 의존성 사양입니다. <code>[patch]</code> 섹션에 나열된 의존성들은 해결(resolve)되어 지정된 URL의 소스를 패치하는 데 사용됩니다. 위의 매니페스트 코드 조각은 <code>foo</code> 크레이트와 <code>bar</code> 크레이트로 <code>crates-io</code> 소스(예: crates.io 자체)를 패치합니다. 또한 <code>https://github.com/example/baz</code> 소스를 다른 곳에서 가져온 <code>my-branch</code>로 패치합니다.</p>
+<p><code>[patch]</code> 테이블은 의존성과 유사한 하위 테이블들로 구성됩니다. <code>[patch]</code> 뒤의 각 키는 패치하려는 소스의 URL 또는 레지스트리 이름입니다. <code>crates-io</code> 라는 이름을 사용하여 기본 레지스트리인 <a href="https://crates.io/">crates.io</a> 를 재정의할 수 있습니다. 위의 예에서 첫 번째 <code>[patch]</code> 는 <a href="https://crates.io/">crates.io</a> 를 재정의하는 것을 보여주고, 두 번째 <code>[patch]</code> 는 git 소스를 재정의하는 것을 보여줍니다.</p>
+<p>이러한 테이블의 각 항목은 매니페스트의 <code>[dependencies]</code> 섹션에 있는 것과 동일한 일반적인 의존성 사양입니다. <code>[patch]</code> 섹션에 나열된 의존성들은 해결(resolve)되어 지정된 URL의 소스를 패치하는 데 사용됩니다. 위의 매니페스트 코드 조각은 <code>foo</code> 크레이트와 <code>bar</code> 크레이트로 <code>crates-io</code> 소스(예: crates.io 자체)를 패치합니다. 또한 <code>https://github.com/example/baz</code> 소스를 다른 곳에서 가져온 <code>my-branch</code> 로 패치합니다.</p>
 <p>소스는 존재하지 않는 버전의 크레이트로 패치될 수도 있고, 이미 존재하는 버전의 크레이트로 패치될 수도 있습니다. 소스에 이미 존재하는 크레이트 버전으로 패치하는 경우, 소스의 원래 크레이트가 대체됩니다.</p>
 <p>Cargo는 워크스페이스 루트의 <code>Cargo.toml</code> 매니페스트에 있는 패치 설정만 확인합니다. 의존성에 정의된 패치 설정은 무시됩니다.</p>
 <h2 id="replace-섹션"><a class="header" href="#replace-섹션"><code>[replace]</code> 섹션</a></h2>
 <blockquote>
-<p><strong>참고</strong>: <code>[replace]</code>는 사용 중단되었습니다. 대신 <a href="#the-patch-section"><code>[patch]</code></a> 테이블을 사용해야 합니다.</p>
+<p><strong>참고</strong>: <code>[replace]</code> 는 사용 중단되었습니다. 대신 <a href="#the-patch-section"><code>[patch]</code></a> 테이블을 사용해야 합니다.</p>
 </blockquote>
 <p>Cargo.toml의 이 섹션은 의존성을 다른 사본으로 재정의하는 데 사용될 수 있습니다. 구문은 <code>[dependencies]</code> 섹션과 유사합니다.</p>
 <pre><code class="language-toml">[replace]
 "foo:0.1.0" = { git = 'https://github.com/example/foo.git' }
 "bar:1.0.2" = { path = 'my/local/bar' }
 </code></pre>
-<p><code>[replace]</code> 테이블의 각 키는 <a href="pkgid-spec.html">패키지 ID 사양(package ID specification)</a>이며, 의존성 그래프에서 재정의할 노드를 임의로 선택할 수 있습니다(3부분으로 된 버전 번호가 필수입니다). 각 키의 값은 기능을 지정할 수 없다는 점을 제외하고는 의존성을 지정하는 <code>[dependencies]</code> 구문과 동일합니다. 크레이트가 재정의될 때 대체되는 사본은 이름과 버전이 모두 동일해야 하지만, 다른 소스(예: git 또는 로컬 경로)에서 가져올 수 있습니다.</p>
+<p><code>[replace]</code> 테이블의 각 키는 <a href="pkgid-spec.html">패키지 ID 사양(package ID specification)</a> 이며, 의존성 그래프에서 재정의할 노드를 임의로 선택할 수 있습니다(3부분으로 된 버전 번호가 필수입니다). 각 키의 값은 기능을 지정할 수 없다는 점을 제외하고는 의존성을 지정하는 <code>[dependencies]</code> 구문과 동일합니다. 크레이트가 재정의될 때 대체되는 사본은 이름과 버전이 모두 동일해야 하지만, 다른 소스(예: git 또는 로컬 경로)에서 가져올 수 있습니다.</p>
 <p>Cargo는 워크스페이스 루트의 <code>Cargo.toml</code> 매니페스트에 있는 replace 설정만 확인합니다. 의존성에 정의된 replace 설정은 무시됩니다.</p>
 <h2 id="paths-재정의"><a class="header" href="#paths-재정의"><code>paths</code> 재정의</a></h2>
-<p>때로는 크레이트에서 일시적으로만 작업하고 있어 위의 <code>[patch]</code> 섹션처럼 <code>Cargo.toml</code>을 수정하고 싶지 않을 때가 있습니다. 이 유스케이스를 위해 Cargo는 **경로 재정의(path overrides)**라는 훨씬 더 제한적인 형태의 재정의를 제공합니다.</p>
-<p>경로 재정의는 <code>Cargo.toml</code> 대신 <a href="config.html"><code>.cargo/config.toml</code></a>을 통해 지정됩니다. <code>.cargo/config.toml</code> 내부에 <code>paths</code>라는 키를 지정합니다.</p>
+<p>때로는 크레이트에서 일시적으로만 작업하고 있어 위의 <code>[patch]</code> 섹션처럼 <code>Cargo.toml</code> 을 수정하고 싶지 않을 때가 있습니다. 이 유스케이스를 위해 Cargo는 <strong>경로 재정의(path overrides)</strong> 라는 훨씬 더 제한적인 형태의 재정의를 제공합니다.</p>
+<p>경로 재정의는 <code>Cargo.toml</code> 대신 <a href="config.html"><code>.cargo/config.toml</code></a> 을 통해 지정됩니다. <code>.cargo/config.toml</code> 내부에 <code>paths</code> 라는 키를 지정합니다.</p>
 <pre><code class="language-toml">paths = ["/uuid/경로"]
 </code></pre>
-<p>이 배열은 <code>Cargo.toml</code>을 포함하는 디렉토리들로 채워져야 합니다. 이 예에서는 <code>uuid</code>만 추가하고 있으므로 해당 크레이트만 재정의됩니다. 이 경로는 절대 경로일 수도 있고 <code>.cargo</code> 폴더를 포함하는 디렉토리를 기준으로 한 상대 경로일 수도 있습니다.</p>
+<p>이 배열은 <code>Cargo.toml</code> 을 포함하는 디렉토리들로 채워져야 합니다. 이 예에서는 <code>uuid</code> 만 추가하고 있으므로 해당 크레이트만 재정의됩니다. 이 경로는 절대 경로일 수도 있고 <code>.cargo</code> 폴더를 포함하는 디렉토리를 기준으로 한 상대 경로일 수도 있습니다.</p>
 <p>Path overrides are more restricted than the <code>[patch]</code> section, however, in that they cannot change the structure of the dependency graph. When a path replacement is used then the previous set of dependencies must all match exactly to the new <code>Cargo.toml</code> specification. For example this means that path overrides cannot be used to test out adding a dependency to a crate. Instead, <code>[patch]</code> must be used in that situation. As a result, usage of a path override is typically isolated to quick bug fixes rather than larger changes.</p>
 <blockquote>
-<p><strong>참고</strong>: 경로를 재정의하기 위해 로컬 구성을 사용하는 것은 <a href="https://crates.io/">crates.io</a>에 게시된 크레이트에 대해서만 작동합니다. 이 기능을 사용하여 Cargo에 로컬의 게시되지 않은 크레이트를 찾는 방법을 알려줄 수는 없습니다.</p>
+<p><strong>참고</strong>: 경로를 재정의하기 위해 로컬 구성을 사용하는 것은 <a href="https://crates.io/">crates.io</a> 에 게시된 크레이트에 대해서만 작동합니다. 이 기능을 사용하여 Cargo에 로컬의 게시되지 않은 크레이트를 찾는 방법을 알려줄 수는 없습니다.</p>
 </blockquote>
 
                     </main>

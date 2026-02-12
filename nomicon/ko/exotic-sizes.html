@@ -233,7 +233,7 @@ struct MySuperSlice {
     data: [u8],
 }
 <span class="boring">}</span></code></pre></pre>
-<p>불행히도, 이러한 타입은 생성할 방법이 없다면 거의 무용지물입니다. 현재 사용자 정의 DST를 만드는 유일하게 제대로 지원되는 방법은 타입을 제네릭으로 만들고 _언사이징 강제 변환(unsizing coercion)_을 수행하는 것입니다.</p>
+<p>불행히도, 이러한 타입은 생성할 방법이 없다면 거의 무용지물입니다. 현재 사용자 정의 DST를 만드는 유일하게 제대로 지원되는 방법은 타입을 제네릭으로 만들고 <em>언사이징 강제 변환(unsizing coercion)</em> 을 수행하는 것입니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2024">struct MySuperSliceable&lt;T: ?Sized&gt; {
     info: u32,
     data: T,
@@ -265,8 +265,8 @@ struct LotsOfNothing {
 }
 <span class="boring">}</span></code></pre></pre>
 <p>크기가 0인 타입(ZSTs)은 그 자체로는 분명한 이유로 꽤 무용지물입니다. 하지만 러스트의 많은 기묘한 레이아웃 선택과 마찬가지로, 이들의 잠재력은 제네릭 문맥에서 실현됩니다. 러스트는 ZST를 생성하거나 저장하는 모든 작업이 무연산(no-op)으로 축소될 수 있음을 잘 알고 있습니다. 우선, 그것을 저장하는 것은 의미조차 없습니다. 공간을 전혀 차지하지 않기 때문입니다. 또한 해당 타입의 값은 단 하나뿐이므로, 그것을 로드하는 모든 작업은 그냥 허공(aether)에서 생성해낼 수 있습니다. 이 또한 공간을 차지하지 않으므로 무연산입니다.</p>
-<p>이것의 가장 극단적인 예 중 하나는 집합(Set)과 맵(Map)입니다. <code>Map&lt;Key, Value&gt;</code>가 주어졌을 때, <code>Set&lt;Key&gt;</code>를 단순히 <code>Map&lt;Key, UselessJunk&gt;</code>를 감싸는 얇은 래퍼로 구현하는 것이 일반적입니다. 많은 언어에서 이는 <code>UselessJunk</code>를 위한 공간을 할당하고, 그것을 저장하고 로드한 뒤 버리는 작업을 필요로 합니다. 이것이 불필요하다는 것을 증명하는 것은 컴파일러에게 어려운 분석일 것입니다.</p>
-<p>하지만 러스트에서는 단순히 <code>Set&lt;Key&gt; = Map&lt;Key, ()&gt;</code>라고 말할 수 있습니다. 이제 러스트는 모든 로드와 저장이 무의미하고 어떤 할당도 크기를 갖지 않는다는 것을 정적으로 압니다. 그 결과, 단형성화된 코드는 기본적으로 <code>HashMap</code>이 값을 지원하기 위해 가져야 하는 오버헤드가 전혀 없는 <code>HashSet</code>의 커스텀 구현체가 됩니다.</p>
+<p>이것의 가장 극단적인 예 중 하나는 집합(Set)과 맵(Map)입니다. <code>Map&lt;Key, Value&gt;</code> 가 주어졌을 때, <code>Set&lt;Key&gt;</code> 를 단순히 <code>Map&lt;Key, UselessJunk&gt;</code> 를 감싸는 얇은 래퍼로 구현하는 것이 일반적입니다. 많은 언어에서 이는 <code>UselessJunk</code> 를 위한 공간을 할당하고, 그것을 저장하고 로드한 뒤 버리는 작업을 필요로 합니다. 이것이 불필요하다는 것을 증명하는 것은 컴파일러에게 어려운 분석일 것입니다.</p>
+<p>하지만 러스트에서는 단순히 <code>Set&lt;Key&gt; = Map&lt;Key, ()&gt;</code> 라고 말할 수 있습니다. 이제 러스트는 모든 로드와 저장이 무의미하고 어떤 할당도 크기를 갖지 않는다는 것을 정적으로 압니다. 그 결과, 단형성화된 코드는 기본적으로 <code>HashMap</code> 이 값을 지원하기 위해 가져야 하는 오버헤드가 전혀 없는 <code>HashSet</code> 의 커스텀 구현체가 됩니다.</p>
 <p>안전한 코드는 ZST에 대해 걱정할 필요가 없지만, <em>안전하지 않은(unsafe)</em> 코드는 크기가 없는 타입의 결과에 주의해야 합니다. 특히, 포인터 오프셋은 무연산이며, 할당자는 일반적으로 <a href="../std/alloc/trait.GlobalAlloc.html#tymethod.alloc">0이 아닌 크기를 요구합니다</a>.</p>
 <p>Note that references to ZSTs (including empty slices), just like all other references, must be non-null and suitably aligned. However, loading or storing through a null pointer to a ZST is not <a href="what-unsafe-does.html">undefined behavior</a>, unlike pointers to other types.</p>
 <h2 id="빈-타입empty-types"><a class="header" href="#빈-타입empty-types">빈 타입(Empty Types)</a></h2>
@@ -275,8 +275,8 @@ struct LotsOfNothing {
 </span><span class="boring">fn main() {
 </span>enum Void {} // 변형 없음 = 비어 있음(EMPTY)
 <span class="boring">}</span></code></pre></pre>
-<p>빈 타입은 ZST보다 훨씬 더 미미한 존재입니다. 빈 타입을 사용하는 주된 동기 부여 사례는 타입 수준의 도달 불가능성(type-level unreachability)입니다. 예를 들어, 어떤 API가 일반적으로 <code>Result</code>를 반환해야 하지만, 특정한 경우에는 실제로는 절대 실패하지 않는(infallible) 상황을 가정해 봅시다. <code>Result&lt;T, Void&gt;</code>를 반환함으로써 이를 타입 수준에서 전달하는 것이 가능합니다. 이 API의 사용자는 이 값이 <code>Err</code>이 되는 것이 _정적으로 불가능_하다는 것을 알기 때문에 안심하고 <code>unwrap</code>할 수 있습니다. <code>Err</code>이 되려면 <code>Void</code> 타입의 값을 제공해야 하기 때문입니다.</p>
-<p>원칙적으로 러스트는 이 사실에 기반하여 흥미로운 분석과 최적화를 수행할 수 있습니다. 예를 들어, <code>Result&lt;T, Void&gt;</code>는 단순히 <code>T</code>로 표현되는데, 이는 <code>Err</code> 케이스가 실제로 존재하지 않기 때문입니다(엄밀히 말하면 이는 보장되지 않는 최적화일 뿐이므로, 예를 들어 하나를 다른 하나로 <code>transmute</code>하는 것은 여전히 정의되지 않은 동작입니다).</p>
+<p>빈 타입은 ZST보다 훨씬 더 미미한 존재입니다. 빈 타입을 사용하는 주된 동기 부여 사례는 타입 수준의 도달 불가능성(type-level unreachability)입니다. 예를 들어, 어떤 API가 일반적으로 <code>Result</code> 를 반환해야 하지만, 특정한 경우에는 실제로는 절대 실패하지 않는(infallible) 상황을 가정해 봅시다. <code>Result&lt;T, Void&gt;</code> 를 반환함으로써 이를 타입 수준에서 전달하는 것이 가능합니다. 이 API의 사용자는 이 값이 <code>Err</code> 이 되는 것이 <em>정적으로 불가능</em> 하다는 것을 알기 때문에 안심하고 <code>unwrap</code> 할 수 있습니다. <code>Err</code> 이 되려면 <code>Void</code> 타입의 값을 제공해야 하기 때문입니다.</p>
+<p>원칙적으로 러스트는 이 사실에 기반하여 흥미로운 분석과 최적화를 수행할 수 있습니다. 예를 들어, <code>Result&lt;T, Void&gt;</code> 는 단순히 <code>T</code> 로 표현되는데, 이는 <code>Err</code> 케이스가 실제로 존재하지 않기 때문입니다(엄밀히 말하면 이는 보장되지 않는 최적화일 뿐이므로, 예를 들어 하나를 다른 하나로 <code>transmute</code> 하는 것은 여전히 정의되지 않은 동작입니다).</p>
 <p>다음 코드도 컴파일됩니다:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -288,10 +288,10 @@ let res: Result&lt;u32, Void&gt; = Ok(0);
 let Ok(num) = res;
 <span class="boring">}</span></code></pre></pre>
 <p>빈 타입에 관한 한 가지 마지막 미묘한 세부 사항은 빈 타입에 대한 원시 포인터를 생성하는 것은 실제로 유효하지만, 이를 역참조하는 것은 말이 되지 않으므로 정의되지 않은 동작이라는 점입니다.</p>
-<p>C의 <code>void*</code> 타입을 <code>*const Void</code>로 모델링하는 것은 권장하지 않습니다. 많은 사람들이 그렇게 하기 시작했지만, 곧 문제에 봉착했습니다. 러스트는 unsafe 코드를 통해 빈 타입을 인스턴스화하려는 시도에 대해 별다른 안전 장치가 없으며, 그렇게 할 경우 정의되지 않은 동작이 발생하기 때문입니다. 특히 개발자들이 원시 포인터를 참조로 변환하는 습관이 있었는데, <code>&amp;Void</code>를 생성하는 것 <em>역시</em> 정의되지 않은 동작이라는 점이 문제가 되었습니다.</p>
+<p>C의 <code>void*</code> 타입을 <code>*const Void</code> 로 모델링하는 것은 권장하지 않습니다. 많은 사람들이 그렇게 하기 시작했지만, 곧 문제에 봉착했습니다. 러스트는 unsafe 코드를 통해 빈 타입을 인스턴스화하려는 시도에 대해 별다른 안전 장치가 없으며, 그렇게 할 경우 정의되지 않은 동작이 발생하기 때문입니다. 특히 개발자들이 원시 포인터를 참조로 변환하는 습관이 있었는데, <code>&amp;Void</code> 를 생성하는 것 <em>역시</em> 정의되지 않은 동작이라는 점이 문제가 되었습니다.</p>
 <p><code>*const ()</code>(또는 그와 동등한 타입)는 <code>void*</code> 용도로 꽤 잘 작동하며, 안전성 문제 없이 참조로 변환될 수 있습니다. 여전히 값을 읽거나 쓰려는 시도를 막지는 못하지만, 적어도 정의되지 않은 동작 대신 무연산으로 컴파일됩니다.</p>
 <h2 id="외부-타입extern-types"><a class="header" href="#외부-타입extern-types">외부 타입(Extern Types)</a></h2>
-<p>알 수 없는 크기를 가진 적절한 타입인 _외부 타입(extern types)_을 추가하자는 <a href="https://github.com/rust-lang/rfcs/blob/master/text/1861-extern-types.md">승인된 RFC</a>가 있습니다. 이는 러스트 개발자들이 C의 <code>void*</code> 및 기타 "선언되었으나 정의되지 않은" 타입들을 더 정확하게 모델링할 수 있게 해줄 것입니다. 하지만 러스트 2018 기준으로, <a href="https://github.com/rust-lang/rust/issues/43467">이 기능은 <code>size_of_val::&lt;MyExternType&gt;()</code>이 어떻게 작동해야 하는지에 대한 문제로 교착 상태에 빠져 있습니다</a>.</p>
+<p>알 수 없는 크기를 가진 적절한 타입인 <em>외부 타입(extern types)</em> 을 추가하자는 <a href="https://github.com/rust-lang/rfcs/blob/master/text/1861-extern-types.md">승인된 RFC</a> 가 있습니다. 이는 러스트 개발자들이 C의 <code>void*</code> 및 기타 "선언되었으나 정의되지 않은" 타입들을 더 정확하게 모델링할 수 있게 해줄 것입니다. 하지만 러스트 2018 기준으로, <a href="https://github.com/rust-lang/rust/issues/43467">이 기능은 <code>size_of_val::&lt;MyExternType&gt;()</code> 이 어떻게 작동해야 하는지에 대한 문제로 교착 상태에 빠져 있습니다</a>.</p>
 
                     </main>
 

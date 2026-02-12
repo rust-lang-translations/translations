@@ -256,9 +256,9 @@ fn main() -&gt; ! {
 fn timer() {
     unsafe { COUNTER = 0; }
 }</code></pre>
-<p>매초 타이머 인터럽트는 카운터를 0으로 재설정합니다. 한편, 메인 루프는 지속적으로 신호를 측정하고 낮음에서 높음으로의 변경을 감지하면 카운터를 증가시킵니다. <code>COUNTER</code>는 <code>static mut</code>이므로 <code>unsafe</code>를 사용하여 접근해야 했으며, 이는 컴파일러에게 정의되지 않은 동작을 유발하지 않겠다고 약속하는 것을 의미합니다. 경쟁 조건을 발견할 수 있습니까? <code>COUNTER</code>의 증가는 원자적이라고 보장되지 않습니다. 실제로 대부분의 임베디드 플랫폼에서는 로드, 증가, 저장으로 분할됩니다. 로드 후 저장 전에 인터럽트가 발생하면 인터럽트가 반환된 후 0으로 재설정하는 것이 무시되고 해당 기간 동안 두 배 많은 전환을 계산하게 됩니다.</p>
+<p>매초 타이머 인터럽트는 카운터를 0으로 재설정합니다. 한편, 메인 루프는 지속적으로 신호를 측정하고 낮음에서 높음으로의 변경을 감지하면 카운터를 증가시킵니다. <code>COUNTER</code> 는 <code>static mut</code> 이므로 <code>unsafe</code> 를 사용하여 접근해야 했으며, 이는 컴파일러에게 정의되지 않은 동작을 유발하지 않겠다고 약속하는 것을 의미합니다. 경쟁 조건을 발견할 수 있습니까? <code>COUNTER</code> 의 증가는 원자적이라고 보장되지 않습니다. 실제로 대부분의 임베디드 플랫폼에서는 로드, 증가, 저장으로 분할됩니다. 로드 후 저장 전에 인터럽트가 발생하면 인터럽트가 반환된 후 0으로 재설정하는 것이 무시되고 해당 기간 동안 두 배 많은 전환을 계산하게 됩니다.</p>
 <h2 id="임계-영역"><a class="header" href="#임계-영역">임계 영역</a></h2>
-<p>그렇다면 데이터 경쟁에 대해 무엇을 할 수 있을까요? 간단한 접근 방식은 인터럽트가 비활성화된 컨텍스트인 _임계 영역_을 사용하는 것입니다. <code>main</code>에서 <code>COUNTER</code>에 대한 접근을 임계 영역으로 래핑하면 <code>COUNTER</code> 증가가 끝날 때까지 타이머 인터럽트가 발생하지 않도록 할 수 있습니다:</p>
+<p>그렇다면 데이터 경쟁에 대해 무엇을 할 수 있을까요? 간단한 접근 방식은 인터럽트가 비활성화된 컨텍스트인 <em>임계 영역</em> 을 사용하는 것입니다. <code>main</code> 에서 <code>COUNTER</code> 에 대한 접근을 임계 영역으로 래핑하면 <code>COUNTER</code> 증가가 끝날 때까지 타이머 인터럽트가 발생하지 않도록 할 수 있습니다:</p>
 <pre><code class="language-rust ignore">static mut COUNTER: u32 = 0;
 
 #[entry]
@@ -281,13 +281,13 @@ fn main() -&gt; ! {
 fn timer() {
     unsafe { COUNTER = 0; }
 }</code></pre>
-<p>이 예에서는 <code>cortex_m::interrupt::free</code>를 사용하지만 다른 플랫폼에는 임계 영역에서 코드를 실행하기 위한 유사한 메커니즘이 있습니다. 이것은 또한 인터럽트를 비활성화하고 일부 코드를 실행한 다음 인터럽트를 다시 활성화하는 것과 동일합니다.</p>
+<p>이 예에서는 <code>cortex_m::interrupt::free</code> 를 사용하지만 다른 플랫폼에는 임계 영역에서 코드를 실행하기 위한 유사한 메커니즘이 있습니다. 이것은 또한 인터럽트를 비활성화하고 일부 코드를 실행한 다음 인터럽트를 다시 활성화하는 것과 동일합니다.</p>
 <p>두 가지 이유로 타이머 인터럽트 내부에 임계 영역을 넣을 필요가 없었습니다:</p>
 <ul>
-<li><code>COUNTER</code>에 0을 쓰는 것은 읽지 않기 때문에 경쟁의 영향을 받지 않습니다.</li>
+<li><code>COUNTER</code> 에 0을 쓰는 것은 읽지 않기 때문에 경쟁의 영향을 받지 않습니다.</li>
 <li>어쨌든 <code>main</code> 스레드에 의해 중단되지 않습니다.</li>
 </ul>
-<p><code>COUNTER</code>가 서로를 _선점_할 수 있는 여러 인터럽트 핸들러에 의해 공유되고 있었다면 각각 임계 영역이 필요할 수도 있습니다.<code>COUNTER</code>가 서로를 _선점_할 수 있는 여러 인터럽트 핸들러에 의해 공유되고 있었다면 각각 임계 영역이 필요할 수도 있습니다.</p>
+<p><code>COUNTER</code> 가 서로를 <em>선점</em> 할 수 있는 여러 인터럽트 핸들러에 의해 공유되고 있었다면 각각 임계 영역이 필요할 수도 있습니다.<code>COUNTER</code> 가 서로를 <em>선점</em> 할 수 있는 여러 인터럽트 핸들러에 의해 공유되고 있었다면 각각 임계 영역이 필요할 수도 있습니다.</p>
 <p>이것은 즉각적인 문제를 해결하지만, 여전히 신중하게 추론해야 하는 많은 안전하지 않은 코드를 작성해야 하며, 불필요하게 임계 영역을 사용하고 있을 수도 있습니다. 각 임계 영역은 일시적으로 인터럽트 처리를 일시 중지하므로 추가 코드 크기 및 더 높은 인터럽트 대기 시간 및 지터(인터럽트 처리에 더 오래 걸릴 수 있으며 처리될 때까지의 시간이 더 가변적임)와 관련된 비용이 발생합니다. 이것이 문제인지는 시스템에 따라 다르지만 일반적으로 피하는 것이 좋습니다.이것은 즉각적인 문제를 해결하지만, 여전히 신중하게 추론해야 하는 많은 안전하지 않은 코드를 작성해야 하며, 불필요하게 임계 영역을 사용하고 있을 수도 있습니다. 각 임계 영역은 일시적으로 인터럽트 처리를 일시 중지하므로 추가 코드 크기 및 더 높은 인터럽트 대기 시간 및 지터(인터럽트 처리에 더 오래 걸릴 수 있으며 처리될 때까지의 시간이 더 가변적임)와 관련된 비용이 발생합니다. 이것이 문제인지는 시스템에 따라 다르지만 일반적으로 피하는 것이 좋습니다.</p>
 <p>임계 영역이 인터럽트가 발생하지 않도록 보장하지만 다중 코어 시스템에서는 독점성을 보장하지 않는다는 점은 주목할 가치가 있습니다! 다른 코어는 인터럽트 없이도 코어와 동일한 메모리에 행복하게 접근할 수 있습니다. 다중 코어를 사용하는 경우 더 강력한 동기화 기본 요소가 필요합니다.임계 영역이 인터럽트가 발생하지 않도록 보장하지만 다중 코어 시스템에서는 독점성을 보장하지 않는다는 점은 주목할 가치가 있습니다! 다른 코어는 인터럽트 없이도 코어와 동일한 메모리에 행복하게 접근할 수 있습니다. 다중 코어를 사용하는 경우 더 강력한 동기화 기본 요소가 필요합니다.</p>
 <h2 id="원자적-접근"><a class="header" href="#원자적-접근">원자적 접근</a></h2>
@@ -303,7 +303,7 @@ fn main() -&gt; ! {
     loop {
         let state = read_signal_level();
         if state &amp;&amp; !last_state {
-            // `fetch_add`를 사용하여 COUNTER에 원자적으로 1을 더합니다
+            // `fetch_add` 를 사용하여 COUNTER에 원자적으로 1을 더합니다
             COUNTER.fetch_add(1, Ordering::Relaxed);
         }
         last_state = state;
@@ -312,12 +312,12 @@ fn main() -&gt; ! {
 
 #[interrupt]
 fn timer() {
-    // `store`를 사용하여 COUNTER에 직접 0을 씁니다
+    // `store` 를 사용하여 COUNTER에 직접 0을 씁니다
     COUNTER.store(0, Ordering::Relaxed)
 }</code></pre>
-<p>이번에는 <code>COUNTER</code>가 안전한 <code>static</code> 변수입니다. <code>AtomicUsize</code> 타입 덕분에 <code>COUNTER</code>는 인터럽트를 비활성화하지 않고도 인터럽트 핸들러와 메인 스레드 모두에서 안전하게 수정할 수 있습니다. 가능하면 이것이 더 나은 해결책이지만 플랫폼에서 지원되지 않을 수 있습니다.이번에는 <code>COUNTER</code>가 안전한 <code>static</code> 변수입니다. <code>AtomicUsize</code> 타입 덕분에 <code>COUNTER</code>는 인터럽트를 비활성화하지 않고도 인터럽트 핸들러와 메인 스레드 모두에서 안전하게 수정할 수 있습니다. 가능하면 이것이 더 나은 해결책이지만 플랫폼에서 지원되지 않을 수 있습니다.</p>
-<p><a href="https://doc.rust-lang.org/core/sync/atomic/enum.Ordering.html"><code>Ordering</code></a>에 대한 참고 사항: 이것은 컴파일러와 하드웨어가 명령을 재정렬하는 방식에 영향을 미치며 캐시 가시성에도 영향을 미칩니다. 대상이 단일 코어 플랫폼이라고 가정하면 이 특정 경우에 <code>Relaxed</code>가 충분하고 가장 효율적인 선택입니다. 더 엄격한 순서는 컴파일러가 원자적 작업 주위에 메모리 장벽을 내보내도록 합니다. 원자적 작업을 사용하는 목적에 따라 이것이 필요할 수도 있고 필요하지 않을 수도 있습니다! 원자적 모델의 정확한 세부 사항은 복잡하며 다른 곳에서 가장 잘 설명되어 있습니다.<a href="https://doc.rust-lang.org/core/sync/atomic/enum.Ordering.html"><code>Ordering</code></a>에 대한 참고 사항: 이것은 컴파일러와 하드웨어가 명령을 재정렬하는 방식에 영향을 미치며 캐시 가시성에도 영향을 미칩니다. 대상이 단일 코어 플랫폼이라고 가정하면 이 특정 경우에 <code>Relaxed</code>가 충분하고 가장 효율적인 선택입니다. 더 엄격한 순서는 컴파일러가 원자적 작업 주위에 메모리 장벽을 내보내도록 합니다. 원자적 작업을 사용하는 목적에 따라 이것이 필요할 수도 있고 필요하지 않을 수도 있습니다! 원자적 모델의 정확한 세부 사항은 복잡하며 다른 곳에서 가장 잘 설명되어 있습니다.</p>
-<p>원자성과 순서에 대한 자세한 내용은 <a href="https://doc.rust-lang.org/nomicon/atomics.html">노미콘</a>을 참조하십시오.</p>
+<p>이번에는 <code>COUNTER</code> 가 안전한 <code>static</code> 변수입니다. <code>AtomicUsize</code> 타입 덕분에 <code>COUNTER</code> 는 인터럽트를 비활성화하지 않고도 인터럽트 핸들러와 메인 스레드 모두에서 안전하게 수정할 수 있습니다. 가능하면 이것이 더 나은 해결책이지만 플랫폼에서 지원되지 않을 수 있습니다.이번에는 <code>COUNTER</code> 가 안전한 <code>static</code> 변수입니다. <code>AtomicUsize</code> 타입 덕분에 <code>COUNTER</code> 는 인터럽트를 비활성화하지 않고도 인터럽트 핸들러와 메인 스레드 모두에서 안전하게 수정할 수 있습니다. 가능하면 이것이 더 나은 해결책이지만 플랫폼에서 지원되지 않을 수 있습니다.</p>
+<p><a href="https://doc.rust-lang.org/core/sync/atomic/enum.Ordering.html"><code>Ordering</code></a> 에 대한 참고 사항: 이것은 컴파일러와 하드웨어가 명령을 재정렬하는 방식에 영향을 미치며 캐시 가시성에도 영향을 미칩니다. 대상이 단일 코어 플랫폼이라고 가정하면 이 특정 경우에 <code>Relaxed</code> 가 충분하고 가장 효율적인 선택입니다. 더 엄격한 순서는 컴파일러가 원자적 작업 주위에 메모리 장벽을 내보내도록 합니다. 원자적 작업을 사용하는 목적에 따라 이것이 필요할 수도 있고 필요하지 않을 수도 있습니다! 원자적 모델의 정확한 세부 사항은 복잡하며 다른 곳에서 가장 잘 설명되어 있습니다.<a href="https://doc.rust-lang.org/core/sync/atomic/enum.Ordering.html"><code>Ordering</code></a> 에 대한 참고 사항: 이것은 컴파일러와 하드웨어가 명령을 재정렬하는 방식에 영향을 미치며 캐시 가시성에도 영향을 미칩니다. 대상이 단일 코어 플랫폼이라고 가정하면 이 특정 경우에 <code>Relaxed</code> 가 충분하고 가장 효율적인 선택입니다. 더 엄격한 순서는 컴파일러가 원자적 작업 주위에 메모리 장벽을 내보내도록 합니다. 원자적 작업을 사용하는 목적에 따라 이것이 필요할 수도 있고 필요하지 않을 수도 있습니다! 원자적 모델의 정확한 세부 사항은 복잡하며 다른 곳에서 가장 잘 설명되어 있습니다.</p>
+<p>원자성과 순서에 대한 자세한 내용은 <a href="https://doc.rust-lang.org/nomicon/atomics.html">노미콘</a> 을 참조하십시오.</p>
 <h2 id="추상화-보내기-및-동기화"><a class="header" href="#추상화-보내기-및-동기화">추상화, 보내기 및 동기화</a></h2>
 <p>위의 해결책 중 어느 것도 특별히 만족스럽지 않습니다. 매우 신중하게 확인해야 하는 <code>unsafe</code> 블록이 필요하며 인체공학적이지 않습니다. 분명히 Rust에서는 더 잘할 수 있습니다!</p>
 <p>카운터를 코드의 다른 곳에서 안전하게 사용할 수 있는 안전한 인터페이스로 추상화할 수 있습니다. 이 예에서는 임계 영역 카운터를 사용하지만 원자적 연산으로 매우 유사한 작업을 수행할 수 있습니다.</p>
@@ -369,14 +369,14 @@ fn timer() {
     // let cs = unsafe { interrupt::CriticalSection::new() };
 }</code></pre>
 <p>우리는 <code>unsafe</code> 코드를 신중하게 계획된 추상화 내부로 옮겼고, 이제 애플리케이션 코드에는 <code>unsafe</code> 블록이 포함되지 않습니다.</p>
-<p>이 설계는 애플리케이션이 <code>CriticalSection</code> 토큰을 전달하도록 요구합니다. 이러한 토큰은 <code>interrupt::free</code>에 의해서만 안전하게 생성되므로, 하나를 전달하도록 요구함으로써 실제로 잠금을 수행하지 않고도 임계 영역 내에서 작동하고 있음을 보장합니다. 이 보장은 컴파일러에 의해 정적으로 제공됩니다. <code>cs</code>와 관련된 런타임 오버헤드는 없습니다. 여러 카운터가 있는 경우 여러 중첩된 임계 영역을 요구하지 않고도 모두 동일한 <code>cs</code>를 부여할 수 있습니다.</p>
+<p>이 설계는 애플리케이션이 <code>CriticalSection</code> 토큰을 전달하도록 요구합니다. 이러한 토큰은 <code>interrupt::free</code> 에 의해서만 안전하게 생성되므로, 하나를 전달하도록 요구함으로써 실제로 잠금을 수행하지 않고도 임계 영역 내에서 작동하고 있음을 보장합니다. 이 보장은 컴파일러에 의해 정적으로 제공됩니다. <code>cs</code> 와 관련된 런타임 오버헤드는 없습니다. 여러 카운터가 있는 경우 여러 중첩된 임계 영역을 요구하지 않고도 모두 동일한 <code>cs</code> 를 부여할 수 있습니다.</p>
 <p>이것은 또한 Rust의 동시성에 대한 중요한 주제인 <a href="https://doc.rust-lang.org/nomicon/send-and-sync.html"><code>Send</code> 및 <code>Sync</code></a> 특성을 제기합니다. Rust 책을 요약하면, 타입은 다른 스레드로 안전하게 이동할 수 있을 때 Send이고, 여러 스레드 간에 안전하게 공유할 수 있을 때 Sync입니다. 임베디드 컨텍스트에서 우리는 인터럽트가 애플리케이션 코드와 별도의 스레드에서 실행되는 것으로 간주하므로, 인터럽트와 메인 코드 모두에서 접근하는 변수는 Sync여야 합니다.</p>
-<p>Rust의 대부분의 타입에 대해 이 두 특성은 컴파일러에 의해 자동으로 파생됩니다. 그러나 <code>CSCounter</code>는 <a href="https://doc.rust-lang.org/core/cell/struct.UnsafeCell.html"><code>UnsafeCell</code></a>을 포함하므로 Sync가 아니므로 <code>static CSCounter</code>를 만들 수 없습니다. <code>static</code> 변수는 여러 스레드에서 접근할 수 있으므로 <em>반드시</em> Sync여야 합니다.</p>
-<p><code>CSCounter</code>가 실제로 스레드 간에 안전하게 공유되도록 처리했음을 컴파일러에 알리기 위해 Sync 특성을 명시적으로 구현합니다. 이전의 임계 영역 사용과 마찬가지로 이것은 단일 코어 플랫폼에서만 안전합니다. 다중 코어의 경우 안전을 보장하기 위해 더 많은 노력이 필요합니다.</p>
+<p>Rust의 대부분의 타입에 대해 이 두 특성은 컴파일러에 의해 자동으로 파생됩니다. 그러나 <code>CSCounter</code> 는 <a href="https://doc.rust-lang.org/core/cell/struct.UnsafeCell.html"><code>UnsafeCell</code></a> 을 포함하므로 Sync가 아니므로 <code>static CSCounter</code> 를 만들 수 없습니다. <code>static</code> 변수는 여러 스레드에서 접근할 수 있으므로 <em>반드시</em> Sync여야 합니다.</p>
+<p><code>CSCounter</code> 가 실제로 스레드 간에 안전하게 공유되도록 처리했음을 컴파일러에 알리기 위해 Sync 특성을 명시적으로 구현합니다. 이전의 임계 영역 사용과 마찬가지로 이것은 단일 코어 플랫폼에서만 안전합니다. 다중 코어의 경우 안전을 보장하기 위해 더 많은 노력이 필요합니다.</p>
 <h2 id="뮤텍스"><a class="header" href="#뮤텍스">뮤텍스</a></h2>
 <p>카운터 문제에 특정한 유용한 추상화를 만들었지만 동시성에 사용되는 일반적인 추상화가 많이 있습니다.</p>
 <p>One such <em>synchronisation primitive</em> is a mutex, short for mutual exclusion. These constructs ensure exclusive access to a variable, such as our counter. A thread can attempt to <em>lock</em> (or <em>acquire</em>) the mutex, and either succeeds immediately, or blocks waiting for the lock to be acquired, or returns an error that the mutex could not be locked. While that thread holds the lock, it is granted access to the protected data. When the thread is done, it <em>unlocks</em> (or <em>releases</em>) the mutex, allowing another thread to lock it. In Rust, we would usually implement the unlock using the <a href="https://doc.rust-lang.org/core/ops/trait.Drop.html"><code>Drop</code></a> trait to ensure it is always released when the mutex goes out of scope.</p>
-<p>인터럽트 핸들러와 함께 뮤텍스를 사용하는 것은 까다로울 수 있습니다. 인터럽트 핸들러가 차단되는 것은 일반적으로 허용되지 않으며, 메인 스레드가 잠금을 해제하기를 기다리며 차단되는 것은 특히 재앙적일 것입니다. 그러면 _교착 상태_가 발생하기 때문입니다(실행이 인터럽트 핸들러에 머물기 때문에 메인 스레드는 잠금을 절대 해제하지 않습니다). 교착 상태는 안전하지 않은 것으로 간주되지 않으며, 안전한 Rust에서도 가능합니다.</p>
+<p>인터럽트 핸들러와 함께 뮤텍스를 사용하는 것은 까다로울 수 있습니다. 인터럽트 핸들러가 차단되는 것은 일반적으로 허용되지 않으며, 메인 스레드가 잠금을 해제하기를 기다리며 차단되는 것은 특히 재앙적일 것입니다. 그러면 <em>교착 상태</em> 가 발생하기 때문입니다(실행이 인터럽트 핸들러에 머물기 때문에 메인 스레드는 잠금을 절대 해제하지 않습니다). 교착 상태는 안전하지 않은 것으로 간주되지 않으며, 안전한 Rust에서도 가능합니다.</p>
 <p>이러한 동작을 완전히 피하기 위해, 카운터 예제와 같이 잠그기 위해 임계 영역이 필요한 뮤텍스를 구현할 수 있습니다. 임계 영역이 잠금만큼 오래 지속되어야 하는 한, 뮤텍스의 잠금/잠금 해제 상태를 추적할 필요 없이 래핑된 변수에 대한 독점적인 접근 권한을 가질 수 있습니다.</p>
 <p>사실 이것은 <code>cortex_m</code> 크레이트에서 우리를 위해 수행됩니다! 우리는 그것을 사용하여 카운터를 작성할 수 있었습니다:</p>
 <pre><code class="language-rust ignore">use core::cell::Cell;
@@ -403,13 +403,13 @@ fn timer() {
     // 뮤텍스를 만족시키기 위해 여기에 임계 영역을 입력해야 합니다.
     interrupt::free(|cs| COUNTER.borrow(cs).set(0));
 }</code></pre>
-<p>이제 우리는 <a href="https://doc.rust-lang.org/core/cell/struct.Cell.html"><code>Cell</code></a>을 사용하고 있습니다. 이것은 형제인 <code>RefCell</code>과 함께 안전한 내부 가변성을 제공하는 데 사용됩니다. 우리는 이미 Rust의 내부 가변성의 가장 낮은 계층인 <code>UnsafeCell</code>을 보았습니다. 이것은 값에 대한 여러 개의 가변 참조를 얻을 수 있지만 안전하지 않은 코드로만 가능합니다. <code>Cell</code>은 <code>UnsafeCell</code>과 같지만 안전한 인터페이스를 제공합니다. 현재 값의 복사본을 가져오거나 교체하는 것만 허용하고 참조를 가져오는 것은 허용하지 않으며, Sync가 아니므로 스레드 간에 공유할 수 없습니다. 이러한 제약 조건은 사용하기에 안전하다는 것을 의미하지만, <code>static</code>은 Sync여야 하므로 <code>static</code> 변수에서 직접 사용할 수 없습니다.</p>
-<p>그렇다면 위의 예제는 왜 작동할까요? <code>Mutex&lt;T&gt;</code>는 <code>Cell</code>과 같이 Send인 모든 <code>T</code>에 대해 Sync를 구현합니다. 임계 영역 동안에만 내용에 대한 접근을 허용하기 때문에 안전하게 이 작업을 수행할 수 있습니다. 따라서 우리는 안전하지 않은 코드 없이 안전한 카운터를 얻을 수 있습니다!</p>
-<p>이것은 우리 카운터의 <code>u32</code>와 같은 간단한 타입에는 좋지만, 복사가 아닌 더 복잡한 타입은 어떻습니까? 임베디드 컨텍스트에서 매우 일반적인 예는 일반적으로 복사가 아닌 주변 장치 구조체입니다. 이를 위해 <code>RefCell</code>을 사용할 수 있습니다.</p>
+<p>이제 우리는 <a href="https://doc.rust-lang.org/core/cell/struct.Cell.html"><code>Cell</code></a> 을 사용하고 있습니다. 이것은 형제인 <code>RefCell</code> 과 함께 안전한 내부 가변성을 제공하는 데 사용됩니다. 우리는 이미 Rust의 내부 가변성의 가장 낮은 계층인 <code>UnsafeCell</code> 을 보았습니다. 이것은 값에 대한 여러 개의 가변 참조를 얻을 수 있지만 안전하지 않은 코드로만 가능합니다. <code>Cell</code> 은 <code>UnsafeCell</code> 과 같지만 안전한 인터페이스를 제공합니다. 현재 값의 복사본을 가져오거나 교체하는 것만 허용하고 참조를 가져오는 것은 허용하지 않으며, Sync가 아니므로 스레드 간에 공유할 수 없습니다. 이러한 제약 조건은 사용하기에 안전하다는 것을 의미하지만, <code>static</code> 은 Sync여야 하므로 <code>static</code> 변수에서 직접 사용할 수 없습니다.</p>
+<p>그렇다면 위의 예제는 왜 작동할까요? <code>Mutex&lt;T&gt;</code> 는 <code>Cell</code> 과 같이 Send인 모든 <code>T</code> 에 대해 Sync를 구현합니다. 임계 영역 동안에만 내용에 대한 접근을 허용하기 때문에 안전하게 이 작업을 수행할 수 있습니다. 따라서 우리는 안전하지 않은 코드 없이 안전한 카운터를 얻을 수 있습니다!</p>
+<p>이것은 우리 카운터의 <code>u32</code> 와 같은 간단한 타입에는 좋지만, 복사가 아닌 더 복잡한 타입은 어떻습니까? 임베디드 컨텍스트에서 매우 일반적인 예는 일반적으로 복사가 아닌 주변 장치 구조체입니다. 이를 위해 <code>RefCell</code> 을 사용할 수 있습니다.</p>
 <h2 id="주변-장치-공유"><a class="header" href="#주변-장치-공유">주변 장치 공유</a></h2>
 <p><code>svd2rust</code> 및 유사한 추상화를 사용하여 생성된 장치 크레이트는 한 번에 주변 장치 구조체의 인스턴스가 하나만 존재하도록 강제하여 주변 장치에 대한 안전한 접근을 제공합니다. 이것은 안전을 보장하지만 메인 스레드와 인터럽트 핸들러 모두에서 주변 장치에 접근하기 어렵게 만듭니다.</p>
-<p>주변 장치 접근을 안전하게 공유하기 위해 이전에 본 <code>Mutex</code>를 사용할 수 있습니다. 또한 한 번에 주변 장치에 대한 참조가 하나만 제공되도록 런타임 검사를 사용하는 <a href="https://doc.rust-lang.org/core/cell/struct.RefCell.html"><code>RefCell</code></a>을 사용해야 합니다. 이것은 일반 <code>Cell</code>보다 오버헤드가 더 많지만, 복사본이 아닌 참조를 제공하므로 한 번에 하나만 존재하는지 확인해야 합니다.</p>
-<p>마지막으로, 메인 코드에서 초기화된 후 주변 장치를 공유 변수로 이동하는 방법을 고려해야 합니다. 이를 위해 <code>Option</code> 타입을 사용할 수 있으며, <code>None</code>으로 초기화한 다음 나중에 주변 장치의 인스턴스로 설정합니다.</p>
+<p>주변 장치 접근을 안전하게 공유하기 위해 이전에 본 <code>Mutex</code> 를 사용할 수 있습니다. 또한 한 번에 주변 장치에 대한 참조가 하나만 제공되도록 런타임 검사를 사용하는 <a href="https://doc.rust-lang.org/core/cell/struct.RefCell.html"><code>RefCell</code></a> 을 사용해야 합니다. 이것은 일반 <code>Cell</code> 보다 오버헤드가 더 많지만, 복사본이 아닌 참조를 제공하므로 한 번에 하나만 존재하는지 확인해야 합니다.</p>
+<p>마지막으로, 메인 코드에서 초기화된 후 주변 장치를 공유 변수로 이동하는 방법을 고려해야 합니다. 이를 위해 <code>Option</code> 타입을 사용할 수 있으며, <code>None</code> 으로 초기화한 다음 나중에 주변 장치의 인스턴스로 설정합니다.</p>
 <pre><code class="language-rust ignore">use core::cell::RefCell;
 use cortex_m::interrupt::{self, Mutex};
 use stm32f4::stm32f405;
@@ -460,7 +460,7 @@ fn main() -&gt; ! {
 fn timer() {
     // 이번에는 인터럽트에서 PA0을 지우기만 하면 됩니다.
     interrupt::free(|cs| {
-        // 인터럽트가 MY_GPIO가 설정된 후에 활성화되지 않았다는 것을 알고 있으므로 `unwrap()`을 사용할 수 있습니다. 그렇지 않으면 None 값의 가능성을 처리해야 합니다.
+        // 인터럽트가 MY_GPIO가 설정된 후에 활성화되지 않았다는 것을 알고 있으므로 `unwrap()` 을 사용할 수 있습니다. 그렇지 않으면 None 값의 가능성을 처리해야 합니다.
         let gpioa = MY_GPIO.borrow(cs).borrow();
         gpioa.as_ref().unwrap().odr.modify(|_, w| w.odr1().clear_bit());
     });
@@ -468,16 +468,16 @@ fn timer() {
 <p>상당히 많은 내용이므로 중요한 부분을 분석해 보겠습니다.</p>
 <pre><code class="language-rust ignore">static MY_GPIO: Mutex&lt;RefCell&lt;Option&lt;stm32f405::GPIOA&gt;&gt;&gt; =
     Mutex::new(RefCell::new(None));</code></pre>
-<p>이제 공유 변수는 <code>Option</code>을 포함하는 <code>RefCell</code> 주위의 <code>Mutex</code>입니다. <code>Mutex</code>는 임계 영역 동안에만 접근할 수 있도록 보장하므로 일반 <code>RefCell</code>이 Sync가 아니더라도 변수를 Sync로 만듭니다. <code>RefCell</code>은 <code>GPIOA</code>를 사용하는 데 필요한 참조를 사용하여 내부 가변성을 제공합니다. <code>Option</code>을 사용하면 이 변수를 빈 값으로 초기화하고 나중에 실제로 변수를 이동할 수 있습니다. 주변 장치 싱글톤에 정적으로 접근할 수 없으며 런타임에만 접근할 수 있으므로 이것이 필요합니다.</p>
+<p>이제 공유 변수는 <code>Option</code> 을 포함하는 <code>RefCell</code> 주위의 <code>Mutex</code> 입니다. <code>Mutex</code> 는 임계 영역 동안에만 접근할 수 있도록 보장하므로 일반 <code>RefCell</code> 이 Sync가 아니더라도 변수를 Sync로 만듭니다. <code>RefCell</code> 은 <code>GPIOA</code> 를 사용하는 데 필요한 참조를 사용하여 내부 가변성을 제공합니다. <code>Option</code> 을 사용하면 이 변수를 빈 값으로 초기화하고 나중에 실제로 변수를 이동할 수 있습니다. 주변 장치 싱글톤에 정적으로 접근할 수 없으며 런타임에만 접근할 수 있으므로 이것이 필요합니다.</p>
 <pre><code class="language-rust ignore">interrupt::free(|cs| MY_GPIO.borrow(cs).replace(Some(dp.GPIOA)));</code></pre>
-<p>임계 영역 내에서 뮤텍스에 대해 <code>borrow()</code>를 호출할 수 있으며, 이는 <code>RefCell</code>에 대한 참조를 제공합니다. 그런 다음 <code>replace()</code>를 호출하여 새 값을 <code>RefCell</code>로 이동합니다.</p>
+<p>임계 영역 내에서 뮤텍스에 대해 <code>borrow()</code> 를 호출할 수 있으며, 이는 <code>RefCell</code> 에 대한 참조를 제공합니다. 그런 다음 <code>replace()</code> 를 호출하여 새 값을 <code>RefCell</code> 로 이동합니다.</p>
 <pre><code class="language-rust ignore">interrupt::free(|cs| {
     let gpioa = MY_GPIO.borrow(cs).borrow();
     gpioa.as_ref().unwrap().odr.modify(|_, w| w.odr1().set_bit());
 });</code></pre>
-<p>마지막으로, <code>MY_GPIO</code>를 안전하고 동시적인 방식으로 사용합니다. 임계 영역은 평소와 같이 인터럽트 발생을 방지하고 뮤텍스를 빌릴 수 있도록 합니다. 그런 다음 <code>RefCell</code>은 <code>&amp;Option&lt;GPIOA&gt;</code>를 제공하고 빌린 상태로 유지되는 기간을 추적합니다. 해당 참조가 범위를 벗어나면 <code>RefCell</code>은 더 이상 빌리지 않았음을 나타내도록 업데이트됩니다.</p>
-<p><code>GPIOA</code>를 <code>&amp;Option</code> 밖으로 이동할 수 없으므로 <code>as_ref()</code>를 사용하여 <code>&amp;Option&lt;&amp;GPIOA&gt;</code>로 변환해야 합니다. 마지막으로 <code>unwrap()</code>하여 주변 장치를 수정할 수 있는 <code>&amp;GPIOA</code>를 얻을 수 있습니다.</p>
-<p>공유 리소스에 대한 가변 참조가 필요한 경우 <code>borrow_mut</code> 및 <code>deref_mut</code>를 대신 사용해야 합니다. 다음 코드는 TIM2 타이머를 사용하는 예제를 보여줍니다.</p>
+<p>마지막으로, <code>MY_GPIO</code> 를 안전하고 동시적인 방식으로 사용합니다. 임계 영역은 평소와 같이 인터럽트 발생을 방지하고 뮤텍스를 빌릴 수 있도록 합니다. 그런 다음 <code>RefCell</code> 은 <code>&amp;Option&lt;GPIOA&gt;</code> 를 제공하고 빌린 상태로 유지되는 기간을 추적합니다. 해당 참조가 범위를 벗어나면 <code>RefCell</code> 은 더 이상 빌리지 않았음을 나타내도록 업데이트됩니다.</p>
+<p><code>GPIOA</code> 를 <code>&amp;Option</code> 밖으로 이동할 수 없으므로 <code>as_ref()</code> 를 사용하여 <code>&amp;Option&lt;&amp;GPIOA&gt;</code> 로 변환해야 합니다. 마지막으로 <code>unwrap()</code> 하여 주변 장치를 수정할 수 있는 <code>&amp;GPIOA</code> 를 얻을 수 있습니다.</p>
+<p>공유 리소스에 대한 가변 참조가 필요한 경우 <code>borrow_mut</code> 및 <code>deref_mut</code> 를 대신 사용해야 합니다. 다음 코드는 TIM2 타이머를 사용하는 예제를 보여줍니다.</p>
 <pre><code class="language-rust ignore">use core::cell::RefCell;
 use core::ops::DerefMut;
 use cortex_m::interrupt::{self, Mutex};
@@ -521,9 +521,9 @@ fn timer() {
 <p>휴! 이것은 안전하지만 다루기에는 약간 번거롭습니다. 우리가 할 수 있는 다른 일이 있을까요?</p>
 <h2 id="rtic"><a class="header" href="#rtic">RTIC</a></h2>
 <p>RTIC 프레임워크(실시간 인터럽트 기반 동시성의 약자)는 한 가지 대안입니다. 정적 우선순위를 적용하고 'static mut' 변수("리소스")에 대한 액세스를 추적하여 공유 리소스에 항상 안전하게 액세스할 수 있도록 정적으로 보장하며, 항상 임계 영역에 들어가고 참조 계산(예: 'RefCell')을 사용하는 오버헤드가 필요하지 않습니다. 이는 교착 상태가 없음을 보장하고 매우 낮은 시간 및 메모리 오버헤드를 제공하는 등 여러 가지 이점이 있습니다.</p>
-<p>이 프레임워크에는 명시적인 공유 상태의 필요성을 줄여주는 메시지 전달과 같은 다른 기능과 주어진 시간에 실행되도록 작업을 예약하는 기능이 포함되어 있어 주기적인 작업을 구현하는 데 사용할 수 있습니다. 자세한 내용은 <a href="https://rtic.rs">설명서</a>를 확인하십시오!</p>
+<p>이 프레임워크에는 명시적인 공유 상태의 필요성을 줄여주는 메시지 전달과 같은 다른 기능과 주어진 시간에 실행되도록 작업을 예약하는 기능이 포함되어 있어 주기적인 작업을 구현하는 데 사용할 수 있습니다. 자세한 내용은 <a href="https://rtic.rs">설명서</a> 를 확인하십시오!</p>
 <h2 id="실시간-운영-체제"><a class="header" href="#실시간-운영-체제">실시간 운영 체제</a></h2>
-<p>임베디드 동시성을 위한 또 다른 일반적인 모델은 실시간 운영 체제(RTOS)입니다. 현재 Rust에서는 잘 연구되지 않았지만 기존 임베디드 개발에서는 널리 사용됩니다. 오픈 소스 예로는 <a href="https://freertos.org/">FreeRTOS</a> 및 <a href="http://chibios.org/">ChibiOS</a>가 있습니다. 이러한 RTOS는 스레드가 제어를 양보할 때(협력적 멀티태스킹이라고 함) 또는 일반 타이머 또는 인터럽트(선점형 멀티태스킹)를 기반으로 CPU가 전환하는 여러 애플리케이션 스레드를 실행하기 위한 지원을 제공합니다. RTOS는 일반적으로 뮤텍스 및 기타 동기화 기본 요소를 제공하며 종종 DMA 엔진과 같은 하드웨어 기능과 상호 운용됩니다.</p>
+<p>임베디드 동시성을 위한 또 다른 일반적인 모델은 실시간 운영 체제(RTOS)입니다. 현재 Rust에서는 잘 연구되지 않았지만 기존 임베디드 개발에서는 널리 사용됩니다. 오픈 소스 예로는 <a href="https://freertos.org/">FreeRTOS</a> 및 <a href="http://chibios.org/">ChibiOS</a> 가 있습니다. 이러한 RTOS는 스레드가 제어를 양보할 때(협력적 멀티태스킹이라고 함) 또는 일반 타이머 또는 인터럽트(선점형 멀티태스킹)를 기반으로 CPU가 전환하는 여러 애플리케이션 스레드를 실행하기 위한 지원을 제공합니다. RTOS는 일반적으로 뮤텍스 및 기타 동기화 기본 요소를 제공하며 종종 DMA 엔진과 같은 하드웨어 기능과 상호 운용됩니다.</p>
 <p>이 글을 쓰는 시점에는 참고할 만한 Rust RTOS 예제가 많지 않지만 흥미로운 분야이므로 이 공간을 주목하십시오!</p>
 <h2 id="다중-코어"><a class="header" href="#다중-코어">다중 코어</a></h2>
 <p>임베디드 프로세서에 두 개 이상의 코어가 있는 것이 더 일반적이 되어 동시성에 복잡성을 한층 더 더합니다. 임계 영역을 사용하는 모든 예제(<code>cortex_m::interrupt::Mutex</code> 포함)는 유일한 다른 실행 스레드가 인터럽트 스레드라고 가정하지만 다중 코어 시스템에서는 더 이상 그렇지 않습니다. 대신 다중 코어용으로 설계된 동기화 기본 요소(대칭 다중 처리를 위해 SMP라고도 함)가 필요합니다.</p>

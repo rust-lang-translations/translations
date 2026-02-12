@@ -248,7 +248,7 @@ pub trait Future {
 <blockquote>
 <p>Note: It’s rare to need to call <code>poll</code> directly, but if you do need to, keep in mind that with most futures, the caller should not call <code>poll</code> again after the future has returned <code>Ready</code>. Many futures will panic if polled again after becoming ready. Futures that are safe to poll again will say so explicitly in their documentation. This is similar to how <code>Iterator::next</code> behaves.</p>
 </blockquote>
-<p><code>await</code>를 사용하는 코드를 보면, 러스트는 내부적으로 이를 <code>poll</code>을 호출하는 코드로 컴파일합니다. 단일 URL이 해소되었을 때 페이지 제목을 출력했던 목록 17-4를 다시 보면, 러스트는 이를 (정확히는 아니지만) 대략 다음과 같은 것으로 컴파일합니다.</p>
+<p><code>await</code> 를 사용하는 코드를 보면, 러스트는 내부적으로 이를 <code>poll</code> 을 호출하는 코드로 컴파일합니다. 단일 URL이 해소되었을 때 페이지 제목을 출력했던 목록 17-4를 다시 보면, 러스트는 이를 (정확히는 아니지만) 대략 다음과 같은 것으로 컴파일합니다.</p>
 <pre><code class="language-rust ignore">match page_title(url).poll() {
     Ready(page_title) =&gt; match page_title {
         Some(title) =&gt; println!("The title for {url} was {title}"),
@@ -273,7 +273,7 @@ loop {
 }</code></pre>
 <p>If Rust compiled it to exactly that code, though, every <code>await</code> would be blocking—exactly the opposite of what we were going for! Instead, Rust ensures that the loop can hand off control to something that can pause work on this future to work on other futures and then check this one again later. As we’ve seen, that something is an async runtime, and this scheduling and coordination work is one of its main jobs.</p>
 <p>In the <a href="ch17-02-concurrency-with-async.html#sending-data-between-two-tasks-using-message-passing">“Sending Data Between Two Tasks Using Message Passing”</a><!-- ignore --> section, we described waiting on <code>rx.recv</code>. The <code>recv</code> call returns a future, and awaiting the future polls it. We noted that a runtime will pause the future until it’s ready with either <code>Some(message)</code> or <code>None</code> when the channel closes. With our deeper understanding of the <code>Future</code> trait, and specifically <code>Future::poll</code>, we can see how that works. The runtime knows the future isn’t ready when it returns <code>Poll::Pending</code>. Conversely, the runtime knows the future <em>is</em> ready and advances it when <code>poll</code> returns <code>Poll::Ready(Some(message))</code> or <code>Poll::Ready(None)</code>.</p>
-<p>런타임이 이를 어떻게 수행하는지에 대한 정확한 세부 사항은 이 책의 범위를 벗어나지만, 핵심은 퓨처의 기본적인 메커니즘을 이해하는 것입니다. 런타임은 자신이 책임지는 각 퓨처를 _폴링(poll)_하며, 아직 준비되지 않았을 때는 퓨처를 다시 잠들게 합니다.</p>
+<p>런타임이 이를 어떻게 수행하는지에 대한 정확한 세부 사항은 이 책의 범위를 벗어나지만, 핵심은 퓨처의 기본적인 메커니즘을 이해하는 것입니다. 런타임은 자신이 책임지는 각 퓨처를 <em>폴링(poll)</em> 하며, 아직 준비되지 않았을 때는 퓨처를 다시 잠들게 합니다.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="pinning-and-the-pin-and-unpin-traits"></a> <a id="the-pin-and-unpin-traits"></a></p>
 <h3 id="the-pin-type-and-the-unpin-trait"><a class="header" href="#the-pin-type-and-the-unpin-trait">The <code>Pin</code> Type and the <code>Unpin</code> Trait</a></h3>
@@ -374,15 +374,15 @@ pub trait Future {
 <span class="boring">}</span></code></pre></pre>
 <p>The <code>cx</code> parameter and its <code>Context</code> type are the key to how a runtime actually knows when to check any given future while still being lazy. Again, the details of how that works are beyond the scope of this chapter, and you generally only need to think about this when writing a custom <code>Future</code> implementation. We’ll focus instead on the type for <code>self</code>, as this is the first time we’ve seen a method where <code>self</code> has a type annotation. A type annotation for <code>self</code> works like type annotations for other function parameters but with two key differences:</p>
 <ul>
-<li>메서드가 호출되기 위해 <code>self</code>가 어떤 타입이어야 하는지를 러스트에게 알려줍니다.</li>
-<li>단순히 아무 타입이나 될 수는 없습니다. 메서드가 구현된 타입, 그 타입에 대한 참조나 스마트 포인터, 또는 그 타입에 대한 참조를 감싸는 <code>Pin</code>으로 제한됩니다.</li>
+<li>메서드가 호출되기 위해 <code>self</code> 가 어떤 타입이어야 하는지를 러스트에게 알려줍니다.</li>
+<li>단순히 아무 타입이나 될 수는 없습니다. 메서드가 구현된 타입, 그 타입에 대한 참조나 스마트 포인터, 또는 그 타입에 대한 참조를 감싸는 <code>Pin</code> 으로 제한됩니다.</li>
 </ul>
-<p>이 문법에 대해서는 <a href="ch18-00-oop.html">18장</a><!-- ignore -->에서 더 자세히 보게 될 것입니다. 지금은 퓨처가 <code>Pending</code>인지 <code>Ready(Output)</code>인지 확인하기 위해 폴링하고 싶다면, 해당 타입에 대한 <code>Pin</code>으로 감싸인 가변 참조가 필요하다는 것만 알면 충분합니다.</p>
+<p>이 문법에 대해서는 <a href="ch18-00-oop.html">18장</a><!-- ignore -->에서 더 자세히 보게 될 것입니다. 지금은 퓨처가 <code>Pending</code> 인지 <code>Ready(Output)</code> 인지 확인하기 위해 폴링하고 싶다면, 해당 타입에 대한 <code>Pin</code> 으로 감싸인 가변 참조가 필요하다는 것만 알면 충분합니다.</p>
 <p><code>Pin</code> is a wrapper for pointer-like types such as <code>&amp;</code>, <code>&amp;mut</code>, <code>Box</code>, and <code>Rc</code>. (Technically, <code>Pin</code> works with types that implement the <code>Deref</code> or <code>DerefMut</code> traits, but this is effectively equivalent to working only with references and smart pointers.) <code>Pin</code> is not a pointer itself and doesn’t have any behavior of its own like <code>Rc</code> and <code>Arc</code> do with reference counting; it’s purely a tool the compiler can use to enforce constraints on pointer usage.</p>
-<p><code>await</code>가 <code>poll</code> 호출을 기반으로 구현된다는 점을 상기해 보면 아까 보았던 에러 메시지가 조금씩 이해되기 시작하지만, 그 에러는 <code>Pin</code>이 아니라 <code>Unpin</code>에 관한 것이었습니다. 그렇다면 정확히 <code>Pin</code>은 <code>Unpin</code>과 어떤 관계가 있으며, 왜 <code>Future</code>는 <code>poll</code>을 호출하기 위해 <code>self</code>가 <code>Pin</code> 타입 내에 있어야 할까요?</p>
+<p><code>await</code> 가 <code>poll</code> 호출을 기반으로 구현된다는 점을 상기해 보면 아까 보았던 에러 메시지가 조금씩 이해되기 시작하지만, 그 에러는 <code>Pin</code> 이 아니라 <code>Unpin</code> 에 관한 것이었습니다. 그렇다면 정확히 <code>Pin</code> 은 <code>Unpin</code> 과 어떤 관계가 있으며, 왜 <code>Future</code> 는 <code>poll</code> 을 호출하기 위해 <code>self</code> 가 <code>Pin</code> 타입 내에 있어야 할까요?</p>
 <p>Remember from earlier in this chapter that a series of await points in a future get compiled into a state machine, and the compiler makes sure that state machine follows all of Rust’s normal rules around safety, including borrowing and ownership. To make that work, Rust looks at what data is needed between one await point and either the next await point or the end of the async block. It then creates a corresponding variant in the compiled state machine. Each variant gets the access it needs to the data that will be used in that section of the source code, whether by taking ownership of that data or by getting a mutable or immutable reference to it.</p>
-<p>여기까지는 좋습니다. 주어진 비동기 블록 내의 소유권이나 참조에 잘못된 점이 있다면 대여 검사기가 알려줄 테니까요. 하지만 그 블록에 해당하는 퓨처를 이동시키고 싶을 때—예를 들어 <code>join_all</code>에 전달하기 위해 <code>Vec</code>에 넣는 경우—상황은 더 까다로워집니다.</p>
-<p>우리가 퓨처를 이동시킬 때—그것이 <code>join_all</code>에서 반복자로 사용하기 위해 데이터 구조에 밀어 넣는 것이든, 함수에서 반환하는 것이든—그것은 사실 러스트가 우리를 위해 만든 상태 머신을 이동시키는 것을 의미합니다. 그리고 러스트의 대부분의 다른 타입들과 달리, 비동기 블록을 위해 러스트가 만드는 퓨처들은 그림 17-4의 단순화된 삽화에서 보여주듯 주어진 변형의 필드에 자기 자신에 대한 참조를 가질 수 있게 됩니다.</p>
+<p>여기까지는 좋습니다. 주어진 비동기 블록 내의 소유권이나 참조에 잘못된 점이 있다면 대여 검사기가 알려줄 테니까요. 하지만 그 블록에 해당하는 퓨처를 이동시키고 싶을 때—예를 들어 <code>join_all</code> 에 전달하기 위해 <code>Vec</code> 에 넣는 경우—상황은 더 까다로워집니다.</p>
+<p>우리가 퓨처를 이동시킬 때—그것이 <code>join_all</code> 에서 반복자로 사용하기 위해 데이터 구조에 밀어 넣는 것이든, 함수에서 반환하는 것이든—그것은 사실 러스트가 우리를 위해 만든 상태 머신을 이동시키는 것을 의미합니다. 그리고 러스트의 대부분의 다른 타입들과 달리, 비동기 블록을 위해 러스트가 만드는 퓨처들은 그림 17-4의 단순화된 삽화에서 보여주듯 주어진 변형의 필드에 자기 자신에 대한 참조를 가질 수 있게 됩니다.</p>
 <figure>
 <img alt="A single-column, three-row table representing a future, fut1, which has data values 0 and 1 in the first two rows and an arrow pointing from the third row back to the second row, representing an internal reference within the future." src="img/trpl17-04.svg" class="center" />
 <figcaption>Figure 17-4: A self-referential data type</figcaption>
@@ -393,7 +393,7 @@ pub trait Future {
 <figcaption>Figure 17-5: The unsafe result of moving a self-referential data type</figcaption>
 </figure>
 <p>Theoretically, the Rust compiler could try to update every reference to an object whenever it gets moved, but that could add a lot of performance overhead, especially if a whole web of references needs updating. If we could instead make sure the data structure in question <em>doesn’t move in memory</em>, we wouldn’t have to update any references. This is exactly what Rust’s borrow checker is for: in safe code, it prevents you from moving any item with an active reference to it.</p>
-<p><code>Pin</code>은 이를 기반으로 우리에게 필요한 정확한 보장을 제공합니다. 어떤 값에 대한 포인터를 <code>Pin</code>으로 감싸서 그 값을 _피닝(pin)_하면, 그 값은 더 이상 이동할 수 없게 됩니다. 따라서 <code>Pin&lt;Box&lt;SomeType&gt;&gt;</code>을 가지고 있다면, 실제로는 <code>Box</code> 포인터가 아니라 <code>SomeType</code> 값을 피닝하는 것입니다. 그림 17-6이 이 과정을 보여줍니다.</p>
+<p><code>Pin</code> 은 이를 기반으로 우리에게 필요한 정확한 보장을 제공합니다. 어떤 값에 대한 포인터를 <code>Pin</code> 으로 감싸서 그 값을 <em>피닝(pin)</em> 하면, 그 값은 더 이상 이동할 수 없게 됩니다. 따라서 <code>Pin&lt;Box&lt;SomeType&gt;&gt;</code> 을 가지고 있다면, 실제로는 <code>Box</code> 포인터가 아니라 <code>SomeType</code> 값을 피닝하는 것입니다. 그림 17-6이 이 과정을 보여줍니다.</p>
 <figure>
 <img alt="Three boxes laid out side by side. The first is labeled “Pin”, the second “b1”, and the third “pinned”. Within “pinned” is a table labeled “fut”, with a single column; it represents a future with cells for each part of the data structure. Its first cell has the value “0”, its second cell has an arrow coming out of it and pointing to the fourth and final cell, which has the value “1” in it, and the third cell has dashed lines and an ellipsis to indicate there may be other parts to the data structure. All together, the “fut” table represents a future which is self-referential. An arrow leaves the box labeled “Pin”, goes through the box labeled “b1” and terminates inside the “pinned” box at the “fut” table." src="img/trpl17-06.svg" class="center" />
 <figcaption>Figure 17-6: Pinning a `Box` that points to a self-referential future type</figcaption>
@@ -404,15 +404,15 @@ pub trait Future {
 <figcaption>Figure 17-7: Moving a `Box` which points to a self-referential future type</figcaption>
 </figure>
 <p>However, most types are perfectly safe to move around, even if they happen to be behind a <code>Pin</code> pointer. We only need to think about pinning when items have internal references. Primitive values such as numbers and Booleans are safe because they obviously don’t have any internal references. Neither do most types you normally work with in Rust. You can move around a <code>Vec</code>, for example, without worrying. Given what we have seen so far, if you have a <code>Pin&lt;Vec&lt;String&gt;&gt;</code>, you’d have to do everything via the safe but restrictive APIs provided by <code>Pin</code>, even though a <code>Vec&lt;String&gt;</code> is always safe to move if there are no other references to it. We need a way to tell the compiler that it’s fine to move items around in cases like this—and that’s where <code>Unpin</code> comes into play.</p>
-<p><code>Unpin</code>은 16장에서 보았던 <code>Send</code>, <code>Sync</code> 트레이트와 유사한 마커 트레이트이며, 따라서 그 자체로는 아무런 기능이 없습니다. 마커 트레이트는 오직 특정 맥락에서 주어진 트레이트를 구현하는 타입을 사용하는 것이 안전하다고 컴파일러에게 알려주기 위해 존재합니다. <code>Unpin</code>은 주어진 타입이 해당 값이 안전하게 이동될 수 있는지에 대한 어떠한 보장도 유지할 필요가 없음을 컴파일러에게 알려줍니다.</p>
+<p><code>Unpin</code> 은 16장에서 보았던 <code>Send</code>, <code>Sync</code> 트레이트와 유사한 마커 트레이트이며, 따라서 그 자체로는 아무런 기능이 없습니다. 마커 트레이트는 오직 특정 맥락에서 주어진 트레이트를 구현하는 타입을 사용하는 것이 안전하다고 컴파일러에게 알려주기 위해 존재합니다. <code>Unpin</code> 은 주어진 타입이 해당 값이 안전하게 이동될 수 있는지에 대한 어떠한 보장도 유지할 필요가 없음을 컴파일러에게 알려줍니다.</p>
 <!--
   The inline `<code>` in the next block is to allow the inline `<em>` inside it,
   matching what NoStarch does style-wise, and emphasizing within the text here
   that it is something distinct from a normal type.
 -->
-<p><code>Send</code> 및 <code>Sync</code>와 마찬가지로, 컴파일러는 안전함이 증명된 모든 타입에 대해 <code>Unpin</code>을 자동으로 구현합니다. 역시 <code>Send</code> 및 <code>Sync</code>와 유사하게 <code>Unpin</code>이 구현되지 <em>않는</em> 특별한 경우는 <code>impl !Unpin for <em>SomeType</em></code>으로 표기하며, 여기서 <code><em>SomeType</em></code>은 해당 타입에 대한 포인터가 <code>Pin</code> 내에서 사용될 때마다 안전을 위해 그러한 보장을 유지해야 <em>하는</em> 타입의 이름입니다.</p>
-<p>다시 말해, <code>Pin</code>과 <code>Unpin</code>의 관계에 대해 두 가지를 명심해야 합니다. 첫째, <code>Unpin</code>이 "일반적인" 경우이고 <code>!Unpin</code>이 특별한 경우입니다. 둘째, 어떤 타입이 <code>Unpin</code>을 구현하는지 혹은 <code>!Unpin</code>을 구현하는지는 오직 여러분이 <code>Pin&lt;&amp;mut <em>SomeType</em>&gt;</code>과 같이 해당 타입에 대한 피닝된 포인터를 사용할 때만 중요합니다.</p>
-<p>이를 구체화하기 위해 <code>String</code>을 생각해 봅시다. <code>String</code>은 길이와 그것을 구성하는 유니코드 캐릭터들을 가지고 있습니다. 그림 17-8에서 보듯 <code>String</code>을 <code>Pin</code>으로 감쌀 수 있습니다. 하지만 <code>String</code>은 러스트의 대부분의 다른 타입들과 마찬가지로 자동으로 <code>Unpin</code>을 구현합니다.</p>
+<p><code>Send</code> 및 <code>Sync</code> 와 마찬가지로, 컴파일러는 안전함이 증명된 모든 타입에 대해 <code>Unpin</code> 을 자동으로 구현합니다. 역시 <code>Send</code> 및 <code>Sync</code> 와 유사하게 <code>Unpin</code> 이 구현되지 <em>않는</em> 특별한 경우는 <code>impl !Unpin for <em>SomeType</em></code>으로 표기하며, 여기서 <code><em>SomeType</em></code>은 해당 타입에 대한 포인터가 <code>Pin</code> 내에서 사용될 때마다 안전을 위해 그러한 보장을 유지해야 <em>하는</em> 타입의 이름입니다.</p>
+<p>다시 말해, <code>Pin</code> 과 <code>Unpin</code> 의 관계에 대해 두 가지를 명심해야 합니다. 첫째, <code>Unpin</code> 이 "일반적인" 경우이고 <code>!Unpin</code> 이 특별한 경우입니다. 둘째, 어떤 타입이 <code>Unpin</code> 을 구현하는지 혹은 <code>!Unpin</code> 을 구현하는지는 오직 여러분이 <code>Pin&lt;&amp;mut <em>SomeType</em>&gt;</code>과 같이 해당 타입에 대한 피닝된 포인터를 사용할 때만 중요합니다.</p>
+<p>이를 구체화하기 위해 <code>String</code> 을 생각해 봅시다. <code>String</code> 은 길이와 그것을 구성하는 유니코드 캐릭터들을 가지고 있습니다. 그림 17-8에서 보듯 <code>String</code> 을 <code>Pin</code> 으로 감쌀 수 있습니다. 하지만 <code>String</code> 은 러스트의 대부분의 다른 타입들과 마찬가지로 자동으로 <code>Unpin</code> 을 구현합니다.</p>
 <figure>
 <img alt="A box labeled “Pin” on the left with an arrow going from it to a box labeled “String” on the right. The “String” box contains the data 5usize, representing the length of the string, and the letters “h”, “e”, “l”, “l”, and “o” representing the characters of the string “hello” stored in this String instance. A dotted rectangle surrounds the “String” box and its label, but not the “Pin” box." src="img/trpl17-08.svg" class="center" />
 <figcaption>Figure 17-8: Pinning a `String`; the dotted line indicates that the `String` implements the `Unpin` trait and thus is not pinned</figcaption>
@@ -482,15 +482,15 @@ pub trait Future {
 </span><span class="boring">}</span></code></pre></pre>
 </Listing>
 <p>This example now compiles and runs, and we could add or remove futures from the vector at runtime and join them all.</p>
-<p><code>Pin</code>과 <code>Unpin</code>은 일상적인 러스트 코드보다는 주로 저수준 라이브러리를 구축하거나 런타임 자체를 만들 때 중요합니다. 하지만 이제 에러 메시지에서 이러한 트레이트들을 보게 된다면, 코드를 어떻게 고쳐야 할지 더 잘 알게 되실 겁니다!</p>
+<p><code>Pin</code> 과 <code>Unpin</code> 은 일상적인 러스트 코드보다는 주로 저수준 라이브러리를 구축하거나 런타임 자체를 만들 때 중요합니다. 하지만 이제 에러 메시지에서 이러한 트레이트들을 보게 된다면, 코드를 어떻게 고쳐야 할지 더 잘 알게 되실 겁니다!</p>
 <blockquote>
-<p>참고: <code>Pin</code>과 <code>Unpin</code>의 조합은 자기 참조형(self-referential)이라서 구현하기 까다로웠을 일련의 복잡한 타입들을 러스트에서 안전하게 구현할 수 있게 해줍니다. 오늘날 비동기 러스트에서 <code>Pin</code>을 필요로 하는 타입들이 가장 흔히 나타나지만, 가끔씩 다른 맥락에서도 이들을 볼 수 있습니다.</p>
-<p><code>Pin</code>과 <code>Unpin</code>이 어떻게 작동하는지, 그리고 이들이 지켜야 하는 규칙들에 대해서는 <code>std::pin</code>의 API 문서에서 광범위하게 다루고 있습니다. 더 자세히 알고 싶다면 그곳이 좋은 출발점이 될 것입니다.</p>
+<p>참고: <code>Pin</code> 과 <code>Unpin</code> 의 조합은 자기 참조형(self-referential)이라서 구현하기 까다로웠을 일련의 복잡한 타입들을 러스트에서 안전하게 구현할 수 있게 해줍니다. 오늘날 비동기 러스트에서 <code>Pin</code> 을 필요로 하는 타입들이 가장 흔히 나타나지만, 가끔씩 다른 맥락에서도 이들을 볼 수 있습니다.</p>
+<p><code>Pin</code> 과 <code>Unpin</code> 이 어떻게 작동하는지, 그리고 이들이 지켜야 하는 규칙들에 대해서는 <code>std::pin</code> 의 API 문서에서 광범위하게 다루고 있습니다. 더 자세히 알고 싶다면 그곳이 좋은 출발점이 될 것입니다.</p>
 <p>If you want to understand how things work under the hood in even more detail, see Chapters <a href="https://rust-lang.github.io/async-book/02_execution/01_chapter.html">2</a><!-- ignore --> and <a href="https://rust-lang.github.io/async-book/04_pinning/01_chapter.html">4</a><!-- ignore --> of <a href="https://rust-lang.github.io/async-book/"><em>Asynchronous Programming in Rust</em></a>.</p>
 </blockquote>
 <h3 id="stream-트레이트"><a class="header" href="#stream-트레이트"><code>Stream</code> 트레이트</a></h3>
-<p>이제 <code>Future</code>, <code>Pin</code>, <code>Unpin</code> 트레이트에 대해 더 깊이 이해했으니, <code>Stream</code> 트레이트로 관심을 돌려봅시다. 이 장의 앞부분에서 배웠듯이, 스트림은 비동기 반복자와 비슷합니다. 하지만 <code>Iterator</code>나 <code>Future</code>와 달리, 이 글을 쓰는 시점에 <code>Stream</code>은 표준 라이브러리에 정의되어 있지 않습니다. 대신 생태계 전반에서 사용되는 <code>futures</code> 크레이트의 매우 공통적인 정의가 존재합니다.</p>
-<p><code>Stream</code> 트레이트가 이들을 어떻게 병합하는지 살펴보기 전에, <code>Iterator</code>와 <code>Future</code> 트레이트의 정의를 복습해 봅시다. <code>Iterator</code>로부터는 순차열(sequence)의 개념을 얻습니다. 그것의 <code>next</code> 메서드는 <code>Option&lt;Self::Item&gt;</code>을 제공하죠. <code>Future</code>로부터는 시간에 따른 준비성(readiness)의 개념을 얻습니다. 그것의 <code>poll</code> 메서드는 <code>Poll&lt;Self::Output&gt;</code>을 제공합니다. 시간이 지남에 따라 준비되는 일련의 항목들을 표현하기 위해, 우리는 이 기능들을 하나로 합친 <code>Stream</code> 트레이트를 정의합니다.</p>
+<p>이제 <code>Future</code>, <code>Pin</code>, <code>Unpin</code> 트레이트에 대해 더 깊이 이해했으니, <code>Stream</code> 트레이트로 관심을 돌려봅시다. 이 장의 앞부분에서 배웠듯이, 스트림은 비동기 반복자와 비슷합니다. 하지만 <code>Iterator</code> 나 <code>Future</code> 와 달리, 이 글을 쓰는 시점에 <code>Stream</code> 은 표준 라이브러리에 정의되어 있지 않습니다. 대신 생태계 전반에서 사용되는 <code>futures</code> 크레이트의 매우 공통적인 정의가 존재합니다.</p>
+<p><code>Stream</code> 트레이트가 이들을 어떻게 병합하는지 살펴보기 전에, <code>Iterator</code> 와 <code>Future</code> 트레이트의 정의를 복습해 봅시다. <code>Iterator</code> 로부터는 순차열(sequence)의 개념을 얻습니다. 그것의 <code>next</code> 메서드는 <code>Option&lt;Self::Item&gt;</code> 을 제공하죠. <code>Future</code> 로부터는 시간에 따른 준비성(readiness)의 개념을 얻습니다. 그것의 <code>poll</code> 메서드는 <code>Poll&lt;Self::Output&gt;</code> 을 제공합니다. 시간이 지남에 따라 준비되는 일련의 항목들을 표현하기 위해, 우리는 이 기능들을 하나로 합친 <code>Stream</code> 트레이트를 정의합니다.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::pin::Pin;
@@ -505,8 +505,8 @@ trait Stream {
     ) -&gt; Poll&lt;Option&lt;Self::Item&gt;&gt;;
 }
 <span class="boring">}</span></code></pre></pre>
-<p><code>Stream</code> 트레이트는 스트림에 의해 생성되는 항목들의 타입을 위해 <code>Item</code>이라는 연관 타입을 정의합니다. 이는 0개에서 여러 개의 항목이 있을 수 있는 <code>Iterator</code>와 비슷하며, 항상 단일 <code>Output</code>(설령 그것이 유닛 타입 <code>()</code>일지라도)을 가지는 <code>Future</code>와는 다릅니다.</p>
-<p><code>Stream</code>은 또한 그 항목들을 가져오기 위한 메서드를 정의합니다. 우리는 이를 <code>poll_next</code>라고 부르는데, 이는 <code>Future::poll</code>과 같은 방식으로 폴링하고 <code>Iterator::next</code>와 같은 방식으로 일련의 항목을 생성한다는 것을 명확히 하기 위해서입니다. 그것의 반환 타입은 <code>Poll</code>과 <code>Option</code>을 결합한 것입니다. 퓨처와 마찬가지로 준비 상태를 확인해야 하므로 바깥쪽 타입은 <code>Poll</code>입니다. 안쪽 타입은 반복자와 마찬가지로 더 이상의 메시지가 있는지 알려주어야 하므로 <code>Option</code>입니다.</p>
+<p><code>Stream</code> 트레이트는 스트림에 의해 생성되는 항목들의 타입을 위해 <code>Item</code> 이라는 연관 타입을 정의합니다. 이는 0개에서 여러 개의 항목이 있을 수 있는 <code>Iterator</code> 와 비슷하며, 항상 단일 <code>Output</code>(설령 그것이 유닛 타입 <code>()</code> 일지라도)을 가지는 <code>Future</code> 와는 다릅니다.</p>
+<p><code>Stream</code> 은 또한 그 항목들을 가져오기 위한 메서드를 정의합니다. 우리는 이를 <code>poll_next</code> 라고 부르는데, 이는 <code>Future::poll</code> 과 같은 방식으로 폴링하고 <code>Iterator::next</code> 와 같은 방식으로 일련의 항목을 생성한다는 것을 명확히 하기 위해서입니다. 그것의 반환 타입은 <code>Poll</code> 과 <code>Option</code> 을 결합한 것입니다. 퓨처와 마찬가지로 준비 상태를 확인해야 하므로 바깥쪽 타입은 <code>Poll</code> 입니다. 안쪽 타입은 반복자와 마찬가지로 더 이상의 메시지가 있는지 알려주어야 하므로 <code>Option</code> 입니다.</p>
 <p>이 정의와 매우 유사한 것이 조만간 러스트 표준 라이브러리의 일부가 될 가능성이 높습니다. 그 전까지는 대부분의 런타임이 제공하는 도구의 일부이므로 안심하고 사용하셔도 되며, 우리가 다음에 다룰 모든 내용은 일반적으로 동일하게 적용될 것입니다!</p>
 <p>In the examples we saw in the <a href="ch17-04-streams.html">“Streams: Futures in Sequence”</a><!--
 ignore --> section, though, we didn’t use <code>poll_next</code> <em>or</em> <code>Stream</code>, but instead used <code>next</code> and <code>StreamExt</code>. We <em>could</em> work directly in terms of the <code>poll_next</code> API by hand-writing our own <code>Stream</code> state machines, of course, just as we <em>could</em> work with futures directly via their <code>poll</code> method. Using <code>await</code> is much nicer, though, and the <code>StreamExt</code> trait supplies the <code>next</code> method so we can do just that:</p>
@@ -538,10 +538,10 @@ in traits, since the lack thereof is the reason they do not yet have this.
 <blockquote>
 <p>참고: 이 장 앞부분에서 사용했던 실제 정의는 이와 약간 다르게 생겼는데, 이는 아직 트레이트에서 비동기 함수 사용을 지원하지 않던 러스트 버전들을 지원하기 위해서입니다. 그 결과, 다음과 같은 모습을 띠게 됩니다.</p>
 <pre><code class="language-rust ignore">fn next(&amp;mut self) -&gt; Next&lt;'_, Self&gt; where Self: Unpin;</code></pre>
-<p>저 <code>Next</code> 타입은 <code>Future</code>를 구현하는 <code>struct</code>이며, 우리가 <code>Next&lt;'_, Self&gt;</code>를 통해 <code>self</code>에 대한 참조의 라이프타임을 명명할 수 있게 해주어 <code>await</code>가 이 메서드와 함께 작동할 수 있도록 합니다.</p>
+<p>저 <code>Next</code> 타입은 <code>Future</code> 를 구현하는 <code>struct</code> 이며, 우리가 <code>Next&lt;'_, Self&gt;</code> 를 통해 <code>self</code> 에 대한 참조의 라이프타임을 명명할 수 있게 해주어 <code>await</code> 가 이 메서드와 함께 작동할 수 있도록 합니다.</p>
 </blockquote>
-<p><code>StreamExt</code> 트레이트는 스트림과 함께 사용할 수 있는 모든 흥미로운 메서드들이 모여 있는 곳이기도 합니다. <code>StreamExt</code>는 <code>Stream</code>을 구현하는 모든 타입에 대해 자동으로 구현되지만, 커뮤니티가 기초가 되는 트레이트에 영향을 주지 않으면서 편의용 API들을 발전시킬 수 있도록 이 트레이트들은 별도로 정의되어 있습니다.</p>
-<p><code>trpl</code> 크레이트에서 사용되는 <code>StreamExt</code> 버전에서는, 이 트레이트가 <code>next</code> 메서드를 정의할 뿐만 아니라 <code>Stream::poll_next</code>를 호출하는 세부 사항을 올바르게 처리하는 <code>next</code>의 기본 구현도 제공합니다. 즉, 여러분이 자신만의 스트리밍 데이터 타입을 작성해야 할 때라도 <code>Stream</code>만 구현하면 되며, 그러면 여러분의 데이터 타입을 사용하는 누구라도 자동으로 <code>StreamExt</code>와 그 메서드들을 사용할 수 있게 됩니다.</p>
+<p><code>StreamExt</code> 트레이트는 스트림과 함께 사용할 수 있는 모든 흥미로운 메서드들이 모여 있는 곳이기도 합니다. <code>StreamExt</code> 는 <code>Stream</code> 을 구현하는 모든 타입에 대해 자동으로 구현되지만, 커뮤니티가 기초가 되는 트레이트에 영향을 주지 않으면서 편의용 API들을 발전시킬 수 있도록 이 트레이트들은 별도로 정의되어 있습니다.</p>
+<p><code>trpl</code> 크레이트에서 사용되는 <code>StreamExt</code> 버전에서는, 이 트레이트가 <code>next</code> 메서드를 정의할 뿐만 아니라 <code>Stream::poll_next</code> 를 호출하는 세부 사항을 올바르게 처리하는 <code>next</code> 의 기본 구현도 제공합니다. 즉, 여러분이 자신만의 스트리밍 데이터 타입을 작성해야 할 때라도 <code>Stream</code> 만 구현하면 되며, 그러면 여러분의 데이터 타입을 사용하는 누구라도 자동으로 <code>StreamExt</code> 와 그 메서드들을 사용할 수 있게 됩니다.</p>
 <p>이 트레이트들의 저수준 세부 사항에 대해 다룰 내용은 이것이 전부입니다. 마무리하면서, (스트림을 포함한) 퓨처, 태스크, 그리고 스레드가 모두 어떻게 함께 어우러지는지 생각해 봅시다!</p>
 
                     </main>

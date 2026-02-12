@@ -214,8 +214,8 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="예외-안전성"><a class="header" href="#예외-안전성">예외 안전성</a></h1>
-<p>프로그램이 언와인딩을 가급적 자제해야 하긴 하지만, 패닉이 <em>발생할 수 있는</em> 코드는 매우 많습니다. <code>None</code>을 언랩하거나, 범위를 벗어난 인덱스에 접근하거나, 0으로 나누면 프로그램은 패닉을 일으킵니다. 디버그 빌드에서는 모든 산술 연산이 오버플로 시 패닉을 일으킬 수 있습니다. 매우 주의를 기울여 실행되는 코드를 엄격하게 통제하지 않는 한, 거의 모든 것이 언와인드될 수 있으며 이에 대비해야 합니다.</p>
-<p>언와인딩에 대비하는 것을 프로그래밍 일반에서는 흔히 _예외 안전성(exception safety)_이라고 부릅니다. 러스트에서는 고려해야 할 두 가지 수준의 예외 안전성이 있습니다:</p>
+<p>프로그램이 언와인딩을 가급적 자제해야 하긴 하지만, 패닉이 <em>발생할 수 있는</em> 코드는 매우 많습니다. <code>None</code> 을 언랩하거나, 범위를 벗어난 인덱스에 접근하거나, 0으로 나누면 프로그램은 패닉을 일으킵니다. 디버그 빌드에서는 모든 산술 연산이 오버플로 시 패닉을 일으킬 수 있습니다. 매우 주의를 기울여 실행되는 코드를 엄격하게 통제하지 않는 한, 거의 모든 것이 언와인드될 수 있으며 이에 대비해야 합니다.</p>
+<p>언와인딩에 대비하는 것을 프로그래밍 일반에서는 흔히 <em>예외 안전성(exception safety)</em> 이라고 부릅니다. 러스트에서는 고려해야 할 두 가지 수준의 예외 안전성이 있습니다:</p>
 <ul>
 <li>
 <p>비안전한(unsafe) 코드에서, 우리는 메모리 안전성을 위반하지 않을 정도의 예외 안전성을 <em>반드시</em> 확보해야 합니다. 이를 <em>최소한의(minimal)</em> 예외 안전성이라고 부르겠습니다.</p>
@@ -227,7 +227,7 @@
 <p>러스트의 많은 부분이 그렇듯, 비안전한(Unsafe) 코드는 언와인딩과 관련하여 잘못된 안전한(Safe) 코드를 다룰 준비가 되어 있어야 합니다. 일시적으로 불건전한 상태를 만드는 코드는 패닉이 발생했을 때 그 상태가 사용되지 않도록 주의해야 합니다. 일반적으로 이는 불건전한 상태가 존재하는 동안에는 패닉이 발생하지 않는 코드만 실행되도록 하거나, 패닉 발생 시 상태를 정리하는 가드(guard)를 만드는 것을 의미합니다. 이것이 패닉이 관찰하는 상태가 반드시 완전히 일관된 상태여야 함을 의미하지는 않습니다. 그저 <em>안전한(safe)</em> 상태임만 보장하면 됩니다.</p>
 <p>대부분의 비안전한 코드는 말단(leaf) 함수에 해당하므로 예외 안전성을 확보하기가 비교적 쉽습니다. 실행되는 모든 코드를 제어하며, 그 코드의 대부분은 패닉을 일으키지 않기 때문입니다. 하지만 비안전한 코드가 일시적으로 초기화되지 않은 데이터 배열을 다루면서 호출자가 제공한 코드를 반복적으로 호출하는 일은 드물지 않습니다. 이러한 코드는 예외 안전성을 신중하게 고려해야 합니다.</p>
 <h2 id="vecpush_all"><a class="header" href="#vecpush_all">Vec::push_all</a></h2>
-<p><code>Vec::push_all</code>은 전문화(specialization) 없이도 슬라이스를 통해 <code>Vec</code>을 효율적으로 확장하기 위해 임시로 고안된 방법입니다. 다음은 간단한 구현 예시입니다:</p>
+<p><code>Vec::push_all</code> 은 전문화(specialization) 없이도 슬라이스를 통해 <code>Vec</code> 을 효율적으로 확장하기 위해 임시로 고안된 방법입니다. 다음은 간단한 구현 예시입니다:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">impl&lt;T: Clone&gt; Vec&lt;T&gt; {
     fn push_all(&amp;mut self, to_push: &amp;[T]) {
@@ -242,11 +242,11 @@
         }
     }
 }</code></pre>
-<p>확실히 용량이 있다는 것을 알기 때문에 불필요한 용량 및 <code>len</code> 체크를 피하기 위해 <code>push</code>를 우회했습니다. 로직 자체는 완전히 올바르지만, 우리 코드에는 미묘한 문제가 있습니다. 바로 예외에 안전하지 않다는 것입니다! <code>set_len</code>, <code>add</code>, <code>write</code>는 모두 괜찮지만, 우리가 간과한 패닉 폭탄은 바로 <code>clone</code>입니다.</p>
-<p><code>Clone</code>은 우리의 통제권을 완전히 벗어나 있으며 언제든지 패닉을 일으킬 수 있습니다. 만약 패닉이 발생하면, 함수는 <code>Vec</code>의 길이가 너무 크게 설정된 상태로 조기에 종료될 것입니다. 이후 <code>Vec</code>을 들여다보거나 드롭하면, 초기화되지 않은 메모리를 읽게 될 것입니다!</p>
-<p>이 경우 해결책은 꽤 간단합니다. 이미 복제된 값들이 반드시 드롭되도록 보장하고 싶다면, 루프를 돌 때마다 <code>len</code>을 설정하면 됩니다. 단순히 초기화되지 않은 메모리가 노출되지 않도록만 보장하고 싶다면, 루프가 끝난 뒤에 <code>len</code>을 설정하면 됩니다.</p>
+<p>확실히 용량이 있다는 것을 알기 때문에 불필요한 용량 및 <code>len</code> 체크를 피하기 위해 <code>push</code> 를 우회했습니다. 로직 자체는 완전히 올바르지만, 우리 코드에는 미묘한 문제가 있습니다. 바로 예외에 안전하지 않다는 것입니다! <code>set_len</code>, <code>add</code>, <code>write</code> 는 모두 괜찮지만, 우리가 간과한 패닉 폭탄은 바로 <code>clone</code> 입니다.</p>
+<p><code>Clone</code> 은 우리의 통제권을 완전히 벗어나 있으며 언제든지 패닉을 일으킬 수 있습니다. 만약 패닉이 발생하면, 함수는 <code>Vec</code> 의 길이가 너무 크게 설정된 상태로 조기에 종료될 것입니다. 이후 <code>Vec</code> 을 들여다보거나 드롭하면, 초기화되지 않은 메모리를 읽게 될 것입니다!</p>
+<p>이 경우 해결책은 꽤 간단합니다. 이미 복제된 값들이 반드시 드롭되도록 보장하고 싶다면, 루프를 돌 때마다 <code>len</code> 을 설정하면 됩니다. 단순히 초기화되지 않은 메모리가 노출되지 않도록만 보장하고 싶다면, 루프가 끝난 뒤에 <code>len</code> 을 설정하면 됩니다.</p>
 <h2 id="binaryheapsift_up"><a class="header" href="#binaryheapsift_up">BinaryHeap::sift_up</a></h2>
-<p>힙(heap)에서 요소를 위로 끌어올리는 것(bubbling up)은 <code>Vec</code>을 확장하는 것보다 조금 더 복잡합니다. 의사코드(pseudocode)는 다음과 같습니다:</p>
+<p>힙(heap)에서 요소를 위로 끌어올리는 것(bubbling up)은 <code>Vec</code> 을 확장하는 것보다 조금 더 복잡합니다. 의사코드(pseudocode)는 다음과 같습니다:</p>
 <pre><code class="language-text">bubble_up(heap, index):
     while index != 0 &amp;&amp; heap[index] &lt; heap[parent(index)]:
         heap.swap(index, parent(index))
@@ -260,8 +260,8 @@
         index = parent(index)
     heap[index] = elem
 </code></pre>
-<p>이 코드는 각 요소가 가능한 한 적게 복사되도록 보장합니다(일반적으로 <code>elem</code>이 두 번 복사되는 것은 필수적입니다). 하지만 이제 예외 안전성 문제가 발생합니다! 어느 시점에서든 하나의 값이 두 개의 복사본으로 존재하게 됩니다. 만약 이 함수 내에서 패닉이 발생하면 무언가가 이중 드롭(double-dropped)될 것입니다. 안타깝게도 우리는 이 코드를 완전히 통제할 수도 없습니다. 저 비교(comparison) 로직은 사용자가 정의한 것이기 때문입니다!</p>
-<p><code>Vec</code>과는 달리, 여기서는 해결책이 그리 간단하지 않습니다. 한 가지 방법은 사용자 정의 코드와 unsafe 코드를 두 개의 별도 단계로 나누는 것입니다:</p>
+<p>이 코드는 각 요소가 가능한 한 적게 복사되도록 보장합니다(일반적으로 <code>elem</code> 이 두 번 복사되는 것은 필수적입니다). 하지만 이제 예외 안전성 문제가 발생합니다! 어느 시점에서든 하나의 값이 두 개의 복사본으로 존재하게 됩니다. 만약 이 함수 내에서 패닉이 발생하면 무언가가 이중 드롭(double-dropped)될 것입니다. 안타깝게도 우리는 이 코드를 완전히 통제할 수도 없습니다. 저 비교(comparison) 로직은 사용자가 정의한 것이기 때문입니다!</p>
+<p><code>Vec</code> 과는 달리, 여기서는 해결책이 그리 간단하지 않습니다. 한 가지 방법은 사용자 정의 코드와 unsafe 코드를 두 개의 별도 단계로 나누는 것입니다:</p>
 <pre><code class="language-text">bubble_up(heap, index):
     let end_index = index;
     while end_index != 0 &amp;&amp; heap[index] &lt; heap[parent(end_index)]:
@@ -274,8 +274,8 @@
     heap[index] = elem
 </code></pre>
 <p>이제 사용자 정의 코드에서 문제가 발생하더라도 더 이상 상관없습니다. 아직 힙의 상태를 실제로 건드리지 않았기 때문입니다. 일단 우리가 힙을 조작하기 시작하면, 우리가 신뢰하는 데이터와 함수들로만 작업하게 되므로 패닉에 대한 걱정이 없습니다.</p>
-<p>아마도 이런 설계가 마음에 들지 않으실 수도 있습니다. 이건 분명히 반칙이죠! 게다가 복잡한 힙 순회를 _두 번_이나 해야 한다니요! 알겠습니다, 정면 돌파해 봅시다. 신뢰할 수 없는 코드와 unsafe 코드를 <em>진짜로</em> 섞어보겠습니다.</p>
-<p>만약 러스트에 자바와 같은 <code>try</code>와 <code>finally</code>가 있었다면, 다음과 같이 할 수 있었을 것입니다:</p>
+<p>아마도 이런 설계가 마음에 들지 않으실 수도 있습니다. 이건 분명히 반칙이죠! 게다가 복잡한 힙 순회를 <em>두 번</em> 이나 해야 한다니요! 알겠습니다, 정면 돌파해 봅시다. 신뢰할 수 없는 코드와 unsafe 코드를 <em>진짜로</em> 섞어보겠습니다.</p>
+<p>만약 러스트에 자바와 같은 <code>try</code> 와 <code>finally</code> 가 있었다면, 다음과 같이 할 수 있었을 것입니다:</p>
 <pre><code class="language-text">bubble_up(heap, index):
     let elem = heap[index]
     try:
@@ -290,7 +290,7 @@
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">struct Hole&lt;'a, T: 'a&gt; {
     data: &amp;'a mut [T],
-    /// `elt`는 생성 시부터 드롭될 때까지 항상 `Some`입니다.
+    /// `elt` 는 생성 시부터 드롭될 때까지 항상 `Some` 입니다.
     elt: Option&lt;T&gt;,
     pos: usize,
 }
@@ -334,7 +334,7 @@ impl&lt;'a, T&gt; Drop for Hole&lt;'a, T&gt; {
 impl&lt;T: Ord&gt; BinaryHeap&lt;T&gt; {
     fn sift_up(&amp;mut self, pos: usize) {
         unsafe {
-            // `pos`에 있는 값을 꺼내고 구멍을 만듭니다.
+            // `pos` 에 있는 값을 꺼내고 구멍을 만듭니다.
             let mut hole = Hole::new(&amp;mut self.data, pos);
 
             while hole.pos() != 0 {

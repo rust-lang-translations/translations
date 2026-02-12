@@ -228,7 +228,7 @@ fn main() {
 }</code></pre>
 <p>하지만 여기에는 몇 가지 문제가 있습니다. 이것은 가변 전역 변수이며, Rust에서는 항상 안전하지 않게 상호 작용합니다. 이러한 변수들은 프로그램 전체에서 볼 수 있으므로, borrow checker가 이러한 변수의 참조 및 소유권을 추적하는 데 도움을 줄 수 없습니다.</p>
 <h2 id="rust에서는-어떻게-할까요"><a class="header" href="#rust에서는-어떻게-할까요">Rust에서는 어떻게 할까요?</a></h2>
-<p>주변 장치를 단순히 전역 변수로 만드는 대신, 이 경우 <code>PERIPHERALS</code>라고 불리는 구조체를 만들고, 이 구조체가 각 주변 장치에 대한 <code>Option&lt;T&gt;</code>를 포함하도록 결정할 수 있습니다.</p>
+<p>주변 장치를 단순히 전역 변수로 만드는 대신, 이 경우 <code>PERIPHERALS</code> 라고 불리는 구조체를 만들고, 이 구조체가 각 주변 장치에 대한 <code>Option&lt;T&gt;</code> 를 포함하도록 결정할 수 있습니다.</p>
 <pre><code class="language-rust ignore">struct Peripherals {
     serial: Option&lt;SerialPort&gt;,
 }
@@ -247,19 +247,19 @@ static mut PERIPHERALS: Peripherals = Peripherals {
     // 이것은 패닉을 일으킵니다!
     // let serial_2 = unsafe { PERIPHERALS.take_serial() };
 }</code></pre>
-<p>이 구조체와 상호 작용하는 것은 <code>unsafe</code>하지만, 일단 포함된 <code>SerialPort</code>를 얻으면 더 이상 <code>unsafe</code>나 <code>PERIPHERALS</code> 구조체를 사용할 필요가 없습니다.</p>
-<p>이것은 <code>SerialPort</code> 구조체를 옵션으로 래핑해야 하고 <code>take_serial()</code>을 한 번 호출해야 하므로 작은 런타임 오버헤드가 있습니다. 하지만 이 작은 초기 비용으로 프로그램의 나머지 부분에서 borrow checker를 활용할 수 있습니다.</p>
+<p>이 구조체와 상호 작용하는 것은 <code>unsafe</code> 하지만, 일단 포함된 <code>SerialPort</code> 를 얻으면 더 이상 <code>unsafe</code> 나 <code>PERIPHERALS</code> 구조체를 사용할 필요가 없습니다.</p>
+<p>이것은 <code>SerialPort</code> 구조체를 옵션으로 래핑해야 하고 <code>take_serial()</code> 을 한 번 호출해야 하므로 작은 런타임 오버헤드가 있습니다. 하지만 이 작은 초기 비용으로 프로그램의 나머지 부분에서 borrow checker를 활용할 수 있습니다.</p>
 <h2 id="기존-라이브러리-지원"><a class="header" href="#기존-라이브러리-지원">기존 라이브러리 지원</a></h2>
-<p>위에 우리만의 <code>Peripherals</code> 구조체를 만들었지만, 코드에 대해 이 작업을 수행할 필요는 없습니다. <code>cortex_m</code> 크레이트에는 이 작업을 수행해 줄 <code>singleton!()</code>이라는 매크로가 포함되어 있습니다.</p>
+<p>위에 우리만의 <code>Peripherals</code> 구조체를 만들었지만, 코드에 대해 이 작업을 수행할 필요는 없습니다. <code>cortex_m</code> 크레이트에는 이 작업을 수행해 줄 <code>singleton!()</code> 이라는 매크로가 포함되어 있습니다.</p>
 <pre><code class="language-rust ignore">use cortex_m::singleton;
 
 fn main() {
-    // `main`이 한 번만 실행되면 OK
+    // `main` 이 한 번만 실행되면 OK
     let x: &amp;'static mut bool =
         singleton!(: bool = false).unwrap();
 }</code></pre>
 <p><a href="https://docs.rs/cortex-m/latest/cortex_m/macro.singleton.html">cortex_m 문서</a></p>
-<p>또한, <a href="https://github.com/rtic-rs/cortex-m-rtic"><code>cortex-m-rtic</code></a>를 사용하면 이러한 주변 장치를 정의하고 얻는 전체 프로세스가 추상화되어, 정의한 모든 항목의 <code>Option&lt;T&gt;</code>가 아닌 버전이 포함된 <code>Peripherals</code> 구조체를 받게 됩니다.</p>
+<p>또한, <a href="https://github.com/rtic-rs/cortex-m-rtic"><code>cortex-m-rtic</code></a> 를 사용하면 이러한 주변 장치를 정의하고 얻는 전체 프로세스가 추상화되어, 정의한 모든 항목의 <code>Option&lt;T&gt;</code> 가 아닌 버전이 포함된 <code>Peripherals</code> 구조체를 받게 됩니다.</p>
 <pre><code class="language-rust ignore">// cortex-m-rtic v0.5.x
 #[rtic::app(device = lm3s6965, peripherals = true)]
 const APP: () = {
@@ -315,7 +315,7 @@ const APP: () = {
 <pre><code class="language-rust ignore">fn read_button(gpio: &amp;GpioPin) -&gt; bool {
     // ...
 }</code></pre>
-<p>이를 통해 코드가 런타임이 아닌 <strong>컴파일 타임</strong>에 하드웨어 변경을 수행해야 하는지 여부를 강제할 수 있습니다. 참고로, 이는 일반적으로 하나의 애플리케이션에서만 작동하지만, 베어 메탈 시스템의 경우 소프트웨어가 단일 애플리케이션으로 컴파일되므로 일반적으로 제한 사항이 아닙니다.</p>
+<p>이를 통해 코드가 런타임이 아닌 <strong>컴파일 타임</strong> 에 하드웨어 변경을 수행해야 하는지 여부를 강제할 수 있습니다. 참고로, 이는 일반적으로 하나의 애플리케이션에서만 작동하지만, 베어 메탈 시스템의 경우 소프트웨어가 단일 애플리케이션으로 컴파일되므로 일반적으로 제한 사항이 아닙니다.</p>
 
                     </main>
 
