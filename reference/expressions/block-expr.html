@@ -235,8 +235,7 @@ A <em>block expression</em>, or <em>block</em>, is a control flow expression and
 <p>r[expr.block.sequential-evaluation]
 As a control flow expression, a block sequentially executes its component non-item declaration statements and then its final optional expression.</p>
 <p>r[expr.block.namespace]
-As an anonymous namespace scope, item declarations are only in scope inside the block itself and variables declared by <code>let</code> statements are in scope from the next statement until the end of the block.
-See the <a href="../names/scopes.html">scopes</a> chapter for more details.</p>
+As an anonymous namespace scope, item declarations are only in scope inside the block itself and variables declared by <code>let</code> statements are in scope from the next statement until the end of the block. See the <a href="../names/scopes.html">scopes</a> chapter for more details.</p>
 <p>r[expr.block.inner-attributes]
 The syntax for a block is <code>{</code>, then any <a href="../attributes.html">inner attributes</a>, then any number of <a href="../statements.html">statements</a>, then an optional expression, called the final operand, and finally a <code>}</code>.</p>
 <p>r[expr.block.statements]
@@ -252,7 +251,7 @@ When evaluating a block expression, each statement, except for item declaration 
 <p>r[expr.block.result]
 Then the final operand is executed, if given.</p>
 <p>r[expr.block.type]
-The type of a block is the type of the final operand, or <code>()</code> if the final operand is omitted.</p>
+The type of a block is the type of its final operand; if that operand is omitted, the type is the <a href="type.tuple.unit">unit type</a>, unless the block [diverges][expr.block.diverging], in which case it is the <a href="type.never">never type</a>.</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">fn fn_call() {}
@@ -271,6 +270,63 @@ assert_eq!(5, five);
 <p>[!NOTE]
 As a control flow expression, if a block expression is the outer expression of an expression statement, the expected type is <code>()</code> unless it is followed immediately by a semicolon.</p>
 </blockquote>
+<p>r[expr.block.diverging]
+A block is considered to be [diverging][divergence] if all reachable control flow paths contain a diverging expression, unless that expression is a <a href="expr.place-value.place-memory-location">place expression</a> that is not read from.</p>
+<pre><pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">#![ feature(never_type) ]
+</span>fn no_control_flow() -&gt; ! {
+    // There are no conditional statements, so this entire function body is diverging.
+    loop {}
+}
+
+fn control_flow_diverging() -&gt; ! {
+    // All paths are diverging, so this entire function body is diverging.
+    if true {
+        loop {}
+    } else {
+        loop {}
+    }
+}
+
+fn control_flow_not_diverging() -&gt; () {
+    // Some paths are not diverging, so this entire block is not diverging.
+    if true {
+        ()
+    } else {
+        loop {}
+    }
+}
+
+// Note: This makes use of the unstable never type which is only available on
+// Rust's nightly channel. This is done for illustration purposes. It is
+// possible to encounter this scenario in stable Rust, but requires a more
+// convoluted example.
+struct Foo {
+    x: !,
+}
+
+fn make&lt;T&gt;() -&gt; T { loop {} }
+
+fn diverging_place_read() -&gt; ! {
+    let foo = Foo { x: make() };
+    // A read of a place expression produces a diverging block.
+    let _x = foo.x;
+}
+<span class="boring">}</span></code></pre></pre>
+<pre><pre class="playground"><code class="language-rust compile_fail E0308 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">#![ feature(never_type) ]
+</span><span class="boring">fn make&lt;T&gt;() -&gt; T { loop {} }
+</span><span class="boring">struct Foo {
+</span><span class="boring">    x: !,
+</span><span class="boring">}
+</span>fn diverging_place_not_read() -&gt; ! {
+    let foo = Foo { x: make() };
+    // Assignment to `_` means the place is not read.
+    let _ = foo.x;
+} // ERROR: Mismatched types.
+<span class="boring">}</span></code></pre></pre>
 <p>r[expr.block.value]
 Blocks are always <a href="../expressions.html#place-expressions-and-value-expressions">value expressions</a> and evaluate the last operand in value expression context.</p>
 <blockquote>
@@ -306,8 +362,7 @@ An <em>async block</em> is a variant of a block expression which evaluates to a 
 <p>r[expr.block.async.future-result]
 The final expression of the block, if present, determines the result value of the future.</p>
 <p>r[expr.block.async.anonymous-type]
-Executing an async block is similar to executing a closure expression:
-its immediate effect is to produce and return an anonymous type.</p>
+Executing an async block is similar to executing a closure expression: its immediate effect is to produce and return an anonymous type.</p>
 <p>r[expr.block.async.future]
 Whereas closures return a type that implements one or more of the [<code>std::ops::Fn</code>] traits, however, the type returned for an async block implements the [<code>std::future::Future</code>] trait.</p>
 <p>r[expr.block.async.layout-unspecified]
@@ -323,24 +378,18 @@ Async blocks are only available beginning with Rust 2018.</p>
 </blockquote>
 <p>r[expr.block.async.capture]</p>
 <h3 id="capture-modes"><a class="header" href="#capture-modes">Capture modes</a></h3>
-<p>Async blocks capture variables from their environment using the same <a href="../types/closure.html#capture-modes">capture modes</a> as closures.
-Like closures, when written <code>async { .. }</code> the capture mode for each variable will be inferred from the content of the block.
-<code>async move { .. }</code> blocks however will move all referenced variables into the resulting future.</p>
+<p>Async blocks capture variables from their environment using the same <a href="../types/closure.html#capture-modes">capture modes</a> as closures. Like closures, when written <code>async { .. }</code> the capture mode for each variable will be inferred from the content of the block. <code>async move { .. }</code> blocks however will move all referenced variables into the resulting future.</p>
 <p>r[expr.block.async.context]</p>
 <h3 id="async-context"><a class="header" href="#async-context">Async context</a></h3>
-<p>Because async blocks construct a future, they define an <strong>async context</strong> which can in turn contain <a href="await-expr.html"><code>await</code> expressions</a>.
-Async contexts are established by async blocks as well as the bodies of async functions, whose semantics are defined in terms of async blocks.</p>
+<p>Because async blocks construct a future, they define an <strong>async context</strong> which can in turn contain <a href="await-expr.html"><code>await</code> expressions</a>. Async contexts are established by async blocks as well as the bodies of async functions, whose semantics are defined in terms of async blocks.</p>
 <p>r[expr.block.async.function]</p>
 <h3 id="control-flow-operators"><a class="header" href="#control-flow-operators">Control-flow operators</a></h3>
 <p>r[expr.block.async.function.intro]
 Async blocks act like a function boundary, much like closures.</p>
 <p>r[expr.block.async.function.return-try]
-Therefore, the <code>?</code> operator and <code>return</code> expressions both affect the output of the future, not the enclosing function or other context.
-That is, <code>return &lt;expr&gt;</code> from within an async block will return the result of <code>&lt;expr&gt;</code> as the output of the future.
-Similarly, if <code>&lt;expr&gt;?</code> propagates an error, that error is propagated as the result of the future.</p>
+Therefore, the <code>?</code> operator and <code>return</code> expressions both affect the output of the future, not the enclosing function or other context. That is, <code>return &lt;expr&gt;</code> from within an async block will return the result of <code>&lt;expr&gt;</code> as the output of the future. Similarly, if <code>&lt;expr&gt;?</code> propagates an error, that error is propagated as the result of the future.</p>
 <p>r[expr.block.async.function.control-flow]
-Finally, the <code>break</code> and <code>continue</code> keywords cannot be used to branch out from an async block.
-Therefore the following is illegal:</p>
+Finally, the <code>break</code> and <code>continue</code> keywords cannot be used to branch out from an async block. Therefore the following is illegal:</p>
 <pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>loop {
@@ -357,12 +406,9 @@ Therefore the following is illegal:</p>
 <p>r[expr.block.const.intro]
 A <em>const block</em> is a variant of a block expression whose body evaluates at compile-time instead of at runtime.</p>
 <p>r[expr.block.const.context]
-Const blocks allows you to define a constant value without having to define new <a href="../items/constant-items.html">constant items</a>, and thus they are also sometimes referred as <em>inline consts</em>.
-It also supports type inference so there is no need to specify the type, unlike <a href="../items/constant-items.html">constant items</a>.</p>
+Const blocks allows you to define a constant value without having to define new <a href="../items/constant-items.html">constant items</a>, and thus they are also sometimes referred as <em>inline consts</em>. It also supports type inference so there is no need to specify the type, unlike <a href="../items/constant-items.html">constant items</a>.</p>
 <p>r[expr.block.const.generic-params]
-Const blocks have the ability to reference generic parameters in scope, unlike <a href="../glossary.html#free-item">free</a> constant items.
-They are desugared to constant items with generic parameters in scope (similar to associated constants, but without a trait or type they are associated with).
-For example, this code:</p>
+Const blocks have the ability to reference generic parameters in scope, unlike <a href="../glossary.html#free-item">free</a> constant items. They are desugared to constant items with generic parameters in scope (similar to associated constants, but without a trait or type they are associated with). For example, this code:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn foo&lt;T&gt;() -&gt; usize {
@@ -411,8 +457,7 @@ For example, this code:</p>
 </code></pre>
 <p>r[expr.block.unsafe.intro]
 <em>See <a href="../unsafe-keyword.html#unsafe-blocks-unsafe-"><code>unsafe</code> blocks</a> for more information on when to use <code>unsafe</code></em>.</p>
-<p>A block of code can be prefixed with the <code>unsafe</code> keyword to permit <a href="../unsafety.html">unsafe operations</a>.
-Examples:</p>
+<p>A block of code can be prefixed with the <code>unsafe</code> keyword to permit <a href="../unsafety.html">unsafe operations</a>. Examples:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>unsafe {
@@ -436,8 +481,7 @@ Examples:</p>
 <li><a href="../items/functions.html">Function</a> and <a href="../items/associated-items.html#methods">method</a> bodies.</li>
 <li>Loop bodies (<a href="loop-expr.html#infinite-loops"><code>loop</code></a>, <a href="loop-expr.html#predicate-loops"><code>while</code></a>, and <a href="loop-expr.html#iterator-loops"><code>for</code></a>).</li>
 <li>Block expressions used as a <a href="../statements.html">statement</a>.</li>
-<li>Block expressions as elements of <a href="array-expr.html">array expressions</a>, <a href="tuple-expr.html">tuple expressions</a>,
-<a href="call-expr.html">call expressions</a>, and tuple-style <a href="struct-expr.html">struct</a> expressions.</li>
+<li>Block expressions as elements of <a href="array-expr.html">array expressions</a>, <a href="tuple-expr.html">tuple expressions</a>, <a href="call-expr.html">call expressions</a>, and tuple-style <a href="struct-expr.html">struct</a> expressions.</li>
 <li>A block expression as the tail expression of another block expression.</li>
 </ul>
 <!-- Keep list in sync with expressions.md -->

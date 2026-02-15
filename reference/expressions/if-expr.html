@@ -246,16 +246,13 @@ LetChainCondition -&gt;
      The chain grammar could use some work, see https://github.com/rust-lang/reference/issues/1811
 -->
 <p>r[expr.if.intro]
-The syntax of an <code>if</code> expression is a sequence of one or more condition operands separated by <code>&amp;&amp;</code>,
-followed by a consequent block, any number of <code>else if</code> conditions and blocks, and an optional trailing <code>else</code> block.</p>
+The syntax of an <code>if</code> expression is a sequence of one or more condition operands separated by <code>&amp;&amp;</code>, followed by a consequent block, any number of <code>else if</code> conditions and blocks, and an optional trailing <code>else</code> block.</p>
 <p>r[expr.if.condition]
 Condition operands must be either an [Expression] with a <a href="../types/boolean.html">boolean type</a> or a conditional <code>let</code> match.</p>
 <p>r[expr.if.condition-true]
-If all of the condition operands evaluate to <code>true</code> and all of the <code>let</code> patterns successfully match their <a href="../glossary.html#scrutinee">scrutinee</a>s,
-the consequent block is executed and any subsequent <code>else if</code> or <code>else</code> block is skipped.</p>
+If all of the condition operands evaluate to <code>true</code> and all of the <code>let</code> patterns successfully match their <a href="../glossary.html#scrutinee">scrutinee</a>s, the consequent block is executed and any subsequent <code>else if</code> or <code>else</code> block is skipped.</p>
 <p>r[expr.if.else-if]
-If any condition operand evaluates to <code>false</code> or any <code>let</code> pattern does not match its scrutinee,
-the consequent block is skipped and any subsequent <code>else if</code> condition is evaluated.</p>
+If any condition operand evaluates to <code>false</code> or any <code>let</code> pattern does not match its scrutinee, the consequent block is skipped and any subsequent <code>else if</code> condition is evaluated.</p>
 <p>r[expr.if.else]
 If all <code>if</code> and <code>else if</code> conditions evaluate to <code>false</code> then any <code>else</code> block is executed.</p>
 <p>r[expr.if.result]
@@ -280,6 +277,33 @@ let y = if 12 * 15 &gt; 150 {
     "Smaller"
 };
 assert_eq!(y, "Bigger");
+<span class="boring">}</span></code></pre></pre>
+<p>r[expr.if.diverging]
+An <code>if</code> expression <a href="divergence">diverges</a> if either the condition expression diverges or if all arms diverge.</p>
+<pre><pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn diverging_condition() -&gt; ! {
+    // Diverges because the condition expression diverges
+    if loop {} {
+        ()
+    } else {
+        ()
+    };
+    // The semicolon above is important: The type of the `if` expression is
+    // `()`, despite being diverging. When the final body expression is
+    // elided, the type of the body is inferred to ! because the function body
+    // diverges. Without the semicolon, the `if` would be the tail expression
+    // with type `()`, which would fail to match the return type `!`.
+}
+
+fn diverging_arms() -&gt; ! {
+    // Diverges because all arms diverge
+    if true {
+        loop {}
+    } else {
+        loop {}
+    }
+}
 <span class="boring">}</span></code></pre></pre>
 <p>r[expr.if.let]</p>
 <h2 id="if-let-patterns"><a class="header" href="#if-let-patterns"><code>if let</code> patterns</a></h2>
@@ -308,8 +332,7 @@ if let _ = 5 {
 }
 <span class="boring">}</span></code></pre></pre>
 <p>r[expr.if.let.or-pattern]
-Multiple patterns may be specified with the <code>|</code> operator.
-This has the same semantics as with <code>|</code> in <a href="match-expr.html"><code>match</code> expressions</a>:</p>
+Multiple patterns may be specified with the <code>|</code> operator. This has the same semantics as with <code>|</code> in <a href="match-expr.html"><code>match</code> expressions</a>:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>enum E {
@@ -327,8 +350,7 @@ if let E::X(n) | E::Y(n) = v {
 <p>r[expr.if.chains.intro]
 Multiple condition operands can be separated with <code>&amp;&amp;</code>.</p>
 <p>r[expr.if.chains.order]
-Similar to a <code>&amp;&amp;</code> [LazyBooleanExpression], each operand is evaluated from left-to-right until an operand evaluates as <code>false</code> or a <code>let</code> match fails,
-in which case the subsequent operands are not evaluated.</p>
+Similar to a <code>&amp;&amp;</code> [LazyBooleanExpression], each operand is evaluated from left-to-right until an operand evaluates as <code>false</code> or a <code>let</code> match fails, in which case the subsequent operands are not evaluated.</p>
 <p>r[expr.if.chains.bindings]
 The bindings of each pattern are put into scope to be available for the next condition operand and the consequent block.</p>
 <p>The following is an example of chaining multiple expressions, mixing <code>let</code> bindings and boolean expressions, and with expressions able to reference pattern bindings from previous expressions:</p>
@@ -361,8 +383,7 @@ The bindings of each pattern are put into scope to be available for the next con
 }
 <span class="boring">}</span></code></pre></pre>
 <p>r[expr.if.chains.or]
-If any condition operand is a <code>let</code> pattern, then none of the condition operands can be a <code>||</code> [lazy boolean operator expression][expr.bool-logic] due to ambiguity and precedence with the <code>let</code> scrutinee.
-If a <code>||</code> expression is needed, then parentheses can be used. For example:</p>
+If any condition operand is a <code>let</code> pattern, then none of the condition operands can be a <code>||</code> [lazy boolean operator expression][expr.bool-logic] due to ambiguity and precedence with the <code>let</code> scrutinee. If a <code>||</code> expression is needed, then parentheses can be used. For example:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">let foo = Some(123);

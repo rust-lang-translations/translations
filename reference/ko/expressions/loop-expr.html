@@ -243,7 +243,7 @@
 <pre><code class="language-grammar expressions">InfiniteLoopExpression -&gt; `loop` BlockExpression
 </code></pre>
 <p>r[expr.loop.infinite.intro] A <code>loop</code> expression repeats execution of its body continuously: <code>loop { println!("I live."); }</code>.</p>
-<p>r[expr.loop.infinite.diverging] A <code>loop</code> expression without an associated <code>break</code> expression is diverging and has type <a href="../types/never.html"><code>!</code></a>.</p>
+<p>r[expr.loop.infinite.diverging] A <code>loop</code> expression without an associated <code>break</code> expression is <a href="divergence">diverging</a> and has type <a href="type.never"><code>!</code></a>.</p>
 <p>r[expr.loop.infinite.break] A <code>loop</code> expression containing associated <a href="#break-expressions"><code>break</code> expression(s)</a> may terminate, and must have type compatible with the value of the <code>break</code> expression(s).</p>
 <p>r[expr.loop.while]</p>
 <h2 id="조건자-루프"><a class="header" href="#조건자-루프">조건자 루프</a></h2>
@@ -408,6 +408,7 @@ for x in 1..100 {
 }
 assert_eq!(last, 12);
 <span class="boring">}</span></code></pre></pre>
+<p>r[expr.loop.break.diverging] A <code>break</code> expression is <a href="divergence">diverging</a> and has a type of <a href="type.never"><code>!</code></a>.</p>
 <p>r[expr.loop.break.label] A <code>break</code> expression is normally associated with the innermost <code>loop</code>, <code>for</code> or <code>while</code> loop enclosing the <code>break</code> expression, but a <a href="#loop-labels">label</a> can be used to specify which enclosing loop is affected. Example:</p>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -418,6 +419,7 @@ assert_eq!(last, 12);
 }
 <span class="boring">}</span></code></pre></pre>
 <p>r[expr.loop.break.value] A <code>break</code> expression is only permitted in the body of a loop, and has one of the forms <code>break</code>, <code>break 'label</code> or (<a href="#break-and-loop-values">see below</a>) <code>break EXPR</code> or <code>break 'label EXPR</code>.</p>
+<p>r[expr.loop.break-value.implicit-value] In a [<code>loop</code> with break expressions][expr.loop.break-value] or a <a href="expr.loop.block-labels">labeled block expression</a>, a <code>break</code> without an expression is equivalent to <code>break ()</code>.</p>
 <p>r[expr.loop.block-labels]</p>
 <h2 id="labeled-block-expressions"><a class="header" href="#labeled-block-expressions">Labeled block expressions</a></h2>
 <p>r[expr.loop.block-labels.syntax]</p>
@@ -445,12 +447,30 @@ assert_eq!(last, 12);
     3
 };
 <span class="boring">}</span></code></pre></pre>
+<p>r[expr.loop.block-labels.type] The type of a labeled block expression is the <a href="coerce.least-upper-bound">least upper bound</a> of all of the break operands and the final operand. If the final operand is omitted, the type of the final operand defaults to the <a href="type.tuple.unit">unit type</a>, unless the block [diverges][expr.block.diverging], in which case it is the <a href="type.never">never type</a>.</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn example(condition: bool) {
+    let s = String::from("owned");
+
+    let _: &amp;str = 'block: {
+        if condition {
+            break 'block &amp;s;  // &amp;String coerced to &amp;str via Deref
+        }
+        break 'block "literal";  // &amp;'static str coerced to &amp;str
+    };
+}
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
 <p>r[expr.loop.continue]</p>
 <h2 id="continue-표현식"><a class="header" href="#continue-표현식"><code>continue</code> 표현식</a></h2>
 <p>r[expr.loop.continue.syntax]</p>
 <pre><code class="language-grammar expressions">ContinueExpression -&gt; `continue` LIFETIME_OR_LABEL?
 </code></pre>
 <p>r[expr.loop.continue.intro] When <code>continue</code> is encountered, the current iteration of the associated loop body is immediately terminated, returning control to the loop <em>head</em>.</p>
+<p>r[expr.loop.continue.diverging] A <code>continue</code> expression is <a href="divergence">diverging</a> and has a type of <a href="type.never"><code>!</code></a>.</p>
 <p>r[expr.loop.continue.while] In the case of a <code>while</code> loop, the head is the conditional operands controlling the loop.</p>
 <p>r[expr.loop.continue.for] In the case of a <code>for</code> loop, the head is the call-expression controlling the loop.</p>
 <p>r[expr.loop.continue.label] Like <code>break</code>, <code>continue</code> is normally associated with the innermost enclosing loop, but <code>continue 'label</code> may be used to specify the loop affected.</p>
@@ -472,7 +492,54 @@ let result = loop {
 // 피보나치 수열에서 10을 넘는 첫 번째 수:
 assert_eq!(result, 13);
 <span class="boring">}</span></code></pre></pre>
-<p>r[expr.loop.break-value.loop] In the case a <code>loop</code> has an associated <code>break</code>, it is not considered diverging, and the <code>loop</code> must have a type compatible with each <code>break</code> expression. <code>break</code> without an expression is considered identical to <code>break</code> with expression <code>()</code>.</p>
+<p>r[expr.loop.break-value.type] The type of a <code>loop</code> with associated <code>break</code> expressions is the <a href="coerce.least-upper-bound">least upper bound</a> of all of the break operands.</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn example(condition: bool) {
+    let s = String::from("owned");
+
+    let _: &amp;str = loop {
+        if condition {
+            break &amp;s; // &amp;String coerced to &amp;str via Deref
+        }
+        break "literal"; // &amp;'static str coerced to &amp;str
+    };
+}
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
+<p>r[expr.loop.break-value.diverging] A <code>loop</code> with associated <code>break</code> expressions does not <a href="divergence">diverge</a> if any of the break operands do not diverge. If all of the <code>break</code> operands diverge, then the <code>loop</code> expression also diverges.</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn diverging_loop_with_break(condition: bool) -&gt; ! {
+    // This loop is diverging because all `break` operands are diverging.
+    loop {
+        if condition {
+            break loop {};
+        } else {
+            break panic!();
+        }
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<pre><pre class="playground"><code class="language-rust compile_fail E0308 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn loop_with_non_diverging_break(condition: bool) -&gt; ! {
+    // The type of this loop is i32 even though one of the breaks is
+    // diverging.
+    loop {
+        if condition {
+            break loop {};
+        } else {
+            break 123i32;
+        }
+    } // ERROR: expected `!`, found `i32`
+}
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
 
                     </main>
 

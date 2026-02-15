@@ -637,26 +637,23 @@ let y = false &amp;&amp; panic!(); // 거짓(false), `panic!()` 을 평가하지
 <tr><td>열거형</td><td>정수 타입</td><td>[Enum cast][expr.as.enum]</td></tr>
 <tr><td><code>bool</code> 또는 <code>char</code></td><td>정수 타입</td><td>[Primitive to integer cast][expr.as.bool-char-as-int]</td></tr>
 <tr><td><code>u8</code></td><td><code>char</code></td><td>[<code>u8</code> to <code>char</code> cast][expr.as.u8-as-char]</td></tr>
-<tr><td><code>*T</code></td><td><code>*V</code> <sup class="footnote-reference"><a href="#meta-compat">1</a></sup></td><td>[Pointer to pointer cast][expr.as.pointer]</td></tr>
+<tr><td><code>*T</code></td><td><code>*V</code> (when [compatible][expr.as.pointer])</td><td>[Pointer to pointer cast][expr.as.pointer]</td></tr>
 <tr><td><code>*T</code> (여기서 <code>T: Sized</code>)</td><td>정수 타입</td><td>[Pointer to address cast][expr.as.pointer-as-int]</td></tr>
 <tr><td>정수 타입</td><td><code>*V</code> (여기서 <code>V: Sized</code>)</td><td>[Address to pointer cast][expr.as.int-as-pointer]</td></tr>
-<tr><td><code>&amp;m₁ [T; n]</code></td><td><code>*m₂ T</code> <sup class="footnote-reference"><a href="#lessmut">2</a></sup></td><td>배열에서 포인터로의 캐스트</td></tr>
-<tr><td><code>*m₁ [T; n]</code></td><td><code>*m₂ T</code> <sup class="footnote-reference"><a href="#lessmut">2</a></sup></td><td>배열에서 포인터로의 캐스트</td></tr>
+<tr><td><code>&amp;m₁ [T; n]</code></td><td><code>*m₂ T</code> <sup class="footnote-reference"><a href="#lessmut">1</a></sup></td><td>배열에서 포인터로의 캐스트</td></tr>
+<tr><td><code>*m₁ [T; n]</code></td><td><code>*m₂ T</code> <sup class="footnote-reference"><a href="#lessmut">1</a></sup></td><td>배열에서 포인터로의 캐스트</td></tr>
 <tr><td><a href="../types/function-item.html">함수 아이템</a></td><td><a href="../types/function-pointer.html">함수 포인터</a></td><td>함수 아이템에서 함수 포인터로의 캐스트</td></tr>
 <tr><td><a href="../types/function-item.html">함수 아이템</a></td><td><code>*V</code> (여기서 <code>V: Sized</code>)</td><td>함수 아이템에서 포인터로의 캐스트</td></tr>
 <tr><td><a href="../types/function-item.html">함수 아이템</a></td><td>정수</td><td>함수 아이템에서 주소로의 캐스트</td></tr>
 <tr><td><a href="../types/function-pointer.html">함수 포인터</a></td><td><code>*V</code> (여기서 <code>V: Sized</code>)</td><td>함수 포인터에서 포인터로의 캐스트</td></tr>
 <tr><td><a href="../types/function-pointer.html">함수 포인터</a></td><td>정수</td><td>함수 포인터에서 주소로의 캐스트</td></tr>
-<tr><td>클로저 <sup class="footnote-reference"><a href="#no-capture">3</a></sup></td><td>함수 포인터</td><td>클로저에서 함수 포인터로의 캐스트</td></tr>
+<tr><td>클로저 <sup class="footnote-reference"><a href="#no-capture">2</a></sup></td><td>함수 포인터</td><td>클로저에서 함수 포인터로의 캐스트</td></tr>
 </tbody></table>
 </div>
-<div class="footnote-definition" id="meta-compat"><sup class="footnote-definition-label">1</sup>
-<p>Where <code>T</code> and <code>V</code> have compatible metadata: * <code>V: Sized</code>, or * Both slice metadata (<code>*[u16]</code> -&gt; <code>*[u8]</code>, <code>*str</code> -&gt; <code>*(u8, [u32])</code>), or * Both the same trait object metadata, modulo dropping auto traits (<code>*dyn Debug</code> -&gt; <code>*(u16, dyn Debug)</code>, <code>*dyn Debug + Send</code> -&gt; <code>*dyn Debug</code>) * <strong>Note</strong>: <em>adding</em> auto traits is only allowed if the principal trait has the auto trait as a super trait (given <code>trait T: Send {}</code>, <code>*dyn T</code> -&gt; <code>*dyn T + Send</code> is valid, but <code>*dyn Debug</code> -&gt; <code>*dyn Debug + Send</code> is not) * <strong>Note</strong>: Generics (including lifetimes) must match (<code>*dyn T&lt;'a, A&gt;</code> -&gt; <code>*dyn T&lt;'b, B&gt;</code> requires <code>'a = 'b</code> and <code>A = B</code>)</p>
-</div>
-<div class="footnote-definition" id="lessmut"><sup class="footnote-definition-label">2</sup>
+<div class="footnote-definition" id="lessmut"><sup class="footnote-definition-label">1</sup>
 <p>Only when <code>m₁</code> is <code>mut</code> or <code>m₂</code> is <code>const</code>. Casting <code>mut</code> reference/pointer to <code>const</code> pointer is allowed.</p>
 </div>
-<div class="footnote-definition" id="no-capture"><sup class="footnote-definition-label">3</sup>
+<div class="footnote-definition" id="no-capture"><sup class="footnote-definition-label">2</sup>
 <p>Only closures that do not capture (close over) any local variables can be cast to function pointers.</p>
 </div>
 <h3 id="의미론"><a class="header" href="#의미론">의미론</a></h3>
@@ -841,18 +838,220 @@ assert_eq!(values[1], 3);
 <p>r[expr.as.pointer.behavior] <code>*const T</code> / <code>*mut T</code> can be cast to <code>*const U</code> / <code>*mut U</code> with the following behavior:</p>
 <p>r[expr.as.pointer.sized]</p>
 <ul>
-<li><code>T</code> 와 <code>U</code> 가 모두 크기가 있는(sized) 경우, 포인터는 변경되지 않고 반환됩니다.</li>
-</ul>
-<p>r[expr.as.pointer.unsized]</p>
-<ul>
 <li>
-<p><code>T</code> 와 <code>U</code> 가 모두 크기가 없는(unsized) 경우, 포인터도 변경되지 않고 반환됩니다. 특히 메타데이터는 정확하게 보존됩니다.</p>
-<p>예를 들어, <code>*const [T]</code> 에서 <code>*const [U]</code> 로의 캐스트는 요소 수를 보존합니다. 결과적으로 이러한 캐스트는 포인터가 참조하는 대상의 크기를 반드시 보존하지는 않는다는 점에 유의하십시오(예: <code>*const [u16]</code> 을 <code>*const [u8]</code> 로 캐스팅하면 원본 크기의 절반인 객체를 참조하는 원시 포인터가 됩니다). <code>str</code> 및 <code>struct Foo(i32, [u8])</code> 또는 <code>(u64, Foo)</code> 와 같이 크기가 없는 꼬리가 슬라이스 타입인 복합 타입에도 동일하게 적용됩니다.</p>
+<p><code>T</code> 와 <code>U</code> 가 모두 크기가 있는(sized) 경우, 포인터는 변경되지 않고 반환됩니다.</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let x: i32 = 42;
+let p1: *const i32 = &amp;x;
+let p2: *const u8 = p1 as *const u8;
+// The pointer address remains the same.
+assert_eq!(p1 as usize, p2 as usize);
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
 </li>
 </ul>
 <p>r[expr.as.pointer.discard-metadata]</p>
 <ul>
-<li><code>T</code> 는 크기가 없고 <code>U</code> 는 크기가 있는 경우, 캐스트는 넓은 포인터(wide pointer) <code>T</code> 를 완성하는 모든 메타데이터를 버리고 크기가 없는 포인터의 데이터 부분으로 구성된 얇은 포인터(thin pointer) <code>U</code> 를 생성합니다.</li>
+<li>
+<p><code>T</code> 는 크기가 없고 <code>U</code> 는 크기가 있는 경우, 캐스트는 넓은 포인터(wide pointer) <code>T</code> 를 완성하는 모든 메타데이터를 버리고 크기가 없는 포인터의 데이터 부분으로 구성된 얇은 포인터(thin pointer) <code>U</code> 를 생성합니다.</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let slice: &amp;[i32] = &amp;[1, 2, 3];
+let ptr: *const [i32] = slice as *const [i32];
+// Cast from wide pointer (*const [i32]) to thin pointer (*const i32)
+// discarding the length metadata.
+let data_ptr: *const i32 = ptr as *const i32;
+assert_eq!(unsafe { *data_ptr }, 1);
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
+</li>
+</ul>
+<p>r[expr.as.pointer.unsized.unchanged]</p>
+<ul>
+<li>If <code>T</code> and <code>U</code> are both unsized, the pointer is also returned unchanged. In particular, the metadata is preserved exactly. The cast can only be performed if the metadata is compatible according to the below rules:</li>
+</ul>
+<p>r[expr.as.pointer.unsized.slice]</p>
+<ul>
+<li>
+<p>When <code>T</code> and <code>U</code> are unsized with slice metadata, they are always compatible. The metadata of a slice is the number of elements, so casting <code>*[u16] -&gt; *[u8]</code> is legal but will result in reducing the number of bytes by half.</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let slice: &amp;[u16] = &amp;[1, 2, 3];
+let ptr: *const [u16] = slice as *const [u16];
+let byte_ptr: *const [u8] = ptr as *const [u8];
+assert_eq!(byte_ptr.len(), 3);
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
+</li>
+</ul>
+<p>r[expr.as.pointer.unsized.trait]</p>
+<ul>
+<li>When <code>T</code> and <code>U</code> are unsized with trait object metadata, the metadata is compatible only when all of the following holds:
+<ol>
+<li>
+<p>The principal trait must be the same.</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust compile_fail E0606 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>trait Foo {}
+trait Bar {}
+impl Foo for i32 {}
+impl Bar for i32 {}
+
+let x: i32 = 42;
+let ptr_foo: *const dyn Foo = &amp;x as *const dyn Foo;
+// You can't cast to a different principal trait.
+let ptr_bar: *const dyn Bar = ptr_foo as *const dyn Bar; // 오류
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
+</li>
+<li>
+<p>Auto traits may be removed.</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>trait Foo {}
+struct S;
+impl Foo for S {}
+unsafe impl Send for S {}
+
+let s = S;
+let ptr_send: *const (dyn Foo + Send) = &amp;s;
+// Removing an auto trait.
+let ptr_no_send: *const dyn Foo = ptr_send as *const dyn Foo;
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
+</li>
+<li>
+<p>Auto traits may be added only if they are a super trait of the principal trait.</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>trait Foo: Send {}
+struct S;
+impl Foo for S {}
+unsafe impl Send for S {}
+
+let s = S;
+let ptr_no_send: *const dyn Foo = &amp;s;
+// Adding an auto trait.
+let ptr_send: *const (dyn Foo + Send) = ptr_no_send as *const (dyn Foo + Send);
+<span class="boring">}</span></code></pre></pre>
+<pre><pre class="playground"><code class="language-rust compile_fail E0804 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>trait Foo {}
+<span class="boring">struct S;
+</span><span class="boring">impl Foo for S {}
+</span><span class="boring">unsafe impl Send for S {}
+</span><span class="boring">
+</span><span class="boring">let s = S;
+</span><span class="boring">let ptr_no_send: *const dyn Foo = &amp;s;
+</span>// Same as above, except trait Foo does not have Send as a super trait.
+let ptr_send: *const (dyn Foo + Send) = ptr_no_send as *const (dyn Foo + Send); // 오류
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
+</li>
+<li>
+<p>Trailing lifetimes may only be shortened.</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>trait Foo {}
+
+fn shorten_lifetime&lt;'long: 'short, 'short&gt;(
+    ptr: *const (dyn Foo + 'long),
+) -&gt; *const (dyn Foo + 'short) {
+    // Shortening the lifetime is allowed.
+    ptr as *const (dyn Foo + 'short)
+}
+<span class="boring">}</span></code></pre></pre>
+<pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>trait Foo {}
+
+fn lengthen_lifetime&lt;'long: 'short, 'short&gt;(
+    ptr: *const (dyn Foo + 'short),
+) -&gt; *const (dyn Foo + 'long) {
+    // It is not allowed to cast to a longer lifetime.
+    ptr as *const (dyn Foo + 'long) // 오류
+}
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
+</li>
+<li>
+<p>Generics (including lifetimes) and associated types must match exactly.</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust compile_fail E0606 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>trait Generic&lt;T&gt; {}
+impl Generic&lt;i32&gt; for () {}
+impl Generic&lt;u32&gt; for () {}
+
+let x = ();
+let ptr_i32: *const dyn Generic&lt;i32&gt; = &amp;x;
+// You can't cast to a different generic parameter.
+let ptr_u32: *const dyn Generic&lt;u32&gt; = ptr_i32 as *const dyn Generic&lt;u32&gt;; // 오류
+<span class="boring">}</span></code></pre></pre>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>trait HasType {
+    type Output;
+}
+
+trait Generic&lt;'x, T&gt; {}
+
+fn cast_via_associated&lt;'a, 'b, A, B&gt;(
+    ptr: *const dyn Generic&lt;'a, A::Output&gt;,
+) -&gt; *const dyn Generic&lt;'b, B::Output&gt;
+where
+    'a: 'b,
+    'b: 'a,
+    A: HasType,
+    B: HasType&lt;Output = A::Output&gt;, // Forces equality
+{
+    ptr as *const dyn Generic&lt;'b, B::Output&gt;
+}
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
+</li>
+</ol>
+</li>
+</ul>
+<p>r[expr.as.pointer.unsized.compound]</p>
+<ul>
+<li>
+<p>When <code>T</code> or <code>U</code> is a struct or tuple type whose last field is unsized, it has the same metadata and compatibility rules as its last field.</p>
+<blockquote>
+<p>[!EXAMPLE]</p>
+<pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>struct Wrapper(u32, [u8]);
+
+let slice: &amp;[u8] = &amp;[1, 2, 3];
+let ptr: *const [u8] = slice;
+
+// The metadata (length 3) is preserved when casting to a struct
+// where the last field is the unsized type `[u8]`.
+let wrapper_ptr: *const Wrapper = ptr as *const Wrapper;
+
+// And preserved when casting back.
+let ptr_back: *const [u8] = wrapper_ptr as *const [u8];
+assert_eq!(ptr_back.len(), 3);
+<span class="boring">}</span></code></pre></pre>
+</blockquote>
+</li>
 </ul>
 <p>r[expr.assign]</p>
 <h2 id="할당-표현식"><a class="header" href="#할당-표현식">할당 표현식</a></h2>

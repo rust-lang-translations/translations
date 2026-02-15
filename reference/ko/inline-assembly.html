@@ -227,6 +227,7 @@
 <li>RISC-V</li>
 <li>LoongArch</li>
 <li>s390x</li>
+<li>PowerPC and PowerPC64</li>
 </ul>
 <p>The compiler will emit an error if an assembly macro is used on an unsupported target.</p>
 <p>r[asm.example]</p>
@@ -793,6 +794,18 @@ unsafe { core::arch::asm!("/* {} */", in(reg) x); }
 <tr><td>s390x</td><td><code>freg</code></td><td><code>f[0-15]</code></td><td><code>f</code></td></tr>
 <tr><td>s390x</td><td><code>vreg</code></td><td><code>v[0-31]</code></td><td>클로버(clobbers) 전용</td></tr>
 <tr><td>s390x</td><td><code>areg</code></td><td><code>a[2-15]</code></td><td>클로버(clobbers) 전용</td></tr>
+<tr><td>PowerPC</td><td><code>reg</code></td><td><code>r0</code>, <code>r[3-12]</code>, <code>r[14-28]</code></td><td><code>r</code></td></tr>
+<tr><td>PowerPC</td><td><code>reg_nonzero</code></td><td><code>r[3-12]</code>, <code>r[14-28]</code></td><td><code>b</code></td></tr>
+<tr><td>PowerPC</td><td><code>spe_acc</code></td><td><code>spe_acc</code></td><td>클로버(clobbers) 전용</td></tr>
+<tr><td>PowerPC64</td><td><code>reg</code></td><td><code>r0</code>, <code>r[3-12]</code>, <code>r[14-29]</code></td><td><code>r</code></td></tr>
+<tr><td>PowerPC64</td><td><code>reg_nonzero</code></td><td><code>r[3-12]</code>, <code>r[14-29]</code></td><td><code>b</code></td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>freg</code></td><td><code>f[0-31]</code></td><td><code>f</code></td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>vreg</code></td><td><code>v[0-31]</code></td><td><code>v</code></td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>vsreg</code></td><td><code>vs[0-63]</code></td><td><code>wa</code></td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>cr</code></td><td><code>cr[0-7]</code>, <code>cr</code></td><td>클로버(clobbers) 전용</td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>ctr</code></td><td><code>ctr</code></td><td>클로버(clobbers) 전용</td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>lr</code></td><td><code>lr</code></td><td>클로버(clobbers) 전용</td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>xer</code></td><td><code>xer</code></td><td>클로버(clobbers) 전용</td></tr>
 </tbody></table>
 </div>
 <blockquote>
@@ -801,6 +814,7 @@ unsafe { core::arch::asm!("/* {} */", in(reg) x); }
 <li>x86에서 <code>reg_byte</code> 는 <code>reg</code> 와 다르게 취급됩니다. 그 이유는 컴파일러가 <code>al</code> 과 <code>ah</code> 를 별도로 할당할 수 있는 반면, <code>reg</code> 는 레지스터 전체를 예약하기 때문입니다.</li>
 <li>x86-64에서 고위 바이트 레지스터(예: <code>ah</code>)는 <code>reg_byte</code> 레지스터 클래스에서 사용할 수 없습니다.</li>
 <li>일부 레지스터 클래스는 “클로버 전용(Only clobbers)“으로 표시되어 있습니다. 이는 해당 클래스의 레지스터를 입력이나 출력에 사용할 수 없으며, 오직 <code>out(&lt;explicit register&gt;) _</code> 또는 <code>lateout(&lt;explicit register&gt;) _</code> 형식의 클로버로만 사용할 수 있음을 의미합니다.</li>
+<li>The <code>spe_acc</code> register is only available on PowerPC SPE targets.</li>
 </ul>
 </blockquote>
 <p>r[asm.register-operands.value-type-constraints] Each register class has constraints on which value types they can be used with. This is necessary because the way a value is loaded into a register depends on its type. For example, on big-endian systems, loading a <code>i32x4</code> and a <code>i8x16</code> into a SIMD register may result in different register contents even if the byte-wise memory representation of both values is identical. The availability of supported types for a particular register class may depend on what target features are currently enabled.</p>
@@ -838,6 +852,17 @@ unsafe { core::arch::asm!("/* {} */", in(reg) x); }
 <tr><td>s390x</td><td><code>freg</code></td><td>없음</td><td><code>f32</code>, <code>f64</code></td></tr>
 <tr><td>s390x</td><td><code>vreg</code></td><td>해당 없음 (N/A)</td><td>클로버(clobbers) 전용</td></tr>
 <tr><td>s390x</td><td><code>areg</code></td><td>해당 없음 (N/A)</td><td>클로버(clobbers) 전용</td></tr>
+<tr><td>PowerPC</td><td><code>spe_acc</code></td><td>없음</td><td>클로버(clobbers) 전용</td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>reg</code></td><td>없음</td><td><code>i8</code>, <code>i16</code>, <code>i32</code>, <code>i64</code> (PowerPC64 only)</td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>reg_nonzero</code></td><td>없음</td><td><code>i8</code>, <code>i16</code>, <code>i32</code>, <code>i64</code> (PowerPC64 only)</td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>freg</code></td><td>없음</td><td><code>f32</code>, <code>f64</code></td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>vreg</code></td><td><code>altivec</code></td><td><code>i8x16</code>, <code>i16x8</code>, <code>i32x4</code>, <code>f32x4</code></td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>vreg</code></td><td><code>vsx</code></td><td><code>f32</code>, <code>f64</code>, <code>i64x2</code>, <code>f64x2</code></td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>vsreg</code></td><td><code>vsx</code></td><td>The union of vsx and altivec vreg types</td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>cr</code></td><td>없음</td><td>클로버(clobbers) 전용</td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>ctr</code></td><td>없음</td><td>클로버(clobbers) 전용</td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>lr</code></td><td>없음</td><td>클로버(clobbers) 전용</td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>xer</code></td><td>없음</td><td>클로버(clobbers) 전용</td></tr>
 </tbody></table>
 </div>
 <blockquote>
@@ -967,6 +992,10 @@ unsafe { core::arch::asm!("/* {} */", inout(reg) x=&gt;y); }
 <tr><td>LoongArch</td><td><code>$f[0-7]</code></td><td><code>$fa[0-7]</code></td></tr>
 <tr><td>LoongArch</td><td><code>$f[8-23]</code></td><td><code>$ft[0-15]</code></td></tr>
 <tr><td>LoongArch</td><td><code>$f[24-31]</code></td><td><code>$fs[0-7]</code></td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>r1</code></td><td><code>sp</code></td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>r31</code></td><td><code>fp</code></td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>r[0-31]</code></td><td><code>[0-31]</code></td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>f[0-31]</code></td><td><code>fr[0-31]</code></td></tr>
 </tbody></table>
 </div>
 <pre><pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
@@ -979,10 +1008,10 @@ unsafe { core::arch::asm!("", in("rax") z); }
 </span><span class="boring">}</span></code></pre></pre>
 <p>r[asm.register-names.not-for-io] Some registers cannot be used for input or output operands:</p>
 <div class="table-wrapper"><table><thead><tr><th>아키텍처</th><th>지원되지 않는 레지스터</th><th>이유</th></tr></thead><tbody>
-<tr><td>모두</td><td><code>sp</code>, <code>r15</code> (s390x)</td><td>The stack pointer must be restored to its original value at the end of the assembly code or before jumping to a <code>label</code> block.</td></tr>
-<tr><td>모두</td><td><code>bp</code> (x86), <code>x29</code> (AArch64 및 Arm64EC), <code>x8</code> (RISC-V), <code>$fp</code> (LoongArch), <code>r11</code> (s390x)</td><td>프레임 포인터(fp)는 입력 또는 출력으로 사용할 수 없습니다.</td></tr>
+<tr><td>모두</td><td><code>sp</code>, <code>r15</code> (s390x), <code>r1</code> (PowerPC and PowerPC64)</td><td>The stack pointer must be restored to its original value at the end of the assembly code or before jumping to a <code>label</code> block.</td></tr>
+<tr><td>모두</td><td><code>bp</code> (x86), <code>x29</code> (AArch64 and Arm64EC), <code>x8</code> (RISC-V), <code>$fp</code> (LoongArch), <code>r11</code> (s390x), <code>fp</code> (PowerPC and PowerPC64)</td><td>프레임 포인터(fp)는 입력 또는 출력으로 사용할 수 없습니다.</td></tr>
 <tr><td>ARM</td><td><code>r7</code> 또는 <code>r11</code></td><td>ARM에서 프레임 포인터는 타겟에 따라 <code>r7</code> 또는 <code>r11</code> 이 될 수 있습니다. 프레임 포인터는 입력 또는 출력으로 사용할 수 없습니다.</td></tr>
-<tr><td>모두</td><td><code>si</code> (x86-32), <code>bx</code> (x86-64), <code>r6</code> (ARM), <code>x19</code> (AArch64 및 Arm64EC), <code>x9</code> (RISC-V), <code>$s8</code> (LoongArch)</td><td>이는 복잡한 스택 프레임을 가진 함수를 위해 LLVM에서 내부적으로 “베이스 포인터“로 사용됩니다.</td></tr>
+<tr><td>모두</td><td><code>si</code> (x86-32), <code>bx</code> (x86-64), <code>r6</code> (ARM), <code>x19</code> (AArch64 and Arm64EC), <code>x9</code> (RISC-V), <code>$s8</code> (LoongArch), <code>r29</code> and <code>r30</code> (PowerPC), <code>r30</code> (PowerPC64)</td><td>이는 복잡한 스택 프레임을 가진 함수를 위해 LLVM에서 내부적으로 “베이스 포인터“로 사용됩니다.</td></tr>
 <tr><td>x86</td><td><code>ip</code></td><td>이것은 프로그램 카운터(pc)이며, 실제 레지스터가 아닙니다.</td></tr>
 <tr><td>AArch64</td><td><code>xzr</code></td><td>이것은 수정할 수 없는 상수 제로 레지스터입니다.</td></tr>
 <tr><td>AArch64</td><td><code>x18</code></td><td>이는 일부 AArch64 타겟에서 OS가 예약한 레지스터입니다.</td></tr>
@@ -998,6 +1027,8 @@ unsafe { core::arch::asm!("", in("rax") z); }
 <tr><td>LoongArch</td><td><code>$r21</code></td><td>이는 ABI에 의해 예약되어 있습니다.</td></tr>
 <tr><td>s390x</td><td><code>c[0-15]</code></td><td>커널에 의해 예약되어 있습니다.</td></tr>
 <tr><td>s390x</td><td><code>a[0-1]</code></td><td>시스템 사용을 위해 예약되어 있습니다.</td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>r2</code>, <code>r13</code></td><td>These are system reserved registers.</td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>vrsave</code></td><td>The vrsave register cannot be used as an input or output.</td></tr>
 </tbody></table>
 </div>
 <pre><pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
@@ -1063,6 +1094,11 @@ unsafe { core::arch::asm!("/* {:er}", in(reg) 5i32); }
 <tr><td>s390x</td><td><code>reg</code></td><td>없음</td><td><code>%r0</code></td><td>없음</td></tr>
 <tr><td>s390x</td><td><code>reg_addr</code></td><td>없음</td><td><code>%r1</code></td><td>없음</td></tr>
 <tr><td>s390x</td><td><code>freg</code></td><td>없음</td><td><code>%f0</code></td><td>없음</td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>reg</code></td><td>없음</td><td><code>0</code></td><td>없음</td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>reg_nonzero</code></td><td>없음</td><td><code>3</code></td><td>없음</td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>freg</code></td><td>없음</td><td><code>0</code></td><td>없음</td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>vreg</code></td><td>없음</td><td><code>0</code></td><td>없음</td></tr>
+<tr><td>PowerPC/PowerPC64</td><td><code>vsreg</code></td><td>없음</td><td><code>0</code></td><td>없음</td></tr>
 </tbody></table>
 </div>
 <blockquote>
@@ -1104,7 +1140,7 @@ assert_eq!(z, 0);
 </span><span class="boring">fn main() {
 </span><span class="boring">#[cfg(target_arch = "x86_64")] {
 </span>extern "sysv64" fn foo() -&gt; i32 { 0 }
-extern "win64" fn bar(x: i32) -&gt; i32 { x + 1}
+extern "win64" fn bar(x: i32) -&gt; i32 { x + 1 }
 
 let z: i32;
 // 심지어 서로 다른 규약과 서로 다른 저장된 레지스터를 가진 여러 함수를 호출할 수도 있습니다.
@@ -1468,6 +1504,10 @@ core::arch::global_asm!("", options(nomem));
 </ul>
 </li>
 </ul>
+<p>r[asm.rules.stack-above-sp]</p>
+<ul>
+<li>Unless the <code>nostack</code> option is set, assembly code is allowed to modify the caller’s stack frame when the target ABI requires storing certain values in the caller’s frame (e.g., when saving the <code>lr</code> on PowerPC64).</li>
+</ul>
 <p>r[asm.rules.noreturn]</p>
 <ul>
 <li>If the <code>noreturn</code> option is set then behavior is undefined if execution falls through the end of the assembly code.</li>
@@ -1517,6 +1557,17 @@ core::arch::global_asm!("", options(nomem));
 <li>LoongArch
 <ul>
 <li><code>$fcc[0-7]</code> 의 부동 소수점 조건 플래그.</li>
+</ul>
+</li>
+<li>PowerPC/PowerPC64
+<ul>
+<li>Floating-point status and sticky bits in the <code>fpscr</code> (any field other than DRN, VE, OE, UE, ZE, XE, NI, or RN).</li>
+<li>Vector status and sticky bits in the <code>vscr</code> (any field other than NJ).</li>
+</ul>
+</li>
+<li>PowerPC SPE
+<ul>
+<li>The sticky and status bits of the <code>spefscr</code> (any field other than FINXE, FINVE, FDBZE, FUNFE, FOVFE, or FRMC).</li>
 </ul>
 </li>
 <li>s390x
