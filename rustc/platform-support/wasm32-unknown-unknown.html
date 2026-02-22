@@ -92,7 +92,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-efff4578.js";
+            window.path_to_searchindex_js = "../searchindex-81a468d6.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-5ef7b3c1.js"></script>
@@ -439,6 +439,18 @@ default. This is not for certain, however, and will likely be accompanied with
 either an MCP or an RFC about changing all wasm targets in the same manner. In
 the meantime using <code>-Cpanic=unwind</code> will require using <a href="../../cargo/reference/unstable.html#build-std"><code>-Zbuild-std</code></a> and
 passing the appropriate flags to rustc.</p>
+<h3 id="the-exception-tag-for-panics"><a class="header" href="#the-exception-tag-for-panics">The exception tag for panics</a></h3>
+<p>Rust panics are currently implemented as a specific class of C++ exceptions.
+This is because llvm only supports throwing and catching the C++ exception tag
+from <code>wasm_throw</code> intrinsic and the lowering for the catchpads emitted by the
+Rust try intrinsic.</p>
+<p>In particular, llvm throw and catch blocks expect a <code>WebAssembly.Tag</code> symbol
+called <code>__cpp_exception</code>. If it is not defined somewhere, llvm will generate an
+Emscripten style import from <code>env.__cpp_exception</code>. We don’t want this, so we
+define the symbol in <code>libunwind</code> but only for wasm32-unknown-unknown. WASI
+doesn’t currently support unwinding at all, and the Emscripten linker provides
+the tag in an appropriate manner depending on what sort of binary is being
+linked.</p>
 
                     </main>
 
