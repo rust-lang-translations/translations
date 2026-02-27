@@ -2,7 +2,7 @@ use crate::build::build_book;
 use crate::serve::serve;
 use anyhow::{bail, Context, Result};
 use log::info;
-use mdbook::MDBook;
+use mdbook_driver::MDBook;
 use mdbook_i18n_helpers::renderers::Xgettext;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -251,7 +251,6 @@ fn extract_pot(src_path: &Path, po_path: &Path) -> Result<()> {
     let mut mdbook = MDBook::load(&src_path)?;
     mdbook.config.build.build_dir = PathBuf::from(po_path);
     let renderer = Xgettext {};
-    mdbook.clear_renderers();
     mdbook.with_renderer(renderer);
     mdbook.build()?;
 
