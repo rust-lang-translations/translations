@@ -24,6 +24,10 @@ const language_toggle = `
       <a id="ko">한국어</a>
   </button></li>
   
+  <li role="none"><button role="menuitem" class="theme">
+      <a id="fr">Français</a>
+  </button></li>
+  
 </ul>
 `;
 right_buttons.insertAdjacentHTML('afterbegin', language_toggle);
