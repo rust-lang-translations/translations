@@ -15,7 +15,7 @@ In conventional translations, the content becomes outdated as the original is up
 All documentation has a language selector, so users can easily refer to the original English version.
 
 ## Translator-friendly workflow
-We provide the workflow necessary for translators, such as automatic updates of the original version and measurement of translation rate (planned). Unlike when each translator works in their own repository, workflow improvements reach all translators.
+We provide the workflow necessary for translators, such as automatic updates of the original version and measurement of translation rate. Unlike when each translator works in their own repository, workflow improvements reach all translators.
 
 # Contribution
 

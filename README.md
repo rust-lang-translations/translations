@@ -35,13 +35,6 @@ The following commands are required:
 * Git: `git`
 * GNU gettext: `msginit` `msgmerge`
 
-Now some documents requires beta version of Rust, so we recommend to override by beta like below:
-After releasing Rust 1.85, this workaround becomes to be unnecessary.
-
-```
-$ rustup override set beta
-```
-
 #### Add a new translation
 
 First of all, create a file and entry for a new translation like below:
