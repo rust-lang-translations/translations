@@ -97,7 +97,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9cdf55ff.js";
+            window.path_to_searchindex_js = "../searchindex-7209f2e0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-6b0c3669.js"></script>
@@ -483,6 +483,22 @@ fn main() {
 
 // … zlib을 사용하는 나머지 코드들
 </code></pre>
+<h2 id="reading-target-configuration"><a class="header" href="#reading-target-configuration">Reading target configuration</a></h2>
+<p>When a build script needs to make decisions based on the target platform, it should read the <code>CARGO_CFG_*</code> environment variables rather than using <code>cfg!</code> or <code>#[cfg]</code> attributes. This is because the build script is compiled for and runs on the <em>host</em> machine, while <code>CARGO_CFG_*</code> variables reflect the <em>target</em> platform, an important distinction when cross-compiling.</p>
+<pre><code class="language-rust ignore">// build.rs
+
+fn main() {
+    // reads the TARGET configuration
+    let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap();
+
+    if target_os == "windows" {
+        println!("cargo::rustc-link-lib=userenv");
+    } else if target_os == "linux" {
+        println!("cargo::rustc-link-lib=pthread");
+    }
+}</code></pre>
+<p>Note that some configuration values may contain multiple values separated by commas (for example, <code>CARGO_CFG_TARGET_FAMILY</code> may be <code>unix,wasm</code>). When checking these values, be sure to handle this appropriately.</p>
+<p>For a more convenient, typed API, consider using the <a href="https://crates.io/crates/build-rs"><code>build-rs</code></a> crate which handles these details for you.</p>
 <h2 id="조건부-컴파일"><a class="header" href="#조건부-컴파일">조건부 컴파일</a></h2>
 <p>빌드 스크립트는 컴파일 타임에 확인할 수 있는 조건을 활성화하는 <a href="build-scripts.html#rustc-cfg"><code>rustc-cfg</code> 지시문</a>을 내보낼 수 있습니다. 이 예제에서는 <a href="https://crates.io/crates/openssl"><code>openssl</code> 크레이트</a> 가 이를 어떻게 사용하여 여러 버전의 OpenSSL 라이브러리를 지원하는지 살펴보겠습니다.</p>
 <p><a href="https://crates.io/crates/openssl-sys"><code>openssl-sys</code> 크레이트</a> 는 OpenSSL 라이브러리를 빌드하고 링크하는 기능을 구현합니다. 이 크레이트는 여러 다양한 구현체(LibreSSL 등)와 여러 버전을 지원합니다. <code>links</code> 키를 사용하여 다른 빌드 스크립트에 정보를 전달할 수 있도록 되어 있습니다. 전달하는 정보 중 하나는 감지된 OpenSSL 버전인 <code>version_number</code> 키입니다. 빌드 스크립트의 코드는 <a href="https://github.com/sfackler/rust-openssl/blob/dc72a8e2c429e46c275e528b61a733a66e7877fc/openssl-sys/build/main.rs#L216">이런 식</a>으로 되어 있습니다.</p>

@@ -93,7 +93,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-de0d1ba3.js";
+            window.path_to_searchindex_js = "searchindex-bdf92d3a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f44ceee2.js"></script>
@@ -596,7 +596,7 @@ ConfigurationPredicate</text>
 <div class="rule" id="r-cfg.attributes-macro"><a class="rule-link" href="#r-cfg.attributes-macro" title="cfg.attributes-macro"><span>[cfg<wbr>.attributes-macro]</span></a>
 </div>
 
-<p>소스 코드는 <a href="#the-cfg-attribute"><code>cfg</code></a> 및 <a href="#the-cfg_attr-attribute"><code>cfg_attr</code></a> <a href="attributes.html">속성</a> 과 내장된 <a href="#the-cfg-macro"><code>cfg</code> 매크로</a> 를 사용하여 조건부로 컴파일할 수 있습니다.</p>
+<p>Source code can be made conditionally compiled using the <a href="#the-cfg-attribute"><code>cfg</code></a> and <a href="#the-cfg_attr-attribute"><code>cfg_attr</code></a> <a href="attributes.html">attributes</a> and the built-in <a href="#the-cfg-macro"><code>cfg!</code></a> and <a href="#the-cfg_select-macro"><code>cfg_select!</code></a> <a href="macros.html">macros</a>.</p>
 <div class="rule" id="r-cfg.conditional"><a class="rule-link" href="#r-cfg.conditional" title="cfg.conditional"><span>[cfg<wbr>.conditional]</span></a>
 </div>
 
@@ -1283,6 +1283,291 @@ fn bewitched() {}</code></pre>
 
 println!("저는 {} 머신에서 실행 중입니다!", machine_kind);
 <span class="boring">}</span></code></pre>
+<div class="rule" id="r-cfg.cfg_select"><a class="rule-link" href="#r-cfg.cfg_select" title="cfg.cfg_select"><span>[cfg<wbr>.cfg_select]</span></a>
+</div>
+
+<h3 id="the-cfg_select-macro"><a class="header" href="#the-cfg_select-macro">The <code>cfg_select</code> macro</a></h3>
+<div class="rule" id="r-cfg.cfg_select.intro"><a class="rule-link" href="#r-cfg.cfg_select.intro" title="cfg.cfg_select.intro"><span>[cfg<wbr>.cfg_select<wbr>.intro]</span></a>
+</div>
+
+<p>The built-in <a href="../core/macros/macro.cfg_select.html"><code>cfg_select!</code></a> macro can be used to select code at compile-time based on multiple configuration predicates.</p>
+<div class="alert alert-example">
+<blockquote>
+<p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"></path></svg>Example</p>
+
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>cfg_select! {
+    unix =&gt; {
+        fn foo() { /* unix specific functionality */ }
+    }
+    target_pointer_width = "32" =&gt; {
+        fn foo() { /* non-unix, 32-bit functionality */ }
+    }
+    _ =&gt; {
+        fn foo() { /* fallback implementation */ }
+    }
+}
+
+let is_unix_str = cfg_select! {
+    unix =&gt; "unix",
+    _ =&gt; "not unix",
+};
+<span class="boring">}</span></code></pre>
+</blockquote>
+</div>
+
+<div class="rule" id="r-cfg.cfg_select.syntax"><a class="rule-link" href="#r-cfg.cfg_select.syntax" title="cfg.cfg_select.syntax"><span>[cfg<wbr>.cfg_select<wbr>.syntax]</span></a>
+</div>
+
+<div class="grammar-container">
+<p><strong><sup>Syntax</sup></strong> <br> <span class="grammar-text grammar-production" id="grammar-CfgSelect" onclick="show_railroad()"><a href="conditional-compilation.html#railroad-CfgSelect">CfgSelect</a></span> → <span class="grammar-text"><a href="conditional-compilation.html#grammar-CfgSelectArms">CfgSelectArms</a></span><sup>?</sup></p>
+<p><span class="grammar-text grammar-production" id="grammar-CfgSelectArms" onclick="show_railroad()"><a href="conditional-compilation.html#railroad-CfgSelectArms">CfgSelectArms</a></span> →<br>    <span class="grammar-text"><a href="conditional-compilation.html#grammar-CfgSelectConfigurationPredicate">CfgSelectConfigurationPredicate</a></span> <span class="grammar-literal">=&gt;</span><br>    (<br>        <span class="grammar-literal">{</span> ^ <span class="grammar-text"><a href="macros.html#grammar-TokenTree">TokenTree</a></span> <span class="grammar-literal">}</span> <span class="grammar-literal">,</span><sup>?</sup> <span class="grammar-text"><a href="conditional-compilation.html#grammar-CfgSelectArms">CfgSelectArms</a></span><sup>?</sup><br>      | <span class="grammar-text"><a href="expressions.html#grammar-ExpressionWithBlockNoAttrs">ExpressionWithBlockNoAttrs</a></span> <span class="grammar-literal">,</span><sup>?</sup> <span class="grammar-text"><a href="conditional-compilation.html#grammar-CfgSelectArms">CfgSelectArms</a></span><sup>?</sup><br>      | <span class="grammar-text"><a href="expressions.html#grammar-ExpressionWithoutBlockNoAttrs">ExpressionWithoutBlockNoAttrs</a></span> ( <span class="grammar-literal">,</span> <span class="grammar-text"><a href="conditional-compilation.html#grammar-CfgSelectArms">CfgSelectArms</a></span><sup>?</sup> )<sup>?</sup><br>    )</p>
+<p><span class="grammar-text grammar-production" id="grammar-CfgSelectConfigurationPredicate" onclick="show_railroad()"><a href="conditional-compilation.html#railroad-CfgSelectConfigurationPredicate">CfgSelectConfigurationPredicate</a></span> →<br>    <span class="grammar-text"><a href="conditional-compilation.html#grammar-ConfigurationPredicate">ConfigurationPredicate</a></span> | <span class="grammar-literal">_</span></p>
+<p><button class="grammar-toggle-railroad" type="button" title="Toggle railroad display" onclick="toggle_railroad()">Show Railroad</button></p>
+</div>
+
+<div class="grammar-railroad grammar-hidden">
+<div style="width: 242px; height: auto; max-width: 100%; max-height: 100%" class="railroad-production" id="railroad-CfgSelect"><svg class="railroad" viewbox="0 0 242 87" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect class="railroad_canvas" height="100%" width="100%" />
+<g class="verticalgrid">
+<a class="link" xlink:href="conditional-compilation.html#grammar-CfgSelect">
+<text class="comment" x="46" y="25">
+CfgSelect</text>
+</a>
+<g class="sequence">
+<path d=" M 10 66 a 5 5 0 0 1 5 -5 a 5 5 0 0 1 5 5 a 5 5 0 0 1 -5 5 a 5 5 0 0 1 -5 -5 m 10 0 h 5" />
+<g class="optional">
+<path d=" M 35 66 h 24 m -24 0 a 12 12 0 0 0 12 -12 v 0 a 12 12 0 0 1 12 -12 h 124 m -59 0 l -5 -5 m 0 10 l 5 -5 m 59 0 a 12 12 0 0 1 12 12 v 0 a 12 12 0 0 0 12 12 h -24" />
+<a class="link" xlink:href="conditional-compilation.html#railroad-CfgSelectArms">
+<g class="nonterminal">
+<rect height="22" width="124" x="59" y="55" />
+<text x="121" y="71">
+CfgSelectArms</text>
+</g>
+</a>
+</g>
+<path d=" M 217 66 h 5 a 5 5 0 0 1 5 -5 a 5 5 0 0 1 5 5 a 5 5 0 0 1 -5 5 a 5 5 0 0 1 -5 -5" />
+<path d=" M 25 66 h 10" />
+<path d=" M 207 66 h 10" />
+</g>
+</g>
+</svg>
+</div>
+
+<div style="width: 682px; height: auto; max-width: 100%; max-height: 100%" class="railroad-production" id="railroad-CfgSelectArms"><svg class="railroad" viewbox="0 0 682 280" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect class="railroad_canvas" height="100%" width="100%" />
+<g class="verticalgrid">
+<a class="link" xlink:href="conditional-compilation.html#grammar-CfgSelectArms">
+<text class="comment" x="60" y="25">
+CfgSelectArms</text>
+</a>
+<g class="sequence">
+<path d=" M 10 53 a 5 5 0 0 1 5 -5 a 5 5 0 0 1 5 5 a 5 5 0 0 1 -5 5 a 5 5 0 0 1 -5 -5 m 10 0 h 5" />
+<g class="stack">
+<path d=" M 35 53 h 12" />
+<path d=" M 369 53 a 12 12 0 0 1 12 12 v 0 a 12 12 0 0 1 -12 12 h -322 m 164 0 l 5 -5 m 0 10 l -5 -5 m -164 0 a 12 12 0 0 0 -12 12 v 48 v 0 a 12 12 0 0 0 12 12 h 0" />
+<g class="sequence">
+<a class="link" xlink:href="conditional-compilation.html#railroad-CfgSelectConfigurationPredicate">
+<g class="nonterminal">
+<rect height="22" width="276" x="47" y="42" />
+<text x="185" y="58">
+CfgSelectConfigurationPredicate</text>
+</g>
+</a>
+<g class="terminal">
+<rect height="22" rx="10" ry="10" width="36" x="333" y="42" />
+<text x="351" y="58">
+=&gt;</text>
+</g>
+<path d=" M 323 53 h 10" />
+</g>
+<path d=" M 623 149 h 0 a 12 12 0 0 0 12 -12 v -72 m 0 39 l -5 5 m 10 0 l -5 -5 m 0 -39 a 12 12 0 0 1 12 -12" />
+<g class="sequence">
+<g class="choice">
+<path d=" M 47 149 h 24 m 452 0 h 100 m -47 0 l -5 -5 m 0 10 l 5 -5 m 47 0" />
+<g class="sequence">
+<g class="terminal">
+<rect height="22" rx="10" ry="10" width="28" x="71" y="138" />
+<text x="85" y="154">
+{</text>
+</g>
+<g class="labeledbox">
+<rect height="79" width="414" x="109" y="89" />
+<path d=" M 109 149 h 8 m 398 0 h 8" />
+<text class="comment" x="174" y="112">
+no backtracking</text>
+<g class="sequence">
+<a class="link" xlink:href="macros.html#railroad-TokenTree">
+<g class="nonterminal">
+<rect height="22" width="92" x="117" y="138" />
+<text x="163" y="154">
+TokenTree</text>
+</g>
+</a>
+<g class="terminal">
+<rect height="22" rx="10" ry="10" width="28" x="219" y="138" />
+<text x="233" y="154">
+}</text>
+</g>
+<g class="optional">
+<path d=" M 257 149 h 24 m -24 0 a 12 12 0 0 0 12 -12 v 0 a 12 12 0 0 1 12 -12 h 28 a 12 12 0 0 1 12 12 v 0 a 12 12 0 0 0 12 12 h -24" />
+<g class="terminal">
+<rect height="22" rx="10" ry="10" width="28" x="281" y="138" />
+<text x="295" y="154">
+,</text>
+</g>
+</g>
+<g class="optional">
+<path d=" M 343 149 h 24 m -24 0 a 12 12 0 0 0 12 -12 v 0 a 12 12 0 0 1 12 -12 h 124 m -59 0 l -5 -5 m 0 10 l 5 -5 m 59 0 a 12 12 0 0 1 12 12 v 0 a 12 12 0 0 0 12 12 h -24" />
+<a class="link" xlink:href="conditional-compilation.html#railroad-CfgSelectArms">
+<g class="nonterminal">
+<rect height="22" width="124" x="367" y="138" />
+<text x="429" y="154">
+CfgSelectArms</text>
+</g>
+</a>
+</g>
+<path d=" M 209 149 h 10" />
+<path d=" M 247 149 h 10" />
+<path d=" M 333 149 h 10" />
+</g>
+</g>
+<path d=" M 99 149 h 10" />
+</g>
+<path d=" M 47 149 a 12 12 0 0 1 12 12 v 17 m 552 0 v -17 a 12 12 0 0 1 12 -12" />
+<path d=" M 59 190 v 33 m 552 0 v -33" />
+<path d=" M 59 178 v 12 a 12 12 0 0 0 12 12 m 504 0 h 24 a 12 12 0 0 0 12 -12 v -12" />
+<g class="sequence">
+<a class="link" xlink:href="expressions.html#railroad-ExpressionWithBlockNoAttrs">
+<g class="nonterminal">
+<rect height="22" width="236" x="71" y="191" />
+<text x="189" y="207">
+ExpressionWithBlockNoAttrs</text>
+</g>
+</a>
+<g class="optional">
+<path d=" M 317 202 h 24 m -24 0 a 12 12 0 0 0 12 -12 v 0 a 12 12 0 0 1 12 -12 h 28 a 12 12 0 0 1 12 12 v 0 a 12 12 0 0 0 12 12 h -24" />
+<g class="terminal">
+<rect height="22" rx="10" ry="10" width="28" x="341" y="191" />
+<text x="355" y="207">
+,</text>
+</g>
+</g>
+<g class="optional">
+<path d=" M 403 202 h 24 m -24 0 a 12 12 0 0 0 12 -12 v 0 a 12 12 0 0 1 12 -12 h 124 m -59 0 l -5 -5 m 0 10 l 5 -5 m 59 0 a 12 12 0 0 1 12 12 v 0 a 12 12 0 0 0 12 12 h -24" />
+<a class="link" xlink:href="conditional-compilation.html#railroad-CfgSelectArms">
+<g class="nonterminal">
+<rect height="22" width="124" x="427" y="191" />
+<text x="489" y="207">
+CfgSelectArms</text>
+</g>
+</a>
+</g>
+<path d=" M 307 202 h 10" />
+<path d=" M 393 202 h 10" />
+</g>
+<path d=" M 59 223 v 24 a 12 12 0 0 0 12 12 m 528 0 h 0 a 12 12 0 0 0 12 -12 v -24" />
+<g class="sequence">
+<a class="link" xlink:href="expressions.html#railroad-ExpressionWithoutBlockNoAttrs">
+<g class="nonterminal">
+<rect height="22" width="260" x="71" y="248" />
+<text x="201" y="264">
+ExpressionWithoutBlockNoAttrs</text>
+</g>
+</a>
+<g class="optional">
+<path d=" M 341 259 h 24 m -24 0 a 12 12 0 0 0 12 -12 v -12 a 12 12 0 0 1 12 -12 h 210 m -102 0 l -5 -5 m 0 10 l 5 -5 m 102 0 a 12 12 0 0 1 12 12 v 12 a 12 12 0 0 0 12 12 h -24" />
+<g class="sequence">
+<g class="terminal">
+<rect height="22" rx="10" ry="10" width="28" x="365" y="248" />
+<text x="379" y="264">
+,</text>
+</g>
+<g class="optional">
+<path d=" M 403 259 h 24 m -24 0 a 12 12 0 0 0 12 -12 v 0 a 12 12 0 0 1 12 -12 h 124 m -59 0 l -5 -5 m 0 10 l 5 -5 m 59 0 a 12 12 0 0 1 12 12 v 0 a 12 12 0 0 0 12 12 h -24" />
+<a class="link" xlink:href="conditional-compilation.html#railroad-CfgSelectArms">
+<g class="nonterminal">
+<rect height="22" width="124" x="427" y="248" />
+<text x="489" y="264">
+CfgSelectArms</text>
+</g>
+</a>
+</g>
+<path d=" M 393 259 h 10" />
+</g>
+</g>
+<path d=" M 331 259 h 10" />
+</g>
+</g>
+</g>
+</g>
+<path d=" M 657 53 h 5 a 5 5 0 0 1 5 -5 a 5 5 0 0 1 5 5 a 5 5 0 0 1 -5 5 a 5 5 0 0 1 -5 -5" />
+<path d=" M 25 53 h 10" />
+<path d=" M 647 53 h 10" />
+</g>
+</g>
+</svg>
+</div>
+
+<div style="width: 322px; height: auto; max-width: 100%; max-height: 100%" class="railroad-production" id="railroad-CfgSelectConfigurationPredicate"><svg class="railroad" viewbox="0 0 322 107" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect class="railroad_canvas" height="100%" width="100%" />
+<g class="verticalgrid">
+<a class="link" xlink:href="conditional-compilation.html#grammar-CfgSelectConfigurationPredicate">
+<text class="comment" x="127" y="25">
+CfgSelectConfigurationPredicate</text>
+</a>
+<g class="sequence">
+<path d=" M 10 53 a 5 5 0 0 1 5 -5 a 5 5 0 0 1 5 5 a 5 5 0 0 1 -5 5 a 5 5 0 0 1 -5 -5 m 10 0 h 5" />
+<g class="choice">
+<path d=" M 35 53 h 24 m 204 0 h 24" />
+<g class="sequence">
+<a class="link" xlink:href="conditional-compilation.html#railroad-ConfigurationPredicate">
+<g class="nonterminal">
+<rect height="22" width="204" x="59" y="42" />
+<text x="161" y="58">
+ConfigurationPredicate</text>
+</g>
+</a>
+</g>
+<path d=" M 35 53 a 12 12 0 0 1 12 12 v 9 m 228 0 v -9 a 12 12 0 0 1 12 -12" />
+<path d=" M 47 74 v 0 a 12 12 0 0 0 12 12 m 28 0 h 176 m -85 0 l -5 -5 m 0 10 l 5 -5 m 85 0 a 12 12 0 0 0 12 -12 v 0" />
+<g class="terminal">
+<rect height="22" rx="10" ry="10" width="28" x="59" y="75" />
+<text x="73" y="91">
+_</text>
+</g>
+</g>
+<path d=" M 297 53 h 5 a 5 5 0 0 1 5 -5 a 5 5 0 0 1 5 5 a 5 5 0 0 1 -5 5 a 5 5 0 0 1 -5 -5" />
+<path d=" M 25 53 h 10" />
+<path d=" M 287 53 h 10" />
+</g>
+</g>
+</svg>
+</div>
+
+</div>
+
+<div class="rule" id="r-cfg.cfg_select.first-arm"><a class="rule-link" href="#r-cfg.cfg_select.first-arm" title="cfg.cfg_select.first-arm"><span>[cfg<wbr>.cfg_select<wbr>.first-arm]</span></a>
+</div>
+
+<p><code>cfg_select</code> expands to the payload of the first arm whose configuration predicate evaluates to true.</p>
+<div class="rule" id="r-cfg.cfg_select.braces"><a class="rule-link" href="#r-cfg.cfg_select.braces" title="cfg.cfg_select.braces"><span>[cfg<wbr>.cfg_select<wbr>.braces]</span></a>
+</div>
+
+<p>If the entire payload is wrapped in curly braces, the braces are removed during expansion.</p>
+<div class="rule" id="r-cfg.cfg_select.wildcard"><a class="rule-link" href="#r-cfg.cfg_select.wildcard" title="cfg.cfg_select.wildcard"><span>[cfg<wbr>.cfg_select<wbr>.wildcard]</span></a>
+</div>
+
+<p>The configuration predicate <code>_</code> always evaluates to true.</p>
+<div class="rule" id="r-cfg.cfg_select.fallthrough"><a class="rule-link" href="#r-cfg.cfg_select.fallthrough" title="cfg.cfg_select.fallthrough"><span>[cfg<wbr>.cfg_select<wbr>.fallthrough]</span></a>
+</div>
+
+<p>It is a compile error if none of the predicates evaluate to true.</p>
+<div class="rule" id="r-cfg.cfg_select.well-formed"><a class="rule-link" href="#r-cfg.cfg_select.well-formed" title="cfg.cfg_select.well-formed"><span>[cfg<wbr>.cfg_select<wbr>.well-formed]</span></a>
+</div>
+
+<p>Each right-hand side must be a syntactically valid expansion for the position in which the macro is invoked.</p>
 
                     </main>
 

@@ -93,7 +93,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3ba05ac1.js";
+            window.path_to_searchindex_js = "searchindex-6ca8fb8e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-7d3893f2.js"></script>
@@ -440,10 +440,10 @@ patterns_in_parameters(
 </div>
 
 <h3 id="scopes-of-local-variables"><a class="header" href="#scopes-of-local-variables">Scopes of local variables</a></h3>
-<div class="rule" id="r-destructors.scope.bindings.intro"><a class="rule-link" href="#r-destructors.scope.bindings.intro" title="destructors.scope.bindings.intro"><span>[destructors<wbr>.scope<wbr>.bindings<wbr>.intro]</span></a>
+<div class="rule" id="r-destructors.scope.bindings.let"><a class="rule-link" href="#r-destructors.scope.bindings.let" title="destructors.scope.bindings.let"><span>[destructors<wbr>.scope<wbr>.bindings<wbr>.let]</span></a>
 </div>
 
-<p>Local variables declared in a <code>let</code> statement are associated to the scope of the block that contains the <code>let</code> statement. Local variables declared in a <code>match</code> expression are associated to the arm scope of the <code>match</code> arm that they are declared in.</p>
+<p>Local variables declared in a <code>let</code> statement are associated to the scope of the block that contains the <code>let</code> statement.</p>
 <pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct PrintOnDrop(&amp;'static str);
@@ -457,6 +457,50 @@ patterns_in_parameters(
     let declared_in_block = PrintOnDrop("Dropped in inner scope");
 }
 let declared_last = PrintOnDrop("Dropped first in outer scope");
+<span class="boring">}</span></code></pre>
+<div class="rule" id="r-destructors.scope.bindings.match-arm"><a class="rule-link" href="#r-destructors.scope.bindings.match-arm" title="destructors.scope.bindings.match-arm"><span>[destructors<wbr>.scope<wbr>.bindings<wbr>.match-arm]</span></a>
+</div>
+
+<p>Local variables declared in a <code>match</code> expression or pattern-matching <code>match</code> guard are associated to the arm scope of the <code>match</code> arm that they are declared in.</p>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">#![allow(irrefutable_let_patterns)]
+</span><span class="boring">struct PrintOnDrop(&amp;'static str);
+</span><span class="boring">impl Drop for PrintOnDrop {
+</span><span class="boring">    fn drop(&amp;mut self) {
+</span><span class="boring">        println!("drop({})", self.0);
+</span><span class="boring">    }
+</span><span class="boring">}
+</span>match PrintOnDrop("Dropped last in the first arm's scope") {
+    // When guard evaluation succeeds, control-flow stays in the arm and
+    // values may be moved from the scrutinee into the arm's bindings,
+    // causing them to be dropped in the arm's scope.
+    x if let y = PrintOnDrop("Dropped second in the first arm's scope")
+        &amp;&amp; let z = PrintOnDrop("Dropped first in the first arm's scope") =&gt;
+    {
+        let declared_in_block = PrintOnDrop("Dropped in inner scope");
+        // Pattern-matching guards' bindings and temporaries are dropped in
+        // reverse order, dropping each guard condition operand's bindings
+        // before its temporaries. Lastly, variables bound by the arm's
+        // pattern are dropped.
+    }
+    _ =&gt; unreachable!(),
+}
+
+match PrintOnDrop("Dropped in the enclosing temporary scope") {
+    // When guard evaluation fails, control-flow leaves the arm scope,
+    // causing bindings and temporaries from earlier pattern-matching
+    // guard condition operands to be dropped. This occurs before evaluating
+    // the next arm's guard or body.
+    _ if let y = PrintOnDrop("Dropped in the first arm's scope")
+        &amp;&amp; false =&gt; unreachable!(),
+    // When a guard is executed multiple times due to self-overlapping
+    // or-patterns, control-flow leaves the arm scope when the guard fails
+    // and re-enters the arm scope before executing the guard again.
+    _ | _ if let y = PrintOnDrop("Dropped in the second arm's scope twice")
+        &amp;&amp; false =&gt; unreachable!(),
+    _ =&gt; {},
+}
 <span class="boring">}</span></code></pre>
 <div class="rule" id="r-destructors.scope.bindings.patterns"><a class="rule-link" href="#r-destructors.scope.bindings.patterns" title="destructors.scope.bindings.patterns"><span>[destructors<wbr>.scope<wbr>.bindings<wbr>.patterns]</span></a>
 </div>
@@ -531,8 +575,8 @@ or_pattern_drop_order(Err([
 <li>A statement.</li>
 <li>The body of an <a href="expressions/if-expr.html#if-expressions"><code>if</code></a>, <a href="expressions/loop-expr.html#predicate-loops"><code>while</code></a> or <a href="expressions/loop-expr.html#infinite-loops"><code>loop</code></a> expression.</li>
 <li>The <code>else</code> block of an <code>if</code> expression.</li>
-<li>The non-pattern matching condition expression of an <code>if</code> or <code>while</code> expression, or a <code>match</code> guard.</li>
-<li>The body expression for a match arm.</li>
+<li>The non-pattern matching condition expression of an <code>if</code> or <code>while</code> expression or a non-pattern-matching <code>match</code> <a href="expressions/match-expr.html#match-guard-chains">guard condition operand</a>.</li>
+<li>The pattern-matching guard, if present, and body expression for a <code>match</code> arm.</li>
 <li>Each operand of a <a href="expressions/operator-expr.html#lazy-boolean-operators">lazy boolean expression</a>.</li>
 <li>The pattern-matching condition(s) and consequent body of <a href="expressions/if-expr.html#if-expressions"><code>if</code></a> (<a href="destructors.html#r-destructors.scope.temporary.edition2024">destructors.scope.temporary.edition2024</a>).</li>
 <li>The pattern-matching condition and loop body of <a href="expressions/loop-expr.html#predicate-loops"><code>while</code></a>.</li>
@@ -612,8 +656,16 @@ while let x = PrintOnDrop("while let scrutinee").0 {
 // Scrutinee is dropped at the end of the function, before local variables
 // (because this is the tail expression of the function body block).
 match PrintOnDrop("Matched value in final expression") {
-    // Dropped once the condition has been evaluated
+    // Non-pattern-matching guards' temporaries are dropped once the
+    // condition has been evaluated
     _ if PrintOnDrop("guard condition").0 == "" =&gt; (),
+    // Pattern-matching guards' temporaries are dropped when leaving the
+    // arm's scope
+    _ if let "guard scrutinee" = PrintOnDrop("guard scrutinee").0 =&gt; {
+        let _ = &amp;PrintOnDrop("lifetime-extended temporary in inner scope");
+        // `lifetime-extended temporary in inner scope` is dropped here
+    }
+    // `guard scrutinee` is dropped here
     _ =&gt; (),
 }
 <span class="boring">}</span></code></pre>

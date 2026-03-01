@@ -93,7 +93,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-de0d1ba3.js";
+            window.path_to_searchindex_js = "../searchindex-bdf92d3a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f44ceee2.js"></script>
@@ -411,24 +411,51 @@ ExpressionWithoutBlock</text>
 </div>
 
 <p>그 후, 마지막 피연산자가 주어진 경우 이를 실행합니다.</p>
-<div class="rule" id="r-expr.block.type"><a class="rule-link" href="#r-expr.block.type" title="expr.block.type"><span>[expr<wbr>.block<wbr>.type]</span></a>
+<div class="rule" id="r-expr.block.value-trailing-expr"><a class="rule-link" href="#r-expr.block.value-trailing-expr" title="expr.block.value-trailing-expr"><span>[expr<wbr>.block<wbr>.value-trailing-expr]</span></a>
 </div>
 
-<p>The type of a block is the type of its final operand; if that operand is omitted, the type is the <a href="../types/tuple.html#r-type.tuple.unit">unit type</a>, unless the block <a href="block-expr.html#r-expr.block.diverging">diverges</a>, in which case it is the <a href="../types/never.html#r-type.never">never type</a>.</p>
+<p>When a block contains a <a href="block-expr.html#r-expr.block.inner-attributes">final operand</a>, the block has the type and value of that final operand.</p>
 <pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span><span class="boring">fn fn_call() {}
-</span>let _: () = {
-    fn_call();
-};
-
-let five: i32 = {
-    fn_call();
-    5
-};
-
-assert_eq!(5, five);
+</span>let x: u8 = { 0u8 }; // `0u8` is the final operand.
+assert_eq!(x, 0);
+let x: u8 = { (); 0u8 }; // As above.
+assert_eq!(x, 0);
 <span class="boring">}</span></code></pre>
+<div class="rule" id="r-expr.block.value-no-trailing-expr"><a class="rule-link" href="#r-expr.block.value-no-trailing-expr" title="expr.block.value-no-trailing-expr"><span>[expr<wbr>.block<wbr>.value-no-trailing-expr]</span></a>
+</div>
+
+<p>When a block does not contain a <a href="block-expr.html#r-expr.block.inner-attributes">final operand</a> and the block does not diverge, the block has <a href="../types/tuple.html#r-type.tuple.unit">unit type</a> and <a href="../types/tuple.html#r-type.tuple.unit">unit value</a>.</p>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let x: () = {}; // Has no final operand.
+assert_eq!(x, ());
+let x: () = { 0u8; }; // As above.
+assert_eq!(x, ());
+<span class="boring">}</span></code></pre>
+<div class="rule" id="r-expr.block.value-diverges-no-trailing-expr"><a class="rule-link" href="#r-expr.block.value-diverges-no-trailing-expr" title="expr.block.value-diverges-no-trailing-expr"><span>[expr<wbr>.block<wbr>.value-diverges-no-trailing-expr]</span></a>
+</div>
+
+<p>When a block does not contain a <a href="block-expr.html#r-expr.block.inner-attributes">final operand</a> and the block <a href="block-expr.html#r-expr.block.diverging">diverges</a>, the block has the <a href="../types/never.html#r-type.never">never type</a> and has no final value (because its type is <a href="../glossary.html#r-glossary.uninhabited">uninhabited</a>).</p>
+<pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn f() -&gt; ! { loop {}; } // Diverges and has no final operand.
+//          ^^^^^^^^^^^^
+// The body of a function is a block expression.
+<span class="boring">}</span></code></pre>
+<div class="alert alert-note">
+<blockquote>
+<p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+
+<p>Observe that a block having no final operand is distinct from having an explicit final operand with unit type.  E.g., even though this block diverges, the type of the block is <a href="../types/tuple.html#r-type.tuple.unit">unit</a> rather than <a href="../types/never.html#r-type.never">never</a>.</p>
+<pre class="playground"><code class="language-rust compile_fail E0308 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn f() -&gt; ! { loop {}; () } // ERROR: Mismatched types.
+//          ^^^^^^^^^^^^^^^ This block has unit type.
+<span class="boring">}</span></code></pre>
+</blockquote>
+</div>
+
 <div class="alert alert-note">
 <blockquote>
 <p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
