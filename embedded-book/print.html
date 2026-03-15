@@ -93,7 +93,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-bc7df20e.js";
+            window.path_to_searchindex_js = "searchindex-e2c31831.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8d786f8a.js"></script>
@@ -383,7 +383,7 @@ operations and a maximum clock frequency of 72 MHz.</p>
 <p>General purpose Input Output (GPIO) and other types of pins accessible through the two rows of headers along side the board.</p>
 </li>
 <li>
-<p>A USB interface accessible through the USB port labeled “USB USER”.</p>
+<p>A Mini-USB interface accessible through the USB port labeled “USB USER”.</p>
 </li>
 </ul>
 </li>
@@ -400,7 +400,7 @@ operations and a maximum clock frequency of 72 MHz.</p>
 <p>8 user LEDs arranged in the shape of a compass.</p>
 </li>
 <li>
-<p>A second microcontroller: a <a href="https://www.st.com/en/microcontrollers/stm32f103cb.html">STM32F103</a>. This microcontroller is actually part of an on-board programmer / debugger and is connected to the USB port named “USB ST-LINK”.</p>
+<p>A second microcontroller: a <a href="https://www.st.com/en/microcontrollers/stm32f103cb.html">STM32F103</a>. This microcontroller is actually part of an on-board programmer / debugger and is connected to the Mini-USB port named “USB ST-LINK”.</p>
 </li>
 </ul>
 <p>For a more detailed list of features and further specifications of the board take a look at the <a href="https://www.st.com/en/evaluation-tools/stm32f3discovery.html">STMicroelectronics</a> website.</p>
@@ -532,6 +532,8 @@ can follow some parts of this book even if you don’t have any hardware with yo
 </ul>
 <h3 id="probe-rs-visual-studio-code-extension"><a class="header" href="#probe-rs-visual-studio-code-extension">Probe-rs Visual Studio Code Extension</a></h3>
 <p>Probe-rs has a Visual Studio Code extension, providing a seamless debugging experience without extensive setup. Through this connection, developers can use Rust-specific features like pretty printing and detailed error messages, ensuring that their debugging process aligns with the Rust ecosystem.</p>
+<h3 id="trace32"><a class="header" href="#trace32">TRACE32</a></h3>
+<p>TRACE32 is a professional debugging and tracing solution developed by Lauterbach for embedded systems. It supports a wide range of processor architectures, including ARM and RISC-V, and connects to target hardware via JTAG, SWD, and various trace interfaces. TRACE32 provides advanced debugging capabilities such as multicore debugging, complex breakpoints, and real-time trace analysis. It works with standard ELF/DWARF debug information, making it compatible with Rust binaries built using conventional toolchains.</p>
 <h3 id="gdb-gnu-debugger"><a class="header" href="#gdb-gnu-debugger">GDB (GNU Debugger)</a></h3>
 <p>GDB is a versatile debugging tool that allows developers to examine the state of programs while they run or after they crash. For embedded Rust, GDB connects to the target system via OpenOCD or other debugging servers to interact with the embedded code. GDB is highly configurable and supports features like remote debugging, variable inspection, and conditional breakpoints. It can be used on a variety of platforms, and has extensive support for Rust-specific debugging needs, such as pretty printing and integration with IDEs.</p>
 <h2 id="probes"><a class="header" href="#probes">Probes</a></h2>
@@ -827,7 +829,7 @@ some of the key embedded rust functionality.</p>
 <pre><code class="language-console">cargo install cargo-generate
 </code></pre>
 <p>Then generate a new project</p>
-<pre><code class="language-console">cargo generate --git https://github.com/rust-embedded/cortex-m-quickstart
+<pre><code class="language-console">cargo generate --git https://github.com/knurling-rs/app-template
 </code></pre>
 <pre><code class="language-text"> Project Name: app
  Creating project called `app`...
@@ -899,6 +901,44 @@ that’d be <code>#[entry]</code>.</p>
 hardware so we don’t want it to end! We use a <a href="https://doc.rust-lang.org/rust-by-example/fn/diverging.html">divergent function</a> (the <code>-&gt; !</code>
 bit in the function signature) to ensure at compile time that’ll be the case.</p>
 <h2 id="cross-compiling"><a class="header" href="#cross-compiling">Cross compiling</a></h2>
+<p>First of all we will need the memory layout for the target microcontroller, the
+LM3S6965 in our case. Otherwise the build will fail to link the image. Create a
+file named <code>memory.x</code> at the root of the project and paste the following content:</p>
+<pre><code class="language-text">MEMORY
+{
+  /* NOTE 1 K = 1 KiBi = 1024 bytes */
+  /* TODO Adjust these memory regions to match your device memory layout */
+  /* These values correspond to the LM3S6965, one of the few devices QEMU can emulate */
+  FLASH : ORIGIN = 0x00000000, LENGTH = 256K
+  RAM : ORIGIN = 0x20000000, LENGTH = 64K
+}
+
+/* This is where the call stack will be allocated. */
+/* The stack is of the full descending type. */
+/* You may want to use this variable to locate the call stack and static
+   variables in different memory regions. Below is shown the default value */
+/* _stack_start = ORIGIN(RAM) + LENGTH(RAM); */
+
+/* You can use this symbol to customize the location of the .text section */
+/* If omitted the .text section will be placed right after the .vector_table
+   section */
+/* This is required only on microcontrollers that store some configuration right
+   after the vector table */
+/* _stext = ORIGIN(FLASH) + 0x400; */
+
+/* Example of putting non-initialized variables into custom RAM locations. */
+/* This assumes you have defined a region RAM2 above, and in the Rust
+   sources added the attribute `#[link_section = ".ram2bss"]` to the data
+   you want to place there. */
+/* Note that the section will not be zero-initialized by the runtime! */
+/* SECTIONS {
+     .ram2bss (NOLOAD) : ALIGN(4) {
+       *(.ram2bss);
+       . = ALIGN(4);
+     } &gt; RAM2
+   } INSERT AFTER .bss;
+*/
+</code></pre>
 <p>The next step is to <em>cross</em> compile the program for the Cortex-M3 architecture.
 That’s as simple as running <code>cargo build --target $TRIPLE</code> if you know what the
 compilation target (<code>$TRIPLE</code>) should be. Luckily, the <code>.cargo/config.toml</code> in the
@@ -1050,43 +1090,38 @@ HardFault:
 </code></pre>
 <h2 id="running"><a class="header" href="#running">Running</a></h2>
 <p>Next, let’s see how to run an embedded program on QEMU! This time we’ll use the
-<code>hello</code> example which actually does something.</p>
-<p>For convenience here’s the source code of <code>examples/hello.rs</code>:</p>
-<pre><code class="language-rust ignore">//! Prints "Hello, world!" on the host console using semihosting
-
-#![no_main]
-#![no_std]
-
-use panic_halt as _;
-
-use cortex_m_rt::entry;
-use cortex_m_semihosting::{debug, hprintln};
-
-#[entry]
-fn main() -&gt; ! {
-    hprintln!("Hello, world!").unwrap();
-
-    // exit QEMU
-    // NOTE do not run this on hardware; it can corrupt OpenOCD state
-    debug::exit(debug::EXIT_SUCCESS);
-
-    loop {}
-}</code></pre>
-<p>This program uses something called semihosting to print text to the <em>host</em>
-console. When using real hardware this requires a debug session but when using
-QEMU this Just Works.</p>
-<p>Let’s start by compiling the example:</p>
-<pre><code class="language-console">cargo build --example hello
+<code>hello</code> example which actually does something. By default, this example uses <code>[defmt]</code>
+and RTT to print text.</p>
+<blockquote>
+<p><strong>NOTE</strong> <code>defmt</code> is a third-party dependency (i.e. non-core) widely used in the
+Embedded Rust ecosystem.</p>
+</blockquote>
+<p>In order to read and decode the messages produced by <code>defmt</code> in the host, we need to
+switch the RTT transport output to semihosting. When using real hardware this requires
+a debug session but when using QEMU this Just Works.</p>
+<p>Let’s switch the dependencies:</p>
+<pre><code class="language-console">cargo remove defmt-rtt
+cargo add defmt-semihosting
+</code></pre>
+<p>Open <code>src/lib.rs</code> and replace <code>use defmt_rtt as _;</code> by <code>use defmt_semihosting as _;</code></p>
+<p>Now we can build the example:</p>
+<pre><code class="language-console">cargo build --bin hello
 </code></pre>
 <p>The output binary will be located at
-<code>target/thumbv7m-none-eabi/debug/examples/hello</code>.</p>
-<p>To run this binary on QEMU run the following command:</p>
+<code>target/thumbv7m-none-eabi/debug/hello</code>.</p>
+<p>To run this binary on QEMU, the following command would be usually enough:</p>
 <pre><code class="language-console">qemu-system-arm \
   -cpu cortex-m3 \
   -machine lm3s6965evb \
   -nographic \
   -semihosting-config enable=on,target=native \
-  -kernel target/thumbv7m-none-eabi/debug/examples/hello
+  -kernel target/thumbv7m-none-eabi/debug/hello
+</code></pre>
+<p>In our case, since we use <code>defmt</code>, the host will not be able to decode the output. Instead, we
+will need a tool by Ferrous Systems named <a href="https://github.com/knurling-rs/defmt/tree/main/qemu-run/"><code>qemu-run</code></a>:</p>
+<pre><code class="language-console">git clone git@github.com:knurling-rs/defmt.git
+cd defmt/qemu-run/
+cargo run -- --machine lm3s6965evb ../qemu-rs/target/thumbv7m-none-eabi/debug/hello
 </code></pre>
 <pre><code class="language-text">Hello, world!
 </code></pre>
@@ -4253,6 +4288,10 @@ Cargo with your existing build system, such as make or cmake.</p>
 <h2 id="interoperability-with-rtoss"><a class="header" href="#interoperability-with-rtoss">Interoperability with RTOSs</a></h2>
 <p>Integrating Rust with an RTOS such as FreeRTOS or ChibiOS is still a work in
 progress; especially calling RTOS functions from Rust can be tricky.</p>
+<p>Currently, the following projects publicly support Rust&lt;-&gt;RTOS interoperability:</p>
+<ul>
+<li><a href="https://docs.zephyrproject.org/latest/develop/languages/rust/index.html">Zephyr Project</a></li>
+</ul>
 <p>We are collecting examples and use cases for this on our issue tracker in
 <a href="https://github.com/rust-embedded/book/issues/62">issue #62</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>

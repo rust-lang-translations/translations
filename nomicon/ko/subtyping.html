@@ -93,7 +93,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3866c42d.js";
+            window.path_to_searchindex_js = "searchindex-cb6ead0a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1af1b443.js"></script>
@@ -311,7 +311,7 @@ fn main() {
 <p><code>assign</code> 에서 우리는 <code>hello</code> 참조가 <code>world</code> 를 가리키도록 설정하고 있습니다. 하지만 그 후 <code>world</code> 가 스코프를 벗어나고, 나중에 <code>println!</code> 에서 <code>hello</code> 가 사용됩니다!</p>
 <p>이것은 전형적인 해제 후 사용 버그입니다!</p>
 <p>우리의 첫 번째 본능은 <code>assign</code> 구현을 탓하는 것이겠지만, 여기에는 잘못된 것이 전혀 없습니다. <code>T</code> 를 <code>T</code> 에 할당하고 싶어 하는 것은 놀라운 일이 아닙니다.</p>
-<p>문제는 <code>&amp;mut &amp;'static str</code> 과 <code>&amp;mut &amp;'b str</code> 가 호환된다고 가정할 수 없다는 점입니다. 이는 <code>'static</code> 이 <code>'b</code> 의 서브타입이라 하더라도, <code>&amp;mut &amp;'static str</code> 는 <code>&amp;mut &amp;'b str</code> 의 <em>서브타입</em> 이 될 수 <strong>없음</strong> 을 의미합니다.</p>
+<p>The problem is that we cannot assume <code>&amp;'static str</code> can still be downgraded into <code>&amp;'world str</code> to satisfy <code>T</code>, once it’s behind a <code>&amp;mut</code> reference. This means that <code>&amp;mut &amp;'static str</code> <strong>cannot</strong> be a <em>subtype</em> of <code>&amp;mut &amp;'world str</code>, even if <code>'static</code> is a subtype of <code>'world</code>.</p>
 <p>공변성은 러스트가 제네릭 매개변수를 통해 서브타입 관계를 정의하기 위해 차용한 개념입니다.</p>
 <blockquote>
 <p>참고: 편의를 위해 <code>T</code> 에 대해 쉽게 이야기할 수 있도록 제네릭 타입 <code>F&lt;T&gt;</code> 를 정의하겠습니다. 문맥상 명확하기를 바랍니다.</p>
@@ -415,7 +415,7 @@ world = hello;</code></pre>
 <p>이 함수는 어떤 수명 <code>'a</code> 에 의해 제한된 <code>str</code> 을 생성한다고 주장합니다. 따라서 대신 다음 시그니처를 가진 함수를 제공하는 것은 완전히 유효합니다.</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">fn get_static() -&gt; &amp;'static str;</code></pre>
-<p>따라서 함수가 호출될 때 기대하는 것은 적어도 <code>'a</code> 수명만큼 사는 <code>&amp;str</code> 일 뿐이며, 값이 실제로 더 오래 사는지는 중요하지 않습니다.</p>
+<p>So when the function is called, all its caller is expecting is a <code>&amp;str</code> which lives at least the lifetime of <code>'a</code>, it doesn’t matter if the value actually lives longer.</p>
 <p>하지만 동일한 논리가 <em>인자</em> 에는 적용되지 않습니다. 다음을 만족시키려 한다고 가정해 보세요:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">fn store_ref(&amp;'a str);</code></pre>

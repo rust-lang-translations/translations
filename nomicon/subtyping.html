@@ -93,7 +93,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c6d800f0.js";
+            window.path_to_searchindex_js = "searchindex-2380c0a6.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-ebf7fde9.js"></script>
@@ -329,9 +329,9 @@ But then <code>world</code> goes out of scope, before the later use of <code>hel
 <p>This is a classic use-after-free bug!</p>
 <p>Our first instinct might be to blame the <code>assign</code> impl, but there’s really nothing wrong here.
 It shouldn’t be surprising that we might want to assign a <code>T</code> into a <code>T</code>.</p>
-<p>The problem is that we cannot assume that <code>&amp;mut &amp;'static str</code> and <code>&amp;mut &amp;'b str</code> are compatible.
-This means that <code>&amp;mut &amp;'static str</code> <strong>cannot</strong> be a <em>subtype</em> of <code>&amp;mut &amp;'b str</code>,
-even if <code>'static</code> is a subtype of <code>'b</code>.</p>
+<p>The problem is that we cannot assume <code>&amp;'static str</code> can still be downgraded into <code>&amp;'world str</code> to satisfy <code>T</code>, once it’s behind a <code>&amp;mut</code> reference.
+This means that <code>&amp;mut &amp;'static str</code> <strong>cannot</strong> be a <em>subtype</em> of <code>&amp;mut &amp;'world str</code>,
+even if <code>'static</code> is a subtype of <code>'world</code>.</p>
 <p>Variance is the concept that Rust borrows to define relationships about subtypes through their generic parameters.</p>
 <blockquote>
 <p>NOTE: For convenience we will define a generic type <code>F&lt;T&gt;</code> so
@@ -456,7 +456,7 @@ because as soon as we moved <code>hello</code> to a variable that only knew it w
 provide a function with the following signature instead:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">fn get_static() -&gt; &amp;'static str;</code></pre>
-<p>So when the function is called, all it’s expecting is a <code>&amp;str</code> which lives at least the lifetime of <code>'a</code>,
+<p>So when the function is called, all its caller is expecting is a <code>&amp;str</code> which lives at least the lifetime of <code>'a</code>,
 it doesn’t matter if the value actually lives longer.</p>
 <p>However, the same logic does not apply to <em>arguments</em>. Consider trying to satisfy:</p>
 <!-- ignore: simplified code -->

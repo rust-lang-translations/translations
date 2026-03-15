@@ -94,7 +94,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3866c42d.js";
+            window.path_to_searchindex_js = "searchindex-cb6ead0a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1af1b443.js"></script>
@@ -1352,7 +1352,7 @@ fn main() {
 <p><code>assign</code> 에서 우리는 <code>hello</code> 참조가 <code>world</code> 를 가리키도록 설정하고 있습니다. 하지만 그 후 <code>world</code> 가 스코프를 벗어나고, 나중에 <code>println!</code> 에서 <code>hello</code> 가 사용됩니다!</p>
 <p>이것은 전형적인 해제 후 사용 버그입니다!</p>
 <p>우리의 첫 번째 본능은 <code>assign</code> 구현을 탓하는 것이겠지만, 여기에는 잘못된 것이 전혀 없습니다. <code>T</code> 를 <code>T</code> 에 할당하고 싶어 하는 것은 놀라운 일이 아닙니다.</p>
-<p>문제는 <code>&amp;mut &amp;'static str</code> 과 <code>&amp;mut &amp;'b str</code> 가 호환된다고 가정할 수 없다는 점입니다. 이는 <code>'static</code> 이 <code>'b</code> 의 서브타입이라 하더라도, <code>&amp;mut &amp;'static str</code> 는 <code>&amp;mut &amp;'b str</code> 의 <em>서브타입</em> 이 될 수 <strong>없음</strong> 을 의미합니다.</p>
+<p>The problem is that we cannot assume <code>&amp;'static str</code> can still be downgraded into <code>&amp;'world str</code> to satisfy <code>T</code>, once it’s behind a <code>&amp;mut</code> reference. This means that <code>&amp;mut &amp;'static str</code> <strong>cannot</strong> be a <em>subtype</em> of <code>&amp;mut &amp;'world str</code>, even if <code>'static</code> is a subtype of <code>'world</code>.</p>
 <p>공변성은 러스트가 제네릭 매개변수를 통해 서브타입 관계를 정의하기 위해 차용한 개념입니다.</p>
 <blockquote>
 <p>참고: 편의를 위해 <code>T</code> 에 대해 쉽게 이야기할 수 있도록 제네릭 타입 <code>F&lt;T&gt;</code> 를 정의하겠습니다. 문맥상 명확하기를 바랍니다.</p>
@@ -1456,7 +1456,7 @@ world = hello;</code></pre>
 <p>이 함수는 어떤 수명 <code>'a</code> 에 의해 제한된 <code>str</code> 을 생성한다고 주장합니다. 따라서 대신 다음 시그니처를 가진 함수를 제공하는 것은 완전히 유효합니다.</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">fn get_static() -&gt; &amp;'static str;</code></pre>
-<p>따라서 함수가 호출될 때 기대하는 것은 적어도 <code>'a</code> 수명만큼 사는 <code>&amp;str</code> 일 뿐이며, 값이 실제로 더 오래 사는지는 중요하지 않습니다.</p>
+<p>So when the function is called, all its caller is expecting is a <code>&amp;str</code> which lives at least the lifetime of <code>'a</code>, it doesn’t matter if the value actually lives longer.</p>
 <p>하지만 동일한 논리가 <em>인자</em> 에는 적용되지 않습니다. 다음을 만족시키려 한다고 가정해 보세요:</p>
 <!-- ignore: simplified code -->
 <pre><code class="language-rust ignore">fn store_ref(&amp;'a str);</code></pre>
@@ -2822,11 +2822,13 @@ impl&lt;T&gt; Drop for Rc&lt;T&gt; {
     fn push_all(&amp;mut self, to_push: &amp;[T]) {
         self.reserve(to_push.len());
         unsafe {
+            let end_ptr = self.as_mut_ptr().add(self.len());
+
             // 방금 예약했으므로 오버플로가 발생할 수 없습니다
             self.set_len(self.len() + to_push.len());
 
             for (i, x) in to_push.iter().enumerate() {
-                self.ptr().add(i).write(x.clone());
+                end_ptr.add(i).write(x.clone());
             }
         }
     }
@@ -5008,7 +5010,7 @@ Hello from Rust!
 }
 
 #[link(name = "extlib")]
-unsafe extern {
+unsafe extern "C" {
    fn register_callback(cb: extern fn(i32)) -&gt; i32;
    fn trigger_callback();
 }
@@ -5051,9 +5053,9 @@ unsafe extern "C" fn callback(target: *mut RustObject, a: i32) {
 }
 
 #[link(name = "extlib")]
-unsafe extern {
+unsafe extern "C" {
    fn register_callback(target: *mut RustObject,
-                        cb: unsafe extern fn(*mut RustObject, i32)) -&gt; i32;
+                        cb: unsafe extern "C" fn(*mut RustObject, i32)) -&gt; i32;
    fn trigger_callback();
 }
 
@@ -5122,7 +5124,7 @@ void trigger_callback() {
 <p>외부 API는 전역 상태를 추적하는 등의 작업을 수행하는 전역 변수를 내보내는 경우가 많습니다. 이러한 변수에 접근하려면, <code>extern</code> 블록 내에서 <code>static</code> 키워드로 선언해야 합니다:</p>
 <!-- ignore: requires libc crate -->
 <pre><code class="language-rust ignore">#[link(name = "readline")]
-unsafe extern {
+unsafe extern "C" {
     static rl_readline_version: libc::c_int;
 }
 
@@ -5136,7 +5138,7 @@ fn main() {
 use std::ptr;
 
 #[link(name = "readline")]
-unsafe extern {
+unsafe extern "C" {
     static mut rl_prompt: *const libc::c_char;
 }
 
@@ -5183,7 +5185,7 @@ unsafe extern "stdcall" {
 <p><a href="https://crates.io/crates/libc">crates.io의 <code>libc</code> 크레이트</a> 는 <code>libc</code> 모듈에 C 표준 라이브러리를 위한 타입 별칭과 함수 정의를 포함하고 있으며, 러스트는 기본적으로 <code>libc</code> 및 <code>libm</code> 과 링크됩니다.</p>
 <h2 id="가변-인자-함수-variadic-functions"><a class="header" href="#가변-인자-함수-variadic-functions">가변 인자 함수 (Variadic functions)</a></h2>
 <p>C에서 함수는 ’가변 인자’를 가질 수 있습니다. 즉, 가변적인 개수의 인자를 받을 수 있음을 의미합니다. 러스트에서는 외부 함수 선언의 인자 목록 안에 <code>...</code> 를 지정함으로써 이를 달성할 수 있습니다:</p>
-<pre><code class="language-no_run">unsafe extern {
+<pre><code class="language-no_run">unsafe extern "C" {
     fn foo(x: i32, ...);
 }
 

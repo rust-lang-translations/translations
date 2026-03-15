@@ -92,7 +92,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e247d747.js";
+            window.path_to_searchindex_js = "../searchindex-fde357ac.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-2da5ae36.js"></script>
@@ -244,7 +244,7 @@
 <pre><code class="language-console">cargo install cargo-generate
 </code></pre>
 <p>그런 다음 새 프로젝트를 생성하세요</p>
-<pre><code class="language-console">cargo generate --git https://github.com/rust-embedded/cortex-m-quickstart
+<pre><code class="language-console">cargo generate --git https://github.com/knurling-rs/app-template
 </code></pre>
 <pre><code class="language-text"> Project Name: app
  Creating project called `app`...
@@ -302,6 +302,42 @@ fn main() -&gt; ! {
 <p><a href="https://docs.rs/cortex-m-rt-macros/latest/cortex_m_rt_macros/attr.entry.html"><code>#[entry]</code></a>는 프로그램의 진입점을 표시하는 데 사용되는 <a href="https://crates.io/crates/cortex-m-rt"><code>cortex-m-rt</code></a> 크레이트에서 제공하는 속성입니다. 표준 <code>main</code> 인터페이스를 사용하지 않으므로 프로그램의 진입점을 나타내는 다른 방법이 필요하며, 그것이 <code>#[entry]</code> 입니다.</p>
 <p><code>fn main() -&gt; !</code>. 우리 프로그램은 대상 하드웨어에서 실행되는 <em>유일한</em> 프로세스이므로 종료되기를 원하지 않습니다! 컴파일 시점에 그렇게 될 것임을 보장하기 위해 <a href="https://doc.rust-lang.org/rust-by-example/fn/diverging.html">발산 함수</a>(함수 시그니처의 <code>-&gt; !</code> 부분)를 사용합니다.</p>
 <h2 id="크로스-컴파일"><a class="header" href="#크로스-컴파일">크로스 컴파일</a></h2>
+<p>First of all we will need the memory layout for the target microcontroller, the LM3S6965 in our case. Otherwise the build will fail to link the image. Create a file named <code>memory.x</code> at the root of the project and paste the following content:</p>
+<pre><code class="language-text">MEMORY
+{
+  /* NOTE 1 K = 1 KiBi = 1024 bytes */
+  /* TODO Adjust these memory regions to match your device memory layout */
+  /* These values correspond to the LM3S6965, one of the few devices QEMU can emulate */
+  FLASH : ORIGIN = 0x00000000, LENGTH = 256K
+  RAM : ORIGIN = 0x20000000, LENGTH = 64K
+}
+
+/* This is where the call stack will be allocated. */
+/* The stack is of the full descending type. */
+/* You may want to use this variable to locate the call stack and static
+   variables in different memory regions. Below is shown the default value */
+/* _stack_start = ORIGIN(RAM) + LENGTH(RAM); */
+
+/* You can use this symbol to customize the location of the .text section */
+/* If omitted the .text section will be placed right after the .vector_table
+   section */
+/* This is required only on microcontrollers that store some configuration right
+   after the vector table */
+/* _stext = ORIGIN(FLASH) + 0x400; */
+
+/* Example of putting non-initialized variables into custom RAM locations. */
+/* This assumes you have defined a region RAM2 above, and in the Rust
+   sources added the attribute `#[link_section = ".ram2bss"]` to the data
+   you want to place there. */
+/* Note that the section will not be zero-initialized by the runtime! */
+/* SECTIONS {
+     .ram2bss (NOLOAD) : ALIGN(4) {
+       *(.ram2bss);
+       . = ALIGN(4);
+     } &gt; RAM2
+   } INSERT AFTER .bss;
+*/
+</code></pre>
 <p>다음 단계는 Cortex-M3 아키텍처용 프로그램을 <em>크로스</em> 컴파일하는 것입니다. 컴파일 대상(<code>$TRIPLE</code>)이 무엇인지 안다면 <code>cargo build --target $TRIPLE</code> 을 실행하는 것만큼 간단합니다. 다행히 템플릿의 <code>.cargo/config.toml</code> 에 답이 있습니다:</p>
 <pre><code class="language-console">tail -n6 .cargo/config.toml
 </code></pre>
@@ -433,40 +469,32 @@ HardFault:
      663: &lt;unknown&gt;
 </code></pre>
 <h2 id="실행-중"><a class="header" href="#실행-중">실행 중</a></h2>
-<p>다음으로, QEMU에서 임베디드 프로그램을 실행하는 방법을 살펴보겠습니다! 이번에는 실제로 무언가를 하는 <code>hello</code> 예제를 사용할 것입니다.</p>
-<p>편의를 위해 <code>examples/hello.rs</code> 의 소스 코드를 소개합니다:</p>
-<pre><code class="language-rust ignore">//! 세미호스팅을 사용하여 호스트 콘솔에 "Hello, world!"를 출력합니다
-
-#![no_main]
-#![no_std]
-
-use panic_halt as _;
-
-use cortex_m_rt::entry;
-use cortex_m_semihosting::{debug, hprintln};
-
-#[entry]
-fn main() -&gt; ! {
-    hprintln!("Hello, world!").unwrap();
-
-    // QEMU 종료
-    // 참고: 하드웨어에서 실행하지 마십시오. OpenOCD 상태를 손상시킬 수 있습니다
-    debug::exit(debug::EXIT_SUCCESS);
-
-    loop {}
-}</code></pre>
-<p>이 프로그램은 세미호스팅이라는 것을 사용하여 <em>호스트</em> 콘솔에 텍스트를 출력합니다. 실제 하드웨어를 사용할 때는 디버그 세션이 필요하지만 QEMU를 사용할 때는 그냥 작동합니다.</p>
-<p>예제를 컴파일하여 시작해 봅시다:</p>
-<pre><code class="language-console">cargo build --example hello
+<p>Next, let’s see how to run an embedded program on QEMU! This time we’ll use the <code>hello</code> example which actually does something. By default, this example uses <code>[defmt]</code> and RTT to print text.</p>
+<blockquote>
+<p><strong>NOTE</strong> <code>defmt</code> is a third-party dependency (i.e. non-core) widely used in the Embedded Rust ecosystem.</p>
+</blockquote>
+<p>In order to read and decode the messages produced by <code>defmt</code> in the host, we need to switch the RTT transport output to semihosting. When using real hardware this requires a debug session but when using QEMU this Just Works.</p>
+<p>Let’s switch the dependencies:</p>
+<pre><code class="language-console">cargo remove defmt-rtt
+cargo add defmt-semihosting
 </code></pre>
-<p>출력 바이너리는 <code>target/thumbv7m-none-eabi/debug/examples/hello</code> 에 위치합니다.</p>
-<p>QEMU에서 이 바이너리를 실행하려면 다음 명령을 실행하세요:</p>
+<p>Open <code>src/lib.rs</code> and replace <code>use defmt_rtt as _;</code> by <code>use defmt_semihosting as _;</code></p>
+<p>Now we can build the example:</p>
+<pre><code class="language-console">cargo build --bin hello
+</code></pre>
+<p>The output binary will be located at <code>target/thumbv7m-none-eabi/debug/hello</code>.</p>
+<p>To run this binary on QEMU, the following command would be usually enough:</p>
 <pre><code class="language-console">qemu-system-arm \
   -cpu cortex-m3 \
   -machine lm3s6965evb \
   -nographic \
   -semihosting-config enable=on,target=native \
-  -kernel target/thumbv7m-none-eabi/debug/examples/hello
+  -kernel target/thumbv7m-none-eabi/debug/hello
+</code></pre>
+<p>In our case, since we use <code>defmt</code>, the host will not be able to decode the output. Instead, we will need a tool by Ferrous Systems named <a href="https://github.com/knurling-rs/defmt/tree/main/qemu-run/"><code>qemu-run</code></a>:</p>
+<pre><code class="language-console">git clone git@github.com:knurling-rs/defmt.git
+cd defmt/qemu-run/
+cargo run -- --machine lm3s6965evb ../qemu-rs/target/thumbv7m-none-eabi/debug/hello
 </code></pre>
 <pre><code class="language-text">Hello, world!
 </code></pre>
