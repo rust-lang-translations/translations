@@ -93,10 +93,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-339cc660.js";
+            window.path_to_searchindex_js = "searchindex-58c9eb81.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5ef7b3c1.js"></script>
+        <script src="toc-f12d3f0b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -3039,7 +3039,7 @@ def minor_version(version):
 INSTALL_TOOLCHAIN = ["rustup", "toolchain", "install", "--profile", "minimal"]
 subprocess.run(INSTALL_TOOLCHAIN + ["nightly"])
 
-LOWER_BOUND = 87
+LOWER_BOUND = 91
 NIGHTLY_VERSION = minor_version(subprocess.run(
     ["rustc", "+nightly", "--version"],
     capture_output=True,
@@ -3101,7 +3101,7 @@ LLVM. However, the approximation is usually reliable.</p>
 <tr><td>1.78 - 1.81</td><td>18</td></tr>
 <tr><td>1.82 - 1.86</td><td>19</td></tr>
 <tr><td>1.87 - 1.90</td><td>20</td></tr>
-<tr><td>1.91 - 1.93</td><td>21</td></tr>
+<tr><td>1.91 - 1.94</td><td>21</td></tr>
 </tbody>
 </table>
 </div>
@@ -5198,6 +5198,8 @@ so Rustup may install the documentation for a similar tier 1 target instead.</p>
 <tr><td><a href="#x86_64-fortanix-unknown-sgx"><code>x86_64-fortanix-unknown-sgx</code></a></td><td style="text-align: center">✓</td><td><a href="https://edp.fortanix.com/">Fortanix ABI</a> for 64-bit Intel SGX</td></tr>
 <tr><td><a href="#-linux-android-and--linux-androideabi"><code>x86_64-linux-android</code></a></td><td style="text-align: center">✓</td><td>64-bit x86 Android</td></tr>
 <tr><td><a href="#x86_64-unknown-linux-gnuasan"><code>x86_64-unknown-linux-gnuasan</code></a></td><td style="text-align: center">✓</td><td>64-bit Linux (kernel 3.2+, glibc 2.17+) with ASAN enabled by default</td></tr>
+<tr><td><a href="#x86_64-unknown-linux-gnumsan"><code>x86_64-unknown-linux-gnumsan</code></a></td><td style="text-align: center">✓</td><td>64-bit Linux (kernel 3.2+, glibc 2.17+) with MSAN enabled by default</td></tr>
+<tr><td><a href="#x86_64-unknown-linux-gnutsan"><code>x86_64-unknown-linux-gnutsan</code></a></td><td style="text-align: center">✓</td><td>64-bit Linux (kernel 3.2+, glibc 2.17+) with TSAN enabled by default</td></tr>
 <tr><td><a href="#aarch64-unknown-fuchsia-and-x86_64-unknown-fuchsia"><code>x86_64-unknown-fuchsia</code></a></td><td style="text-align: center">✓</td><td>64-bit x86 Fuchsia</td></tr>
 <tr><td><code>x86_64-unknown-linux-gnux32</code></td><td style="text-align: center">✓</td><td>64-bit Linux (x32 ABI) (kernel 4.15+, glibc 2.27)</td></tr>
 <tr><td><a href="#x86_64-unknown-none"><code>x86_64-unknown-none</code></a></td><td style="text-align: center">*</td><td>Freestanding/bare-metal x86_64, softfloat</td></tr>
@@ -14343,13 +14345,87 @@ target = ["x86_64-unknown-linux-gnuasan"]
 <p>The target supports C code and should use the same toolchain target as
 <code>x86_64-unknown-linux-gnu</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="x86_64-unknown-linux-gnumsan"><a class="header" href="#x86_64-unknown-linux-gnumsan"><code>x86_64-unknown-linux-gnumsan</code></a></h1>
+<p><strong>Tier: 2</strong></p>
+<p>Target mirroring <code>x86_64-unknown-linux-gnu</code> with MemorySanitizer enabled by
+default.
+The goal of this target is to allow shipping MSAN-instrumented standard
+libraries through rustup, enabling a fully instrumented binary without requiring
+nightly features (build-std).
+Once build-std stabilizes, this target is no longer needed and will be removed.</p>
+<h2 id="target-maintainers-118"><a class="header" href="#target-maintainers-118">Target maintainers</a></h2>
+<ul>
+<li><a href="https://github.com/jakos-sec">@jakos-sec</a></li>
+<li><a href="https://github.com/1c3t3a">@1c3t3a</a></li>
+<li>[@rust-lang/project-exploit-mitigations][project-exploit-mitigations]</li>
+</ul>
+<h2 id="requirements-110"><a class="header" href="#requirements-110">Requirements</a></h2>
+<p>The target is for cross-compilation only. Host tools are not supported, since
+there is no need to have the host tools instrumented with MSAN. std is fully
+supported.</p>
+<p>In all other aspects the target is equivalent to <code>x86_64-unknown-linux-gnu</code>.</p>
+<h2 id="building-the-target-78"><a class="header" href="#building-the-target-78">Building the target</a></h2>
+<p>The target can be built by enabling it for a rustc build:</p>
+<pre><code class="language-toml">[build]
+target = ["x86_64-unknown-linux-gnumsan"]
+</code></pre>
+<h2 id="building-rust-programs-88"><a class="header" href="#building-rust-programs-88">Building Rust programs</a></h2>
+<p>Rust programs can be compiled by adding this target via rustup:</p>
+<pre><code class="language-sh">$ rustup target add x86_64-unknown-linux-gnumsan
+</code></pre>
+<p>and then compiling with the target:</p>
+<pre><code class="language-sh">$ rustc foo.rs --target x86_64-unknown-linux-gnumsan
+</code></pre>
+<h2 id="testing-91"><a class="header" href="#testing-91">Testing</a></h2>
+<p>Created binaries will run on Linux without any external requirements.</p>
+<h2 id="cross-compilation-toolchains-and-c-code-52"><a class="header" href="#cross-compilation-toolchains-and-c-code-52">Cross-compilation toolchains and C code</a></h2>
+<p>The target supports C code and should use the same toolchain target as
+<code>x86_64-unknown-linux-gnu</code>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="x86_64-unknown-linux-gnutsan"><a class="header" href="#x86_64-unknown-linux-gnutsan"><code>x86_64-unknown-linux-gnutsan</code></a></h1>
+<p><strong>Tier: 2</strong></p>
+<p>Target mirroring <code>x86_64-unknown-linux-gnu</code> with ThreadSanitizer enabled by
+default.
+The goal of this target is to allow shipping TSAN-instrumented standard
+libraries through rustup, enabling a fully instrumented binary without requiring
+nightly features (build-std).
+Once build-std stabilizes, this target is no longer needed and will be removed.</p>
+<h2 id="target-maintainers-119"><a class="header" href="#target-maintainers-119">Target maintainers</a></h2>
+<ul>
+<li><a href="https://github.com/jakos-sec">@jakos-sec</a></li>
+<li><a href="https://github.com/1c3t3a">@1c3t3a</a></li>
+<li>[@rust-lang/project-exploit-mitigations][project-exploit-mitigations]</li>
+</ul>
+<h2 id="requirements-111"><a class="header" href="#requirements-111">Requirements</a></h2>
+<p>The target is for cross-compilation only. Host tools are not supported, since
+there is no need to have the host tools instrumented with TSAN. std is fully
+supported.</p>
+<p>In all other aspects the target is equivalent to <code>x86_64-unknown-linux-gnu</code>.</p>
+<h2 id="building-the-target-79"><a class="header" href="#building-the-target-79">Building the target</a></h2>
+<p>The target can be built by enabling it for a rustc build:</p>
+<pre><code class="language-toml">[build]
+target = ["x86_64-unknown-linux-gnutsan"]
+</code></pre>
+<h2 id="building-rust-programs-89"><a class="header" href="#building-rust-programs-89">Building Rust programs</a></h2>
+<p>Rust programs can be compiled by adding this target via rustup:</p>
+<pre><code class="language-sh">$ rustup target add x86_64-unknown-linux-gnutsan
+</code></pre>
+<p>and then compiling with the target:</p>
+<pre><code class="language-sh">$ rustc foo.rs --target x86_64-unknown-linux-gnutsan
+</code></pre>
+<h2 id="testing-92"><a class="header" href="#testing-92">Testing</a></h2>
+<p>Created binaries will run on Linux without any external requirements.</p>
+<h2 id="cross-compilation-toolchains-and-c-code-53"><a class="header" href="#cross-compilation-toolchains-and-c-code-53">Cross-compilation toolchains and C code</a></h2>
+<p>The target supports C code and should use the same toolchain target as
+<code>x86_64-unknown-linux-gnu</code>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="xtensa--none-elf"><a class="header" href="#xtensa--none-elf"><code>xtensa-*-none-elf</code></a></h1>
 <p><strong>Tier: 3</strong></p>
 <p>Targets for Xtensa CPUs.</p>
-<h2 id="target-maintainers-118"><a class="header" href="#target-maintainers-118">Target maintainers</a></h2>
+<h2 id="target-maintainers-120"><a class="header" href="#target-maintainers-120">Target maintainers</a></h2>
 <p><a href="https://github.com/MabezDev">@MabezDev</a>
 <a href="https://github.com/SergioGasquez">@SergioGasquez</a></p>
-<h2 id="requirements-110"><a class="header" href="#requirements-110">Requirements</a></h2>
+<h2 id="requirements-112"><a class="header" href="#requirements-112">Requirements</a></h2>
 <p>The target names follow this format: <code>xtensa-$CPU</code>, where <code>$CPU</code> specifies the target chip. The following targets are currently defined:</p>
 <div class="table-wrapper">
 <table>
@@ -14373,9 +14449,9 @@ target = ["x86_64-unknown-linux-gnuasan"]
 <p>Apache NuttX is a real-time operating system (RTOS) with an emphasis on standards compliance and small footprint. It is scalable from 8-bit to 64-bit microcontroller environments. The primary governing standards in NuttX are POSIX and ANSI standards.</p>
 <p>NuttX adopts additional standard APIs from Unix and other common RTOSs, such as VxWorks. These APIs are used for functionality not available under the POSIX and ANSI standards. However, some APIs, like fork(), are not appropriate for deeply-embedded environments and are not implemented in NuttX.</p>
 <p>For brevity, many parts of the documentation will refer to Apache NuttX as simply NuttX.</p>
-<h2 id="target-maintainers-119"><a class="header" href="#target-maintainers-119">Target maintainers</a></h2>
+<h2 id="target-maintainers-121"><a class="header" href="#target-maintainers-121">Target maintainers</a></h2>
 <p><a href="https://github.com/no1wudi">@no1wudi</a></p>
-<h2 id="requirements-111"><a class="header" href="#requirements-111">Requirements</a></h2>
+<h2 id="requirements-113"><a class="header" href="#requirements-113">Requirements</a></h2>
 <p>The target name follow this format: <code>ARCH[-VENDOR]-nuttx-ABI</code>, where <code>ARCH</code> is the target architecture, <code>VENDOR</code> is the vendor name, and <code>ABI</code> is the ABI used.</p>
 <p>The following target names are defined:</p>
 <ul>
@@ -14397,7 +14473,7 @@ target = ["x86_64-unknown-linux-gnuasan"]
 <li><code>riscv64imac-unknown-nuttx-elf</code></li>
 <li><code>riscv64gc-unknown-nuttx-elf</code></li>
 </ul>
-<h2 id="building-the-target-78"><a class="header" href="#building-the-target-78">Building the target</a></h2>
+<h2 id="building-the-target-80"><a class="header" href="#building-the-target-80">Building the target</a></h2>
 <p>The target can be built by enabling it in the <code>rustc</code> build:</p>
 <pre><code class="language-toml">[build]
 target = "riscv32imc-unknown-nuttx-elf"
@@ -14406,11 +14482,11 @@ target = "riscv32imc-unknown-nuttx-elf"
 linker = "riscv-none-elf-gcc"
 </code></pre>
 <p>The toolchain for the target can be found in <a href="https://nuttx.apache.org/docs/latest/quickstart/install.html">NuttX’s quick start guide</a>.</p>
-<h2 id="testing-91"><a class="header" href="#testing-91">Testing</a></h2>
+<h2 id="testing-93"><a class="header" href="#testing-93">Testing</a></h2>
 <p>This is a cross-compiled <code>no-std</code> target, which must be run either in a simulator
 or by programming them onto suitable hardware. It is not possible to run the
 Rust test-suite on this target.</p>
-<h2 id="cross-compilation-toolchains-and-c-code-52"><a class="header" href="#cross-compilation-toolchains-and-c-code-52">Cross-compilation toolchains and C code</a></h2>
+<h2 id="cross-compilation-toolchains-and-c-code-54"><a class="header" href="#cross-compilation-toolchains-and-c-code-54">Cross-compilation toolchains and C code</a></h2>
 <p>This target supports C code. If interlinking with C or C++, you may need to use
 <code>riscv-none-elf-gcc</code> or <code>arm-none-eabi-gcc</code> as a linker instead of <code>rust-lld</code>.</p>
 
