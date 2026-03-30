@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>명령줄 인수 구문 분석 - Command Line Applications in Rust</title>
+        <title>Parsing command line arguments - Command Line Applications in Rust</title>
 
 
         <!-- Custom HTML head -->
@@ -91,10 +91,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b06d8bdc.js";
+            window.path_to_searchindex_js = "../searchindex-bab065ac.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-31431aab.js"></script>
+        <script src="../toc-8eed1e25.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -230,15 +230,30 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="명령줄-인수-구문-분석"><a class="header" href="#명령줄-인수-구문-분석">명령줄 인수 구문 분석</a></h1>
-<p>CLI 도구의 일반적인 호출은 다음과 같습니다.</p>
+                        <h1 id="parsing-command-line-arguments"><a class="header" href="#parsing-command-line-arguments">Parsing command-line arguments</a></h1>
+<p>A typical invocation of our CLI tool will look like this:</p>
 <pre><code class="language-console">$ grrs foobar test.txt
 </code></pre>
-<p>우리는 프로그램이 <code>test.txt</code> 를 보고 <code>foobar</code> 를 포함하는 줄을 인쇄하기를 기대합니다. 하지만 이 두 값을 어떻게 얻을 수 있을까요?</p>
-<p>The text after the name of the program is often called the “command-line arguments”, or “command-line flags” (especially when they look like <code>--this</code>). Internally, the operating system usually represents them as a list of strings. Generally, they get separated by spaces.</p>
-<p>There are many ways to think about these arguments and how to parse them into something easier to work with. You will also need to tell the users of your program which arguments they need to give and in which format they are expected.</p>
-<h2 id="인수-가져오기"><a class="header" href="#인수-가져오기">인수 가져오기</a></h2>
-<p>The standard library contains the function <a href="https://doc.rust-lang.org/1.39.0/std/env/fn.args.html"><code>std::env::args()</code></a> that gives you an <a href="https://doc.rust-lang.org/1.39.0/std/iter/index.html">iterator</a> of the given arguments. The first entry (at index <code>0</code>) will be the name used to invoke your program (e.g. <code>grrs</code>). The ones that follow are what the user wrote afterwards.</p>
+<p>We expect our program to look at <code>test.txt</code>
+and print out the lines that contain <code>foobar</code>.
+But how do we get these two values?</p>
+<p>The text after the name of the program is often called
+the “command-line arguments”,
+or “command-line flags”
+(especially when they look like <code>--this</code>).
+Internally, the operating system usually represents them
+as a list of strings. Generally, they get separated by spaces.</p>
+<p>There are many ways to think about these arguments
+and how to parse them
+into something easier to work with.
+You will also need to tell the users of your program
+which arguments they need to give
+and in which format they are expected.</p>
+<h2 id="getting-the-arguments"><a class="header" href="#getting-the-arguments">Getting the arguments</a></h2>
+<p>The standard library contains the function
+<a href="https://doc.rust-lang.org/1.39.0/std/env/fn.args.html"><code>std::env::args()</code></a> that gives you an <a href="https://doc.rust-lang.org/1.39.0/std/iter/index.html">iterator</a> of the given arguments.
+The first entry (at index <code>0</code>) will be the name used to invoke your program
+(e.g. <code>grrs</code>). The ones that follow are what the user wrote afterwards.</p>
 <p>Getting the raw arguments this way is straightforward (in file <code>src/main.rs</code>):</p>
 <pre><code class="language-rust ignore">fn main() {
     let pattern = std::env::args().nth(1).expect("no pattern given");
@@ -246,26 +261,45 @@
 
     println!("pattern: {:?}, path: {:?}", pattern, path)
 }</code></pre>
-<p><code>cargo run</code> 을 사용하여 실행할 수 있으며, <code>--</code> 뒤에 인수를 작성하여 전달합니다.</p>
+<p>We can run it using <code>cargo run</code>,
+passing arguments by writing them after <code>--</code>:</p>
 <pre><code class="language-console">$ cargo run -- some-pattern some-file
     Finished dev [unoptimized + debuginfo] target(s) in 0.11s
      Running `target/debug/grrs some-pattern some-file`
 pattern: "some-pattern", path: "some-file"
 </code></pre>
 <h2 id="cli-arguments-as-data-types"><a class="header" href="#cli-arguments-as-data-types">CLI arguments as data types</a></h2>
-<p>텍스트 뭉치로 생각하는 대신 CLI 인수를 프로그램에 대한 입력을 나타내는 사용자 지정 데이터 유형으로 생각하는 것이 종종 더 좋습니다.</p>
-<p>Looking at <code>grrs foobar test.txt</code>, there are two arguments: first, the <code>pattern</code> (the string to look for), and then, the <code>path</code> (the file to look in).</p>
-<p>What more can we say about them? Well, for a start, both are required. We haven’t talked about any default values, so we expect our users to always provide two values. Furthermore, we can say a bit about their types: The pattern is expected to be a string while the second argument is expected to be a path to a file.</p>
-<p>Rust에서는 처리하는 데이터를 중심으로 프로그램을 구성하는 것이 일반적이므로 이러한 CLI 인수를 보는 방식이 매우 적합합니다. 이것부터 시작해 봅시다(<code>src/main.rs</code> 파일에서 <code>fn main() {</code> 이전).</p>
+<p>Instead of thinking about them as a bunch of text,
+it often pays off to think of CLI arguments as a custom data type
+that represents the inputs to your program.</p>
+<p>Looking at <code>grrs foobar test.txt</code>,
+there are two arguments:
+first, the <code>pattern</code> (the string to look for),
+and then, the <code>path</code> (the file to look in).</p>
+<p>What more can we say about them?
+Well, for a start, both are required.
+We haven’t talked about any default values,
+so we expect our users to always provide two values.
+Furthermore, we can say a bit about their types:
+The pattern is expected to be a string
+while the second argument is expected to be a path to a file.</p>
+<p>In Rust, it is common to structure programs around the data they handle, so this
+way of looking at CLI arguments fits very well. Let’s start with this (in file
+<code>src/main.rs</code>, before <code>fn main() {</code>):</p>
 <pre><code class="language-rust ignore">struct Cli {
     pattern: String,
     path: std::path::PathBuf,
 }</code></pre>
-<p>This defines a new structure (a <a href="https://doc.rust-lang.org/1.39.0/book/ch05-00-structs.html"><code>struct</code></a>) that has two fields to store data in: <code>pattern</code> and <code>path</code>.</p>
+<p>This defines a new structure (a <a href="https://doc.rust-lang.org/1.39.0/book/ch05-00-structs.html"><code>struct</code></a>)
+that has two fields to store data in: <code>pattern</code> and <code>path</code>.</p>
 <aside>
-<p><strong>참고:</strong> <a href="https://doc.rust-lang.org/1.39.0/std/path/struct.PathBuf.html"><code>PathBuf</code></a> 는 <a href="https://doc.rust-lang.org/1.39.0/std/string/struct.String.html"><code>String</code></a> 과 같지만 크로스 플랫폼에서 작동하는 파일 시스템 경로용입니다.</p>
+<p><strong>Note:</strong>
+<a href="https://doc.rust-lang.org/1.39.0/std/path/struct.PathBuf.html"><code>PathBuf</code></a> is like a <a href="https://doc.rust-lang.org/1.39.0/std/string/struct.String.html"><code>String</code></a> but for file system paths that work cross-platform.</p>
 </aside>
-<p>Now, we still need to convert the actual arguments into this form. One option would be to manually parse the list of strings we get from the operating system and build the structure ourselves. It would look something like this:</p>
+<p>Now, we still need to convert the actual arguments into this form.
+One option would be to manually parse the list of strings we get from the operating system
+and build the structure ourselves.
+It would look something like this:</p>
 <pre><code class="language-rust ignore">fn main() {
     let pattern = std::env::args().nth(1).expect("no pattern given");
     let path = std::env::args().nth(2).expect("no path given");
@@ -277,46 +311,75 @@ pattern: "some-pattern", path: "some-file"
 
     println!("pattern: {:?}, path: {:?}", args.pattern, args.path);
 }</code></pre>
-<p>이것은 작동하지만 그다지 편리하지 않습니다. <code>--pattern="foo"</code> 또는 <code>--pattern "foo"</code> 를 지원해야 하는 요구 사항을 어떻게 처리하시겠습니까? <code>--help</code> 를 어떻게 구현하시겠습니까?</p>
-<h2 id="clap으로-cli-인수-구문-분석"><a class="header" href="#clap으로-cli-인수-구문-분석">Clap으로 CLI 인수 구문 분석</a></h2>
-<p>A more convenient way is to use one of the many available libraries. The most popular library for parsing command-line arguments is called <a href="https://docs.rs/clap/"><code>clap</code></a>. It has all the functionality you’d expect, including support for sub-commands, <a href="https://docs.rs/clap_complete/">shell completions</a>, and great help messages.</p>
-<p>먼저 <code>Cargo.toml</code> 파일의 <code>[dependencies]</code> 섹션에 <code>clap = { version = "4.0", features = ["derive"] }</code> 를 추가하여 <code>clap</code> 을 가져옵니다.</p>
-<p>Now, we can write <code>use clap::Parser;</code> in our code and add <code>#[derive(Parser)]</code> right above our <code>struct Cli</code>. Let’s also write some documentation comments along the way.</p>
-<p>다음과 같이 보일 것입니다(<code>src/main.rs</code> 파일에서 <code>fn main() {</code> 이전).</p>
+<p>This works, but it’s not very convenient.
+How would you deal with the requirement to support
+<code>--pattern="foo"</code> or <code>--pattern "foo"</code>?
+How would you implement <code>--help</code>?</p>
+<h2 id="parsing-cli-arguments-with-clap"><a class="header" href="#parsing-cli-arguments-with-clap">Parsing CLI arguments with Clap</a></h2>
+<p>A more convenient way is to use one of the many available libraries.
+The most popular library for parsing command-line arguments
+is called <a href="https://docs.rs/clap/"><code>clap</code></a>.
+It has all the functionality you’d expect,
+including support for sub-commands, <a href="https://docs.rs/clap_complete/">shell completions</a>, and great help messages.</p>
+<p>Let’s first import <code>clap</code> by adding
+<code>clap = { version = "4.0", features = ["derive"] }</code> to the <code>[dependencies]</code> section
+of our <code>Cargo.toml</code> file.</p>
+<p>Now, we can write <code>use clap::Parser;</code> in our code
+and add <code>#[derive(Parser)]</code> right above our <code>struct Cli</code>.
+Let’s also write some documentation comments along the way.</p>
+<p>It’ll look like this (in file <code>src/main.rs</code>, before <code>fn main() {</code>):</p>
 <pre><code class="language-rust ignore">use clap::Parser;
 
-/// 파일에서 패턴을 검색하고 해당 패턴을 포함하는 줄을 표시합니다.
+/// Search for a pattern in a file and display the lines that contain it.
 #[derive(Parser)]
 struct Cli {
-    /// 찾을 패턴
+    /// The pattern to look for
     pattern: String,
-    /// 읽을 파일의 경로
+    /// The path to the file to read
     path: std::path::PathBuf,
 }</code></pre>
 <aside class="node">
-<p><strong>참고:</strong> 필드에 추가할 수 있는 사용자 지정 속성이 많이 있습니다. 예를 들어 <code>-o</code> 또는 <code>--output</code> 뒤의 인수에 이 필드를 사용하려면 <code>#[arg(short = 'o', long = "output")]</code> 를 추가합니다. 자세한 내용은 <a href="https://docs.rs/clap/">clap 문서</a> 를 참조하세요.</p>
+<p><strong>Note:</strong>
+There are a lot of custom attributes you can add to fields.
+For example,
+to say you want to use this field for the argument after <code>-o</code> or <code>--output</code>,
+you’d add <code>#[arg(short = 'o', long = "output")]</code>.
+For more information,
+see the <a href="https://docs.rs/clap/">clap documentation</a>.</p>
 </aside>
-<p><code>Cli</code> 구조체 바로 아래에 템플릿에 <code>main</code> 함수가 포함되어 있습니다. 프로그램이 시작되면 이 함수를 호출합니다.</p>
+<p>Right below the <code>Cli</code> struct our template contains its <code>main</code> function.
+When the program starts, it will call this function:</p>
 <pre><code class="language-rust ignore">fn main() {
     let args = Cli::parse();
 
     println!("pattern: {:?}, path: {:?}", args.pattern, args.path)
 }</code></pre>
-<p>이렇게 하면 인수를 <code>Cli</code> 구조체로 구문 분석하려고 시도합니다.</p>
-<p>But what if that fails? That’s the beauty of this approach: Clap knows which fields to expect and their expected format. It can automatically generate a nice <code>--help</code> message as well as give some great errors to suggest you pass <code>--output</code> when you wrote <code>--putput</code>.</p>
+<p>This will try to parse the arguments into our <code>Cli</code> struct.</p>
+<p>But what if that fails?
+That’s the beauty of this approach:
+Clap knows which fields to expect
+and their expected format.
+It can automatically generate a nice <code>--help</code> message
+as well as give some great errors
+to suggest you pass <code>--output</code> when you wrote <code>--putput</code>.</p>
 <aside class="note">
-<p><strong>참고:</strong> <code>parse</code> 메서드는 <code>main</code> 함수에서 사용하기 위한 것입니다. 실패하면 오류 또는 도움말 메시지를 인쇄하고 즉시 프로그램을 종료합니다. 다른 곳에서는 사용하지 마세요!</p>
+<p><strong>Note:</strong>
+The <code>parse</code> method is meant to be used in your <code>main</code> function.
+When it fails,
+it will print out an error or help message
+and immediately exit the program.
+Don’t use it in other places!</p>
 </aside>
-<h2 id="마무리"><a class="header" href="#마무리">마무리</a></h2>
-<p>이제 코드는 다음과 같아야 합니다.</p>
+<h2 id="wrapping-up"><a class="header" href="#wrapping-up">Wrapping up</a></h2>
+<p>Your code should now look like:</p>
 <pre><code class="language-rust ignore">use clap::Parser;
 
-/// 파일에서 패턴을 검색하고 해당 패턴을 포함하는 줄을 표시합니다.
+/// Search for a pattern in a file and display the lines that contain it.
 #[derive(Parser)]
 struct Cli {
-    /// 찾을 패턴
+    /// The pattern to look for
     pattern: String,
-    /// 읽을 파일의 경로
+    /// The path to the file to read
     path: std::path::PathBuf,
 }
 
@@ -325,7 +388,7 @@ fn main() {
 
     println!("pattern: {:?}, path: {:?}", args.pattern, args.path)
 }</code></pre>
-<p>인수 없이 실행:</p>
+<p>Running it without any arguments:</p>
 <pre><code class="language-console">$ cargo run
     Finished dev [unoptimized + debuginfo] target(s) in 10.16s
      Running `target/debug/grrs`
@@ -338,13 +401,14 @@ USAGE:
 
 For more information try --help
 </code></pre>
-<p>인수를 전달하여 실행:</p>
+<p>Running it passing arguments:</p>
 <pre><code class="language-console">$ cargo run -- some-pattern some-file
     Finished dev [unoptimized + debuginfo] target(s) in 0.11s
      Running `target/debug/grrs some-pattern some-file`
 pattern: "some-pattern", path: "some-file"
 </code></pre>
-<p>출력은 프로그램이 인수를 <code>Cli</code> 구조체로 성공적으로 구문 분석했음을 보여줍니다.</p>
+<p>The output demonstrates that our program successfully
+parsed the arguments into the <code>Cli</code> struct.</p>
 
                     </main>
 
