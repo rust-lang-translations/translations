@@ -95,7 +95,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e3b3cc7e.js";
+            window.path_to_searchindex_js = "searchindex-8574aa8c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f266997e.js"></script>
@@ -340,11 +340,11 @@ which it’s declared until the end of the current scope. Listing 4-1 shows a
 program with comments annotating where the variable <code>s</code> would be valid.</p>
 <figure class="listing" id="listing-4-1">
 <pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
-</span>    {                      // s is not valid here, since it's not yet declared
-        let s = "hello";   // s is valid from this point forward
+</span>    {                    // s n'est pas en vigueur ici, car elle n'est pas encore déclarée
+        let s = "hello"; // s est en vigueur à partir de ce point
 
-        // do stuff with s
-    }                      // this scope is now over, and s is no longer valid
+        // on fait des choses avec s ici
+    }                    // cette portée est maintenant terminée, et s n'est plus en vigueur
 <span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-4-1">Listing 4-1</a>: A variable and the scope in which it is valid</figcaption>
 </figure>
@@ -392,9 +392,9 @@ Tree”</a><!-- ignore --> in Chapter 7.</p>
 <pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span>    let mut s = String::from("hello");
 
-    s.push_str(", world!"); // push_str() appends a literal to a String
+    s.push_str(", world!"); // push_str() ajoute un littéral de chaîne dans une String
 
-    println!("{s}"); // this will print `hello, world!`
+    println!("{s}"); // Cela va afficher `hello, world!`
 <span class="boring">}</span></code></pre>
 <p>So, what’s the difference here? Why can <code>String</code> be mutated but literals
 cannot? The difference is in how these two types deal with memory.</p>
@@ -430,11 +430,11 @@ variable that owns it goes out of scope. Here’s a version of our scope example
 from Listing 4-1 using a <code>String</code> instead of a string literal:</p>
 <pre class="playground"><code class="language-rust edition2024"><span class="boring">fn main() {
 </span>    {
-        let s = String::from("hello"); // s is valid from this point forward
+        let s = String::from("hello"); // s est en vigueur à partir de ce point
 
-        // do stuff with s
-    }                                  // this scope is now over, and s is no
-                                       // longer valid
+        // on fait des choses avec s ici
+    }                                  // cette portée est désormais terminée, et s
+                                       // n'est plus en vigueur maintenant
 <span class="boring">}</span></code></pre>
 <p>There is a natural point at which we can return the memory our <code>String</code> needs
 to the allocator: when <code>s</code> goes out of scope. When a variable goes out of
@@ -659,28 +659,28 @@ showing where variables go into and out of scope.</p>
 <figure class="listing" id="listing-4-3">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust edition2024">fn main() {
-    let s = String::from("hello");  // s comes into scope
+    let s = String::from("hello");  // s rentre dans la portée.
 
-    takes_ownership(s);             // s's value moves into the function...
-                                    // ... and so is no longer valid here
+    prendre_possession(s);  // La valeur de s est déplacée dans la fonction…
+                            // … et n'est plus en vigueur à partir d'ici
 
-    let x = 5;                      // x comes into scope
+    let x = 5;              // x rentre dans la portée.
 
-    makes_copy(x);                  // Because i32 implements the Copy trait,
-                                    // x does NOT move into the function,
-                                    // so it's okay to use x afterward.
+    creer_copie(x);         // Comme i32 implémente le trait Copy,
+                            // x n'est PAS déplacée dans la fonction,
+                            // donc on peut continuer d'utiliser x ensuite.
 
-} // Here, x goes out of scope, then s. However, because s's value was moved,
-  // nothing special happens.
+} // Ici, x sort de la portée, puis ensuite s. Toutefois, puisque la valeur de
+  // s a été déplacée, il ne se passe rien de spécial.
 
-fn takes_ownership(some_string: String) { // some_string comes into scope
-    println!("{some_string}");
-} // Here, some_string goes out of scope and `drop` is called. The backing
-  // memory is freed.
+fn prendre_possession(texte: String) { // texte rentre dans la portée.
+    println!("{texte}");
+} // Ici, texte sort de la portée et `drop` est appelé. La mémoire est libérée.
 
-fn makes_copy(some_integer: i32) { // some_integer comes into scope
-    println!("{some_integer}");
-} // Here, some_integer goes out of scope. Nothing special happens.</code></pre>
+
+fn creer_copie(entier: i32) { // entier rentre dans la portée.
+    println!("{entier}");
+} // Ici, entier sort de la portée. Il ne se passe rien de spécial.</code></pre>
 <figcaption><a href="#listing-4-3">Listing 4-3</a>: Functions with ownership and scope annotated</figcaption>
 </figure>
 <p>If we tried to use <code>s</code> after the call to <code>takes_ownership</code>, Rust would throw a
@@ -694,34 +694,34 @@ function that returns some value, with similar annotations as those in Listing
 <figure class="listing" id="listing-4-4">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust edition2024">fn main() {
-    let s1 = gives_ownership();        // gives_ownership moves its return
-                                       // value into s1
+    let s1 = donne_possession();     // donne_possession déplace sa valeur de
+                                     // retour dans s1
 
-    let s2 = String::from("hello");    // s2 comes into scope
+    let s2 = String::from("hello");  // s2 rentre dans la portée
 
-    let s3 = takes_and_gives_back(s2); // s2 is moved into
-                                       // takes_and_gives_back, which also
-                                       // moves its return value into s3
-} // Here, s3 goes out of scope and is dropped. s2 was moved, so nothing
-  // happens. s1 goes out of scope and is dropped.
+    let s3 = prend_et_rend(s2);      // s2 est déplacée dans
+                                     // prend_et_rend, qui elle aussi
+                                     // déplace sa valeur de retour dans s3.
+} // Ici, s3 sort de la portée et est éliminée. s2 a été déplacée donc il ne se
+  // passe rien. s1 sort aussi de la portée et est éliminée.
 
-fn gives_ownership() -&gt; String {       // gives_ownership will move its
-                                       // return value into the function
-                                       // that calls it
+fn donne_possession() -&gt; String {        // donne_possession va déplacer sa
+                                         // valeur de retour dans la
+                                         // fonction qui l'appelle.
 
-    let some_string = String::from("yours"); // some_string comes into scope
+    let texte = String::from("yours");   // texte rentre dans la portée.
 
-    some_string                        // some_string is returned and
-                                       // moves out to the calling
-                                       // function
+    texte                                // texte est retournée et
+                                         // est déplacée vers le code qui
+                                         // l'appelle.
 }
 
-// This function takes a String and returns a String.
-fn takes_and_gives_back(a_string: String) -&gt; String {
-    // a_string comes into
-    // scope
+// Cette fonction va prendre une String et retourne aussi une String.
+fn prend_et_rend(texte: String) -&gt; String {
+    // texte rentre dans
+    // la portée.
 
-    a_string  // a_string is returned and moves out to the calling function
+    texte  // texte est retournée et déplacée vers le code qui l'appelle.
 }</code></pre>
 <figcaption><a href="#listing-4-4">Listing 4-4</a>: Transferring ownership of return values</figcaption>
 </figure>
@@ -740,15 +740,15 @@ from the body of the function that we might want to return as well.</p>
 <pre class="playground"><code class="language-rust edition2024">fn main() {
     let s1 = String::from("hello");
 
-    let (s2, len) = calculate_length(s1);
+    let (s2, taille) = calculer_taille(s1);
 
-    println!("The length of '{s2}' is {len}.");
+    println!("La taille de '{s2}' est {taille}.");
 }
 
-fn calculate_length(s: String) -&gt; (String, usize) {
-    let length = s.len(); // len() returns the length of a String
+fn calculer_taille(s: String) -&gt; (String, usize) {
+    let taille = s.len(); // len() retourne la taille d'une String.
 
-    (s, length)
+    (s, taille)
 }</code></pre>
 <figcaption><a href="#listing-4-5">Listing 4-5</a>: Returning ownership of parameters</figcaption>
 </figure>
