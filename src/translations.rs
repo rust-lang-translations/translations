@@ -1,12 +1,17 @@
 use crate::build::build_book;
 use crate::serve::serve;
 use anyhow::{bail, Context, Result};
-use log::info;
+use log::{info, warn};
+use mdbook_driver::book::BookItem;
 use mdbook_driver::MDBook;
+use mdbook_i18n_helpers::extract_messages;
 use mdbook_i18n_helpers::renderers::Xgettext;
+use polib::message::{MessageMutView, MessageView};
+
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -98,16 +103,17 @@ impl Translations {
 
             info!("Creating language resource {}", lang_po.to_string_lossy());
 
-            Command::new("msginit")
-                .arg("--no-translator")
-                .arg("-i")
-                .arg(po_path.join("messages.pot"))
-                .arg("-l")
-                .arg(lang_id)
-                .arg("-o")
-                .arg(&lang_po)
-                .output()
-                .with_context(|| "failed to call msginit")?;
+            run_checked(
+                Command::new("msginit")
+                    .arg("--no-translator")
+                    .arg("-i")
+                    .arg(po_path.join("messages.pot"))
+                    .arg("-l")
+                    .arg(lang_id)
+                    .arg("-o")
+                    .arg(&lang_po),
+                "msginit",
+            )?;
 
             let new_trans = Translation {
                 id: lang_id.to_string(),
@@ -120,6 +126,188 @@ impl Translations {
 
             self.save()?;
         }
+
+        Ok(())
+    }
+
+    pub fn import(
+        &self,
+        name: &str,
+        lang_id: &str,
+        src_dir: &Path,
+        en_src: Option<&Path>,
+        overwrite: bool,
+        fuzzy: Option<f32>,
+    ) -> Result<()> {
+        let Some(book) = self.books.get(name) else {
+            bail!("book {name} is not found in translations.toml");
+        };
+
+        let src_path = self.src_path(&book.path);
+        let po_path = self.po_path(name);
+
+        self.update_submodule()?;
+        extract_pot(&src_path, &po_path)?;
+
+        let lang_po = po_path.join(format!("{lang_id}.po"));
+        if !lang_po.exists() {
+            bail!("Language {lang_id} for {name} is not found; run `add` first");
+        }
+
+        // Collect (relative_path, english_text) pairs. With `--en-src` we walk
+        // that directory; otherwise we walk the upstream MDBook chapters.
+        let en_pairs: Vec<(PathBuf, String)> = if let Some(en_root) = en_src {
+            let mut out = Vec::new();
+            collect_md_files(en_root, en_root, &mut out)?;
+            out
+        } else {
+            let mdbook = MDBook::load(&src_path)?;
+            mdbook
+                .book
+                .iter()
+                .filter_map(|item| {
+                    let BookItem::Chapter(chapter) = item else { return None };
+                    let rel = chapter.source_path.as_ref()?.clone();
+                    if rel.file_name().map(|n| n == "SUMMARY.md").unwrap_or(false) {
+                        return None;
+                    }
+                    Some((rel, chapter.content.clone()))
+                })
+                .collect()
+        };
+
+        let mut map: HashMap<String, String> = HashMap::new();
+        let mut paired_files = 0usize;
+        let mut missing_files = 0usize;
+        let mut mismatched_files = 0usize;
+        let mut partial_pairs = 0usize;
+
+        for (rel, en_text) in &en_pairs {
+            let translated_path = src_dir.join(rel);
+            if !translated_path.exists() {
+                missing_files += 1;
+                warn!(
+                    "import: translated file not found, skipping: {}",
+                    translated_path.to_string_lossy()
+                );
+                continue;
+            }
+
+            let ja_text = std::fs::read_to_string(&translated_path)
+                .with_context(|| format!("failed to read {}", translated_path.to_string_lossy()))?;
+
+            let en_msgs = match extract_messages(en_text) {
+                Ok(v) => v,
+                Err(e) => {
+                    warn!("import: failed to parse english {}: {e}", rel.to_string_lossy());
+                    continue;
+                }
+            };
+            let ja_msgs = match extract_messages(&ja_text) {
+                Ok(v) => v,
+                Err(e) => {
+                    warn!(
+                        "import: failed to parse translated {}: {e}",
+                        translated_path.to_string_lossy()
+                    );
+                    continue;
+                }
+            };
+
+            if en_msgs.len() != ja_msgs.len() {
+                mismatched_files += 1;
+                let added = signature_align(&en_msgs, &ja_msgs, &mut map);
+                partial_pairs += added;
+                warn!(
+                    "import: structure mismatch for {} (en={}, {lang_id}={}); \
+                     partial-aligned {added} pair(s)",
+                    rel.to_string_lossy(),
+                    en_msgs.len(),
+                    ja_msgs.len()
+                );
+                continue;
+            }
+
+            paired_files += 1;
+            for ((_, en), (_, ja)) in en_msgs.iter().zip(ja_msgs.iter()) {
+                if en.message == ja.message {
+                    continue;
+                }
+                map.entry(en.message.clone()).or_insert_with(|| ja.message.clone());
+            }
+        }
+
+        let mut catalog = polib::po_file::parse(&lang_po)
+            .with_context(|| format!("failed to parse {}", lang_po.to_string_lossy()))?;
+
+        // Track which map keys got applied exactly so we can fuzzy-match the rest.
+        let mut exact_keys: HashSet<&String> = HashSet::new();
+        let mut filled = 0usize;
+        let mut skipped_existing = 0usize;
+        for mut msg in catalog.messages_mut() {
+            let Some((key, new_msgstr)) = map.get_key_value(msg.msgid()) else {
+                continue;
+            };
+            exact_keys.insert(key);
+            if msg.is_translated() && !overwrite {
+                skipped_existing += 1;
+                continue;
+            }
+            if msg.set_msgstr(new_msgstr.clone()).is_ok() {
+                filled += 1;
+            }
+        }
+
+        let mut fuzzied = 0usize;
+        if let Some(threshold) = fuzzy {
+            // Build a shingle index over untranslated po msgids, then for each
+            // unused map entry pick the best similarity match above threshold.
+            let candidates: Vec<(&String, &String)> = map
+                .iter()
+                .filter(|(k, _)| !exact_keys.contains(*k))
+                .collect();
+            if !candidates.is_empty() {
+                let untranslated: Vec<String> = catalog
+                    .messages()
+                    .filter(|m| !m.is_translated())
+                    .map(|m| m.msgid().to_string())
+                    .collect();
+                let index = ShingleIndex::build(&untranslated);
+                let mut picks: HashMap<String, &String> = HashMap::new();
+                let mut pick_scores: HashMap<String, f32> = HashMap::new();
+                for (en, ja) in &candidates {
+                    if let Some((target, score)) = index.best_match(en, threshold) {
+                        if pick_scores.get(&target).copied().unwrap_or(0.0) < score {
+                            pick_scores.insert(target.clone(), score);
+                            picks.insert(target, *ja);
+                        }
+                    }
+                }
+                for mut msg in catalog.messages_mut() {
+                    let Some(new_msgstr) = picks.get(msg.msgid()) else {
+                        continue;
+                    };
+                    if msg.is_translated() {
+                        continue;
+                    }
+                    if msg.set_msgstr((*new_msgstr).clone()).is_ok() {
+                        msg.flags_mut().add_flag("fuzzy");
+                        fuzzied += 1;
+                    }
+                }
+            }
+        }
+
+        polib::po_file::write(&catalog, &lang_po)
+            .with_context(|| format!("failed to write {}", lang_po.to_string_lossy()))?;
+
+        info!(
+            "import: filled {filled} (+{fuzzied} fuzzy) msgstr(s) into {} \
+             (paired files: {paired_files}, missing: {missing_files}, \
+             mismatched: {mismatched_files} [partial pairs: {partial_pairs}], \
+             kept-existing: {skipped_existing})",
+            lang_po.to_string_lossy()
+        );
 
         Ok(())
     }
@@ -138,11 +326,13 @@ impl Translations {
                 bail!("Language {lang_id} for {name} is not found");
             }
 
-            Command::new("msgmerge")
-                .arg("--update")
-                .arg(&lang_po)
-                .arg(po_path.join("messages.pot"))
-                .output()?;
+            run_checked(
+                Command::new("msgmerge")
+                    .arg("--update")
+                    .arg(&lang_po)
+                    .arg(po_path.join("messages.pot")),
+                "msgmerge",
+            )?;
         }
 
         Ok(())
@@ -447,5 +637,191 @@ fn extract_pot(src_path: &Path, po_path: &Path) -> Result<()> {
     mdbook.with_renderer(renderer);
     mdbook.build()?;
 
+    // Xgettext writes to `<build_dir>/xgettext/messages.pot`. Mirror it to
+    // `<po_path>/messages.pot` so that msginit/msgmerge (and other tooling)
+    // can find it at the conventional top-level location.
+    let nested = po_path.join("xgettext").join("messages.pot");
+    let top = po_path.join("messages.pot");
+    if nested.exists() {
+        std::fs::copy(&nested, &top)
+            .with_context(|| format!("failed to copy {nested:?} -> {top:?}"))?;
+    }
+
+    Ok(())
+}
+
+/// Pair `(en, ja)` paragraphs from a structurally-mismatched file by matching
+/// their inline-code signature: a sorted set of `` `code` `` spans (which the
+/// translator typically preserves verbatim). Adds successful pairs to `map`
+/// and returns the number of pairs added.
+fn signature_align(
+    en: &[(usize, mdbook_i18n_helpers::ExtractedMessage)],
+    ja: &[(usize, mdbook_i18n_helpers::ExtractedMessage)],
+    map: &mut HashMap<String, String>,
+) -> usize {
+    let en_sigs: Vec<Vec<String>> = en.iter().map(|(_, m)| code_signature(&m.message)).collect();
+    let ja_sigs: Vec<Vec<String>> = ja.iter().map(|(_, m)| code_signature(&m.message)).collect();
+    let mut used = vec![false; ja.len()];
+    let mut added = 0usize;
+    for (i, e_sig) in en_sigs.iter().enumerate() {
+        if e_sig.is_empty() {
+            continue;
+        }
+        for (j, j_sig) in ja_sigs.iter().enumerate() {
+            if used[j] || j_sig != e_sig {
+                continue;
+            }
+            let en_text = &en[i].1.message;
+            let ja_text = &ja[j].1.message;
+            if en_text != ja_text {
+                map.entry(en_text.clone())
+                    .or_insert_with(|| ja_text.clone());
+                added += 1;
+            }
+            used[j] = true;
+            break;
+        }
+    }
+    added
+}
+
+/// Sorted list of inline `` `code` `` spans containing at least one
+/// alphanumeric character. Used as a structural fingerprint for paragraph
+/// alignment when paragraph counts differ between source and translation.
+fn code_signature(text: &str) -> Vec<String> {
+    let mut sigs: Vec<String> = Vec::new();
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c != '`' {
+            continue;
+        }
+        let mut buf = String::new();
+        while let Some(&next) = chars.peek() {
+            chars.next();
+            if next == '`' {
+                break;
+            }
+            buf.push(next);
+        }
+        if buf.chars().any(|c| c.is_alphanumeric()) {
+            sigs.push(buf);
+        }
+    }
+    sigs.sort();
+    sigs
+}
+
+/// Word-trigram inverted index for fast Jaccard similarity lookup over a
+/// collection of (English) msgids. Used by `import --fuzzy`.
+struct ShingleIndex {
+    msgs: Vec<String>,
+    shingles: Vec<HashSet<String>>,
+    inverted: HashMap<String, Vec<usize>>,
+}
+
+impl ShingleIndex {
+    fn build(msgs: &[String]) -> Self {
+        let mut shingles = Vec::with_capacity(msgs.len());
+        let mut inverted: HashMap<String, Vec<usize>> = HashMap::new();
+        for (idx, msg) in msgs.iter().enumerate() {
+            let s = shingles_of(msg);
+            for sh in &s {
+                inverted.entry(sh.clone()).or_default().push(idx);
+            }
+            shingles.push(s);
+        }
+        Self {
+            msgs: msgs.to_vec(),
+            shingles,
+            inverted,
+        }
+    }
+
+    fn best_match(&self, query: &str, threshold: f32) -> Option<(String, f32)> {
+        let q = shingles_of(query);
+        if q.is_empty() {
+            return None;
+        }
+        let mut counts: HashMap<usize, usize> = HashMap::new();
+        for sh in &q {
+            if let Some(idxs) = self.inverted.get(sh) {
+                for &idx in idxs {
+                    *counts.entry(idx).or_insert(0) += 1;
+                }
+            }
+        }
+        let mut best: Option<(usize, f32)> = None;
+        for (idx, intersect) in counts {
+            let union = q.len() + self.shingles[idx].len() - intersect;
+            if union == 0 {
+                continue;
+            }
+            let score = intersect as f32 / union as f32;
+            if score >= threshold && best.map(|(_, s)| score > s).unwrap_or(true) {
+                best = Some((idx, score));
+            }
+        }
+        best.map(|(idx, score)| (self.msgs[idx].clone(), score))
+    }
+}
+
+fn shingles_of(text: &str) -> HashSet<String> {
+    let words: Vec<String> = text
+        .split_whitespace()
+        .map(|w| w.trim_matches(|c: char| !c.is_alphanumeric()).to_lowercase())
+        .filter(|w| !w.is_empty())
+        .collect();
+    let mut out = HashSet::new();
+    if words.len() < 3 {
+        for w in words {
+            out.insert(w);
+        }
+        return out;
+    }
+    for i in 0..=words.len() - 3 {
+        out.insert(format!("{} {} {}", words[i], words[i + 1], words[i + 2]));
+    }
+    out
+}
+
+/// Recursively collect (path-relative-to-`root`, file contents) for every
+/// `*.md` file under `dir`, skipping `SUMMARY.md`.
+fn collect_md_files(root: &Path, dir: &Path, out: &mut Vec<(PathBuf, String)>) -> Result<()> {
+    for entry in std::fs::read_dir(dir)
+        .with_context(|| format!("failed to read dir {}", dir.to_string_lossy()))?
+    {
+        let entry = entry?;
+        let path = entry.path();
+        let file_type = entry.file_type()?;
+        if file_type.is_dir() {
+            collect_md_files(root, &path, out)?;
+            continue;
+        }
+        if path.extension().and_then(|s| s.to_str()) != Some("md") {
+            continue;
+        }
+        if path.file_name().map(|n| n == "SUMMARY.md").unwrap_or(false) {
+            continue;
+        }
+        let rel = path
+            .strip_prefix(root)
+            .with_context(|| format!("failed to relativize {}", path.to_string_lossy()))?
+            .to_path_buf();
+        let text = std::fs::read_to_string(&path)
+            .with_context(|| format!("failed to read {}", path.to_string_lossy()))?;
+        out.push((rel, text));
+    }
+    Ok(())
+}
+
+fn run_checked(cmd: &mut Command, what: &str) -> Result<()> {
+    let output = cmd.output().with_context(|| format!("failed to spawn {what}"))?;
+    if !output.status.success() {
+        bail!(
+            "{what} failed (status {}): {}",
+            output.status,
+            String::from_utf8_lossy(&output.stderr).trim()
+        );
+    }
     Ok(())
 }
