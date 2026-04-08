@@ -10,6 +10,30 @@ use std::path::{Path, PathBuf};
 use tera::Tera;
 use crate::code_translator::CodeTranslator;
 
+/// Strip fields from `<src_path>/book.toml` that newer mdbook versions reject
+/// (currently only the removed `output.html.curly-quotes` key).
+fn sanitize_book_toml(src_path: &Path) -> Result<()> {
+    let toml_path = src_path.join("book.toml");
+    let content = std::fs::read_to_string(&toml_path)?;
+    let mut value: toml::Value = toml::from_str(&content)?;
+
+    let mut changed = false;
+    if let Some(html) = value
+        .get_mut("output")
+        .and_then(|o| o.get_mut("html"))
+        .and_then(|h| h.as_table_mut())
+    {
+        if html.remove("curly-quotes").is_some() {
+            changed = true;
+        }
+    }
+
+    if changed {
+        std::fs::write(&toml_path, toml::to_string(&value)?)?;
+    }
+    Ok(())
+}
+
 pub fn build_book(
     name: &str,
     book: &Book,
@@ -18,6 +42,7 @@ pub fn build_book(
     po_path: &Path,
     serve: Option<&str>,
 ) -> Result<()> {
+    sanitize_book_toml(src_path)?;
     let mut mdbook = MDBook::load(&src_path)?;
     mdbook.config.build.build_dir = PathBuf::from(dst_path);
 
@@ -51,50 +76,55 @@ pub fn build_book(
         std::fs::write(&head_path, head_hbs)?;
     }
 
-    let js_file: toml::Value = "theme/language-picker.js".into();
-    let css_file: toml::Value = "theme/language-picker.css".into();
-    let po_path_toml: toml::Value = po_path.to_string_lossy().into_owned().into();
+    let apply_config = |mdbook: &mut MDBook| -> Result<()> {
+        let js_file: toml::Value = "theme/language-picker.js".into();
+        let css_file: toml::Value = "theme/language-picker.css".into();
+        let po_path_toml: toml::Value = po_path.to_string_lossy().into_owned().into();
 
-    if let Some(additional_css) = mdbook
-        .config
-        .get::<toml::Value>("output.html.additional-css")?
-    {
-        let mut additional_css = additional_css.clone();
-        additional_css.as_array_mut().unwrap().push(css_file.into());
-        mdbook
+        if let Some(additional_css) = mdbook
             .config
-            .set("output.html.additional-css", additional_css)?;
-    } else {
-        mdbook
+            .get::<toml::Value>("output.html.additional-css")?
+        {
+            let mut additional_css = additional_css.clone();
+            additional_css.as_array_mut().unwrap().push(css_file.into());
+            mdbook
+                .config
+                .set("output.html.additional-css", additional_css)?;
+        } else {
+            mdbook
+                .config
+                .set("output.html.additional-css", vec![css_file])?;
+        }
+        if let Some(additional_js) = mdbook
             .config
-            .set("output.html.additional-css", vec![css_file])?;
-    }
-    if let Some(additional_js) = mdbook
-        .config
-        .get::<toml::Value>("output.html.additional-js")?
-    {
-        let mut additional_js = additional_js.clone();
-        additional_js.as_array_mut().unwrap().push(js_file.into());
-        mdbook
-            .config
-            .set("output.html.additional-js", additional_js)?;
-    } else {
-        mdbook
-            .config
-            .set("output.html.additional-js", vec![js_file])?;
-    }
-    mdbook.config.set("preprocessor.gettext.po-dir", po_path_toml)?;
-    mdbook.config.set(
-        "output.html.git-repository-url",
-        "https://github.com/rust-lang-translations/project",
-    )?;
-    if serve.is_some() {
-        mdbook
-            .config
-            .set("output.html.live-reload-endpoint", LIVE_RELOAD_ENDPOINT)
-            .expect("live-reload-endpoint update failed");
-        mdbook.config.set("output.html.site-url", "/").unwrap();
-    }
+            .get::<toml::Value>("output.html.additional-js")?
+        {
+            let mut additional_js = additional_js.clone();
+            additional_js.as_array_mut().unwrap().push(js_file.into());
+            mdbook
+                .config
+                .set("output.html.additional-js", additional_js)?;
+        } else {
+            mdbook
+                .config
+                .set("output.html.additional-js", vec![js_file])?;
+        }
+        mdbook.config.set("preprocessor.gettext.po-dir", po_path_toml)?;
+        mdbook.config.set(
+            "output.html.git-repository-url",
+            "https://github.com/rust-lang-translations/project",
+        )?;
+        if serve.is_some() {
+            mdbook
+                .config
+                .set("output.html.live-reload-endpoint", LIVE_RELOAD_ENDPOINT)
+                .expect("live-reload-endpoint update failed");
+            mdbook.config.set("output.html.site-url", "/").unwrap();
+        }
+        Ok(())
+    };
+
+    apply_config(&mut mdbook)?;
 
     if let Some(lang_id) = serve {
         let gettext = Gettext;
@@ -123,6 +153,8 @@ pub fn build_book(
             // Without reset, preprocessors would stack across iterations, which
             // results in unwanted preprocessors accumulation:
             let mut mdbook = MDBook::load(&src_path)?;
+            mdbook.config.build.build_dir = PathBuf::from(dst_path);
+            apply_config(&mut mdbook)?;
 
             let gettext = Gettext;
 
