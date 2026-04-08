@@ -9,6 +9,7 @@ use anyhow::{bail, Result};
 use clap::{Args, Parser, Subcommand};
 use fern::Dispatch;
 use log::LevelFilter;
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 /// Set to true whenever any `log::error!` (including those from mdbook
@@ -40,6 +41,31 @@ pub enum Commands {
     Serve(OptServe),
     Stat(OptStat),
     Verify(OptVerify),
+    Import(OptImport),
+}
+
+/// Import existing translated markdown into a .po file
+#[derive(Args)]
+pub struct OptImport {
+    /// Book name
+    book: String,
+    /// Language ID (ISO 639 language codes)
+    lang_id: String,
+    /// Root directory of translated markdown (mirrors the book's `src/` layout)
+    src_dir: PathBuf,
+    /// Root directory of the English markdown that the translation was based on.
+    /// If omitted, the current upstream sources from this repository are used.
+    #[arg(long)]
+    en_src: Option<PathBuf>,
+    /// Overwrite already-translated msgstr entries
+    #[arg(long)]
+    overwrite: bool,
+    /// Also fill non-exact matches by similarity, marking them as `fuzzy`
+    #[arg(long)]
+    fuzzy: bool,
+    /// Jaccard similarity threshold for fuzzy matches (0.0 - 1.0)
+    #[arg(long, default_value_t = 0.7)]
+    fuzzy_threshold: f32,
 }
 
 /// Verify an existing build directory without rebuilding
@@ -131,6 +157,14 @@ fn main() -> Result<()> {
             }
         }
         Commands::Add(x) => trans.add(&x.book, &x.lang_id, &x.lang_name)?,
+        Commands::Import(x) => trans.import(
+            &x.book,
+            &x.lang_id,
+            &x.src_dir,
+            x.en_src.as_deref(),
+            x.overwrite,
+            x.fuzzy.then_some(x.fuzzy_threshold),
+        )?,
         Commands::Update(x) => trans.update(&x.book, &x.lang_id)?,
         Commands::Serve(x) => {
             let hostname = x.hostname.unwrap_or("127.0.0.1".to_string());
