@@ -5,10 +5,16 @@ mod listings;
 mod code_translator;
 
 use crate::translations::Translations;
-use anyhow::Result;
+use anyhow::{bail, Result};
 use clap::{Args, Parser, Subcommand};
 use fern::Dispatch;
 use log::LevelFilter;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+/// Set to true whenever any `log::error!` (including those from mdbook
+/// renderers/preprocessors) is emitted. Checked after `build` so that errors
+/// mdbook silently swallows still cause a non-zero exit.
+static ERROR_SEEN: AtomicBool = AtomicBool::new(false);
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -33,7 +39,12 @@ pub enum Commands {
     Update(OptUpdate),
     Serve(OptServe),
     Stat(OptStat),
+    Verify(OptVerify),
 }
+
+/// Verify an existing build directory without rebuilding
+#[derive(Args)]
+pub struct OptVerify {}
 
 /// Build documents
 #[derive(Args)]
@@ -88,6 +99,9 @@ fn main() -> Result<()> {
 
     Dispatch::new()
         .format(|out, message, record| {
+            if record.level() == log::Level::Error {
+                ERROR_SEEN.store(true, Ordering::Relaxed);
+            }
             out.finish(format_args!(
                 "{} {}",
                 format!("[{:<5}]", record.level()),
@@ -103,7 +117,19 @@ fn main() -> Result<()> {
     let mut trans = Translations::load()?;
 
     match opt.command {
-        Commands::Build(_) => trans.build()?,
+        Commands::Build(_) => {
+            trans.build()?;
+            trans.verify_build()?;
+            if ERROR_SEEN.load(Ordering::Relaxed) {
+                bail!("build emitted one or more errors (see log above)");
+            }
+        }
+        Commands::Verify(_) => {
+            trans.verify_build()?;
+            if ERROR_SEEN.load(Ordering::Relaxed) {
+                bail!("verify emitted one or more errors (see log above)");
+            }
+        }
         Commands::Add(x) => trans.add(&x.book, &x.lang_id, &x.lang_name)?,
         Commands::Update(x) => trans.update(&x.book, &x.lang_id)?,
         Commands::Serve(x) => {
