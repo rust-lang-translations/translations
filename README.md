@@ -150,6 +150,24 @@ After editing the DB, you can check the whole rendered website by the following 
 $ cargo run --release -- build
 ```
 
+## Maintainers and auto-merge
+
+Each translation (book + language pair) can have designated **maintainers**.
+Pull requests from maintainers that only modify `.po` files for their assigned translations are automatically merged after CI passes.
+
+To become a maintainer, open an [issue](https://github.com/rust-lang-translations/translations/issues) requesting assignment.
+The repository owner will review and add your GitHub username to the `maintainers` field in `translations.toml`:
+
+```toml
+[[books.book.translations]]
+id = 'ja'
+name = '日本語'
+maintainers = ['your-github-username']
+```
+
+Note that auto-merge only applies when the PR exclusively changes `.po` files within the maintainer's assigned translations.
+Any PR that modifies other files (source code, configuration, etc.) requires normal review.
+
 ## License
 
 Licensed under either of
