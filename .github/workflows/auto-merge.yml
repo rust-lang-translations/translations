@@ -1,0 +1,138 @@
+name: Auto-merge translation PRs
+
+on:
+  workflow_run:
+    workflows: ["Regression"]
+    types:
+      - completed
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Find PR for this workflow run
+        id: find-pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          PR_JSON=$(gh pr list --state open --json number,author,headRefOid \
+            --jq ".[] | select(.headRefOid == \"${HEAD_SHA}\")")
+          if [ -z "$PR_JSON" ]; then
+            echo "No open PR found for SHA ${HEAD_SHA}"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          PR_NUMBER=$(echo "$PR_JSON" | jq -r '.number')
+          PR_AUTHOR=$(echo "$PR_JSON" | jq -r '.author.login')
+          echo "pr_number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "pr_author=${PR_AUTHOR}" >> "$GITHUB_OUTPUT"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "Found PR #${PR_NUMBER} by ${PR_AUTHOR}"
+
+      - name: Check changed files and authorize
+        if: steps.find-pr.outputs.skip != 'true'
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.find-pr.outputs.pr_number }}
+          PR_AUTHOR: ${{ steps.find-pr.outputs.pr_author }}
+        run: |
+          CHANGED_FILES=$(gh pr diff "$PR_NUMBER" --name-only)
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No changed files"
+            echo "authorized=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Validate all changed files are .po files under translations/
+          python3 << 'PYEOF'
+          import os, sys, re, tomllib
+
+          pr_author = os.environ["PR_AUTHOR"]
+          changed_files = os.environ.get("CHANGED_FILES", "").strip().splitlines()
+          po_pattern = re.compile(r"^translations/([^/]+)/([^/]+)\.po$")
+
+          if not changed_files:
+              print("No changed files")
+              with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+                  f.write("authorized=false\n")
+              sys.exit(0)
+
+          # Check all files match the .po pattern
+          required_authorizations = []
+          for filepath in changed_files:
+              filepath = filepath.strip()
+              if not filepath:
+                  continue
+              m = po_pattern.match(filepath)
+              if not m:
+                  print(f"File '{filepath}' is not a .po translation file — skipping auto-merge")
+                  with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+                      f.write("authorized=false\n")
+                  sys.exit(0)
+              book_name = m.group(1)
+              lang_id = m.group(2)
+              required_authorizations.append((book_name, lang_id, filepath))
+
+          # Load translations.toml from master branch (already checked out)
+          with open("translations.toml", "rb") as f:
+              config = tomllib.load(f)
+
+          books = config.get("books", {})
+
+          # Check maintainer authorization for each changed file
+          for book_name, lang_id, filepath in required_authorizations:
+              book = books.get(book_name)
+              if not book:
+                  print(f"Book '{book_name}' not found in translations.toml — skipping auto-merge")
+                  with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+                      f.write("authorized=false\n")
+                  sys.exit(0)
+
+              translations = book.get("translations", [])
+              translation = None
+              for t in translations:
+                  if t.get("id") == lang_id:
+                      translation = t
+                      break
+
+              if not translation:
+                  print(f"Translation '{lang_id}' not found for book '{book_name}' — skipping auto-merge")
+                  with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+                      f.write("authorized=false\n")
+                  sys.exit(0)
+
+              maintainers = translation.get("maintainers", [])
+              if pr_author not in maintainers:
+                  print(f"Author '{pr_author}' is not a maintainer for {book_name}/{lang_id} — skipping auto-merge")
+                  with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+                      f.write("authorized=false\n")
+                  sys.exit(0)
+
+              print(f"Authorized: {pr_author} for {filepath}")
+
+          print(f"All files authorized for auto-merge by {pr_author}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write("authorized=true\n")
+          PYEOF
+
+      - name: Merge PR
+        if: steps.find-pr.outputs.skip != 'true' && steps.check.outputs.authorized == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.find-pr.outputs.pr_number }}
+        run: |
+          echo "Auto-merging PR #${PR_NUMBER}"
+          gh pr merge "$PR_NUMBER" --merge
