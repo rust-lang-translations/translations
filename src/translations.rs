@@ -33,6 +33,9 @@ pub struct Book {
 pub struct Translation {
     pub id: String,
     pub name: String,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub maintainers: Vec<String>,
 }
 
 #[allow(unused)]
@@ -118,6 +121,7 @@ impl Translations {
             let new_trans = Translation {
                 id: lang_id.to_string(),
                 name: lang_name.to_string(),
+                maintainers: vec![],
             };
 
             self.books
