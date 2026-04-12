@@ -93,7 +93,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6c0bf77d.js";
+            window.path_to_searchindex_js = "../searchindex-203625ac.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-01ec0cab.js"></script>
@@ -776,7 +776,7 @@ Expression</text>
 <div class="rule" id="r-expr.deref.traits"><a class="rule-link" href="#r-expr.deref.traits" title="expr.deref.traits"><span>[expr<wbr>.deref<wbr>.traits]</span></a>
 </div>
 
-<p>On non-pointer types <code>*x</code> is equivalent to <code>*std::ops::Deref::deref(&amp;x)</code> in an <a href="../expressions.html#mutability">immutable place expression context</a> and <code>*std::ops::DerefMut::deref_mut(&amp;mut x)</code> in a mutable place expression context.</p>
+<p>On non-pointer types <code>*x</code> is equivalent to <code>*std::ops::Deref::deref(&amp;x)</code> in an <a href="../expressions.html#mutability">immutable place expression context</a> and <code>*std::ops::DerefMut::deref_mut(&amp;mut x)</code> in a mutable place expression context, except that when <code>*x</code> undergoes <a href="../destructors.html#r-destructors.scope.lifetime-extension">temporary lifetime extension</a>, the dereferenced expression <code>x</code> also has its <a href="../destructors.html#r-destructors.scope.temporary">temporary scope</a> extended.</p>
 <pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">struct NoCopy;
@@ -788,6 +788,21 @@ assert_eq!(*b, 11);
 let c = Box::new(NoCopy);
 let d: NoCopy = *c;
 <span class="boring">}</span></code></pre>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// The temporary holding the result of `String::new()` is extended
+// to live to the end of the block, so `x` may be used in subsequent
+// statements.
+let x = &amp;*String::new();
+<span class="boring">x;
+</span><span class="boring">}</span></code></pre>
+<pre class="playground"><code class="language-rust compile_fail E0716 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// The temporary holding the result of `String::new()` is dropped at
+// the end of the statement, so it's an error to use `y` after.
+let y = &amp;*std::ops::Deref::deref(&amp;String::new()); // ERROR
+<span class="boring">y;
+</span><span class="boring">}</span></code></pre>
 <div class="rule" id="r-expr.try"><a class="rule-link" href="#r-expr.try" title="expr.try"><span>[expr<wbr>.try]</span></a>
 </div>
 

@@ -98,7 +98,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3e579610.js";
+            window.path_to_searchindex_js = "searchindex-5ce47afe.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-d4808052.js"></script>
@@ -4796,6 +4796,20 @@ non-incremental builds.</p>
 <h3 id="rpath"><a class="header" href="#rpath">rpath</a></h3>
 <p>The <code>rpath</code> setting controls the <a href="../rustc/codegen-options/index.html#rpath"><code>-C rpath</code> flag</a> which controls
 whether or not <a href="https://en.wikipedia.org/wiki/Rpath"><code>rpath</code></a> is enabled.</p>
+<h3 id="frame-pointers"><a class="header" href="#frame-pointers">frame-pointers</a></h3>
+<p>The <code>frame-pointers</code> setting controls the <a href="../rustc/codegen-options/index.html#force-frame-pointers"><code>-C force-frame-pointers</code> flag</a>
+which controls whether frame pointers are forced in generated code. Frame
+pointers are useful for profiling as they enable reliable stack unwinding.</p>
+<pre><code class="language-toml">[profile.release]
+frame-pointers = "force-on"
+</code></pre>
+<p>The valid options are:</p>
+<ul>
+<li><code>"force-on"</code>: Force frame pointers to be enabled.</li>
+<li><code>"force-off"</code>: Don’t force frame pointers (the compiler may still emit them based on target defaults).</li>
+<li><code>"default"</code>: Use the compiler’s target-specific default.</li>
+</ul>
+<p>When not specified, the compiler’s target-specific default is used.</p>
 <h2 id="default-profiles"><a class="header" href="#default-profiles">Default profiles</a></h2>
 <h3 id="dev"><a class="header" href="#dev">dev</a></h3>
 <p>The <code>dev</code> profile is used for normal development and debugging. It is the
@@ -5521,7 +5535,8 @@ order, with the first one being used:</p>
 <ol>
 <li><code>CARGO_ENCODED_RUSTDOCFLAGS</code> environment variable.</li>
 <li><code>RUSTDOCFLAGS</code> environment variable.</li>
-<li>All matching <code>target.&lt;triple&gt;.rustdocflags</code> config entries joined together.</li>
+<li>All matching <code>target.&lt;triple&gt;.rustdocflags</code> and <code>target.&lt;cfg&gt;.rustdocflags</code>
+config entries joined together.</li>
 <li><code>build.rustdocflags</code> config value.</li>
 </ol>
 <p>Additional flags may also be passed with the <a href="#cargo-rustdoc1"><code>cargo rustdoc</code></a> command.</p>
@@ -6166,9 +6181,9 @@ For example <code>--target foo/bar.json</code> would match <code>[target.bar]</c
 <a href="#target-1" title="&quot;target&quot; (glossary)"><code>&lt;triple&gt;</code></a> is being compiled for. By default, the linker is not overridden.</p>
 <h4 id="targetcfglinker"><a class="header" href="#targetcfglinker"><code>target.&lt;cfg&gt;.linker</code></a></h4>
 <p>This is similar to the <a href="#targettriplelinker">target linker</a>, but using
-a <a href="../reference/conditional-compilation.html"><code>cfg()</code> expression</a>. If both a <a href="#target-1" title="&quot;target&quot; (glossary)"><code>&lt;triple&gt;</code></a> and <code>&lt;cfg&gt;</code> runner match,
+a <a href="../reference/conditional-compilation.html"><code>cfg()</code> expression</a>. If both a <a href="#target-1" title="&quot;target&quot; (glossary)"><code>&lt;triple&gt;</code></a> and <code>&lt;cfg&gt;</code> linker match,
 the <code>&lt;triple&gt;</code> will take precedence. It is an error if more than one
-<code>&lt;cfg&gt;</code> runner matches the current target.</p>
+<code>&lt;cfg&gt;</code> linker matches the current target.</p>
 <h4 id="targettriplerunner"><a class="header" href="#targettriplerunner"><code>target.&lt;triple&gt;.runner</code></a></h4>
 <ul>
 <li>Type: string or array of strings (<a href="#executable-paths-with-arguments">program path with args</a>)</li>
@@ -6208,6 +6223,10 @@ match the current target, the flags are joined together.</p>
 The value may be an array of strings or a space-separated string.</p>
 <p>See <a href="#buildrustdocflags"><code>build.rustdocflags</code></a> for more details on the different
 ways to specific extra flags.</p>
+<h4 id="targetcfgrustdocflags"><a class="header" href="#targetcfgrustdocflags"><code>target.&lt;cfg&gt;.rustdocflags</code></a></h4>
+<p>This is similar to the <a href="#targettriplerustdocflags">target rustdocflags</a>, but
+using a <a href="../reference/conditional-compilation.html"><code>cfg()</code> expression</a>. If several <code>&lt;cfg&gt;</code> and <a href="#target-1" title="&quot;target&quot; (glossary)"><code>&lt;triple&gt;</code></a> entries
+match the current target, the flags are joined together.</p>
 <h4 id="targettriplelinks"><a class="header" href="#targettriplelinks"><code>target.&lt;triple&gt;.&lt;links&gt;</code></a></h4>
 <p>The links sub-table provides a way to <a href="#overriding-build-scripts">override a build script</a>. When
 specified, the build script for the given <code>links</code> library will not be
@@ -8756,18 +8775,22 @@ parameters or JSON fields. If a JSON field is missing, it should be assumed to
 be null. The endpoints are versioned with the <code>v1</code> component of the path, and
 Cargo is responsible for handling backwards compatibility fallbacks should any
 be required in the future.</p>
-<p>Cargo sets the following headers for all requests:</p>
-<ul>
-<li><code>Content-Type</code>: <code>application/json</code> (for requests with a body payload)</li>
-<li><code>Accept</code>: <code>application/json</code></li>
-<li><code>User-Agent</code>: The Cargo version such as <code>cargo/1.32.0 (8610973aa 2019-01-02)</code>. This may be modified by the user in a configuration value.
-Added in 1.29.</li>
-</ul>
+<p>Cargo sets the <code>User-Agent</code> header for all requests to the Cargo version such
+as <code>cargo/1.32.0 (8610973aa 2019-01-02)</code>. This may be modified by the user in
+a configuration value. Added in 1.29.</p>
+<p>Other headers vary by endpoint and are documented below.</p>
 <h2 id="publish"><a class="header" href="#publish">Publish</a></h2>
 <ul>
 <li>Endpoint: <code>/api/v1/crates/new</code></li>
 <li>Method: PUT</li>
 <li>Authorization: Included</li>
+<li>Headers:
+<ul>
+<li><code>Content-Type</code>: <code>application/octet-stream</code></li>
+<li><code>Accept</code>: <code>application/json</code></li>
+</ul>
+</li>
+<li>Body: Included (see below)</li>
 </ul>
 <p>The publish endpoint is used to publish a new version of a crate. The server
 should validate the crate, make it available for download, and add it to the
@@ -8897,6 +8920,12 @@ considered as an exhaustive list of restrictions <a href="https://crates.io/">cr
 <li>Endpoint: <code>/api/v1/crates/{crate_name}/{version}/yank</code></li>
 <li>Method: DELETE</li>
 <li>Authorization: Included</li>
+<li>Headers:
+<ul>
+<li><code>Accept</code>: <code>application/json</code></li>
+</ul>
+</li>
+<li>Body: None</li>
 </ul>
 <p>The yank endpoint will set the <code>yank</code> field of the given version of a crate to
 <code>true</code> in the index.</p>
@@ -8911,6 +8940,12 @@ considered as an exhaustive list of restrictions <a href="https://crates.io/">cr
 <li>Endpoint: <code>/api/v1/crates/{crate_name}/{version}/unyank</code></li>
 <li>Method: PUT</li>
 <li>Authorization: Included</li>
+<li>Headers:
+<ul>
+<li><code>Accept</code>: <code>application/json</code></li>
+</ul>
+</li>
+<li>Body: None</li>
 </ul>
 <p>The unyank endpoint will set the <code>yank</code> field of the given version of a crate
 to <code>false</code> in the index.</p>
@@ -8931,6 +8966,12 @@ how <a href="https://crates.io/">crates.io</a> handles owners via GitHub users a
 <li>Endpoint: <code>/api/v1/crates/{crate_name}/owners</code></li>
 <li>Method: GET</li>
 <li>Authorization: Included</li>
+<li>Headers:
+<ul>
+<li><code>Accept</code>: <code>application/json</code></li>
+</ul>
+</li>
+<li>Body: None</li>
 </ul>
 <p>The owners endpoint returns a list of owners of the crate.</p>
 <p>A successful response includes the JSON object:</p>
@@ -8954,6 +8995,13 @@ how <a href="https://crates.io/">crates.io</a> handles owners via GitHub users a
 <li>Endpoint: <code>/api/v1/crates/{crate_name}/owners</code></li>
 <li>Method: PUT</li>
 <li>Authorization: Included</li>
+<li>Headers:
+<ul>
+<li><code>Content-Type</code>: <code>application/json</code></li>
+<li><code>Accept</code>: <code>application/json</code></li>
+</ul>
+</li>
+<li>Body: Included (see below)</li>
 </ul>
 <p>A PUT request will send a request to the registry to add a new owner to a
 crate. It is up to the registry how to handle the request. For example,
@@ -8978,6 +9026,13 @@ added.</p>
 <li>Endpoint: <code>/api/v1/crates/{crate_name}/owners</code></li>
 <li>Method: DELETE</li>
 <li>Authorization: Included</li>
+<li>Headers:
+<ul>
+<li><code>Content-Type</code>: <code>application/json</code></li>
+<li><code>Accept</code>: <code>application/json</code></li>
+</ul>
+</li>
+<li>Body: Included (see below)</li>
 </ul>
 <p>A DELETE request will remove an owner from a crate. The request should include
 the following JSON object:</p>
@@ -8998,6 +9053,13 @@ the following JSON object:</p>
 <ul>
 <li>Endpoint: <code>/api/v1/crates</code></li>
 <li>Method: GET</li>
+<li>Authorization: Not Included</li>
+<li>Headers:
+<ul>
+<li><code>Accept</code>: <code>application/json</code></li>
+</ul>
+</li>
+<li>Body: None</li>
 <li>Query Parameters:
 <ul>
 <li><code>q</code>: The search query string.</li>
@@ -11150,6 +11212,7 @@ as well as the features that were enabled during each unit’s compilation.</p>
 <li><a href="#redundant_homepage"><code>redundant_homepage</code></a></li>
 <li><a href="#redundant_readme"><code>redundant_readme</code></a></li>
 <li><a href="#unknown_lints"><code>unknown_lints</code></a></li>
+<li><a href="#unused_dependencies"><code>unused_dependencies</code></a></li>
 <li><a href="#unused_workspace_dependencies"><code>unused_workspace_dependencies</code></a></li>
 <li><a href="#unused_workspace_package_fields"><code>unused_workspace_package_fields</code></a></li>
 </ul>
@@ -11374,15 +11437,56 @@ a lint with the same name in the future</li>
 <pre><code class="language-toml">[lints.cargo]
 this-lint-does-not-exist = "warn"
 </code></pre>
+<h2 id="unused_dependencies"><a class="header" href="#unused_dependencies"><code>unused_dependencies</code></a></h2>
+<p>Group: <code>style</code></p>
+<p>Level: <code>warn</code></p>
+<p>MSRV: <code>1.79.0</code></p>
+<h3 id="what-it-does-11"><a class="header" href="#what-it-does-11">What it does</a></h3>
+<p>Checks for dependencies that are not used by any of the cargo targets.</p>
+<h3 id="why-it-is-bad-11"><a class="header" href="#why-it-is-bad-11">Why it is bad</a></h3>
+<p>Slows down compilation time.</p>
+<h3 id="drawbacks-9"><a class="header" href="#drawbacks-9">Drawbacks</a></h3>
+<p>The lint is only emitted in specific circumstances as multiple cargo targets exist for the
+different dependencies tables and they must all be built to know if a dependency is unused.
+Currently, only the selected packages are checked and not all <code>path</code> dependencies like most lints.
+The cargo target selection flags,
+independent of which packages are selected, determine which dependencies tables are checked.
+As there is no way to select all cargo targets that use <code>[dev-dependencies]</code>,
+they are unchecked.</p>
+<p>Examples:</p>
+<ul>
+<li><code>cargo check</code> will lint <code>[build-dependencies]</code> and <code>[dependencies]</code></li>
+<li><code>cargo check --all-targets</code> will still only lint <code>[build-dependencies]</code> and <code>[dependencies]</code> and not <code>[dev-dependencoes]</code></li>
+<li><code>cargo check --bin foo</code> will not lint <code>[dependencies]</code> even if <code>foo</code> is the only bin though <code>[build-dependencies]</code> will be checked</li>
+<li><code>cargo check -p foo</code> will not lint any dependencies tables for the <code>path</code> dependency <code>bar</code> even if <code>bar</code> only has a <code>[lib]</code></li>
+</ul>
+<p>There can be false positives when depending on a transitive dependency to activate a feature.</p>
+<p>For false positives from pinning the version of a transitive dependency in <code>Cargo.toml</code>,
+move the dependency to the <code>target."cfg(false)".dependencies</code> table.</p>
+<h3 id="example-11"><a class="header" href="#example-11">Example</a></h3>
+<pre><code class="language-toml">[package]
+name = "foo"
+
+[dependencies]
+unused = "1"
+</code></pre>
+<p>Should be written as:</p>
+<pre><code class="language-toml">[package]
+name = "foo"
+</code></pre>
+<h3 id="configuration-3"><a class="header" href="#configuration-3">Configuration</a></h3>
+<ul>
+<li><code>ignore</code>: a list of dependency names to allow the lint on</li>
+</ul>
 <h2 id="unused_workspace_dependencies"><a class="header" href="#unused_workspace_dependencies"><code>unused_workspace_dependencies</code></a></h2>
 <p>Group: <code>suspicious</code></p>
 <p>Level: <code>warn</code></p>
 <p>MSRV: <code>1.79.0</code></p>
-<h3 id="what-it-does-11"><a class="header" href="#what-it-does-11">What it does</a></h3>
+<h3 id="what-it-does-12"><a class="header" href="#what-it-does-12">What it does</a></h3>
 <p>Checks for any entry in <code>[workspace.dependencies]</code> that has not been inherited</p>
-<h3 id="why-it-is-bad-11"><a class="header" href="#why-it-is-bad-11">Why it is bad</a></h3>
+<h3 id="why-it-is-bad-12"><a class="header" href="#why-it-is-bad-12">Why it is bad</a></h3>
 <p>They can give the false impression that these dependencies are used</p>
-<h3 id="example-11"><a class="header" href="#example-11">Example</a></h3>
+<h3 id="example-12"><a class="header" href="#example-12">Example</a></h3>
 <pre><code class="language-toml">[workspace.dependencies]
 regex = "1"
 
@@ -11392,11 +11496,11 @@ regex = "1"
 <p>Group: <code>suspicious</code></p>
 <p>Level: <code>warn</code></p>
 <p>MSRV: <code>1.79.0</code></p>
-<h3 id="what-it-does-12"><a class="header" href="#what-it-does-12">What it does</a></h3>
+<h3 id="what-it-does-13"><a class="header" href="#what-it-does-13">What it does</a></h3>
 <p>Checks for any fields in <code>[workspace.package]</code> that has not been inherited</p>
-<h3 id="why-it-is-bad-12"><a class="header" href="#why-it-is-bad-12">Why it is bad</a></h3>
+<h3 id="why-it-is-bad-13"><a class="header" href="#why-it-is-bad-13">Why it is bad</a></h3>
 <p>They can give the false impression that these fields are used</p>
-<h3 id="example-12"><a class="header" href="#example-12">Example</a></h3>
+<h3 id="example-13"><a class="header" href="#example-13">Example</a></h3>
 <pre><code class="language-toml">[workspace.package]
 edition = "2024"
 
@@ -11750,6 +11854,7 @@ private_dep = "2.0.0" # Will be 'private' by default
 <p>Documentation updates:</p>
 <ul>
 <li>For workspace’s “The <code>dependencies</code> table” section, include <code>public</code> as an unsupported field for <code>workspace.dependencies</code></li>
+<li>Required MSRV for use of <code>public</code> is 1.83 (see <a href="https://github.com/rust-lang/cargo/pull/14507">#14507</a>)</li>
 </ul>
 <h2 id="msrv-policy"><a class="header" href="#msrv-policy">msrv-policy</a></h2>
 <ul>
@@ -12937,6 +13042,10 @@ If you want to use this feature in multiple projects,
 lockfiles should be stored in different directories.</p>
 <h3 id="documentation-updates-2"><a class="header" href="#documentation-updates-2">Documentation updates</a></h3>
 <p><em>as a new <code>resolver.lockfile-path</code> entry in config.md</em></p>
+<p><em>Keep in mind, the <code>[resolver]</code> section has this clarification:</em></p>
+<blockquote>
+<p><em>The <code>[resolver]</code> table overrides dependency resolution behavior for local development (e.g. excludes <code>cargo install</code>).</em></p>
+</blockquote>
 <h4 id="resolverlockfile-path"><a class="header" href="#resolverlockfile-path"><code>resolver.lockfile-path</code></a></h4>
 <ul>
 <li>Type: string (path)</li>
@@ -20297,7 +20406,7 @@ details on environment variables that Cargo reads.</p>
 </code></pre>
 </li>
 <li>
-<p>Inspect the <code>serde</code> package form the local registry:</p>
+<p>Inspect the <code>serde</code> package from the local registry:</p>
 <pre><code> cargo info serde --registry my-registry
 </code></pre>
 </li>

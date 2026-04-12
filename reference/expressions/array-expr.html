@@ -93,7 +93,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6c0bf77d.js";
+            window.path_to_searchindex_js = "../searchindex-203625ac.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-01ec0cab.js"></script>
@@ -532,7 +532,22 @@ Expression</text>
 <div class="rule" id="r-expr.array.index.trait"><a class="rule-link" href="#r-expr.array.index.trait" title="expr.array.index.trait"><span>[expr<wbr>.array<wbr>.index<wbr>.trait]</span></a>
 </div>
 
-<p>For other types an index expression <code>a[b]</code> is equivalent to <code>*std::ops::Index::index(&amp;a, b)</code>, or <code>*std::ops::IndexMut::index_mut(&amp;mut a, b)</code> in a mutable place expression context. Just as with methods, Rust will also insert dereference operations on <code>a</code> repeatedly to find an implementation.</p>
+<p>For other types an index expression <code>a[b]</code> is equivalent to <code>*std::ops::Index::index(&amp;a, b)</code>, or <code>*std::ops::IndexMut::index_mut(&amp;mut a, b)</code> in a mutable place expression context, except that when the index expression undergoes <a href="../destructors.html#r-destructors.scope.lifetime-extension">temporary lifetime extension</a>, the indexed expression <code>a</code> also has its <a href="../destructors.html#r-destructors.scope.temporary">temporary scope</a> extended. Just as with methods, Rust will also insert dereference operations on <code>a</code> repeatedly to find an implementation.</p>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// The temporary holding the result of `vec![()]` is extended to
+// live to the end of the block, so `x` may be used in subsequent
+// statements.
+let x = &amp;vec![()][0];
+<span class="boring">x;
+</span><span class="boring">}</span></code></pre>
+<pre class="playground"><code class="language-rust compile_fail E0716 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// The temporary holding the result of `vec![()]` is dropped at the
+// end of the statement, so it's an error to use `y` after.
+let y = &amp;*std::ops::Index::index(&amp;vec![()], 0); // ERROR
+<span class="boring">y;
+</span><span class="boring">}</span></code></pre>
 <div class="rule" id="r-expr.array.index.zero-index"><a class="rule-link" href="#r-expr.array.index.zero-index" title="expr.array.index.zero-index"><span>[expr<wbr>.array<wbr>.index<wbr>.zero-index]</span></a>
 </div>
 
