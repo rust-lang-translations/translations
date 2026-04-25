@@ -96,7 +96,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-362ff909.js";
+            window.path_to_searchindex_js = "searchindex-c9c53008.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-09667002.js"></script>
@@ -239,106 +239,106 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h2 id="les-types-de-données-génériques"><a class="header" href="#les-types-de-données-génériques">Les types de données génériques</a></h2>
-<p>We use generics to create definitions for items like function signatures or structs, which we can then use with many different concrete data types. Let’s first look at how to define functions, structs, enums, and methods using generics. Then, we’ll discuss how generics affect code performance.</p>
-<h3 id="in-function-definitions"><a class="header" href="#in-function-definitions">In Function Definitions</a></h3>
+<p>Nous utilisons la généricité pour créer des définitions pour des éléments comme les signatures de fonctions ou les structures, que nous pouvons ensuite utiliser sur de nombreux types de données concrets. Commençons par regarder comment définir des fonctions, des structures, des énumérations et des méthodes en utilisant la généricité. Ensuite nous verrons comment la généricité impacte la performance du code.</p>
+<h3 id="dans-la-définition-dune-fonction"><a class="header" href="#dans-la-définition-dune-fonction">Dans la définition d’une fonction</a></h3>
 <p>Lorsque nous définissons une fonction en utilisant la généricité, nous utilisons des types génériques dans la signature de la fonction là où nous précisons habituellement les types de données des paramètres et de la valeur de retour. Faire ainsi rend notre code plus flexible et apporte plus de fonctionnalités au code appelant notre fonction, tout en évitant la duplication de code.</p>
-<p>Continuing with our <code>largest</code> function, Listing 10-4 shows two functions that both find the largest value in a slice. We’ll then combine these into a single function that uses generics.</p>
+<p>Pour continuer avec notre fonction <code>le_plus_grand</code>, l’encart 10-4 nous montre deux fonctions qui trouvent toutes les deux la valeur la plus grande dans une slice. Nous allons les regrouper en une seule fonction qui utilise les génériques.</p>
 <figure class="listing" id="listing-10-4">
 <span class="file-name">Filename: src/main.rs</span>
-<pre class="playground"><code class="language-rust edition2024">fn largest_i32(list: &amp;[i32]) -&gt; &amp;i32 {
-    let mut largest = &amp;list[0];
+<pre class="playground"><code class="language-rust edition2024">fn le_plus_grand_i32(liste: &amp;[i32]) -&gt; &amp;i32 {
+    let mut le_plus_grand = &amp;liste[0];
 
-    for item in list {
-        if item &gt; largest {
-            largest = item;
+    for element in liste {
+        if element &gt; le_plus_grand {
+            le_plus_grand = element;
         }
     }
 
-    largest
+    le_plus_grand
 }
 
-fn largest_char(list: &amp;[char]) -&gt; &amp;char {
-    let mut largest = &amp;list[0];
+fn le_plus_grand_caractere(liste: &amp;[char]) -&gt; &amp;char {
+    let mut le_plus_grand = &amp;liste[0];
 
-    for item in list {
-        if item &gt; largest {
-            largest = item;
+    for element in liste {
+        if element &gt; le_plus_grand {
+            le_plus_grand = element;
         }
     }
 
-    largest
+    le_plus_grand
 }
 
 fn main() {
-    let number_list = vec![34, 50, 25, 100, 65];
+    let liste_de_nombres = vec![34, 50, 25, 100, 65];
 
-    let result = largest_i32(&amp;number_list);
-    println!("The largest number is {result}");
-<span class="boring">    assert_eq!(*result, 100);
+    let resultat = le_plus_grand_i32(&amp;liste_de_nombres);
+    println!("Le nombre le plus grand est {resultat}");
+<span class="boring">    assert_eq!(*resultat, 100);
 </span>
-    let char_list = vec!['y', 'm', 'a', 'q'];
+    let liste_de_caracteres = vec!['y', 'm', 'a', 'q'];
 
-    let result = largest_char(&amp;char_list);
-    println!("The largest char is {result}");
-<span class="boring">    assert_eq!(*result, 'y');
+    let resultat = le_plus_grand_caractere(&amp;liste_de_caracteres);
+    println!("Le plus grand caractère est {resultat}");
+<span class="boring">    assert_eq!(*resultat, 'y');
 </span>}</code></pre>
 <figcaption><a href="#listing-10-4">Listing 10-4</a>: Two functions that differ only in their names and in the types in their signatures</figcaption>
 </figure>
 <p>La fonction <code>le_plus_grand_i32</code> est celle que nous avons construite à l’encart 10-3 lorsqu’elle trouvait le plus grand <code>i32</code> dans une slice. La fonction <code>le_plus_grand_caractere</code> recherche le plus grand <code>char</code> dans une slice. Les corps des fonctions ont le même code, donc essayons d’éviter cette duplication en utilisant un paramètre de type générique dans une seule et unique fonction.</p>
-<p>To parameterize the types in a new single function, we need to name the type parameter, just as we do for the value parameters to a function. You can use any identifier as a type parameter name. But we’ll use <code>T</code> because, by convention, type parameter names in Rust are short, often just one letter, and Rust’s type-naming convention is UpperCamelCase. Short for <em>type</em>, <code>T</code> is the default choice of most Rust programmers.</p>
-<p>When we use a parameter in the body of the function, we have to declare the parameter name in the signature so that the compiler knows what that name means. Similarly, when we use a type parameter name in a function signature, we have to declare the type parameter name before we use it. To define the generic <code>largest</code> function, we place type name declarations inside angle brackets, <code>&lt;&gt;</code>, between the name of the function and the parameter list, like this:</p>
-<pre><code class="language-rust ignore">fn largest&lt;T&gt;(list: &amp;[T]) -&gt; &amp;T {</code></pre>
-<p>We read this definition as “The function <code>largest</code> is generic over some type <code>T</code>.” This function has one parameter named <code>list</code>, which is a slice of values of type <code>T</code>. The <code>largest</code> function will return a reference to a value of the same type <code>T</code>.</p>
-<p>Listing 10-5 shows the combined <code>largest</code> function definition using the generic data type in its signature. The listing also shows how we can call the function with either a slice of <code>i32</code> values or <code>char</code> values. Note that this code won’t compile yet.</p>
+<p>Pour paramétrer les types dans une nouvelle fonction unique, nous avons besoin de donner un nom au paramètre de type, comme nous l’avons fait pour les paramètres de valeur des fonctions. Vous pouvez utiliser n’importe quel identificateur pour nommer le paramètre de type. Mais ici nous allons utiliser <code>T</code> car, par convention, les noms de paramètres en Rust sont courts, souvent même une seule lettre, et la convention de nommage des types en Rust est d’utiliser le UpperCamelCase. Et puisque la version courte de <em>type</em> est <code>T</code>, c’est le choix par défaut de nombreux développeurs Rust.</p>
+<p>Lorsqu’on utilise un paramètre dans le corps de la fonction, nous devons déclarer le nom du paramètre dans la signature afin que le compilateur puisse savoir à quoi réfère ce nom. De la même manière, lorsqu’on utilise un nom de paramètre de type dans la signature d’une fonction, nous devons déclarer le nom du paramètre de type avant de pouvoir l’utiliser. Pour déclarer la fonction générique <code>le_plus_grand</code>, il faut placer la déclaration du nom du type entre des chevrons <code>&lt;&gt;</code>, le tout entre le nom de la fonction et la liste des paramètres, comme ceci :</p>
+<pre><code class="language-rust ignore">fn le_plus_grand&lt;T&gt;(liste: &amp;[T]) -&gt; &amp;T {</code></pre>
+<p>Cette définition se lit comme ceci : la fonction <code>le_plus_grand</code> est générique en fonction du type <code>T</code>. Cette fonction a un paramètre qui s’appelle <code>liste</code>, qui est une slice de valeurs de type <code>T</code>. Cette fonction <code>le_plus_grand</code> va retourner une référence à une valeur du même type <code>T</code>.</p>
+<p>L’encart 10-5 nous montre la combinaison de la définition de la fonction <code>le_plus_grand</code> avec le type de données générique présent dans sa signature. L’encart montre aussi que nous pouvons appeler la fonction avec une slice soit de valeurs <code>i32</code>, soit de valeurs <code>char</code>. Notez que ce code ne se compile pas encore.</p>
 <figure class="listing" id="listing-10-5">
 <span class="file-name">Filename: src/main.rs</span>
-<pre><code class="language-rust ignore does_not_compile">fn largest&lt;T&gt;(list: &amp;[T]) -&gt; &amp;T {
-    let mut largest = &amp;list[0];
+<pre><code class="language-rust ignore does_not_compile">fn le_plus_grand&lt;T&gt;(liste: &amp;[T]) -&gt; &amp;T {
+    let mut le_plus_grand = &amp;liste[0];
 
-    for item in list {
-        if item &gt; largest {
-            largest = item;
+    for element in liste {
+        if element &gt; le_plus_grand {
+            le_plus_grand = element;
         }
     }
 
-    largest
+    le_plus_grand
 }
 
 fn main() {
-    let number_list = vec![34, 50, 25, 100, 65];
+    let liste_de_nombres = vec![34, 50, 25, 100, 65];
 
-    let result = largest(&amp;number_list);
-    println!("The largest number is {result}");
+    let resultat = le_plus_grand(&amp;liste_de_nombres);
+    println!("Le nombre le plus grand est {resultat}");
 
-    let char_list = vec!['y', 'm', 'a', 'q'];
+    let liste_de_caracteres = vec!['y', 'm', 'a', 'q'];
 
-    let result = largest(&amp;char_list);
-    println!("The largest char is {result}");
+    let resultat = le_plus_grand(&amp;liste_de_caracteres);
+    println!("Le plus grand caractère est {resultat}");
 }</code></pre>
 <figcaption><a href="#listing-10-5">Listing 10-5</a>: The <code>largest</code> function using generic type parameters; this doesn’t compile yet</figcaption>
 </figure>
-<p>If we compile this code right now, we’ll get this error:</p>
+<p>Si nous essayons de compiler ce code dès maintenant, nous aurons l’erreur suivante :</p>
 <pre><code class="language-console">$ cargo run
    Compiling chapter10 v0.1.0 (file:///projects/chapter10)
 error[E0369]: binary operation `&gt;` cannot be applied to type `&amp;T`
  --&gt; src/main.rs:5:17
   |
-5 |         if item &gt; largest {
-  |            ---- ^ ------- &amp;T
+5 |         if element &gt; le_plus_grand {
+  |            ------- ^ ------------- &amp;T
   |            |
   |            &amp;T
   |
 help: consider restricting type parameter `T` with trait `PartialOrd`
   |
-1 | fn largest&lt;T: std::cmp::PartialOrd&gt;(list: &amp;[T]) -&gt; &amp;T {
-  |             ++++++++++++++++++++++
+1 | fn le_plus_grand&lt;T: std::cmp::PartialOrd&gt;(liste: &amp;[T]) -&gt; &amp;T {
+  |                   ++++++++++++++++++++++
 
 For more information about this error, try `rustc --explain E0369`.
 error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
 </code></pre>
-<p>The help text mentions <code>std::cmp::PartialOrd</code>, which is a trait, and we’re going to talk about traits in the next section. For now, know that this error states that the body of <code>largest</code> won’t work for all possible types that <code>T</code> could be. Because we want to compare values of type <code>T</code> in the body, we can only use types whose values can be ordered. To enable comparisons, the standard library has the <code>std::cmp::PartialOrd</code> trait that you can implement on types (see Appendix C for more on this trait). To fix Listing 10-5, we can follow the help text’s suggestion and restrict the types valid for <code>T</code> to only those that implement <code>PartialOrd</code>. The listing will then compile, because the standard library implements <code>PartialOrd</code> on both <code>i32</code> and <code>char</code>.</p>
-<h3 id="in-struct-definitions"><a class="header" href="#in-struct-definitions">In Struct Definitions</a></h3>
-<p>We can also define structs to use a generic type parameter in one or more fields using the <code>&lt;&gt;</code> syntax. Listing 10-6 defines a <code>Point&lt;T&gt;</code> struct to hold <code>x</code> and <code>y</code> coordinate values of any type.</p>
+<p>Le texte d’aide cite <code>std::cmp::PartialOrd</code>, qui est un trait, et nous allons voir les traits dans la prochaine section. Pour le moment, retenez que cette erreur nous informe que le corps de <code>le_plus_grand</code> ne va pas fonctionner pour tous les types possibles que <code>T</code> peut représenter. Comme nous voulons comparer des valeurs de type <code>T</code> dans le corps, nous pouvons utiliser uniquement des types dont les valeurs peuvent être triées dans l’ordre. Pour effectuer des comparaisons, la bibliothèque standard propose le trait <code>std::cmp::PartialOrd</code> que vous pouvez implémenter sur des types (voir l’annexe C pour en savoir plus sur ce trait). Pour réparer l’encart 10-5, nous pouvons suivre la suggestion du texte d’aide et restreindre les types valides pour <code>T</code> aux seuls types qui implémentent <code>PartialOrd</code>. Ensuite, le code se compilera, car la bibliothèque standard implémente <code>PartialOrd</code> à la fois sur <code>i32</code> et sur <code>char</code>.</p>
+<h3 id="dans-la-définition-des-structures"><a class="header" href="#dans-la-définition-des-structures">Dans la définition des structures</a></h3>
+<p>Nous pouvons aussi définir des structures en utilisant des paramètres de type génériques dans un ou plusieurs champs en utilisant la syntaxe <code>&lt;&gt;</code>. L’encart 10-6 nous montre comment définir une structure <code>Point&lt;T&gt;</code> pour stocker des valeurs de coordonnées <code>x</code> et <code>y</code> de n’importe quel type.</p>
 <figure class="listing" id="listing-10-6">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust edition2024">struct Point&lt;T&gt; {
@@ -347,13 +347,13 @@ error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
 }
 
 fn main() {
-    let integer = Point { x: 5, y: 10 };
-    let float = Point { x: 1.0, y: 4.0 };
+    let entiers = Point { x: 5, y: 10 };
+    let flottants = Point { x: 1.0, y: 4.0 };
 }</code></pre>
 <figcaption><a href="#listing-10-6">Listing 10-6</a>: A <code>Point&lt;T&gt;</code> struct that holds <code>x</code> and <code>y</code> values of type <code>T</code></figcaption>
 </figure>
-<p>The syntax for using generics in struct definitions is similar to that used in function definitions. First, we declare the name of the type parameter inside angle brackets just after the name of the struct. Then, we use the generic type in the struct definition where we would otherwise specify concrete data types.</p>
-<p>Note that because we’ve used only one generic type to define <code>Point&lt;T&gt;</code>, this definition says that the <code>Point&lt;T&gt;</code> struct is generic over some type <code>T</code>, and the fields <code>x</code> and <code>y</code> are <em>both</em> that same type, whatever that type may be. If we create an instance of a <code>Point&lt;T&gt;</code> that has values of different types, as in Listing 10-7, our code won’t compile.</p>
+<p>La syntaxe pour l’utilisation des génériques dans les définitions de structures est similaire à celle utilisée dans les définitions de fonctions. D’abord, nous déclarons le nom du paramètre de type entre des chevrons juste après le nom de la structure. Ensuite, nous utilisons le type générique dans la définition de la structure là où on indiquerait en temps normal des types de données concrets.</p>
+<p>Notez que comme nous n’avons utilisé qu’un seul type générique pour définir <code>Point&lt;T&gt;</code>, cette définition dit que la structure <code>Point&lt;T&gt;</code> est générique en fonction d’un type <code>T</code>, et les champs <code>x</code> et <code>y</code> sont <em>tous les deux</em> de ce même type, quel qu’il soit. Si nous créons une instance de <code>Point&lt;T&gt;</code> qui a des valeurs de types différents, comme dans l’encart 10-7, notre code ne va pas se compiler.</p>
 <figure class="listing" id="listing-10-7">
 <span class="file-name">Filename: src/main.rs</span>
 <pre><code class="language-rust ignore does_not_compile">struct Point&lt;T&gt; {
@@ -362,23 +362,23 @@ fn main() {
 }
 
 fn main() {
-    let wont_work = Point { x: 5, y: 4.0 };
+    let ne_fonctionnera_pas = Point { x: 5, y: 4.0 };
 }</code></pre>
 <figcaption><a href="#listing-10-7">Listing 10-7</a>: The fields <code>x</code> and <code>y</code> must be the same type because both have the same generic data type <code>T</code>.</figcaption>
 </figure>
-<p>In this example, when we assign the integer value <code>5</code> to <code>x</code>, we let the compiler know that the generic type <code>T</code> will be an integer for this instance of <code>Point&lt;T&gt;</code>. Then, when we specify <code>4.0</code> for <code>y</code>, which we’ve defined to have the same type as <code>x</code>, we’ll get a type mismatch error like this:</p>
+<p>Dans cet exemple, lorsque nous assignons l’entier 5 à <code>x</code>, nous laissons entendre au compilateur que le type générique <code>T</code> sera un entier pour cette instance de <code>Point&lt;T&gt;</code>. Ensuite, lorsque nous assignons 4.0 à <code>y</code>, que nous avons défini comme ayant le même type que <code>x</code>, nous obtenons une erreur d’incompatibilité de type comme celle-ci :</p>
 <pre><code class="language-console">$ cargo run
    Compiling chapter10 v0.1.0 (file:///projects/chapter10)
 error[E0308]: mismatched types
  --&gt; src/main.rs:7:38
   |
-7 |     let wont_work = Point { x: 5, y: 4.0 };
-  |                                      ^^^ expected integer, found floating-point number
+7 |     let ne_fonctionnera_pas = Point { x: 5, y: 4.0 };
+  |                                                ^^^ expected integer, found floating-point number
 
 For more information about this error, try `rustc --explain E0308`.
 error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
 </code></pre>
-<p>To define a <code>Point</code> struct where <code>x</code> and <code>y</code> are both generics but could have different types, we can use multiple generic type parameters. For example, in Listing 10-8, we change the definition of <code>Point</code> to be generic over types <code>T</code> and <code>U</code> where <code>x</code> is of type <code>T</code> and <code>y</code> is of type <code>U</code>.</p>
+<p>Pour définir une structure <code>Point</code> où <code>x</code> et <code>y</code> sont tous les deux génériques mais peuvent avoir des types différents, nous pouvons utiliser plusieurs paramètres de types génériques différents. Par exemple, dans l’encart 10-8, nous changeons la définition de <code>Point</code> pour être générique en fonction des types <code>T</code> et <code>U</code> où <code>x</code> est de type <code>T</code> et <code>y</code> est de type <code>U</code>.</p>
 <figure class="listing" id="listing-10-8">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust edition2024">struct Point&lt;T, U&gt; {
@@ -387,14 +387,14 @@ error: could not compile `chapter10` (bin "chapter10") due to 1 previous error
 }
 
 fn main() {
-    let both_integer = Point { x: 5, y: 10 };
-    let both_float = Point { x: 1.0, y: 4.0 };
-    let integer_and_float = Point { x: 5, y: 4.0 };
+    let deux_entiers = Point { x: 5, y: 10 };
+    let deux_flottants = Point { x: 1.0, y: 4.0 };
+    let un_entier_et_un_flottant = Point { x: 5, y: 4.0 };
 }</code></pre>
 <figcaption><a href="#listing-10-8">Listing 10-8</a>: A <code>Point&lt;T, U&gt;</code> generic over two types so that <code>x</code> and <code>y</code> can be values of different types</figcaption>
 </figure>
-<p>Now all the instances of <code>Point</code> shown are allowed! You can use as many generic type parameters in a definition as you want, but using more than a few makes your code hard to read. If you’re finding you need lots of generic types in your code, it could indicate that your code needs restructuring into smaller pieces.</p>
-<h3 id="in-enum-definitions"><a class="header" href="#in-enum-definitions">In Enum Definitions</a></h3>
+<p>Maintenant, toutes les instances de <code>Point</code> montrées ici sont valides ! Vous pouvez utiliser autant de paramètres de type génériques que vous souhaitez dans la déclaration de la définition, mais en utiliser plus de quelques-uns rend votre code difficile à lire. Si vous vous apercevez que vous avez besoin de nombreux types génériques dans votre code, cela peut être un signe que votre code a besoin d’être remanié en éléments plus petits.</p>
+<h3 id="dans-les-définitions-dénumérations"><a class="header" href="#dans-les-définitions-dénumérations">Dans les définitions d’énumérations</a></h3>
 <p>Comme nous l’avons fait avec les structures, nous pouvons définir des énumérations qui utilisent des types de données génériques dans leurs variantes. Commençons par regarder à nouveau l’énumération <code>Option&lt;T&gt;</code> que fournit la bibliothèque standard, et que nous avons utilisée au chapitre 6 :</p>
 <pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -403,7 +403,7 @@ fn main() {
     None,
 }
 <span class="boring">}</span></code></pre>
-<p>This definition should now make more sense to you. As you can see, the <code>Option&lt;T&gt;</code> enum is generic over type <code>T</code> and has two variants: <code>Some</code>, which holds one value of type <code>T</code>, and a <code>None</code> variant that doesn’t hold any value. By using the <code>Option&lt;T&gt;</code> enum, we can express the abstract concept of an optional value, and because <code>Option&lt;T&gt;</code> is generic, we can use this abstraction no matter what the type of the optional value is.</p>
+<p>Cette définition devrait désormais avoir plus de sens pour vous. Comme vous pouvez le constater, <code>Option&lt;T&gt;</code> est une énumération qui est générique en fonction du type <code>T</code> et a deux variantes : <code>Some</code>, qui contient une valeur de type <code>T</code>, et une variante <code>None</code> qui ne contient aucune valeur. En utilisant l’énumération <code>Option&lt;T&gt;</code>, nous pouvons exprimer le concept abstrait d’avoir une valeur optionnelle, et comme <code>Option&lt;T&gt;</code> est générique, nous pouvons utiliser cette abstraction peu importe le type de la valeur optionnelle.</p>
 <p>Les énumérations peuvent aussi utiliser plusieurs types génériques. La définition de l’énumération <code>Result</code> que nous avons utilisée au chapitre 9 en est un exemple :</p>
 <pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -414,8 +414,8 @@ fn main() {
 <span class="boring">}</span></code></pre>
 <p>L’énumération <code>Result</code> est générique en fonction de deux types, <code>T</code> et <code>E</code>, et a deux variantes : <code>Ok</code>, qui contient une valeur de type <code>T</code>, et <code>Err</code>, qui contient une valeur de type <code>E</code>. Cette définition rend possible l’utilisation de l’énumération <code>Result</code> partout où nous avons une opération qui peut réussir (et retourner une valeur du type <code>T</code>) ou échouer (et retourner une erreur du type <code>E</code>). En fait, c’est ce qui est utilisé pour ouvrir un fichier dans l’encart 9-3, où <code>T</code> contenait un type <code>std::fs::File</code> lorsque le fichier était ouvert avec succès et <code>E</code> contenait un type <code>std::io::Error</code> lorsqu’il y avait des problèmes pour ouvrir le fichier.</p>
 <p>Lorsque vous reconnaîtrez des cas dans votre code où vous aurez plusieurs définitions de structures ou d’énumérations qui se distinguent uniquement par le type de valeurs qu’elles stockent, vous pourrez éviter les doublons en utilisant des types génériques à la place.</p>
-<h3 id="in-method-definitions"><a class="header" href="#in-method-definitions">In Method Definitions</a></h3>
-<p>We can implement methods on structs and enums (as we did in Chapter 5) and use generic types in their definitions too. Listing 10-9 shows the <code>Point&lt;T&gt;</code> struct we defined in Listing 10-6 with a method named <code>x</code> implemented on it.</p>
+<h3 id="dans-les-définitions-des-méthodes"><a class="header" href="#dans-les-définitions-des-méthodes">Dans les définitions des méthodes</a></h3>
+<p>Nous pouvons implémenter des méthodes sur des structures et des énumérations (comme nous l’avons fait dans le chapitre 5) et aussi utiliser des types génériques dans leurs définitions. L’encart 10-9 montre la structure <code>Point&lt;T&gt;</code> que nous avons définie dans l’encart 10-6 avec une méthode qui s’appelle <code>x</code> implémentée sur cette dernière.</p>
 <figure class="listing" id="listing-10-9">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust edition2024">struct Point&lt;T&gt; {
@@ -437,8 +437,8 @@ fn main() {
 <figcaption><a href="#listing-10-9">Listing 10-9</a>: Implementing a method named <code>x</code> on the <code>Point&lt;T&gt;</code> struct that will return a reference to the <code>x</code> field of type <code>T</code></figcaption>
 </figure>
 <p>Ici, nous avons défini une méthode qui s’appelle <code>x</code> sur <code>Point&lt;T&gt;</code> qui retourne une référence à la donnée présente dans le champ <code>x</code>.</p>
-<p>Note that we have to declare <code>T</code> just after <code>impl</code> so that we can use <code>T</code> to specify that we’re implementing methods on the type <code>Point&lt;T&gt;</code>. By declaring <code>T</code> as a generic type after <code>impl</code>, Rust can identify that the type in the angle brackets in <code>Point</code> is a generic type rather than a concrete type. We could have chosen a different name for this generic parameter than the generic parameter declared in the struct definition, but using the same name is conventional. If you write a method within an <code>impl</code> that declares a generic type, that method will be defined on any instance of the type, no matter what concrete type ends up substituting for the generic type.</p>
-<p>We can also specify constraints on generic types when defining methods on the type. We could, for example, implement methods only on <code>Point&lt;f32&gt;</code> instances rather than on <code>Point&lt;T&gt;</code> instances with any generic type. In Listing 10-10, we use the concrete type <code>f32</code>, meaning we don’t declare any types after <code>impl</code>.</p>
+<p>Notez que nous devons déclarer <code>T</code> juste après <code>impl</code> afin de pouvoir utiliser <code>T</code> pour préciser que nous implémentons des méthodes sur le type <code>Point&lt;T&gt;</code>. En déclarant <code>T</code> comme un type générique après <code>impl</code>, Rust peut comprendre que le type entre les chevrons dans <code>Point</code> est un type générique plutôt qu’un type concret. Nous aurions pu choisir un nom différent pour ce paramètre générique plutôt que de réutiliser le même nom que dans la définition de la structure, mais c’est devenu une convention d’utiliser le même nom. Si vous écrivez une méthode dans un <code>impl</code> qui déclare un type générique, cette méthode sera définie sur n’importe quelle instance du type, peu importe quel type concret sera substitué dans le type générique.</p>
+<p>Nous pouvons aussi ajouter des contraintes sur des types génériques au moment de définir les méthodes du type. Nous pouvons par exemple implémenter des méthodes uniquement sur des instances de <code>Point&lt;f32&gt;</code> plutôt que sur des instances de n’importe quel type <code>Point&lt;T&gt;</code>. Dans l’encart 10-10, nous utilisons le type concret <code>f32</code>, ce qui veut dire que nous n’avons pas besoin de déclarer un type après <code>impl</code>.</p>
 <figure class="listing" id="listing-10-10">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust edition2024"><span class="boring">struct Point&lt;T&gt; {
@@ -453,7 +453,7 @@ fn main() {
 </span><span class="boring">}
 </span><span class="boring">
 </span>impl Point&lt;f32&gt; {
-    fn distance_from_origin(&amp;self) -&gt; f32 {
+    fn distance_depuis_lorigine(&amp;self) -&gt; f32 {
         (self.x.powi(2) + self.y.powi(2)).sqrt()
     }
 }
@@ -465,8 +465,8 @@ fn main() {
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-10-10">Listing 10-10</a>: An <code>impl</code> block that only applies to a struct with a particular concrete type for the generic type parameter <code>T</code></figcaption>
 </figure>
-<p>This code means the type <code>Point&lt;f32&gt;</code> will have a <code>distance_from_origin</code> method; other instances of <code>Point&lt;T&gt;</code> where <code>T</code> is not of type <code>f32</code> will not have this method defined. The method measures how far our point is from the point at coordinates (0.0, 0.0) and uses mathematical operations that are available only for floating-point types.</p>
-<p>Generic type parameters in a struct definition aren’t always the same as those you use in that same struct’s method signatures. Listing 10-11 uses the generic types <code>X1</code> and <code>Y1</code> for the <code>Point</code> struct and <code>X2</code> and <code>Y2</code> for the <code>mixup</code> method signature to make the example clearer. The method creates a new <code>Point</code> instance with the <code>x</code> value from the <code>self</code> <code>Point</code> (of type <code>X1</code>) and the <code>y</code> value from the passed-in <code>Point</code> (of type <code>Y2</code>).</p>
+<p>Ce code signifie que le type <code>Point&lt;f32&gt;</code> va avoir une méthode <code>distance_depuis_lorigine</code> ; les autres instances de <code>Point&lt;T&gt;</code> où <code>T</code> n’est pas du type <code>f32</code> ne pourront pas appeler cette méthode. Cette méthode calcule la distance entre notre point et la coordonnée (0.0, 0.0) et utilise des opérations mathématiques qui ne sont disponibles que pour les types de flottants.</p>
+<p>Les paramètres de type génériques dans la définition d’une structure ne sont pas toujours les mêmes que ceux qui sont utilisés dans la signature des méthodes de cette même structure. Par exemple, l’encart 10-11 utilise les types génériques <code>X1</code> et <code>Y1</code> pour la structure <code>Point</code>, ainsi que <code>X2</code> et <code>Y2</code> pour la signature de la méthode <code>melange</code> pour rendre l’exemple plus clair. La méthode crée une nouvelle instance de <code>Point</code> avec la valeur de <code>x</code> provenant du <code>Point</code> <code>self</code> (de type <code>X1</code>) et la valeur de <code>y</code> provenant du <code>Point</code> en paramètre (de type <code>Y2</code>).</p>
 <figure class="listing" id="listing-10-11">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust edition2024">struct Point&lt;X1, Y1&gt; {
@@ -475,7 +475,7 @@ fn main() {
 }
 
 impl&lt;X1, Y1&gt; Point&lt;X1, Y1&gt; {
-    fn mixup&lt;X2, Y2&gt;(self, other: Point&lt;X2, Y2&gt;) -&gt; Point&lt;X1, Y2&gt; {
+    fn melange&lt;X2, Y2&gt;(self, other: Point&lt;X2, Y2&gt;) -&gt; Point&lt;X1, Y2&gt; {
         Point {
             x: self.x,
             y: other.y,
@@ -487,25 +487,25 @@ fn main() {
     let p1 = Point { x: 5, y: 10.4 };
     let p2 = Point { x: "Hello", y: 'c' };
 
-    let p3 = p1.mixup(p2);
+    let p3 = p1.melange(p2);
 
     println!("p3.x = {}, p3.y = {}", p3.x, p3.y);
 }</code></pre>
 <figcaption><a href="#listing-10-11">Listing 10-11</a>: A method that uses generic types that are different from its struct’s definition</figcaption>
 </figure>
-<p>In <code>main</code>, we’ve defined a <code>Point</code> that has an <code>i32</code> for <code>x</code> (with value <code>5</code>) and an <code>f64</code> for <code>y</code> (with value <code>10.4</code>). The <code>p2</code> variable is a <code>Point</code> struct that has a string slice for <code>x</code> (with value <code>"Hello"</code>) and a <code>char</code> for <code>y</code> (with value <code>c</code>). Calling <code>mixup</code> on <code>p1</code> with the argument <code>p2</code> gives us <code>p3</code>, which will have an <code>i32</code> for <code>x</code> because <code>x</code> came from <code>p1</code>. The <code>p3</code> variable will have a <code>char</code> for <code>y</code> because <code>y</code> came from <code>p2</code>. The <code>println!</code> macro call will print <code>p3.x = 5, p3.y = c</code>.</p>
-<p>The purpose of this example is to demonstrate a situation in which some generic parameters are declared with <code>impl</code> and some are declared with the method definition. Here, the generic parameters <code>X1</code> and <code>Y1</code> are declared after <code>impl</code> because they go with the struct definition. The generic parameters <code>X2</code> and <code>Y2</code> are declared after <code>fn mixup</code> because they’re only relevant to the method.</p>
-<h3 id="performance-of-code-using-generics"><a class="header" href="#performance-of-code-using-generics">Performance of Code Using Generics</a></h3>
-<p>You might be wondering whether there is a runtime cost when using generic type parameters. The good news is that using generic types won’t make your program run any slower than it would with concrete types.</p>
-<p>Rust accomplishes this by performing monomorphization of the code using generics at compile time. <em>Monomorphization</em> is the process of turning generic code into specific code by filling in the concrete types that are used when compiled. In this process, the compiler does the opposite of the steps we used to create the generic function in Listing 10-5: The compiler looks at all the places where generic code is called and generates code for the concrete types the generic code is called with.</p>
-<p>Let’s look at how this works by using the standard library’s generic <code>Option&lt;T&gt;</code> enum:</p>
+<p>Dans le <code>main</code>, nous avons défini un <code>Point</code> qui a un <code>i32</code> pour <code>x</code> (avec la valeur <code>5</code>) et un <code>f64</code> pour <code>y</code> (avec la valeur 10.4). La variable <code>p2</code> est une structure <code>Point</code> qui a une slice de chaîne de caractères pour <code>x</code> (avec la valeur <code>"Hello"</code>) et un caractère <code>char</code> pour <code>y</code> (avec la valeur <code>c</code>). L’appel à <code>melange</code> sur <code>p1</code> avec l’argument <code>p2</code> nous donne <code>p3</code>, qui aura un <code>i32</code> pour <code>x</code>, car <code>x</code> provient de <code>p1</code>. La variable <code>p3</code> aura un caractère <code>char</code> pour <code>y</code>, car <code>y</code> provient de <code>p2</code>. L’appel à la macro <code>println!</code> va afficher <code>p3.x = 5, p3.y = c</code>.</p>
+<p>Le but de cet exemple est de montrer une situation dans laquelle des paramètres génériques sont déclarés avec <code>impl</code> et d’autres sont déclarés dans la définition de la méthode. Ici, les paramètres génériques <code>X1</code> et <code>Y1</code> sont déclarés après <code>impl</code>, car ils sont liés à la définition de la structure. Les paramètres génériques <code>X2</code> et <code>Y2</code> sont déclarés après <code>fn melange</code>, car ils ne sont liés qu’à cette méthode.</p>
+<h3 id="performance-du-code-utilisant-les-génériques"><a class="header" href="#performance-du-code-utilisant-les-génériques">Performance du code utilisant les génériques</a></h3>
+<p>Vous vous demandez peut-être s’il y a un coût à l’exécution lorsque vous utilisez des paramètres de type génériques. La bonne nouvelle est que l’utilisation de types génériques ne rendra pas votre programme plus lent que s’il utilisait les types concrets.</p>
+<p>Rust accomplit cela en pratiquant la monomorphisation à la compilation du code qui utilise les génériques. La <em>monomorphisation</em> est le processus qui transforme du code générique en code spécifique en définissant au moment de la compilation les types concrets utilisés dans le code. Dans ce processus, le compilateur fait l’inverse des étapes que nous avons suivies pour créer la fonction générique de l’encart 10-5 : le compilateur cherche tous les endroits où le code générique est utilisé et génère du code pour les types concrets avec lesquels le code générique est appelé.</p>
+<p>Regardons comment cela fonctionne en utilisant l’énumération générique <code>Option&lt;T&gt;</code> de la bibliothèque standard :</p>
 <pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>let integer = Some(5);
-let float = Some(5.0);
+</span>let entier = Some(5);
+let flottant = Some(5.0);
 <span class="boring">}</span></code></pre>
-<p>When Rust compiles this code, it performs monomorphization. During that process, the compiler reads the values that have been used in <code>Option&lt;T&gt;</code> instances and identifies two kinds of <code>Option&lt;T&gt;</code>: One is <code>i32</code> and the other is <code>f64</code>. As such, it expands the generic definition of <code>Option&lt;T&gt;</code> into two definitions specialized to <code>i32</code> and <code>f64</code>, thereby replacing the generic definition with the specific ones.</p>
-<p>The monomorphized version of the code looks similar to the following (the compiler uses different names than what we’re using here for illustration):</p>
+<p>Lorsque Rust compile ce code, il applique la monomorphisation. Pendant ce processus, le compilateur lit les valeurs qui ont été utilisées dans les instances de <code>Option&lt;T&gt;</code> et en déduit les deux sortes de <code>Option&lt;T&gt;</code> : l’une est <code>i32</code> et l’autre est <code>f64</code>. Ainsi, il décompose la définition générique de <code>Option&lt;T&gt;</code> en deux définitions spécialisées pour <code>Option_i32</code> et <code>Option_f64</code>, remplaçant ainsi la définition générique par deux définitions concrètes.</p>
+<p>La version monomorphe du code ressemble à ce qui suit. Le <code>Option&lt;T&gt;</code> générique est remplacé par deux définitions concrètes créées par le compilateur :</p>
 <figure class="listing">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust edition2024">enum Option_i32 {
@@ -519,11 +519,11 @@ enum Option_f64 {
 }
 
 fn main() {
-    let integer = Option_i32::Some(5);
-    let float = Option_f64::Some(5.0);
+    let entier = Option_i32::Some(5);
+    let flottant = Option_f64::Some(5.0);
 }</code></pre>
 </figure>
-<p>The generic <code>Option&lt;T&gt;</code> is replaced with the specific definitions created by the compiler. Because Rust compiles generic code into code that specifies the type in each instance, we pay no runtime cost for using generics. When the code runs, it performs just as it would if we had duplicated each definition by hand. The process of monomorphization makes Rust’s generics extremely efficient at runtime.</p>
+<p>Comme Rust compile le code générique dans du code qui précise le type dans chaque instance, l’utilisation des génériques n’a pas de conséquence sur les performances de l’exécution. Quand le code s’exécute, il fonctionne comme il devrait le faire si nous avions dupliqué chaque définition à la main. Le processus de monomorphisation rend les génériques de Rust très performants au moment de l’exécution.</p>
 
                     </main>
 
