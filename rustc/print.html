@@ -93,7 +93,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-de54ee23.js";
+            window.path_to_searchindex_js = "searchindex-e289661f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f12d3f0b.js"></script>
@@ -1299,14 +1299,6 @@ deleted once compilation finishes. It takes one of the following values:</p>
 <li><code>y</code>, <code>yes</code>, <code>on</code>, <code>true</code> or no value: save temporary files.</li>
 <li><code>n</code>, <code>no</code>, <code>off</code> or <code>false</code>: delete temporary files (the default).</li>
 </ul>
-<h2 id="soft-float"><a class="header" href="#soft-float">soft-float</a></h2>
-<p>This option controls whether <code>rustc</code> generates code that emulates floating
-point instructions in software. It takes one of the following values:</p>
-<ul>
-<li><code>y</code>, <code>yes</code>, <code>on</code>, <code>true</code> or no value: use soft floats.</li>
-<li><code>n</code>, <code>no</code>, <code>off</code> or <code>false</code>: use hardware floats (the default).</li>
-</ul>
-<p>This flag only works on <code>*eabihf</code> targets and <strong>is unsound and deprecated</strong>.</p>
 <h2 id="split-debuginfo"><a class="header" href="#split-debuginfo">split-debuginfo</a></h2>
 <p>This option controls the emission of “split debuginfo” for debug information
 that <code>rustc</code> generates. The default behavior of this option is
@@ -8614,12 +8606,12 @@ title_name = "My application"
 <h1 id="armv7a-vex-v5"><a class="header" href="#armv7a-vex-v5"><code>armv7a-vex-v5</code></a></h1>
 <p><strong>Tier: 3</strong></p>
 <p>Allows compiling user programs for the <a href="https://www.vexrobotics.com/276-4810.html">VEX V5 Brain</a>, a microcontroller for educational and competitive robotics.</p>
-<p>Rust support for this target is not affiliated with VEX Robotics or IFI, and does not link to any official VEX SDK.</p>
+<p>Rust support for this target is not affiliated with VEX Robotics or IFI, and does not link against any official VEX SDK.</p>
 <h2 id="target-maintainers-41"><a class="header" href="#target-maintainers-41">Target maintainers</a></h2>
 <p>This target is maintained by members of the <a href="https://github.com/vexide">vexide</a> organization:</p>
 <ul>
 <li><a href="https://github.com/lewisfm">@lewisfm</a></li>
-<li><a href="https://github.com/Tropix126">@Tropix126</a></li>
+<li><a href="https://github.com/tropicaaal">@tropicaaal</a></li>
 <li><a href="https://github.com/Gavin-Niederman">@Gavin-Niederman</a></li>
 <li><a href="https://github.com/max-niederman">@max-niederman</a></li>
 </ul>
@@ -8631,18 +8623,28 @@ title_name = "My application"
 <li><code>std::process</code> and <code>std::net</code> are unimplemented. <code>std::thread</code> only supports sleeping and yielding, as this is a single-threaded environment.</li>
 <li><code>std::time</code> has full support for <code>Instant</code>, but no support for <code>SystemTime</code>.</li>
 <li><code>std::io</code> has full support for <code>stdin</code>/<code>stdout</code>/<code>stderr</code>. <code>stdout</code> and <code>stderr</code> both write to USB channel 1 on this platform and are not differentiated.</li>
-<li><code>std::fs</code> has limited support for reading or writing to files. Directory operations, file deletion, and some file opening features are unsupported and will return errors.</li>
+<li><code>std::fs</code> has limited support for reading or writing to files. The following features are unsupported:
+<ul>
+<li>All directory operations (including <code>mkdir</code> and <code>readdir</code>), although reading directories is possible through <a href="https://docs.rs/vex-sdk/latest/vex_sdk/file/fn.vexFileDirectoryGet.html">third-party crates</a></li>
+<li>Deleting files and directories</li>
+<li>File metadata other than file size and type (that is, file vs. directory)</li>
+<li>Opening files with an uncommon combination of open options, such as read + write at the same time.
+The supported modes for opening files are in read-only mode, append mode, or write mode (with or without truncation).</li>
+</ul>
+</li>
 <li>A global allocator implemented on top of <code>dlmalloc</code> is provided.</li>
-<li>Modules that do not need to interact with the OS beyond allocation such as <code>std::collections</code>, <code>std::hash</code>, <code>std::future</code>, <code>std::sync</code>, etc are fully supported.</li>
+<li>Modules that do not need to interact with the OS beyond allocation, such as <code>std::collections</code>, <code>std::hash</code>, <code>std::future</code>, <code>std::sync</code>, etc., are fully supported.</li>
 <li>Random number generation and hashing is insecure, as there is no reliable source of entropy on this platform.</li>
 </ul>
-<p>In order to support some APIs, users are expected to provide a supporting runtime SDK for <code>libstd</code> to link against. This library may be provided either by <a href="https://github.com/vexide/vex-sdk/tree/main/packages/vex-sdk-build"><code>vex-sdk-build</code></a> (which will download an official SDK from VEX) or through an open-source implementation such as <a href="https://crates.io/crates/vex-sdk-jumptable"><code>vex-sdk-jumptable</code></a>.</p>
 <p>When compiling for this target, the “C” calling convention maps to AAPCS with VFP registers (hard float ABI) and the “system” calling convention maps to AAPCS without VFP registers (softfp ABI).</p>
 <p>This target generates binaries in the ELF format that may be uploaded to the brain with external tools.</p>
+<h3 id="platform-sdks"><a class="header" href="#platform-sdks">Platform SDKs</a></h3>
+<p>To use most platform-specific APIs, users must configure a supporting runtime SDK for <code>libstd</code> to link against. Official <em>VEXcode</em> SDKs from VEX can be downloaded and linked via the <a href="https://crates.io/crates/vex-sdk-vexcode"><code>vex-sdk-vexcode</code></a> crate, but they have a restrictive redistribution policy that might not be suitable for all projects. The suggested SDK for open-source projects is the community-supported <a href="https://crates.io/crates/vex-sdk-jumptable"><code>vex-sdk-jumptable</code></a> crate. SDK implementations are generally thin wrappers over system calls, so projects should not expect to see significant differences in behavior depending on which SDK they use.</p>
+<p>Libraries may access symbols from the active VEX SDK without depending on a specific implementation by using the <a href="https://crates.io/crates/vex-sdk"><code>vex-sdk</code></a> crate.</p>
 <h2 id="building-the-target-24"><a class="header" href="#building-the-target-24">Building the target</a></h2>
 <p>You can build Rust with support for this target by adding it to the <code>target</code> list in <code>bootstrap.toml</code>, and then running <code>./x build --target armv7a-vex-v5 compiler</code>.</p>
 <h2 id="building-rust-programs-25"><a class="header" href="#building-rust-programs-25">Building Rust programs</a></h2>
-<p>Rust does not yet ship pre-compiled artifacts for this target. To compile for this target, you will either need to build Rust with the target enabled (see “Building the target” above), or build your own copy of <code>core</code> by using <code>build-std</code> or similar.</p>
+<p>Rust does not yet ship pre-compiled artifacts for this target. To compile for this target, you will either need to build Rust with the target enabled (see “Building the target” above), or build your own copy of <code>std</code> using <code>build-std</code> or similar.</p>
 <p>When the compiler builds a binary, an ELF build artifact will be produced. Additional tools are required for this artifact to be recognizable to VEXos as a user program.</p>
 <p>The <a href="https://github.com/vexide/cargo-v5">cargo-v5</a> tool is capable of creating binaries that can be uploaded to the V5 brain. This tool wraps the <code>cargo build</code> command by supplying arguments necessary to build the target and produce an artifact recognizable to VEXos, while also providing functionality for uploading over USB to a V5 Controller or Brain.</p>
 <p>To install the tool, run:</p>
@@ -8663,13 +8665,68 @@ compress = true
 <p>Programs can also be directly uploaded to the brain over a USB connection immediately after building:</p>
 <pre><code class="language-sh">cargo v5 upload --release
 </code></pre>
+<h3 id="hello-world-program"><a class="header" href="#hello-world-program">Hello World program</a></h3>
+<pre><code class="language-rs">use ::vex_sdk_jumptable as _; // Bring VEX SDK symbols into scope
+
+fn main() {
+    println!("Hello, world");
+}
+</code></pre>
 <h2 id="testing-25"><a class="header" href="#testing-25">Testing</a></h2>
-<p>Binaries built for this target can be run in an emulator (such as <a href="https://github.com/vexide/vex-v5-qemu">vex-v5-qemu</a>), or uploaded to a physical device over a serial (USB) connection.</p>
+<p>Binaries built for this target can be run in an emulator (such as <a href="https://github.com/vexide/vex-v5-qemu">vex-v5-qemu</a>), or uploaded to a physical device over a USB serial connection.</p>
 <p>The default Rust test runner is not supported.</p>
 <p>The Rust test suite for <code>library/std</code> is not yet supported.</p>
 <h2 id="cross-compilation-toolchains-and-c-code-13"><a class="header" href="#cross-compilation-toolchains-and-c-code-13">Cross-compilation toolchains and C code</a></h2>
 <p>This target can be cross-compiled from any host.</p>
-<p>Linking to C libraries is not supported.</p>
+<p>The recommended configuration for compiling compatible C code is to use the <a href="https://github.com/arm/arm-toolchain/tree/arm-software/arm-software/embedded#readme">Arm Toolchain for Embedded</a> with the following compilation flags:</p>
+<pre><code class="language-sh">clang --target=arm-none-eabi -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard -fno-pic -fno-exceptions -fno-rtti -funwind-tables
+</code></pre>
+<p>The following Cargo configuration can be used to link with picolibc (the libc used by the Arm Toolchain for Embedded):</p>
+<pre><code class="language-toml">[target.armv7a-vex-v5]
+# We use ARM Clang as a linker because ld.lld by itself doesn't include the
+# multilib logic for resolving static libraries.
+linker = "clang"
+
+rustflags = [
+    # These link flags resolve to this sysroot:
+    # `…/arm-none-eabi/armv7a_hard_vfpv3_d16_unaligned`
+    # (hard float / VFP version 3 with 16 regs / unaligned access)
+    "-Clink-arg=--target=armv7a-none-eabihf",
+
+    # To disable crt0 and use Rust's _boot implementation
+    # (or something custom):
+    #"-Clink-arg=-nostartfiles",
+
+    # Explicit `-lc` required because Rust calls the linker with
+    # `-nodefaultlibs` which disables libc, libm, etc.
+    "-Clink-arg=-lc",
+]
+</code></pre>
+<p>You may also want to set these environment variables so that third-party crates use the correct C compiler:</p>
+<pre><code class="language-sh">PATH=/path/to/arm-toolchain/bin:$PATH
+CC_armv7a_vex_v5=clang
+AR_armv7a_vex_v5=clang
+CFLAGS_armv7a_vex_v5=[See above]
+</code></pre>
+<h3 id="cmake-1"><a class="header" href="#cmake-1">CMake</a></h3>
+<p>It may be helpful to create a CMake toolchain like the following if you are depending on the <code>cmake</code> crate:</p>
+<pre><code class="language-cmake"># toolchain.cmake
+set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_SYSTEM_PROCESSOR arm)
+
+set(triple armv7a-none-eabihf)
+
+set(CMAKE_C_COMPILER clang)
+set(CMAKE_C_COMPILER_TARGET ${triple})
+set(CMAKE_CXX_COMPILER clang++)
+set(CMAKE_CXX_COMPILER_TARGET ${triple})
+set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
+</code></pre>
+<p>You can enable it by setting the following environment variable alongside the previously mentioned environment variables:</p>
+<pre><code class="language-sh">CMAKE_TOOLCHAIN_FILE_armv7a_vex_v5=/path/to/toolchain.cmake
+</code></pre>
+<h3 id="implementation-of-libc-functions"><a class="header" href="#implementation-of-libc-functions">Implementation of libc functions</a></h3>
+<p>You may have to implement <a href="https://github.com/picolibc/picolibc/blob/main/doc/os.md">certain system support functions</a> for some parts of libc to work properly.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="-linux-android-and--linux-androideabi"><a class="header" href="#-linux-android-and--linux-androideabi">*-linux-android and *-linux-androideabi</a></h1>
 <p><strong>Tier: 2</strong></p>
@@ -13188,7 +13245,6 @@ with native multi threading capabilities.</p>
 </blockquote>
 <h2 id="target-maintainers-101"><a class="header" href="#target-maintainers-101">Target maintainers</a></h2>
 <p><a href="https://github.com/g0djan">@g0djan</a>
-<a href="https://github.com/alexcrichton">@alexcrichton</a>
 <a href="https://github.com/abrown">@abrown</a>
 <a href="https://github.com/loganek">@loganek</a></p>
 <h2 id="requirements-93"><a class="header" href="#requirements-93">Requirements</a></h2>

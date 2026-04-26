@@ -97,7 +97,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5c6b826c.js";
+            window.path_to_searchindex_js = "../searchindex-40d30f76.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-6b0c3669.js"></script>
@@ -415,6 +415,26 @@ jobs:
 <li>대부분의 프로젝트는 플랫폼에 구애받지 않으므로 단일 플랫폼이 사용되며, 플랫폼별 의존성이 동작을 확인하도록 신뢰합니다.</li>
 <li>대부분의 기여자가 겪게 될 문제는 동작이 아닌 API 가용성이므로 <code>cargo check</code> 가 사용됩니다.</li>
 <li>게시되지 않은 패키지는 레지스트리를 통해 확인된 프로젝트의 소비자만이 <code>rust-version</code> 에 관심을 가질 것이라고 가정하므로 건너뜁니다.</li>
+</ul>
+<h2 id="checking-for-warnings"><a class="header" href="#checking-for-warnings">Checking for warnings</a></h2>
+<p>Customarily, projects want to be “warnings clean” on official branches while being lax for local development. <a href="../reference/config.html#buildwarnings"><code>build.warnings = "deny"</code></a> can be used to fail a CI job if warnings are present.</p>
+<p>An example CI job to check for warnings using GitHub Actions:</p>
+<pre><code class="language-yaml">jobs:
+  warnings:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_BUILD_WARNINGS: deny
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup update stable &amp;&amp; rustup default stable
+      - run: rustup component add clippy
+      - run: cargo clippy --all-targets --all-features --keep-going
+</code></pre>
+<p>Considerations:</p>
+<ul>
+<li>CI can fail due to new toolchain versions because there are limited compatibility guarantees around warnings. Consider pinning the toolchain version with an automated job that creates a PR to upgrade the toolchain on new releases.</li>
+<li>Balance between exhaustiveness and turnaround time in selecting the combinations of platforms, features, and package/build-target combinations to check</li>
+<li>Some CI systems have direct integration for reporting lints, e.g. using <a href="https://crates.io/crates/clippy-sarif"><code>clippy-sarif</code></a> with GitHub</li>
 </ul>
 
                     </main>

@@ -97,7 +97,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5ce47afe.js";
+            window.path_to_searchindex_js = "../searchindex-d049d2a1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-d4808052.js"></script>
@@ -432,6 +432,28 @@ it is important to verify the correctness of that field.</p>
 <li>A single platform is used as most projects are platform-agnostic, trusting platform-specific dependencies to verify their behavior.</li>
 <li><code>cargo check</code> is used as most issues contributors will run into are API availability and not behavior.</li>
 <li>Unpublished packages are skipped as this assumes only consumers of the verified project, through a registry, will care about <code>rust-version</code>.</li>
+</ul>
+<h2 id="checking-for-warnings"><a class="header" href="#checking-for-warnings">Checking for warnings</a></h2>
+<p>Customarily, projects want to be “warnings clean” on official branches while being lax for local development.
+<a href="../reference/config.html#buildwarnings"><code>build.warnings = "deny"</code></a> can be used to fail a CI job if warnings are present.</p>
+<p>An example CI job to check for warnings using GitHub Actions:</p>
+<pre><code class="language-yaml">jobs:
+  warnings:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_BUILD_WARNINGS: deny
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup update stable &amp;&amp; rustup default stable
+      - run: rustup component add clippy
+      - run: cargo clippy --all-targets --all-features --keep-going
+</code></pre>
+<p>Considerations:</p>
+<ul>
+<li>CI can fail due to new toolchain versions because there are limited compatibility guarantees around warnings.
+Consider pinning the toolchain version with an automated job that creates a PR to upgrade the toolchain on new releases.</li>
+<li>Balance between exhaustiveness and turnaround time in selecting the combinations of platforms, features, and package/build-target combinations to check</li>
+<li>Some CI systems have direct integration for reporting lints, e.g. using <a href="https://crates.io/crates/clippy-sarif"><code>clippy-sarif</code></a> with GitHub</li>
 </ul>
 
                     </main>
