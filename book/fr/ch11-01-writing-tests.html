@@ -96,7 +96,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c9c53008.js";
+            window.path_to_searchindex_js = "searchindex-380cec70.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-09667002.js"></script>
@@ -239,25 +239,25 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h2 id="comment-écrire-des-tests"><a class="header" href="#comment-écrire-des-tests">Comment écrire des tests</a></h2>
-<p><em>Tests</em> are Rust functions that verify that the non-test code is functioning in the expected manner. The bodies of test functions typically perform these three actions:</p>
+<p>Les tests sont des fonctions Rust qui vérifient que le code qui n’est pas un test se comporte bien de la manière attendue. Les corps des fonctions de test effectuent généralement ces trois actions :</p>
 <ul>
-<li>Set up any needed data or state.</li>
-<li>Run the code you want to test.</li>
-<li>Assert that the results are what you expect.</li>
+<li>Initialiser toutes les données ou les états.</li>
+<li>Lancer le code que vous voulez tester.</li>
+<li>Vérifier que les résultats correspondent bien à ce que vous souhaitez.</li>
 </ul>
 <p>Découvrons les fonctionnalités spécifiques qu’offre Rust pour écrire des tests qui font ces actions, dont l’attribut <code>test</code>, quelques macros et l’attribut <code>should_panic</code>.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="the-anatomy-of-a-test-function"></a></p>
-<h3 id="structuring-test-functions"><a class="header" href="#structuring-test-functions">Structuring Test Functions</a></h3>
-<p>At its simplest, a test in Rust is a function that’s annotated with the <code>test</code> attribute. Attributes are metadata about pieces of Rust code; one example is the <code>derive</code> attribute we used with structs in Chapter 5. To change a function into a test function, add <code>#[test]</code> on the line before <code>fn</code>. When you run your tests with the <code>cargo test</code> command, Rust builds a test runner binary that runs the annotated functions and reports on whether each test function passes or fails.</p>
-<p>Whenever we make a new library project with Cargo, a test module with a test function in it is automatically generated for us. This module gives you a template for writing your tests so that you don’t have to look up the exact structure and syntax every time you start a new project. You can add as many additional test functions and as many test modules as you want!</p>
-<p>We’ll explore some aspects of how tests work by experimenting with the template test before we actually test any code. Then, we’ll write some real-world tests that call some code that we’ve written and assert that its behavior is correct.</p>
-<p>Let’s create a new library project called <code>adder</code> that will add two numbers:</p>
-<pre><code class="language-console">$ cargo new adder --lib
-     Created library `adder` project
-$ cd adder
+<h3 id="structuration-des-fonctions-de-test"><a class="header" href="#structuration-des-fonctions-de-test">Structuration des fonctions de test</a></h3>
+<p>Dans la forme la plus simple, un test en Rust est une fonction qui est marquée avec l’attribut <code>test</code>. Les attributs sont des métadonnées sur des parties de code Rust ; un exemple est l’attribut <code>derive</code> que nous avons utilisé sur les structures au chapitre 5. Pour transformer une fonction en une fonction de test, il faut ajouter <code>#[test]</code> dans la ligne avant le <code>fn</code>. Lorsque vous lancez vos tests avec la commande <code>cargo test</code>, Rust construit un binaire d’exécution de tests qui exécute les fonctions marquées avec l’attribut <code>test</code> et fait un rapport sur quelles fonctions ont réussi ou échoué.</p>
+<p>Chaque fois que nous créons une nouvelle bibliothèque avec Cargo, un module de tests qui contient une fonction de test est automatiquement créé pour nous. Ce module vous fournit un modèle pour l’écriture de vos tests afin que vous n’ayez pas à chercher la structure et la syntaxe exacte d’une fonction de test à chaque fois que vous débutez un nouveau projet. Vous pouvez ajouter autant de fonctions de test et autant de modules de tests que vous le souhaitez !</p>
+<p>Nous allons découvrir quelques aspects du fonctionnement des tests en expérimentant avec le modèle de tests avant de réellement tester du code. Ensuite, nous écrirons quelques tests plus proches de la réalité, qui utiliseront du code que nous avons écrit et qui valideront son bon comportement.</p>
+<p>Commençons par créer un nouveau projet de bibliothèque que nous appellerons <code>addition</code> qui additionnera deux nombres :</p>
+<pre><code class="language-console">$ cargo new addition --lib
+     Created library `addition` project
+$ cd addition
 </code></pre>
-<p>The contents of the <em>src/lib.rs</em> file in your <code>adder</code> library should look like Listing 11-1.</p>
+<p>Le contenu de votre fichier <em>src/lib.rs</em> dans votre bibliothèque <code>addition</code> devrait ressembler à l’encart 11-1.</p>
 <figure class="listing" id="listing-11-1">
 <span class="file-name">Filename: src/lib.rs</span>
 <!-- manual-regeneration
@@ -270,8 +270,8 @@ RUSTFLAGS="-A unused_variables -A dead_code" RUST_TEST_THREADS=1 cargo test >> o
 git diff output.txt # commit any relevant changes; discard irrelevant ones
 cd ../../..
 -->
-<pre><code class="language-rust noplayground">pub fn add(left: u64, right: u64) -&gt; u64 {
-    left + right
+<pre><code class="language-rust noplayground">pub fn additionne(gauche: u64, droite: u64) -&gt; u64 {
+    gauche + droite
 }
 
 #[cfg(test)]
@@ -279,29 +279,29 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+    fn cela_fonctionne() {
+        let resultat = additionne(2, 2);
+        assert_eq!(resultat, 4);
     }
 }</code></pre>
 <figcaption><a href="#listing-11-1">Listing 11-1</a>: The code generated automatically by <code>cargo new</code></figcaption>
 </figure>
-<p>The file starts with an example <code>add</code> function so that we have something to test.</p>
-<p>For now, let’s focus solely on the <code>it_works</code> function. Note the <code>#[test]</code> annotation: This attribute indicates this is a test function, so the test runner knows to treat this function as a test. We might also have non-test functions in the <code>tests</code> module to help set up common scenarios or perform common operations, so we always need to indicate which functions are tests.</p>
-<p>The example function body uses the <code>assert_eq!</code> macro to assert that <code>result</code>, which contains the result of calling <code>add</code> with 2 and 2, equals 4. This assertion serves as an example of the format for a typical test. Let’s run it to see that this test passes.</p>
+<p>Le fichier commence par un exemple de fonction <code>additionne</code>, de façon à ce que nous ayons quelque chose à tester.</p>
+<p>Pour l’instant, concentrons-nous sur la fonction <code>cela_fonctionne</code>. Remarquez l’annotation <code>#[test]</code> avant la ligne <code>fn</code> : cet attribut indique que c’est une fonction de test, donc l’exécuteur de tests sait qu’il doit considérer cette fonction comme étant un test. Nous pourrions aussi avoir des fonctions qui ne font pas de tests dans le module <code>tests</code> afin de configurer des scénarios communs ou exécuter des opérations communes, c’est pourquoi nous devons toujours indiquer quelles fonctions sont des tests en utilisant l’attribut <code>#[test]</code>.</p>
+<p>Le corps de la fonction utilise la macro <code>assert_eq!</code> pour vérifier que <code>resultat</code>, qui contient le résultat de l’appel de <code>additionne</code> avec 2 et 2, vaut bien 4. Cette vérification sert d’exemple pour expliquer le format d’un test classique. Lançons-le pour vérifier si ce test est validé.</p>
 <p>La commande <code>cargo test</code> lance tous les tests présents dans votre projet, comme le montre l’encart 11-2.</p>
 <figure class="listing" id="listing-11-2">
 <pre><code class="language-console">$ cargo test
-   Compiling adder v0.1.0 (file:///projects/adder)
+   Compiling addition v0.1.0 (file:///projects/addition)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.57s
      Running unittests src/lib.rs (target/debug/deps/adder-01ad14159ff659ab)
 
 running 1 test
-test tests::it_works ... ok
+test tests::cela_fonctionne ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-   Doc-tests adder
+   Doc-tests addition
 
 running 0 tests
 
@@ -310,14 +310,14 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 </code></pre>
 <figcaption><a href="#listing-11-2">Listing 11-2</a>: The output from running the automatically generated test</figcaption>
 </figure>
-<p>Cargo compiled and ran the test. We see the line <code>running 1 test</code>. The next line shows the name of the generated test function, called <code>tests::it_works</code>, and that the result of running that test is <code>ok</code>. The overall summary <code>test result: ok.</code> means that all the tests passed, and the portion that reads <code>1 passed; 0 failed</code> totals the number of tests that passed or failed.</p>
-<p>It’s possible to mark a test as ignored so that it doesn’t run in a particular instance; we’ll cover that in the <a href="ch11-02-running-tests.html#ignoring-tests-unless-specifically-requested">“Ignoring Tests Unless Specifically Requested”</a><!-- ignore --> section later in this chapter. Because we haven’t done that here, the summary shows <code>0 ignored</code>. We can also pass an argument to the <code>cargo test</code> command to run only tests whose name matches a string; this is called <em>filtering</em>, and we’ll cover it in the <a href="ch11-02-running-tests.html#running-a-subset-of-tests-by-name">“Running a Subset of Tests by Name”</a><!-- ignore --> section. Here, we haven’t filtered the tests being run, so the end of the summary shows <code>0 filtered out</code>.</p>
-<p>The <code>0 measured</code> statistic is for benchmark tests that measure performance. Benchmark tests are, as of this writing, only available in nightly Rust. See <a href="../unstable-book/library-features/test.html">the documentation about benchmark tests</a> to learn more.</p>
-<p>The next part of the test output starting at <code>Doc-tests adder</code> is for the results of any documentation tests. We don’t have any documentation tests yet, but Rust can compile any code examples that appear in our API documentation. This feature helps keep your docs and your code in sync! We’ll discuss how to write documentation tests in the <a href="ch14-02-publishing-to-crates-io.html#documentation-comments-as-tests">“Documentation Comments as Tests”</a><!-- ignore --> section of Chapter 14. For now, we’ll ignore the <code>Doc-tests</code> output.</p>
-<p>Let’s start to customize the test to our own needs. First, change the name of the <code>it_works</code> function to a different name, such as <code>exploration</code>, like so:</p>
-<p><span class="filename">Filename: src/lib.rs</span></p>
-<pre><code class="language-rust noplayground">pub fn add(left: u64, right: u64) -&gt; u64 {
-    left + right
+<p>Cargo a compilé et lancé le test. Après les lignes <code>Compiling</code>, <code>Finished</code>, et <code>Running</code>, on trouve la ligne <code>running 1 test</code>. La ligne suivante montre le nom de la fonction de test <code>tests::cela_fonctionne</code>, et le résultat de l’exécution de ce test, qui est <code>ok</code>. Le résumé général <code>test result: ok.</code> signifie que tous les tests ont réussi, et la partie <code>1 passed; 0 failed</code> compte le nombre total de tests qui ont réussi ou échoué.</p>
+<p>Il est possible de marquer un test comme ignoré afin qu’il ne soit pas exécuté dans une instance donnée ; nous aborderons ce sujet dans la section <a href="ch11-02-running-tests.html#ignorer-certains-tests-sauf-sils-sont-demand%C3%A9s-explicitement">“Ignorer certains tests sauf s’ils sont demandés explicitement”</a><!-- ignore --> plus loin dans ce chapitre. Comme nous n’avons pas fait cela ici, le résumé affiche <code>0 ignored</code>. Nous pouvons également passer un argument à la commande <code>cargo test</code> pour n’exécuter que les tests dont le nom correspond à une chaîne de caractères ; c’est ce qui s’appelle le <em>filtrage</em>, nous aborderons ce sujet dans la section <a href="ch11-02-running-tests.html#ex%C3%A9cuter-un-sous-ensemble-de-tests-en-fonction-de-son-nom">“Exécuter un sous-ensemble de tests en fonction de son nom”</a><!-- ignore -->. Ici, nous n’avons pas filtré les tests qui ont été exécutés, donc la fin du résumé affiche <code>0 filtered out</code>.</p>
+<p>La statistique <code>0 measured</code> sert pour des tests de benchmark qui mesurent les performances. Les tests de benchmark ne sont disponibles pour le moment que dans la version expérimentale de Rust (nightly), au moment de la rédaction. Rendez-vous sur [la documentation sur les tests de benchmark][bench] pour en savoir plus.</p>
+<p>La partie suivante du résultat des tests, qui commence par <code>Doc-tests addition</code>, concerne les résultats de tous les tests présents dans la documentation. Nous n’avons pas de tests dans la documentation pour le moment, mais Rust peut compiler tous les exemples de code qui sont présents dans la documentation de notre API. Cette fonctionnalité nous aide à garder synchronisés notre documentation et notre code ! Nous verrons comment écrire nos tests dans la documentation dans la section <a href="ch14-02-publishing-to-crates-io.html#les-commentaires-de-documentation-pour-faire-des-tests">“Les commentaires de documentation pour faire des tests”</a><!-- ignore --> du chapitre 14. Pour le moment, nous allons ignorer la partie <code>Doc-tests</code> du résultat.</p>
+<p>Commençons à adapters le test à nos propres besoins. Changeons d’abord le nom de la fonction <code>cela_fonctionne</code> pour un nom différent, comme <code>exploration</code>, comme ci-dessous :</p>
+<p><span class="filename">Fichier : src/lib.rs</span></p>
+<pre><code class="language-rust noplayground">pub fn additionne(gauche: u64, droite: u64) -&gt; u64 {
+    gauche + droite
 }
 
 #[cfg(test)]
@@ -326,13 +326,13 @@ mod tests {
 
     #[test]
     fn exploration() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+        let resultat = additionne(2, 2);
+        assert_eq!(resultat, 4);
     }
 }</code></pre>
-<p>Then, run <code>cargo test</code> again. The output now shows <code>exploration</code> instead of <code>it_works</code>:</p>
+<p>Lancez ensuite à nouveau <code>cargo test</code>. Le résultat affiche désormais <code>exploration</code> plutôt que <code>it_works</code> :</p>
 <pre><code class="language-console">$ cargo test
-   Compiling adder v0.1.0 (file:///projects/adder)
+   Compiling addition v0.1.0 (file:///projects/addition)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.59s
      Running unittests src/lib.rs (target/debug/deps/adder-92948b65e88960b4)
 
@@ -341,18 +341,18 @@ test tests::exploration ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-   Doc-tests adder
+   Doc-tests addition
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 </code></pre>
-<p>Now we’ll add another test, but this time we’ll make a test that fails! Tests fail when something in the test function panics. Each test is run in a new thread, and when the main thread sees that a test thread has died, the test is marked as failed. In Chapter 9, we talked about how the simplest way to panic is to call the <code>panic!</code> macro. Enter the new test as a function named <code>another</code>, so your <em>src/lib.rs</em> file looks like Listing 11-3.</p>
+<p>Ajoutons maintenant un autre test, mais cette fois nous allons construire un test qui échoue ! Les tests échouent lorsque quelque chose dans la fonction de test panique. Chaque test est lancé dans une nouvelle tâche, et lorsque la tâche principale voit qu’une tâche de test a été interrompue par panique, le test est considéré comme ayant échoué. Au chapitre 9, Nous avons vu que la façon la plus simple de faire paniquer consiste à appeler la macro <code>panic!</code>. Ecrivez ce nouveau test, <code>un_autre</code>, de sorte que votre fichier <code>src/lib.rs</code> ressemble à ceci :</p>
 <figure class="listing" id="listing-11-3">
 <span class="file-name">Filename: src/lib.rs</span>
-<pre><code class="language-rust panics noplayground">pub fn add(left: u64, right: u64) -&gt; u64 {
-    left + right
+<pre><code class="language-rust panics noplayground">pub fn additionne(gauche: u64, droite: u64) -&gt; u64 {
+    gauche + droite
 }
 
 #[cfg(test)]
@@ -361,13 +361,13 @@ mod tests {
 
     #[test]
     fn exploration() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+        let resultat = additionne(2, 2);
+        assert_eq!(resultat, 4);
     }
 
     #[test]
-    fn another() {
-        panic!("Make this test fail");
+    fn un_autre() {
+        panic!("Fait échouer ce test");
     }
 }</code></pre>
 <figcaption><a href="#listing-11-3">Listing 11-3</a>: Adding a second test that will fail because we call the <code>panic!</code> macro</figcaption>
@@ -375,25 +375,25 @@ mod tests {
 <p>Lancez à nouveau les tests en utilisant <code>cargo test</code>. Le résultat devrait ressembler à l’encart 11-4, qui va afficher que notre test <code>exploration</code> a réussi et que <code>un_autre</code> a échoué.</p>
 <figure class="listing" id="listing-11-4">
 <pre><code class="language-console">$ cargo test
-   Compiling adder v0.1.0 (file:///projects/adder)
+   Compiling addition v0.1.0 (file:///projects/addition)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.72s
      Running unittests src/lib.rs (target/debug/deps/adder-92948b65e88960b4)
 
 running 2 tests
-test tests::another ... FAILED
+test tests::un_autre ... FAILED
 test tests::exploration ... ok
 
 failures:
 
----- tests::another stdout ----
+---- tests::un_autre stdout ----
 
-thread 'tests::another' panicked at src/lib.rs:17:9:
+thread 'tests::un_autre' panicked at src/lib.rs:17:9:
 Make this test fail
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
-    tests::another
+    tests::un_autre
 
 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
@@ -405,14 +405,14 @@ error: test failed, to rerun pass `--lib`
 rg panicked listings/ch11-writing-automated-tests/listing-11-03/output.txt
 check the line number of the panic matches the line number in the following paragraph
  -->
-<p>Instead of <code>ok</code>, the line <code>test tests::another</code> shows <code>FAILED</code>. Two new sections appear between the individual results and the summary: The first displays the detailed reason for each test failure. In this case, we get the details that <code>tests::another</code> failed because it panicked with the message <code>Make this test fail</code> on line 17 in the <em>src/lib.rs</em> file. The next section lists just the names of all the failing tests, which is useful when there are lots of tests and lots of detailed failing test output. We can use the name of a failing test to run just that test to debug it more easily; we’ll talk more about ways to run tests in the <a href="ch11-02-running-tests.html#controlling-how-tests-are-run">“Controlling How Tests Are Run”</a><!-- ignore --> section.</p>
-<p>The summary line displays at the end: Overall, our test result is <code>FAILED</code>. We had one test pass and one test fail.</p>
+<p>À la place du <code>ok</code>, la ligne <code>test tests:un_autre</code> affiche <code>FAILED</code>. Deux nouvelles sections apparaissent entre la liste des tests et le résumé : la première section affiche la raison détaillée de chaque échec de test. Dans notre cas, nous obtenons les détails indiquant que <code>un_autre</code> a échoué car il a paniqué avec le message ‘Fait échouer ce test’, qui est placé à la ligne 17 du fichier <em>src/lib.rs</em>. La partie suivante liste simplement les noms de tous les tests qui ont échoué, ce qui est utile lorsqu’il y a de nombreux tests et beaucoup de détails provenant des tests qui échouent. Nous pouvons utiliser le nom d’un test qui échoue pour lancer uniquement ce test afin de déboguer plus facilement ; nous allons voir plus de façons de lancer des tests dans la <a href="ch11-02-running-tests.html#controlling-how-tests-are-run">section suivante “Gérer l’exécution des tests”</a><!-- ignore -->.</p>
+<p>La ligne de résumé s’affiche à la fin : au final, le résultat de nos tests est au statut <code>FAILED</code> (échoué). Nous avons un test réussi et un test échoué.</p>
 <p>Maintenant que vous avez vu à quoi ressemblent les résultats de tests dans différents scénarios, voyons d’autres macros que <code>panic!</code> qui nous seront utiles pour les tests.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="checking-results-with-the-assert-macro"></a></p>
-<h3 id="checking-results-with-assert"><a class="header" href="#checking-results-with-assert">Checking Results with <code>assert!</code></a></h3>
-<p>The <code>assert!</code> macro, provided by the standard library, is useful when you want to ensure that some condition in a test evaluates to <code>true</code>. We give the <code>assert!</code> macro an argument that evaluates to a Boolean. If the value is <code>true</code>, nothing happens and the test passes. If the value is <code>false</code>, the <code>assert!</code> macro calls <code>panic!</code> to cause the test to fail. Using the <code>assert!</code> macro helps us check that our code is functioning in the way we intend.</p>
-<p>In Chapter 5, Listing 5-15, we used a <code>Rectangle</code> struct and a <code>can_hold</code> method, which are repeated here in Listing 11-5. Let’s put this code in the <em>src/lib.rs</em> file, then write some tests for it using the <code>assert!</code> macro.</p>
+<h3 id="vérifier-les-résultats-avec-assert"><a class="header" href="#vérifier-les-résultats-avec-assert">Vérifier les résultats avec <code>assert!</code></a></h3>
+<p>La macro <code>assert!</code>, fournie par la bibliothèque standard, est utile lorsque vous voulez vous assurer qu’une condition dans un test vaut <code>true</code>. Nous fournissons à la macro <code>assert!</code> un argument qui donne un Booléen une fois interprété. Si la valeur est <code>true</code>, rien ne se passe et le test est réussi. Si la valeur est <code>false</code>, la macro <code>assert!</code> appelle <code>panic!</code>, qui fait échouer le test. L’utilisation de la macro <code>assert!</code> nous aide à vérifier que notre code fonctionne bien comme nous le souhaitions.</p>
+<p>Dans le chapitre 5, dans l’encart 5-15, nous avons utilisé une structure <code>Rectangle</code> et une méthode <code>peut_contenir</code>, qui sont recopiés dans l’encart 11-5 ci-dessous. Ajoutons ce code dans le fichier <em>src/lib.rs</em>, puis écrivons quelques tests en utilisant la macro <code>assert!</code>.</p>
 <figure class="listing" id="listing-11-5">
 <span class="file-name">Filename: src/lib.rs</span>
 <pre><code class="language-rust noplayground">#[derive(Debug)]
@@ -448,30 +448,30 @@ mod tests {
     use super::*;
 
     #[test]
-    fn larger_can_hold_smaller() {
-        let larger = Rectangle {
-            width: 8,
-            height: 7,
+    fn un_grand_peut_contenir_un_petit() {
+        let le_grand = Rectangle {
+            largeur: 8,
+            hauteur: 7,
         };
-        let smaller = Rectangle {
-            width: 5,
-            height: 1,
+        let le_petit = Rectangle {
+            largeur: 5,
+            hauteur: 1,
         };
 
-        assert!(larger.can_hold(&amp;smaller));
+        assert!(le_grand.peut_contenir(&amp;le_petit));
     }
 }</code></pre>
 <figcaption><a href="#listing-11-6">Listing 11-6</a>: A test for <code>can_hold</code> that checks whether a larger rectangle can indeed hold a smaller rectangle</figcaption>
 </figure>
-<p>Note the <code>use super::*;</code> line inside the <code>tests</code> module. The <code>tests</code> module is a regular module that follows the usual visibility rules we covered in Chapter 7 in the <a href="ch07-03-paths-for-referring-to-an-item-in-the-module-tree.html">“Paths for Referring to an Item in the Module Tree”</a><!-- ignore --> section. Because the <code>tests</code> module is an inner module, we need to bring the code under test in the outer module into the scope of the inner module. We use a glob here, so anything we define in the outer module is available to this <code>tests</code> module.</p>
-<p>We’ve named our test <code>larger_can_hold_smaller</code>, and we’ve created the two <code>Rectangle</code> instances that we need. Then, we called the <code>assert!</code> macro and passed it the result of calling <code>larger.can_hold(&amp;smaller)</code>. This expression is supposed to return <code>true</code>, so our test should pass. Let’s find out!</p>
+<p>Remarquez la présence de la ligne <code>use super::*;</code> à l’intérieur du module <code>tests</code>. Le module <code>tests</code> est un module classique qui suit les règles de visibilité que nous avons vues au chapitre 7 dans la section <a href="ch07-03-paths-for-referring-to-an-item-in-the-module-tree.html">“Les chemins pour désigner un élément dans l’arborescence de module”</a><!-- ignore -->. Comme le module <code>tests</code> est un module interne, nous avons besoin de ramener le code à tester qui se trouve dans son module parent dans la portée interne du module. Nous utilisons ici un opérateur global afin que tout ce que nous avons défini dans le module parent soit disponible dans le module <code>tests</code>.</p>
+<p>Nous avons nommé notre test <code>un_grand_peut_contenir_un_petit</code>, et nous avons créé les deux instances <code>Rectangle</code> dont nous avons besoin. Ensuite, nous avons appelé la macro <code>assert!</code> et nous lui avons passé le résultat de l’appel à <code>le_grand.peut_contenir(&amp;le_petit)</code>. Cette expression est censée retourner <code>true</code>, donc notre test devrait réussir. Vérifions cela !</p>
 <pre><code class="language-console">$ cargo test
    Compiling rectangle v0.1.0 (file:///projects/rectangle)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.66s
      Running unittests src/lib.rs (target/debug/deps/rectangle-6584c4561e48942e)
 
 running 1 test
-test tests::larger_can_hold_smaller ... ok
+test tests::un_grand_peut_contenir_un_petit ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
@@ -483,7 +483,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 </code></pre>
 <p>Il a réussi ! Ajoutons maintenant un autre test, qui vérifie cette fois qu’un petit rectangle ne peut contenir un rectangle plus grand :</p>
-<p><span class="filename">Filename: src/lib.rs</span></p>
+<p><span class="filename">Fichier : src/lib.rs</span></p>
 <pre><code class="language-rust noplayground"><span class="boring">#[derive(Debug)]
 </span><span class="boring">struct Rectangle {
 </span><span class="boring">    largeur: u32,
@@ -501,32 +501,32 @@ mod tests {
     use super::*;
 
     #[test]
-    fn larger_can_hold_smaller() {
+    fn un_grand_peut_contenir_un_petit() {
         // -- partie masquée ici --
-<span class="boring">        let larger = Rectangle {
-</span><span class="boring">            width: 8,
-</span><span class="boring">            height: 7,
+<span class="boring">        let le_grand = Rectangle {
+</span><span class="boring">            largeur: 8,
+</span><span class="boring">            hauteur: 7,
 </span><span class="boring">        };
-</span><span class="boring">        let smaller = Rectangle {
-</span><span class="boring">            width: 5,
-</span><span class="boring">            height: 1,
+</span><span class="boring">        let le_petit = Rectangle {
+</span><span class="boring">            largeur: 5,
+</span><span class="boring">            hauteur: 1,
 </span><span class="boring">        };
 </span><span class="boring">
-</span><span class="boring">        assert!(larger.can_hold(&amp;smaller));
+</span><span class="boring">        assert!(le_grand.peut_contenir(&amp;le_petit));
 </span>    }
 
     #[test]
-    fn smaller_cannot_hold_larger() {
-        let larger = Rectangle {
-            width: 8,
-            height: 7,
+    fn un_petit_ne_peut_pas_contenir_un_plus_grand() {
+        let le_grand = Rectangle {
+            largeur: 8,
+            hauteur: 7,
         };
-        let smaller = Rectangle {
-            width: 5,
-            height: 1,
+        let le_petit = Rectangle {
+            largeur: 5,
+            hauteur: 1,
         };
 
-        assert!(!smaller.can_hold(&amp;larger));
+        assert!(!le_petit.peut_contenir(&amp;le_grand));
     }
 }</code></pre>
 <p>Comme le résultat correct de la fonction <code>peut_contenir</code> dans ce cas doit être <code>false</code>, nous devons faire un négatif de cette fonction avant de l’envoyer à la macro <code>assert!</code>. Cela aura pour effet de faire réussir notre test si <code>peut_contenir</code> retourne <code>false</code> :</p>
@@ -536,8 +536,8 @@ mod tests {
      Running unittests src/lib.rs (target/debug/deps/rectangle-6584c4561e48942e)
 
 running 2 tests
-test tests::larger_can_hold_smaller ... ok
-test tests::smaller_cannot_hold_larger ... ok
+test tests::un_grand_peut_contenir_un_petit ... ok
+test tests::un_petit_ne_peut_pas_contenir_un_plus_grand ... ok
 
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
@@ -548,7 +548,7 @@ running 0 tests
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 </code></pre>
-<p>Two tests that pass! Now let’s see what happens to our test results when we introduce a bug in our code. We’ll change the implementation of the <code>can_hold</code> method by replacing the greater-than sign (<code>&gt;</code>) with a less-than sign (<code>&lt;</code>) when it compares the widths:</p>
+<p>Voilà deux tests qui réussissent ! Maintenant, voyons ce qui se passe dans les résultats de nos tests lorsque nous introduisons un bogue dans notre code. Changeons l’implémentation de la méthode <code>peut_contenir</code> en remplaçant l’opérateur <em>plus grand que</em> (<code>&gt;</code>) par un <em>plus petit que</em> (<code>&lt;</code>) au moment de la comparaison des largeurs :</p>
 <pre><code class="language-rust not_desired_behavior noplayground"><span class="boring">#[derive(Debug)]
 </span><span class="boring">struct Rectangle {
 </span><span class="boring">    largeur: u32,
@@ -558,7 +558,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 </span>// -- partie masquée ici --
 impl Rectangle {
     fn peut_contenir(&amp;self, autre: &amp;Rectangle) -&gt; bool {
-        self.width &lt; other.width &amp;&amp; self.height &gt; other.height
+        self.largeur &lt; autre.largeur &amp;&amp; self.hauteur &gt; autre.hauteur
     }
 }
 <span class="boring">
@@ -567,68 +567,68 @@ impl Rectangle {
 </span><span class="boring">    use super::*;
 </span><span class="boring">
 </span><span class="boring">    #[test]
-</span><span class="boring">    fn larger_can_hold_smaller() {
-</span><span class="boring">        let larger = Rectangle {
-</span><span class="boring">            width: 8,
-</span><span class="boring">            height: 7,
+</span><span class="boring">    fn un_grand_peut_contenir_un_petit() {
+</span><span class="boring">        let le_grand = Rectangle {
+</span><span class="boring">            largeur: 8,
+</span><span class="boring">            hauteur: 7,
 </span><span class="boring">        };
-</span><span class="boring">        let smaller = Rectangle {
-</span><span class="boring">            width: 5,
-</span><span class="boring">            height: 1,
+</span><span class="boring">        let le_petit = Rectangle {
+</span><span class="boring">            largeur: 5,
+</span><span class="boring">            hauteur: 1,
 </span><span class="boring">        };
 </span><span class="boring">
-</span><span class="boring">        assert!(larger.can_hold(&amp;smaller));
+</span><span class="boring">        assert!(le_grand.peut_contenir(&amp;le_petit));
 </span><span class="boring">    }
 </span><span class="boring">
 </span><span class="boring">    #[test]
-</span><span class="boring">    fn smaller_cannot_hold_larger() {
-</span><span class="boring">        let larger = Rectangle {
-</span><span class="boring">            width: 8,
-</span><span class="boring">            height: 7,
+</span><span class="boring">    fn un_petit_ne_peut_pas_contenir_un_plus_grand() {
+</span><span class="boring">        let le_grand = Rectangle {
+</span><span class="boring">            largeur: 8,
+</span><span class="boring">            hauteur: 7,
 </span><span class="boring">        };
-</span><span class="boring">        let smaller = Rectangle {
-</span><span class="boring">            width: 5,
-</span><span class="boring">            height: 1,
+</span><span class="boring">        let le_petit = Rectangle {
+</span><span class="boring">            largeur: 5,
+</span><span class="boring">            hauteur: 1,
 </span><span class="boring">        };
 </span><span class="boring">
-</span><span class="boring">        assert!(!smaller.can_hold(&amp;larger));
+</span><span class="boring">        assert!(!le_petit.peut_contenir(&amp;le_grand));
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
-<p>Running the tests now produces the following:</p>
+<p>Le lancement des tests donne maintenant le résultat suivant :</p>
 <pre><code class="language-console">$ cargo test
    Compiling rectangle v0.1.0 (file:///projects/rectangle)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.66s
      Running unittests src/lib.rs (target/debug/deps/rectangle-6584c4561e48942e)
 
 running 2 tests
-test tests::larger_can_hold_smaller ... FAILED
-test tests::smaller_cannot_hold_larger ... ok
+test tests::un_grand_peut_contenir_un_petit ... FAILED
+test tests::un_petit_ne_peut_pas_contenir_un_plus_grand ... ok
 
 failures:
 
----- tests::larger_can_hold_smaller stdout ----
+---- tests::un_grand_peut_contenir_un_petit stdout ----
 
-thread 'tests::larger_can_hold_smaller' panicked at src/lib.rs:28:9:
-assertion failed: larger.can_hold(&amp;smaller)
+thread 'tests::un_grand_peut_contenir_un_petit' panicked at src/lib.rs:28:9:
+assertion failed: le_grand.peut_contenir(&amp;le_petit)
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
-    tests::larger_can_hold_smaller
+    tests::un_grand_peut_contenir_un_petit
 
 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 error: test failed, to rerun pass `--lib`
 </code></pre>
-<p>Our tests caught the bug! Because <code>larger.width</code> is <code>8</code> and <code>smaller.width</code> is <code>5</code>, the comparison of the widths in <code>can_hold</code> now returns <code>false</code>: 8 is not less than 5.</p>
+<p>Nos tests ont repéré le bogue ! Comme <code>le_grand.largeur</code> est <code>8</code> et <code>le_petit.largeur</code> est <code>5</code>, la comparaison des largeurs dans <code>peut_contenir</code> retourne maintenant <code>false</code> : 8 n’est pas plus petit que 5.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="testing-equality-with-the-assert_eq-and-assert_ne-macros"></a></p>
-<h3 id="testing-equality-with-assert_eq-and-assert_ne"><a class="header" href="#testing-equality-with-assert_eq-and-assert_ne">Testing Equality with <code>assert_eq!</code> and <code>assert_ne!</code></a></h3>
-<p>A common way to verify functionality is to test for equality between the result of the code under test and the value you expect the code to return. You could do this by using the <code>assert!</code> macro and passing it an expression using the <code>==</code> operator. However, this is such a common test that the standard library provides a pair of macros—<code>assert_eq!</code> and <code>assert_ne!</code>—to perform this test more conveniently. These macros compare two arguments for equality or inequality, respectively. They’ll also print the two values if the assertion fails, which makes it easier to see <em>why</em> the test failed; conversely, the <code>assert!</code> macro only indicates that it got a <code>false</code> value for the <code>==</code> expression, without printing the values that led to the <code>false</code> value.</p>
-<p>In Listing 11-7, we write a function named <code>add_two</code> that adds <code>2</code> to its parameter, and then we test this function using the <code>assert_eq!</code> macro.</p>
+<h3 id="tester-légalité-avec-assert_eq-et-assert_ne"><a class="header" href="#tester-légalité-avec-assert_eq-et-assert_ne">Tester l’égalité avec <code>assert_eq!</code> et <code>assert_ne!</code></a></h3>
+<p>Une façon courante de vérifier une fonctionnalité est de tester l’égalité entre le résultat du code à tester et une valeur que vous souhaitez que le code retourne. Vous pouvez faire cela avec la macro <code>assert!</code>, en lui passant une expression qui utilise l’opérateur <code>==</code>. Cependant, c’est un test si courant que la bibliothèque standard fournit une paire de macros (<code>assert_eq!</code> et <code>assert_ne!</code>) pour procéder à ce test plus facilement. Les macros comparent respectivement l’égalité ou la non égalité de deux arguments. Elles vont aussi afficher les deux valeurs si la vérification échoue, ce qui va nous aider à comprendre <em>pourquoi</em> le test a échoué ; paradoxalement, la macro <code>assert!</code> indique seulement qu’elle a obtenu une valeur <code>false</code> de l’expression avec le <code>==</code>, mais n’affiche pas les valeurs qui l’ont menée à la valeur <code>false</code>.</p>
+<p>Dans l’encart 11-7, nous écrivons une fonction <code>ajouter_deux</code> qui ajoute <code>2</code> à son paramètre, et ensuite nous testons cette fonction en utilisant la macro <code>assert_eq!</code>.</p>
 <figure class="listing" id="listing-11-7">
 <span class="file-name">Filename: src/lib.rs</span>
-<pre><code class="language-rust noplayground">pub fn add_two(a: u64) -&gt; u64 {
+<pre><code class="language-rust noplayground">pub fn ajouter_deux(a: u64) -&gt; u64 {
     a + 2
 }
 
@@ -637,16 +637,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_adds_two() {
-        let result = add_two(2);
-        assert_eq!(result, 4);
+    fn cela_ajoute_deux() {
+        let resultat = ajouter_deux(2);
+        assert_eq!(resultat, 4);
     }
 }</code></pre>
 <figcaption><a href="#listing-11-7">Listing 11-7</a>: Testing the function <code>add_two</code> using the <code>assert_eq!</code> macro</figcaption>
 </figure>
-<p>Let’s check that it passes!</p>
+<p>Vérifions si cela fonctionne !</p>
 <pre><code class="language-console">$ cargo test
-   Compiling adder v0.1.0 (file:///projects/adder)
+   Compiling addition v0.1.0 (file:///projects/addition)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.58s
      Running unittests src/lib.rs (target/debug/deps/adder-92948b65e88960b4)
 
@@ -655,16 +655,16 @@ test tests::it_adds_two ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-   Doc-tests adder
+   Doc-tests addition
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 </code></pre>
-<p>We create a variable named <code>result</code> that holds the result of calling <code>add_two(2)</code>. Then, we pass <code>result</code> and <code>4</code> as the arguments to the <code>assert_eq!</code> macro. The output line for this test is <code>test tests::it_adds_two ... ok</code>, and the <code>ok</code> text indicates that our test passed!</p>
-<p>Let’s introduce a bug into our code to see what <code>assert_eq!</code> looks like when it fails. Change the implementation of the <code>add_two</code> function to instead add <code>3</code>:</p>
-<pre><code class="language-rust not_desired_behavior noplayground">pub fn add_two(a: u64) -&gt; u64 {
+<p>Nous créons une variable nommée <code>resultat</code> qui contient le résultat de l’appel <code>ajouter_deux(2)</code>. Ensuite, nous passons <code>resultat</code> et <code>4</code> comme arguments à la macro <code>assert_eq!</code>. La ligne de sortie correspondant à ce test est <code>test tests::cela_ajoute_deux ... ok</code>, et le texte <code>ok</code> indique que notre test a réussi !</p>
+<p>Ajoutons un bogue dans notre code pour voir ce que retourne <code>assert_eq!</code> quand il échoue. Changez l’implémentation de la fonction <code>ajouter_deux</code> pour ajouter plutôt <code>3</code> :</p>
+<pre><code class="language-rust not_desired_behavior noplayground">pub fn ajouter_deux(a: u64) -&gt; u64 {
     a + 3
 }
 <span class="boring">
@@ -673,25 +673,25 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 </span><span class="boring">    use super::*;
 </span><span class="boring">
 </span><span class="boring">    #[test]
-</span><span class="boring">    fn it_adds_two() {
-</span><span class="boring">        let result = add_two(2);
-</span><span class="boring">        assert_eq!(result, 4);
+</span><span class="boring">    fn cela_ajoute_deux() {
+</span><span class="boring">        let resultat = ajouter_deux(2);
+</span><span class="boring">        assert_eq!(resultat, 4);
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
-<p>Run the tests again:</p>
+<p>Lancez à nouveau les tests :</p>
 <pre><code class="language-console">$ cargo test
-   Compiling adder v0.1.0 (file:///projects/adder)
+   Compiling addition v0.1.0 (file:///projects/addition)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.61s
      Running unittests src/lib.rs (target/debug/deps/adder-92948b65e88960b4)
 
 running 1 test
-test tests::it_adds_two ... FAILED
+test tests::cela_ajoute_deux ... FAILED
 
 failures:
 
----- tests::it_adds_two stdout ----
+---- tests::cela_ajoute_deux stdout ----
 
-thread 'tests::it_adds_two' panicked at src/lib.rs:12:9:
+thread 'tests::cela_ajoute_deux' panicked at src/lib.rs:12:9
 assertion `left == right` failed
   left: 5
  right: 4
@@ -699,23 +699,22 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
-    tests::it_adds_two
+    tests::cela_ajoute_deux
 
 test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 error: test failed, to rerun pass `--lib`
 </code></pre>
-<p>Our test caught the bug! The <code>tests::it_adds_two</code> test failed, and the message tells us that the assertion that failed was <code>left == right</code> and what the <code>left</code> and <code>right</code> values are. This message helps us start debugging: The <code>left</code> argument, where we had the result of calling <code>add_two(2)</code>, was <code>5</code>, but the <code>right</code> argument was <code>4</code>. You can imagine that this would be especially helpful when we have a lot of tests going on.</p>
-<p>Note that in some languages and test frameworks, the parameters to equality assertion functions are called <code>expected</code> and <code>actual</code>, and the order in which we specify the arguments matters. However, in Rust, they’re called <code>left</code> and <code>right</code>, and the order in which we specify the value we expect and the value the code produces doesn’t matter. We could write the assertion in this test as <code>assert_eq!(4, result)</code>, which would result in the same failure message that displays <code>assertion `left == right` failed</code>.</p>
-<p>The <code>assert_ne!</code> macro will pass if the two values we give it are not equal and will fail if they are equal. This macro is most useful for cases when we’re not sure what a value <em>will</em> be, but we know what the value definitely <em>shouldn’t</em> be. For example, if we’re testing a function that is guaranteed to change its input in some way, but the way in which the input is changed depends on the day of the week that we run our tests, the best thing to assert might be that the output of the function is not equal to the input.</p>
-<p>Under the surface, the <code>assert_eq!</code> and <code>assert_ne!</code> macros use the operators <code>==</code> and <code>!=</code>, respectively. When the assertions fail, these macros print their arguments using debug formatting, which means the values being compared must implement the <code>PartialEq</code> and <code>Debug</code> traits. All primitive types and most of the standard library types implement these traits. For structs and enums that you define yourself, you’ll need to implement <code>PartialEq</code> to assert equality of those types. You’ll also need to implement <code>Debug</code> to print the values when the assertion fails. Because both traits are derivable traits, as mentioned in Listing 5-12 in Chapter 5, this is usually as straightforward as adding the <code>#[derive(PartialEq, Debug)]</code> annotation to your struct or enum definition. See Appendix C, <a href="appendix-03-derivable-traits.html">“Derivable Traits,”</a><!-- ignore --> for more details about these and other derivable traits.</p>
-<h3 id="adding-custom-failure-messages"><a class="header" href="#adding-custom-failure-messages">Adding Custom Failure Messages</a></h3>
-<p>You can also add a custom message to be printed with the failure message as optional arguments to the <code>assert!</code>, <code>assert_eq!</code>, and <code>assert_ne!</code> macros. Any arguments specified after the required arguments are passed along to the <code>format!</code> macro (discussed in <a href="ch08-02-strings.html#concatenating-with--or-format">“Concatenating with <code>+</code> or <code>format!</code>”</a><!--
-ignore --> in Chapter 8), so you can pass a format string that contains <code>{}</code> placeholders and values to go in those placeholders. Custom messages are useful for documenting what an assertion means; when a test fails, you’ll have a better idea of what the problem is with the code.</p>
+<p>Notre test a détecté le bogue ! Le test <code>tests::cela_ajoute_deux</code> a échoué, et le message nous informant que l’assertion a échoué est <code>(left == right)</code> et ce qu’il y a dans les valeurs <code>left</code> et <code>right</code>. Ce message nous aide à commencer le débogage : l’argument <code>left</code>, où nous avions le résultat de l’appel à <code>ajouter_deux(2)</code>, valait <code>5</code>, mais l’argument <code>right</code> valait <code>4</code>. Vous imaginez aisément que ceci doit être particulièrement utile quand il y a de nombreux tests.</p>
+<p>Notez que dans certains langages et environnements de test, les paramètres des fonctions qui vérifient que deux valeurs soient égales sont appelés <code>attendu</code> et <code>effectif</code>, et l’ordre dans lesquels nous renseignons les arguments est important. Cependant, dans Rust, on les appelle <code>gauche</code> et <code>droite</code>, et l’ordre dans lesquels nous renseignons la valeur que nous attendons et la valeur que produit le code à tester n’est pas important. Nous pouvons écrire la vérification de ce test sous la forme <code>assert_eq!(ajouter_deux(2), 4)</code>, ce qui donnera un message d’échec qui affichera <code>assertion `(left == right)` failed</code>.</p>
+<p>La macro <code>assert_ne!</code> va réussir si les deux valeurs que nous lui donnons ne sont pas égales et va échouer si elles sont égales. Cette macro est utile dans les cas où nous ne sommes pas sûrs de ce que <em>devrait</em> valoir une valeur, mais que nous savons ce que la valeur ne devrait surtout <em>pas</em> être. Par exemple, si nous testons une fonction qui doit transformer sa valeur d’entrée de manière à ce qu’elle dépende du jour de la semaine où nous lançons nos tests, la meilleure façon de vérifier serait que la sortie de la fonction ne soit pas égale à son entrée.</p>
+<p>Sous le capot, les macros <code>assert_eq!</code> et <code>assert_ne!</code> utilisent respectivement les opérateurs <code>==</code> et <code>!=</code>. Lorsque les vérifications échouent, ces macros affichent leurs arguments en utilisant le formatage de débogage, ce qui veut dire que les valeurs comparées doivent implémenter les traits <code>PartialEq</code> et <code>Debug</code>. Tous les types primitifs et la plupart des types de la bibliothèque standard implémentent ces traits. Concernant les structures et les énumérations que vous définissez, vous allez avoir besoin de leur implémenter <code>PartialEq</code> pour vérifier les égalités de ces types. Vous aurez aussi besoin d’implémenter <code>Debug</code> pour afficher les valeurs lorsque les vérifications échouent. Du fait que ces traits sont des traits dérivables, comme nous l’avons évoqué dans l’encart 5-12 du chapitre 5, il suffit généralement de simplement ajouter l’annotation <code>#[derive(PartialEq, Debug)]</code> sur les définitions de vos structures ou énumérations. Rendez-vous à <a href="appendix-03-derivable-traits.html">l’annexe C</a><!-- ignore --> pour en savoir plus sur ces derniers et les autres traits dérivables.</p>
+<h3 id="ajouter-des-messages-déchec-personnalisés"><a class="header" href="#ajouter-des-messages-déchec-personnalisés">Ajouter des messages d’échec personnalisés</a></h3>
+<p>Vous pouvez aussi ajouter un message personnalisé qui peut être affiché avec le message d’échec comme un argument optionnel aux macros <code>assert!</code>, <code>assert_eq!</code>, et <code>assert_ne!</code>. Tous les arguments renseignés après les arguments obligatoires sont envoyés à la macro <code>format!</code> (que nous avons vue dans la section <a href="ch08-02-strings.html#concat%C3%A9nation-avec--ou-format">“Concaténation avec + ou format!”</a> du chapitre 8, ainsi vous pouvez passer une chaîne de caractères de formatage qui contient des espaces réservés <code>{}</code> et les valeurs iront dans ces espaces réservés. Les messages personnalisés sont utiles pour documenter ce que fait une vérification ; lorsqu’un test échoue, vous aurez une idée plus précise du problème avec ce code.</p>
 <p>Par exemple, disons que nous avons une fonction qui accueille les gens par leur nom et que nous voulons tester que le nom que nous envoyons à la fonction apparaît dans le résultat :</p>
-<p><span class="filename">Filename: src/lib.rs</span></p>
-<pre><code class="language-rust noplayground">pub fn greeting(name: &amp;str) -&gt; String {
-    format!("Hello {name}!")
+<p><span class="filename">Fichier : src/lib.rs</span></p>
+<pre><code class="language-rust noplayground">pub fn accueil(nom: &amp;str) -&gt; String {
+    format!("Salut, {nom} !")
 }
 
 #[cfg(test)]
@@ -723,15 +722,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn greeting_contains_name() {
-        let result = greeting("Carol");
-        assert!(result.contains("Carol"));
+    fn accueil_contient_le_nom() {
+        let resultat = accueil("Carole");
+        assert!(resultat.contains("Carole"));
     }
 }</code></pre>
 <p>Les spécifications de ce programme n’ont pas été validées entièrement pour le moment, et on est quasiment sûr que le texte <code>Salut</code> au début va changer. Nous avons décidé que nous ne devrions pas à avoir à changer le test si les spécifications changent, donc plutôt que de vérifier l’égalité exacte de la valeur retournée par la fonction <code>accueil</code>, nous allons uniquement vérifier que le résultat contient le texte correspondant au paramètre d’entrée de la fonction.</p>
-<p>Now let’s introduce a bug into this code by changing <code>greeting</code> to exclude <code>name</code> to see what the default test failure looks like:</p>
-<pre><code class="language-rust not_desired_behavior noplayground">pub fn greeting(name: &amp;str) -&gt; String {
-    String::from("Hello!")
+<p>Introduisons maintenant un bogue dans ce code en changeant <code>accueil</code> pour ne pas ajouter <code>nom</code> afin de voir ce que donne l’échec de ce test :</p>
+<pre><code class="language-rust not_desired_behavior noplayground">pub fn accueil(nom: &amp;str) -&gt; String {
+    String::from("Salut !")
 }
 <span class="boring">
 </span><span class="boring">#[cfg(test)]
@@ -739,39 +738,39 @@ mod tests {
 </span><span class="boring">    use super::*;
 </span><span class="boring">
 </span><span class="boring">    #[test]
-</span><span class="boring">    fn greeting_contains_name() {
-</span><span class="boring">        let result = greeting("Carol");
-</span><span class="boring">        assert!(result.contains("Carol"));
+</span><span class="boring">    fn accueil_contient_le_nom() {
+</span><span class="boring">        let resultat = accueil("Carole");
+</span><span class="boring">        assert!(resultat.contains("Carole"));
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
-<p>Running this test produces the following:</p>
+<p>L’exécution du test va donner ceci :</p>
 <pre><code class="language-console">$ cargo test
    Compiling greeter v0.1.0 (file:///projects/greeter)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.91s
      Running unittests src/lib.rs (target/debug/deps/greeter-170b942eb5bf5e3a)
 
 running 1 test
-test tests::greeting_contains_name ... FAILED
+test tests::accueil_contient_le_nom ... FAILED
 
 failures:
 
----- tests::greeting_contains_name stdout ----
+---- tests::accueil_contient_le_nom stdout ----
 
-thread 'tests::greeting_contains_name' panicked at src/lib.rs:12:9:
-assertion failed: result.contains("Carol")
+thread 'tests::accueil_contient_le_nom' panicked at src/lib.rs:12:9:
+assertion failed: resultat.contains("Carole")'
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
-    tests::greeting_contains_name
+    tests::accueil_contient_le_nom
 
 test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 error: test failed, to rerun pass `--lib`
 </code></pre>
-<p>This result just indicates that the assertion failed and which line the assertion is on. A more useful failure message would print the value from the <code>greeting</code> function. Let’s add a custom failure message composed of a format string with a placeholder filled in with the actual value we got from the <code>greeting</code> function:</p>
-<pre><code class="language-rust ignore"><span class="boring">pub fn greeting(name: &amp;str) -&gt; String {
-</span><span class="boring">    String::from("Hello!")
+<p>Ce résultat indique simplement que la vérification a échoué, et à quel endroit. Le message d’échec serait plus utile dans notre cas s’il affichait la valeur que nous obtenons de la fonction <code>accueil</code>. Ajoutons un message d’erreur personnalisé composé d’une chaîne de caractères de formatage avec un espace réservé qui contiendra la valeur que nous avons obtenue de la fonction <code>accueil</code> :</p>
+<pre><code class="language-rust ignore"><span class="boring">pub fn accueil(nom: &amp;str) -&gt; String {
+</span><span class="boring">    String::from("Salut !")
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">#[cfg(test)]
@@ -779,43 +778,43 @@ error: test failed, to rerun pass `--lib`
 </span><span class="boring">    use super::*;
 </span><span class="boring">
 </span>    #[test]
-    fn greeting_contains_name() {
-        let result = greeting("Carol");
+    fn accueil_contient_le_nom() {
+        let resultat = accueil("Carole");
         assert!(
-            result.contains("Carol"),
-            "Greeting did not contain name, value was `{result}`"
+            resultat.contains("Carole"),
+            "Le message d'accueil ne contient pas le nom, il vaut `{resultat}`"
         );
     }
 <span class="boring">}</span></code></pre>
-<p>Now when we run the test, we’ll get a more informative error message:</p>
+<p>Maintenant, lorsque nous lançons à nouveau le test, nous obtenons un message d’échec plus explicite :</p>
 <pre><code class="language-console">$ cargo test
    Compiling greeter v0.1.0 (file:///projects/greeter)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.93s
      Running unittests src/lib.rs (target/debug/deps/greeter-170b942eb5bf5e3a)
 
 running 1 test
-test tests::greeting_contains_name ... FAILED
+test tests::accueil_contient_le_nom ... FAILED
 
 failures:
 
----- tests::greeting_contains_name stdout ----
+---- tests::accueil_contient_le_nom stdout ----
 
-thread 'tests::greeting_contains_name' panicked at src/lib.rs:12:9:
-Greeting did not contain name, value was `Hello!`
+thread 'tests::accueil_contient_le_nom' panicked at src/lib.rs:12:9:
+Le message d'accueil ne contient pas le nom, il vaut `Salut !`
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
-    tests::greeting_contains_name
+    tests::accueil_contient_le_nom
 
 test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 error: test failed, to rerun pass `--lib`
 </code></pre>
 <p>Nous pouvons voir la valeur que nous avons obtenue lors de la lecture du résultat du test, ce qui va nous aider à déboguer ce qui s’est passé à la place de ce que nous voulions qu’il se passe.</p>
-<h3 id="checking-for-panics-with-should_panic"><a class="header" href="#checking-for-panics-with-should_panic">Checking for Panics with <code>should_panic</code></a></h3>
-<p>In addition to checking return values, it’s important to check that our code handles error conditions as we expect. For example, consider the <code>Guess</code> type that we created in Chapter 9, Listing 9-13. Other code that uses <code>Guess</code> depends on the guarantee that <code>Guess</code> instances will contain only values between 1 and 100. We can write a test that ensures that attempting to create a <code>Guess</code> instance with a value outside that range panics.</p>
-<p>We do this by adding the attribute <code>should_panic</code> to our test function. The test passes if the code inside the function panics; the test fails if the code inside the function doesn’t panic.</p>
+<h3 id="vérifier-le-fonctionnement-des-paniques-avec-should_panic"><a class="header" href="#vérifier-le-fonctionnement-des-paniques-avec-should_panic">Vérifier le fonctionnement des paniques avec <code>should_panic</code></a></h3>
+<p>En plus de vérifier les valeurs retournées, il est important de vérifier que notre code gère bien les cas d’erreurs comme nous le souhaitons. Par exemple, utilisons le type <code>Supposition</code> que nous avons créé au chapitre 9, dans l’encart 9-13. Les autres codes qui utilisent <code>Supposition</code> reposent sur la garantie que les instances de <code>Supposition</code> contiennent uniquement des valeurs entre 1 et 100. Nous pouvons écrire un test qui s’assure que la création d’une instance de <code>Supposition</code> avec une valeur en dehors de cette intervalle va faire paniquer le programme.</p>
+<p>Nous allons vérifier cela en ajoutant l’attribut <code>should_panic</code> à notre fonction de test. Le test réussit si le code à l’intérieur de la fonction fait paniquer ; le test va échouer si le code à l’intérieur de la fonction ne panique pas.</p>
 <p>L’encart 11-8 nous montre un test qui vérifie que les conditions d’erreur de <code>Supposition::new</code> fonctionne bien comme nous l’avons prévu.</p>
 <figure class="listing" id="listing-11-8">
 <span class="file-name">Filename: src/lib.rs</span>
@@ -839,8 +838,8 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn greater_than_100() {
-        Guess::new(200);
+    fn plus_grand_que_100() {
+        Supposition::new(200);
     }
 }</code></pre>
 <figcaption><a href="#listing-11-8">Listing 11-8</a>: Testing that a condition will cause a <code>panic!</code></figcaption>
@@ -852,11 +851,11 @@ mod tests {
      Running unittests src/lib.rs (target/debug/deps/guessing_game-57d70c3acb738f4d)
 
 running 1 test
-test tests::greater_than_100 - should panic ... ok
+test tests::plus_grand_que_100 - should panic ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-   Doc-tests guessing_game
+   Doc-tests jeu_du_plus_ou_du_moins
 
 running 0 tests
 
@@ -871,7 +870,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 </span>// -- partie masquée ici --
 impl Supposition {
     pub fn new(valeur: i32) -&gt; Supposition {
-        if value &lt; 1 {
+        if valeur &lt; 1 {
             panic!("La valeur doit être comprise entre 1 and 100, on a {valeur}.");
         }
 
@@ -885,33 +884,33 @@ impl Supposition {
 </span><span class="boring">
 </span><span class="boring">    #[test]
 </span><span class="boring">    #[should_panic]
-</span><span class="boring">    fn greater_than_100() {
-</span><span class="boring">        Guess::new(200);
+</span><span class="boring">    fn plus_grand_que_100() {
+</span><span class="boring">        Supposition::new(200);
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
-<p>When we run the test in Listing 11-8, it will fail:</p>
+<p>Lorsque nous lançons le test de l’encart 11-8, il va échouer :</p>
 <pre><code class="language-console">$ cargo test
    Compiling jeu_du_plus_ou_du_moins v0.1.0 (file:///projects/jeu_du_plus_ou_du_moins)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.62s
      Running unittests src/lib.rs (target/debug/deps/guessing_game-57d70c3acb738f4d)
 
 running 1 test
-test tests::greater_than_100 - should panic ... FAILED
+test tests::plus_grand_que_100 - should panic ... FAILED
 
 failures:
 
----- tests::greater_than_100 stdout ----
+---- tests::plus_grand_que_100 stdout ----
 note: test did not panic as expected at src/lib.rs:21:8
 
 failures:
-    tests::greater_than_100
+    tests::plus_grand_que_100
 
 test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 error: test failed, to rerun pass `--lib`
 </code></pre>
 <p>Dans ce cas, nous n’obtenons pas de message très utile, mais lorsque nous regardons la fonction de test, nous constatons qu’elle est marquée avec <code>#[should_panic]</code>. L’échec que nous obtenons signifie que le code dans la fonction de test n’a pas fait paniquer.</p>
-<p>Tests that use <code>should_panic</code> can be imprecise. A <code>should_panic</code> test would pass even if the test panics for a different reason from the one we were expecting. To make <code>should_panic</code> tests more precise, we can add an optional <code>expected</code> parameter to the <code>should_panic</code> attribute. The test harness will make sure that the failure message contains the provided text. For example, consider the modified code for <code>Guess</code> in Listing 11-9 where the <code>new</code> function panics with different messages depending on whether the value is too small or too large.</p>
+<p>Les tests qui utilisent <code>should_panic</code> ne sont parfois pas assez explicites. Un test <code>should_panic</code> peut réussir, même si le test panique pour une raison différente de celle que nous attendions. Pour rendre les tests <code>should_panic</code> plus précis, nous pouvons ajouter un paramètre optionnel <code>expected</code> à l’attribut <code>should_panic</code>. Le système de test va s’assurer que le message d’échec contient bien le texte renseigné. Par exemple, imaginons le code modifié de <code>Supposition</code> dans l’encart 11-9 où la fonction <code>new</code> panique avec des messages différents si la valeur est trop petite ou trop grande.</p>
 <figure class="listing" id="listing-11-9">
 <span class="file-name">Filename: src/lib.rs</span>
 <pre><code class="language-rust noplayground"><span class="boring">pub struct Supposition {
@@ -922,13 +921,13 @@ error: test failed, to rerun pass `--lib`
 
 impl Supposition {
     pub fn new(valeur: i32) -&gt; Supposition {
-        if value &lt; 1 {
+        if valeur &lt; 1 {
             panic!(
-                "Guess value must be greater than or equal to 1, got {value}."
+                "La supposition doit être plus grande ou égale à 1, et nous avons {valeur}."
             );
-        } else if value &gt; 100 {
+        } else if valeur &gt; 100 {
             panic!(
-                "Guess value must be less than or equal to 100, got {value}."
+                "La supposition doit être plus petite ou égale à 100, et nous avons {valeur}."
             );
         }
 
@@ -941,14 +940,14 @@ mod tests {
     use super::*;
 
     #[test]
-    #[should_panic(expected = "less than or equal to 100")]
-    fn greater_than_100() {
-        Guess::new(200);
+    #[should_panic(expected = "inférieur ou égal à 100")]
+    fn plus_grand_que_100() {
+        Supposition::new(200);
     }
 }</code></pre>
 <figcaption><a href="#listing-11-9">Listing 11-9</a>: Testing for a <code>panic!</code> with a panic message containing a specified substring</figcaption>
 </figure>
-<p>This test will pass because the value we put in the <code>should_panic</code> attribute’s <code>expected</code> parameter is a substring of the message that the <code>Guess::new</code> function panics with. We could have specified the entire panic message that we expect, which in this case would be <code>Guess value must be less than or equal to 100, got 200</code>. What you choose to specify depends on how much of the panic message is unique or dynamic and how precise you want your test to be. In this case, a substring of the panic message is enough to ensure that the code in the test function executes the <code>else if value &gt; 100</code> case.</p>
+<p>Ce test va réussir car la valeur que nous insérons dans l’attribut <code>expected</code> de <code>should_panic</code> est une partie du message de panique de la fonction <code>Supposition::new</code>. Nous aurions pu renseigner le message de panique en entier que nous attendions, qui dans ce cas est <code>La supposition doit être plus petite ou égale à 100, et nous avons 200.</code>. Ce que vous choisissez de renseigner dépend de la mesure dans laquelle le message de panique est unique ou dynamique et de la précision de votre test que vous souhaitez appliquer. Dans ce cas, un extrait du message de panique est suffisant pour s’assurer que le code de la fonction de test s’exécute dans le cas du <code>else if valeur &gt; 100</code>.</p>
 <p>Pour voir ce qui se passe lorsqu’un test <code>should_panic</code> qui a un message <code>expected</code> qui échoue, essayons à nouveau d’introduire un bogue dans notre code en permutant les corps des blocs de <code>if valeur &lt; 1</code> et de <code>else if valeur &gt; 100</code> :</p>
 <pre><code class="language-rust ignore not_desired_behavior"><span class="boring">pub struct Supposition {
 </span><span class="boring">    valeur: i32,
@@ -956,13 +955,13 @@ mod tests {
 </span><span class="boring">
 </span><span class="boring">impl Supposition {
 </span><span class="boring">    pub fn new(valeur: i32) -&gt; Supposition {
-</span>        if value &lt; 1 {
+</span>        if valeur &lt; 1 {
             panic!(
-                "Guess value must be less than or equal to 100, got {value}."
+                "La supposition doit être plus petite ou égale à 100, et nous avons {valeur}."
             );
-        } else if value &gt; 100 {
+        } else if valeur &gt; 100 {
             panic!(
-                "Guess value must be greater than or equal to 1, got {value}."
+                "La supposition doit être plus grande ou égale à 1, et nous avons {valeur}."
             );
         }
 <span class="boring">
@@ -975,43 +974,43 @@ mod tests {
 </span><span class="boring">    use super::*;
 </span><span class="boring">
 </span><span class="boring">    #[test]
-</span><span class="boring">    #[should_panic(expected = "less than or equal to 100")]
-</span><span class="boring">    fn greater_than_100() {
-</span><span class="boring">        Guess::new(200);
+</span><span class="boring">    #[should_panic(expected = "inférieur ou égal à 100")]
+</span><span class="boring">    fn plus_grand_que_100() {
+</span><span class="boring">        Supposition::new(200);
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
-<p>This time when we run the <code>should_panic</code> test, it will fail:</p>
+<p>Cette fois, lorsque nous lançons le test avec <code>should_panic</code>, il devrait échouer :</p>
 <pre><code class="language-console">$ cargo test
    Compiling jeu_du_plus_ou_du_moins v0.1.0 (file:///projects/jeu_du_plus_ou_du_moins)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.66s
      Running unittests src/lib.rs (target/debug/deps/guessing_game-57d70c3acb738f4d)
 
 running 1 test
-test tests::greater_than_100 - should panic ... FAILED
+test tests::plus_grand_que_100 - should panic ... FAILED
 
 failures:
 
----- tests::greater_than_100 stdout ----
+---- tests::plus_grand_que_100 stdout ----
 
 thread 'tests::greater_than_100' panicked at src/lib.rs:12:13:
-Guess value must be greater than or equal to 1, got 200.
+La supposition doit être plus grande ou égale à 1, et nous avons 200.
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 note: panic did not contain expected string
-      panic message: "Guess value must be greater than or equal to 1, got 200."
- expected substring: "less than or equal to 100"
+      panic message: `"La supposition doit être plus grande ou égale à 1, et nous avons 200."`,
+ expected substring: "inférieur ou égal à 100"
 
 failures:
-    tests::greater_than_100
+    tests::plus_grand_que_100
 
 test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 error: test failed, to rerun pass `--lib`
 </code></pre>
-<p>The failure message indicates that this test did indeed panic as we expected, but the panic message did not include the expected string <code>less than or equal to 100</code>. The panic message that we did get in this case was <code>Guess value must be greater than or equal to 1, got 200</code>. Now we can start figuring out where our bug is!</p>
-<h3 id="using-resultt-e-in-tests"><a class="header" href="#using-resultt-e-in-tests">Using <code>Result&lt;T, E&gt;</code> in Tests</a></h3>
-<p>All of our tests so far panic when they fail. We can also write tests that use <code>Result&lt;T, E&gt;</code>! Here’s the test from Listing 11-1, rewritten to use <code>Result&lt;T, E&gt;</code> and return an <code>Err</code> instead of panicking:</p>
-<pre><code class="language-rust noplayground"><span class="boring">pub fn add(left: u64, right: u64) -&gt; u64 {
-</span><span class="boring">    left + right
+<p>Le message d’échec nous informe que ce test a paniqué comme prévu, mais que le message de panique n’inclut pas la chaîne de caractères prévue <code>'inférieur ou égal à 100'</code>. Le message de panique que nous avons obtenu dans ce cas était <code>La supposition doit être plus grande ou égale à 1, et nous avons 200.</code>. Maintenant, on comprend mieux où est le bogue !</p>
+<h3 id="utiliser-resultt-e-dans-les-tests"><a class="header" href="#utiliser-resultt-e-dans-les-tests">Utiliser <code>Result&lt;T, E&gt;</code> dans les tests</a></h3>
+<p>Jusqu’ici, tous nos tests paniquent lorsqu’ils échouent. Nous pouvons également écrire des tests qui utilisent <code>Result&lt;T, E&gt;</code> ! Voici le test de l’encart 11-1, réécrit pour utiliser <code>Result&lt;T, E&gt;</code> et retourner une <code>Err</code> au lieu de paniquer :</p>
+<pre><code class="language-rust noplayground"><span class="boring">pub fn additionne(gauche: u64, droite: u64) -&gt; u64 {
+</span><span class="boring">    gauche + droite
 </span><span class="boring">}
 </span><span class="boring">
 </span>#[cfg(test)]
@@ -1019,19 +1018,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_works() -&gt; Result&lt;(), String&gt; {
-        let result = add(2, 2);
+    fn cela_fonctionne() -&gt; Result&lt;(), String&gt; {
+        let resultat = additionne(2, 2);
 
-        if result == 4 {
+        if resultat == 4 {
             Ok(())
         } else {
-            Err(String::from("two plus two does not equal four"))
+            Err(String::from("deux plus deux ne vaut pas quatre"))
         }
     }
 }</code></pre>
-<p>The <code>it_works</code> function now has the <code>Result&lt;(), String&gt;</code> return type. In the body of the function, rather than calling the <code>assert_eq!</code> macro, we return <code>Ok(())</code> when the test passes and an <code>Err</code> with a <code>String</code> inside when the test fails.</p>
-<p>Writing tests so that they return a <code>Result&lt;T, E&gt;</code> enables you to use the question mark operator in the body of tests, which can be a convenient way to write tests that should fail if any operation within them returns an <code>Err</code> variant.</p>
-<p>You can’t use the <code>#[should_panic]</code> annotation on tests that use <code>Result&lt;T, E&gt;</code>. To assert that an operation returns an <code>Err</code> variant, <em>don’t</em> use the question mark operator on the <code>Result&lt;T, E&gt;</code> value. Instead, use <code>assert!(value.is_err())</code>.</p>
+<p>La fonction <code>cela_fonctionne</code> a maintenant le type de retour <code>Result&lt;(), String&gt;</code>. Dans le corps de la fonction, plutôt que d’appeler la macro <code>assert_eq!</code>, nous retournons <code>Ok(())</code> lorsque le test réussit et une <code>Err</code> avec une <code>String</code> à l’intérieur lorsque le test échoue.</p>
+<p>Écrire vos tests afin qu’ils retournent un <code>Result&lt;T, E&gt;</code> vous permet d’utiliser l’opérateur <em>point d’interrogation</em> dans le corps des tests, ce qui est un outil facile à utiliser pour écrire des tests qui peuvent échouer si n’importe quelle opération en son sein retourne une variante de <code>Err</code>.</p>
+<p>Vous ne pouvez pas utiliser l’annotation <code>#[should_panic]</code> sur les tests qui utilisent <code>Result&lt;T, E&gt;</code>. Pour vérifier qu’une opération retourne une variante <code>Err</code>, <em>n’utilisez pas</em> l’opérateur “point d’interrogation” sur la valeur de type <code>Result&lt;T, E&gt;</code>. À la place, utilisez plutôt <code>assert!(valeur.is_err())</code>.</p>
 <p>Maintenant que vous avez appris différentes manières d’écrire des tests, voyons ce qui se passe lorsque nous lançons nos tests et explorons les différentes options que nous pouvons utiliser avec <code>cargo test</code>.</p>
 
                     </main>
