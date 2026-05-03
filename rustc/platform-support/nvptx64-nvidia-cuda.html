@@ -92,7 +92,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e289661f.js";
+            window.path_to_searchindex_js = "../searchindex-20bfc3fa.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f12d3f0b.js"></script>
@@ -257,11 +257,25 @@ The necessary components for this workflow are:</p>
 <li><code>rustup target add nvptx64-nvidia-cuda --toolchain nightly</code></li>
 </ul>
 <h3 id="target-and-features"><a class="header" href="#target-and-features">Target and features</a></h3>
-<p>It is generally necessary to specify the target, such as <code>-C target-cpu=sm_89</code>, because the default is very old. This implies two target features: <code>sm_89</code> and <code>ptx78</code> (and all preceding features within <code>sm_*</code> and <code>ptx*</code>). Rust will default to using the oldest PTX version that supports the target processor (see <a href="https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#release-notes-ptx-release-history">this table</a>), which maximizes driver compatibility.
-One can use <code>-C target-feature=+ptx80</code> to choose a later PTX version without changing the target (the default in this case, <code>ptx78</code>, requires CUDA driver version 11.8, while <code>ptx80</code> would require driver version 12.0).
+<p>It is often beneficial to specify the target SM architecture, such as <code>-C target-cpu=sm_89</code>, because the default prioritizes broad compatibility rather than performance. Doing so also selects the PTX version as the <em>maximum</em> of (a) the oldest PTX version that supports the chosen target processor (see <a href="https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#release-notes-ptx-release-history">this table</a>) and (b) the oldest PTX version supported by the Rust toolchain, which maximizes driver compatibility.
+One can use <code>-C target-feature=+ptx80</code> to choose a later PTX version without changing the target SM architecture (the default in this case, <code>ptx78</code>, requires CUDA driver version 11.8, while <code>ptx80</code> would require driver version 12.0).
 Later PTX versions may allow more efficient code generation.</p>
 <p>Although Rust follows LLVM in representing <code>ptx*</code> and <code>sm_*</code> as target features, they should be thought of as having crate granularity, set via (either via <code>-Ctarget-cpu</code> and optionally <code>-Ctarget-feature</code>).
 While the compiler accepts <code>#[target_feature(enable = "ptx80", enable = "sm_89")]</code>, it is not supported, may not behave as intended, and may become erroneous in the future.</p>
+<h2 id="minimum-sm-and-ptx-support-by-rust-version"><a class="header" href="#minimum-sm-and-ptx-support-by-rust-version">Minimum SM and PTX support by Rust version</a></h2>
+<p>Support for old hardware architectures and PTX ISA versions is periodically dropped. This table shows the minimum supported versions per Rust version.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rust</th><th>SM minimum</th><th>PTX ISA minimum</th></tr>
+</thead>
+<tbody>
+<tr><td>- 1.96</td><td>2.0</td><td>3.2</td></tr>
+<tr><td>1.97 - TBD</td><td>7.0 (Volta+)</td><td>7.0 (CUDA 11+)</td></tr>
+</tbody>
+</table>
+</div>
+<p>For a full overview of which GPUs support code built for a specific SM version, see the <a href="https://developer.nvidia.com/cuda/gpus">CUDA GPU Compute Capability documentation</a>.</p>
 <h2 id="building-rust-kernels"><a class="header" href="#building-rust-kernels">Building Rust kernels</a></h2>
 <p>A <code>no_std</code> crate containing one or more functions with <code>extern "ptx-kernel"</code> can be compiled to PTX using a command like the following.</p>
 <pre><code class="language-console">$ RUSTFLAGS='-Ctarget-cpu=sm_89' cargo +nightly rustc --target=nvptx64-nvidia-cuda -Zbuild-std=core --crate-type=cdylib

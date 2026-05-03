@@ -93,7 +93,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e289661f.js";
+            window.path_to_searchindex_js = "searchindex-20bfc3fa.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f12d3f0b.js"></script>
@@ -4020,10 +4020,9 @@ In situations where you need to do your own demangling, the <a href="https://cra
 foo::example_function
 </code></pre>
 <h2 id="mangling-versions"><a class="header" href="#mangling-versions">Mangling versions</a></h2>
-<p><code>rustc</code> supports different mangling versions which encode the names in different ways.
-The legacy version (which is currently the default on beta/stable) is not described here.
-The “v0” mangling scheme addresses several limitations of the legacy format,
-and is described in the <a href="#v0-symbol-format">v0 Symbol Format</a> chapter.</p>
+<p>There is currently one stable mangling scheme version - <code>v0</code>. On nightly builds, rustc supports
+switching back to the <code>legacy</code> mangling scheme using <a href="#symbol-mangling-version"><code>-C symbol-mangling-version</code></a>. The <code>v0</code>
+mangling scheme is described in the <a href="#v0-symbol-format">v0 Symbol Format</a> chapter.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="v0-symbol-format"><a class="header" href="#v0-symbol-format">v0 Symbol Format</a></h1>
 <p>The v0 mangling format was introduced in <a href="https://rust-lang.github.io/rfcs/2603-rust-symbol-name-mangling-v0.html">RFC 2603</a>.
@@ -7059,11 +7058,6 @@ pub extern "gpu-kernel" fn kernel(/* Arguments */) {
 <pre><code class="language-toml"># Cargo.toml
 [lib]
 crate-type = ["cdylib"]
-
-[profile.dev]
-lto = true # LTO must be explicitly enabled for now
-[profile.release]
-lto = true
 </code></pre>
 <p>The target-cpu must be from the list <a href="https://llvm.org/docs/AMDGPUUsage.html#processors">supported by LLVM</a> (or printed with <code>rustc --target amdgcn-amd-amdhsa --print target-cpus</code>).
 The GPU version on the current system can be found e.g. with <a href="https://github.com/ROCm/rocminfo"><code>rocminfo</code></a>.
@@ -11132,11 +11126,25 @@ The necessary components for this workflow are:</p>
 <li><code>rustup target add nvptx64-nvidia-cuda --toolchain nightly</code></li>
 </ul>
 <h3 id="target-and-features"><a class="header" href="#target-and-features">Target and features</a></h3>
-<p>It is generally necessary to specify the target, such as <code>-C target-cpu=sm_89</code>, because the default is very old. This implies two target features: <code>sm_89</code> and <code>ptx78</code> (and all preceding features within <code>sm_*</code> and <code>ptx*</code>). Rust will default to using the oldest PTX version that supports the target processor (see <a href="https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#release-notes-ptx-release-history">this table</a>), which maximizes driver compatibility.
-One can use <code>-C target-feature=+ptx80</code> to choose a later PTX version without changing the target (the default in this case, <code>ptx78</code>, requires CUDA driver version 11.8, while <code>ptx80</code> would require driver version 12.0).
+<p>It is often beneficial to specify the target SM architecture, such as <code>-C target-cpu=sm_89</code>, because the default prioritizes broad compatibility rather than performance. Doing so also selects the PTX version as the <em>maximum</em> of (a) the oldest PTX version that supports the chosen target processor (see <a href="https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#release-notes-ptx-release-history">this table</a>) and (b) the oldest PTX version supported by the Rust toolchain, which maximizes driver compatibility.
+One can use <code>-C target-feature=+ptx80</code> to choose a later PTX version without changing the target SM architecture (the default in this case, <code>ptx78</code>, requires CUDA driver version 11.8, while <code>ptx80</code> would require driver version 12.0).
 Later PTX versions may allow more efficient code generation.</p>
 <p>Although Rust follows LLVM in representing <code>ptx*</code> and <code>sm_*</code> as target features, they should be thought of as having crate granularity, set via (either via <code>-Ctarget-cpu</code> and optionally <code>-Ctarget-feature</code>).
 While the compiler accepts <code>#[target_feature(enable = "ptx80", enable = "sm_89")]</code>, it is not supported, may not behave as intended, and may become erroneous in the future.</p>
+<h2 id="minimum-sm-and-ptx-support-by-rust-version"><a class="header" href="#minimum-sm-and-ptx-support-by-rust-version">Minimum SM and PTX support by Rust version</a></h2>
+<p>Support for old hardware architectures and PTX ISA versions is periodically dropped. This table shows the minimum supported versions per Rust version.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rust</th><th>SM minimum</th><th>PTX ISA minimum</th></tr>
+</thead>
+<tbody>
+<tr><td>- 1.96</td><td>2.0</td><td>3.2</td></tr>
+<tr><td>1.97 - TBD</td><td>7.0 (Volta+)</td><td>7.0 (CUDA 11+)</td></tr>
+</tbody>
+</table>
+</div>
+<p>For a full overview of which GPUs support code built for a specific SM version, see the <a href="https://developer.nvidia.com/cuda/gpus">CUDA GPU Compute Capability documentation</a>.</p>
 <h2 id="building-rust-kernels"><a class="header" href="#building-rust-kernels">Building Rust kernels</a></h2>
 <p>A <code>no_std</code> crate containing one or more functions with <code>extern "ptx-kernel"</code> can be compiled to PTX using a command like the following.</p>
 <pre><code class="language-console">$ RUSTFLAGS='-Ctarget-cpu=sm_89' cargo +nightly rustc --target=nvptx64-nvidia-cuda -Zbuild-std=core --crate-type=cdylib
@@ -13489,7 +13497,7 @@ documentation there for more information.</p>
 <p><a href="https://github.com/arjunr2">@arjunr2</a></p>
 <h2 id="requirements-96"><a class="header" href="#requirements-96">Requirements</a></h2>
 <h3 id="compilation"><a class="header" href="#compilation">Compilation</a></h3>
-<p>This target is cross-compiled and requires an installation of the <a href="https://github.com/arjunr2/WALI">WALI compiler/sysroot</a>. This produces standard <code>wasm32</code> binaries with the WALI interface methods as module imports that need to be implemented by a supported engine (see the  “Execution” section below).</p>
+<p>This target is cross-compiled and requires an installation of the <a href="https://github.com/Wasm-Thin-Kernel-Interfaces/WALI.git">WALI sysroot</a>. This produces standard <code>wasm32</code> binaries with the WALI interface methods as module imports that need to be implemented by a supported engine (see the  “Execution” section below).</p>
 <p><code>wali</code> targets <em>minimally require</em> the following LLVM feature flags:</p>
 <ul>
 <li><a href="https://github.com/WebAssembly/spec/blob/main/proposals/bulk-memory-operations/Overview.md">Bulk memory</a> - <code>+bulk-memory</code></li>
@@ -13501,7 +13509,7 @@ documentation there for more information.</p>
 <p><strong>Note</strong>: Users can expect that new enabled-by-default Wasm features for LLVM are transitively incorporatable into this target – see <a href="#wasm32-unknown-unknown">wasm32-unknown-unknown</a> for detailed information on WebAssembly features.</p>
 </blockquote>
 <blockquote>
-<p><strong>Note</strong>: The WALI ABI is similar to default Clang wasm32 ABIs but <em>not identical</em>. The primary difference is 64-bit <code>long</code> types as opposed to 32-bit for wasm32. This is required to maintain minimum source code changes for 64-bit host platforms currently supported. This may change in the future as the spec evolves.</p>
+<p><strong>Note</strong>: The WALI ABI is <em>not identical</em> to the <code>wasm32-wasip2</code> or <code>wasm32-unknown-unknown</code> ABI. The primary difference is 64-bit <code>long</code> types as opposed to 32-bit for wasm32. This is required to maximize portability with minimum source code changes for currently supported 64-bit host platforms. These ABIs may converge in the future as the spec evolves.</p>
 </blockquote>
 <h3 id="execution"><a class="header" href="#execution">Execution</a></h3>
 <p>Running generated WALI binaries also requires a supported compliant engine implementation – a working implementation in the <a href="https://github.com/arjunr2/WALI">WebAssembly Micro-Runtime (WAMR)</a> is included in the repo.</p>
@@ -13510,32 +13518,24 @@ documentation there for more information.</p>
 </blockquote>
 <h2 id="building-the-target-66"><a class="header" href="#building-the-target-66">Building the target</a></h2>
 <p>You can build Rust with support for the target by adding it to the <code>target</code>
-list in <code>config.toml</code>, and pointing to the toolchain artifacts from the previous section (“Requirements-&gt;Compilation”). A sample <code>config.toml</code> for the <code>musl</code> environment will look like this, where <code>&lt;WALI-root&gt;</code> is the absolute path to the root directory of the <a href="https://github.com/arjunr2/WALI">WALI repo</a>:</p>
+list in <code>bootstrap.toml</code>, and pointing to the toolchain artifacts from the previous section (“Requirements-&gt;Compilation”). A sample <code>bootstrap.toml</code> for the <code>musl</code> environment will look like this, where <code>&lt;WALI-root&gt;</code> is the absolute path to the root directory of the <a href="https://github.com/arjunr2/WALI">WALI repo</a>:</p>
 <pre><code class="language-toml">[build]
 target = ["wasm32-wali-linux-musl"]
 
 [target.wasm32-wali-linux-musl]
-musl-root = "&lt;WALI&gt;/wali-musl/sysroot"
-llvm-config = "&lt;WALI&gt;/llvm-project/build/bin/llvm-config"
-cc = "&lt;WALI&gt;/llvm-project/build/bin/clang-18"
-cxx = "&lt;WALI&gt;/llvm-project/build/bin/clang-18"
-ar = "&lt;WALI&gt;/llvm-project/build/bin/llvm-ar"
-ranlib = "&lt;WALI&gt;/llvm-project/build/bin/llvm-ranlib"
+musl-root = "&lt;WALI&gt;/build/sysroot"
+cc = "&lt;WALI&gt;/build/llvm/bin/clang"
+cxx = "&lt;WALI&gt;/build/llvm/bin/clang++"
+ar = "&lt;WALI&gt;/build/llvm/bin/llvm-ar"
+ranlib = "&lt;WALI&gt;/build/llvm/bin/llvm-ranlib"
 llvm-libunwind = "system"
 crt-static = true
 </code></pre>
-<blockquote>
-<p>The <code>llvm-config</code> settings are only temporary, and the changes will eventually be upstreamed into LLVM</p>
-</blockquote>
 <h2 id="building-rust-programs-75"><a class="header" href="#building-rust-programs-75">Building Rust programs</a></h2>
 <p>Rust does not yet ship pre-compiled artifacts for this target. To compile for
 this target, you will either need to build Rust with the target enabled (see
 “Building the target” above), or build your own copy of <code>core</code> by using
-<code>build-std</code> or similar.</p>
-<p>Rust program builds can use this target normally. Currently, linking WALI programs may require pointing the <code>linker</code> to the llvm build in the <a href="https://doc.rust-lang.org/cargo/reference/config.html">Cargo config</a> (until LLVM is upstreamed). A <code>config.toml</code> for Cargo will look like the following:</p>
-<pre><code class="language-toml">[target.wasm32-wali-linux-musl]
-linker = "&lt;WALI&gt;/llvm-project/build/bin/lld"
-</code></pre>
+<code>build-std</code> or similar (with the appropriate sysroot links).</p>
 <p>Note that the following <code>cfg</code> directives are set for <code>wasm32-wali-linux-*</code>:</p>
 <ul>
 <li><code>cfg(target_arch = "wasm32")</code></li>
@@ -14065,7 +14065,7 @@ That means one can easily compile and cross-compile for those targets from other
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="-windows-gnullvm"><a class="header" href="#-windows-gnullvm">*-windows-gnullvm</a></h1>
 <p><strong>Tier: 2 (with host tools)</strong></p>
-<p>Windows targets similar to <code>*-windows-gnu</code> but using UCRT as the runtime and various LLVM tools/libraries instead of
+<p>Windows targets similar to <code>*-windows-gnu</code> but using Universal C Runtime (UCRT) as the runtime and various LLVM tools/libraries instead of
 GCC/Binutils.</p>
 <p>Target triples available so far:</p>
 <ul>

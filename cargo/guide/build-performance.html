@@ -97,7 +97,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d049d2a1.js";
+            window.path_to_searchindex_js = "../searchindex-950abf05.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-d4808052.js"></script>
@@ -385,19 +385,31 @@ independent of which package you are currently building and testing.</p>
 </ul>
 <h2 id="reducing-built-code"><a class="header" href="#reducing-built-code">Reducing built code</a></h2>
 <h3 id="removing-unused-dependencies"><a class="header" href="#removing-unused-dependencies">Removing unused dependencies</a></h3>
-<p>Recommendation: Periodically review unused dependencies for removal using third-party tools like
-<a href="https://crates.io/crates/cargo-machete">cargo-machete</a>,
-<a href="https://crates.io/crates/cargo-udeps">cargo-udeps</a>,
-<a href="https://crates.io/crates/cargo-shear">cargo-shear</a>.</p>
+<p>Recommendation: periodically review unused dependencies for removal using:</p>
+<pre><code class="language-console">$ cargo +nightly check -Zcargo-lints --workspace --all-targets
+</code></pre>
+<p>This may have false positives from:</p>
+<ul>
+<li>when a dependency’s use is dynamically controlled by a <code>build.rs</code> or <code>RUSTFLAGS</code></li>
+</ul>
+<p>Also, periodically review hidden <a href="../reference/lints.html#unused_dependencies"><code>cargo::unused_dependencies</code></a> results:</p>
+<pre><code class="language-console">$ CARGO_LOG=cargo::core::compiler::unused_deps=debug cargo +nightly check -Zcargo-lints --workspace --all-targets
+</code></pre>
+<p>This will show potential unused dependencies for</p>
+<ul>
+<li>registry and git dependencies</li>
+<li>when your <a href="../reference/rust-version.html"><code>package.rust-version</code></a> is too old to use <code>[lints.cargo]</code></li>
+<li>when your dependency <em>might</em> be used to constrain a version on a transitive dependency (instead use <code>[target."cfg(false)".dependencies]</code>)</li>
+<li>when your dependency <em>might</em> be used to activate features on a transitive dependency</li>
+<li>your <code>[dev-dependencies]</code> as there is not a way yet to ensure all consumers of these are built</li>
+</ul>
 <p>When changing code,
 it can be easy to miss that a dependency is no longer used and can be removed.</p>
-<blockquote>
-<p><strong>Note:</strong> native support for this in Cargo is being tracked in <a href="https://github.com/rust-lang/cargo/issues/15813">#15813</a>.</p>
-</blockquote>
 <p>Trade-offs:</p>
 <ul>
 <li>✅ Faster full build and link times</li>
-<li>❌ May incorrectly flag dependencies as unused or miss some</li>
+<li>❌ <strong>Requires using nightly Rust and an <a href="../reference/unstable.html#lintscargo">unstable Cargo feature</a> when reviewing unused dependencies</strong></li>
+<li>❌ It takes effort to identifier unused dependencies from among the false positives</li>
 </ul>
 <h3 id="removing-unused-features-from-dependencies"><a class="header" href="#removing-unused-features-from-dependencies">Removing unused features from dependencies</a></h3>
 <p>Recommendation: Periodically review unused features from dependencies for removal using third-party tools like

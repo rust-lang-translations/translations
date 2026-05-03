@@ -98,7 +98,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d049d2a1.js";
+            window.path_to_searchindex_js = "searchindex-950abf05.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-d4808052.js"></script>
@@ -1382,19 +1382,31 @@ independent of which package you are currently building and testing.</p>
 </ul>
 <h2 id="reducing-built-code"><a class="header" href="#reducing-built-code">Reducing built code</a></h2>
 <h3 id="removing-unused-dependencies"><a class="header" href="#removing-unused-dependencies">Removing unused dependencies</a></h3>
-<p>Recommendation: Periodically review unused dependencies for removal using third-party tools like
-<a href="https://crates.io/crates/cargo-machete">cargo-machete</a>,
-<a href="https://crates.io/crates/cargo-udeps">cargo-udeps</a>,
-<a href="https://crates.io/crates/cargo-shear">cargo-shear</a>.</p>
+<p>Recommendation: periodically review unused dependencies for removal using:</p>
+<pre><code class="language-console">$ cargo +nightly check -Zcargo-lints --workspace --all-targets
+</code></pre>
+<p>This may have false positives from:</p>
+<ul>
+<li>when a dependency’s use is dynamically controlled by a <code>build.rs</code> or <code>RUSTFLAGS</code></li>
+</ul>
+<p>Also, periodically review hidden <a href="#unused_dependencies"><code>cargo::unused_dependencies</code></a> results:</p>
+<pre><code class="language-console">$ CARGO_LOG=cargo::core::compiler::unused_deps=debug cargo +nightly check -Zcargo-lints --workspace --all-targets
+</code></pre>
+<p>This will show potential unused dependencies for</p>
+<ul>
+<li>registry and git dependencies</li>
+<li>when your <a href="#rust-version"><code>package.rust-version</code></a> is too old to use <code>[lints.cargo]</code></li>
+<li>when your dependency <em>might</em> be used to constrain a version on a transitive dependency (instead use <code>[target."cfg(false)".dependencies]</code>)</li>
+<li>when your dependency <em>might</em> be used to activate features on a transitive dependency</li>
+<li>your <code>[dev-dependencies]</code> as there is not a way yet to ensure all consumers of these are built</li>
+</ul>
 <p>When changing code,
 it can be easy to miss that a dependency is no longer used and can be removed.</p>
-<blockquote>
-<p><strong>Note:</strong> native support for this in Cargo is being tracked in <a href="https://github.com/rust-lang/cargo/issues/15813">#15813</a>.</p>
-</blockquote>
 <p>Trade-offs:</p>
 <ul>
 <li>✅ Faster full build and link times</li>
-<li>❌ May incorrectly flag dependencies as unused or miss some</li>
+<li>❌ <strong>Requires using nightly Rust and an <a href="#lintscargo">unstable Cargo feature</a> when reviewing unused dependencies</strong></li>
+<li>❌ It takes effort to identifier unused dependencies from among the false positives</li>
 </ul>
 <h3 id="removing-unused-features-from-dependencies"><a class="header" href="#removing-unused-features-from-dependencies">Removing unused features from dependencies</a></h3>
 <p>Recommendation: Periodically review unused features from dependencies for removal using third-party tools like
@@ -3928,7 +3940,7 @@ the <code>links</code> field if your library is in common use.</p>
 <p><a href="#cargo-yank">Yanked releases</a> are those that are marked that they should not be
 used. When the resolver is building the graph, it will ignore all yanked
 releases unless they already exist in the <code>Cargo.lock</code> file or are explicitly
-requested by the <a href="#option-cargo-update---precise"><code>--precise</code></a> flag of <code>cargo update</code> (nightly only).</p>
+requested by the <a href="#option-cargo-update---precise"><code>--precise</code></a> flag of <code>cargo update</code>.</p>
 <h2 id="dependency-updates"><a class="header" href="#dependency-updates">Dependency updates</a></h2>
 <p>Dependency resolution is automatically performed by all Cargo commands that
 need to know about the dependency graph. For example, <a href="#cargo-build1"><code>cargo build</code></a> will run
@@ -11275,6 +11287,12 @@ as well as the features that were enabled during each unit’s compilation.</p>
 <li><a href="#unused_workspace_dependencies"><code>unused_workspace_dependencies</code></a></li>
 <li><a href="#unused_workspace_package_fields"><code>unused_workspace_package_fields</code></a></li>
 </ul>
+<h2 id="deny-by-default"><a class="header" href="#deny-by-default">Deny-by-default</a></h2>
+<p>These lints are all set to the ‘deny’ level by default.</p>
+<ul>
+<li><a href="#text_direction_codepoint_in_comment"><code>text_direction_codepoint_in_comment</code></a></li>
+<li><a href="#text_direction_codepoint_in_literal"><code>text_direction_codepoint_in_literal</code></a></li>
+</ul>
 <h2 id="blanket_hint_mostly_unused"><a class="header" href="#blanket_hint_mostly_unused"><code>blanket_hint_mostly_unused</code></a></h2>
 <p>Group: <code>suspicious</code></p>
 <p>Level: <code>warn</code></p>
@@ -11479,13 +11497,43 @@ readme = "README.md"
 <pre><code class="language-toml">[package]
 name = "foo"
 </code></pre>
+<h2 id="text_direction_codepoint_in_comment"><a class="header" href="#text_direction_codepoint_in_comment"><code>text_direction_codepoint_in_comment</code></a></h2>
+<p>Group: <code>correctness</code></p>
+<p>Level: <code>deny</code></p>
+<p>MSRV: <code>1.79.0</code></p>
+<h3 id="what-it-does-10"><a class="header" href="#what-it-does-10">What it does</a></h3>
+<p>Detects Unicode codepoints in manifest comments that change the visual representation of text on screen
+in a way that does not correspond to their on memory representation.</p>
+<h3 id="why-it-is-bad-10"><a class="header" href="#why-it-is-bad-10">Why it is bad</a></h3>
+<p>Unicode allows changing the visual flow of text on screen
+in order to support scripts that are written right-to-left,
+but a specially crafted comment can make code that will be compiled appear to be part of a comment,
+depending on the software used to read the code.
+To avoid potential problems or confusion,
+such as in CVE-2021-42574,
+by default we deny their use.</p>
+<h2 id="text_direction_codepoint_in_literal"><a class="header" href="#text_direction_codepoint_in_literal"><code>text_direction_codepoint_in_literal</code></a></h2>
+<p>Group: <code>correctness</code></p>
+<p>Level: <code>deny</code></p>
+<p>MSRV: <code>1.79.0</code></p>
+<h3 id="what-it-does-11"><a class="header" href="#what-it-does-11">What it does</a></h3>
+<p>Detects Unicode codepoints in literals in manifests that change the visual representation of text on screen
+in a way that does not correspond to their on memory representation.</p>
+<h3 id="why-it-is-bad-11"><a class="header" href="#why-it-is-bad-11">Why it is bad</a></h3>
+<p>Unicode allows changing the visual flow of text on screen
+in order to support scripts that are written right-to-left,
+but a specially crafted literal can make code that will be compiled appear to be part of a literal,
+depending on the software used to read the code.
+To avoid potential problems or confusion,
+such as in CVE-2021-42574,
+by default we deny their use.</p>
 <h2 id="unknown_lints"><a class="header" href="#unknown_lints"><code>unknown_lints</code></a></h2>
 <p>Group: <code>suspicious</code></p>
 <p>Level: <code>warn</code></p>
 <p>MSRV: <code>1.79.0</code></p>
-<h3 id="what-it-does-10"><a class="header" href="#what-it-does-10">What it does</a></h3>
+<h3 id="what-it-does-12"><a class="header" href="#what-it-does-12">What it does</a></h3>
 <p>Checks for unknown lints in the <code>[lints.cargo]</code> table</p>
-<h3 id="why-it-is-bad-10"><a class="header" href="#why-it-is-bad-10">Why it is bad</a></h3>
+<h3 id="why-it-is-bad-12"><a class="header" href="#why-it-is-bad-12">Why it is bad</a></h3>
 <ul>
 <li>The lint name could be misspelled, leading to confusion as to why it is
 not working as expected</li>
@@ -11500,9 +11548,9 @@ this-lint-does-not-exist = "warn"
 <p>Group: <code>style</code></p>
 <p>Level: <code>warn</code></p>
 <p>MSRV: <code>1.79.0</code></p>
-<h3 id="what-it-does-11"><a class="header" href="#what-it-does-11">What it does</a></h3>
+<h3 id="what-it-does-13"><a class="header" href="#what-it-does-13">What it does</a></h3>
 <p>Checks for dependencies that are not used by any of the cargo targets.</p>
-<h3 id="why-it-is-bad-11"><a class="header" href="#why-it-is-bad-11">Why it is bad</a></h3>
+<h3 id="why-it-is-bad-13"><a class="header" href="#why-it-is-bad-13">Why it is bad</a></h3>
 <p>Slows down compilation time.</p>
 <h3 id="drawbacks-9"><a class="header" href="#drawbacks-9">Drawbacks</a></h3>
 <p>The lint is only emitted in specific circumstances as multiple cargo targets exist for the
@@ -11537,9 +11585,9 @@ name = "foo"
 <p>Group: <code>suspicious</code></p>
 <p>Level: <code>warn</code></p>
 <p>MSRV: <code>1.79.0</code></p>
-<h3 id="what-it-does-12"><a class="header" href="#what-it-does-12">What it does</a></h3>
+<h3 id="what-it-does-14"><a class="header" href="#what-it-does-14">What it does</a></h3>
 <p>Checks for any entry in <code>[workspace.dependencies]</code> that has not been inherited</p>
-<h3 id="why-it-is-bad-12"><a class="header" href="#why-it-is-bad-12">Why it is bad</a></h3>
+<h3 id="why-it-is-bad-14"><a class="header" href="#why-it-is-bad-14">Why it is bad</a></h3>
 <p>They can give the false impression that these dependencies are used</p>
 <h3 id="example-12"><a class="header" href="#example-12">Example</a></h3>
 <pre><code class="language-toml">[workspace.dependencies]
@@ -11551,9 +11599,9 @@ regex = "1"
 <p>Group: <code>suspicious</code></p>
 <p>Level: <code>warn</code></p>
 <p>MSRV: <code>1.79.0</code></p>
-<h3 id="what-it-does-13"><a class="header" href="#what-it-does-13">What it does</a></h3>
+<h3 id="what-it-does-15"><a class="header" href="#what-it-does-15">What it does</a></h3>
 <p>Checks for any fields in <code>[workspace.package]</code> that has not been inherited</p>
-<h3 id="why-it-is-bad-13"><a class="header" href="#why-it-is-bad-13">Why it is bad</a></h3>
+<h3 id="why-it-is-bad-15"><a class="header" href="#why-it-is-bad-15">Why it is bad</a></h3>
 <p>They can give the false impression that these fields are used</p>
 <h3 id="example-13"><a class="header" href="#example-13">Example</a></h3>
 <pre><code class="language-toml">[workspace.package]
