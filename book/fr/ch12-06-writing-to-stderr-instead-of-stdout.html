@@ -96,7 +96,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-380cec70.js";
+            window.path_to_searchindex_js = "searchindex-6fee2bed.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-09667002.js"></script>
@@ -241,19 +241,19 @@
                         <!-- Old headings. Do not remove or links may break. -->
 <p><a id="writing-error-messages-to-standard-error-instead-of-standard-output"></a></p>
 <h2 id="écrire-les-erreurs-sur-la-sortie-derreur-standard"><a class="header" href="#écrire-les-erreurs-sur-la-sortie-derreur-standard">Écrire les erreurs sur la sortie d’erreur standard</a></h2>
-<p>At the moment, we’re writing all of our output to the terminal using the <code>println!</code> macro. In most terminals, there are two kinds of output: <em>standard output</em> (<code>stdout</code>) for general information and <em>standard error</em> (<code>stderr</code>) for error messages. This distinction enables users to choose to direct the successful output of a program to a file but still print error messages to the screen.</p>
+<p>Pour l’instant, nous avons écrit toutes nos sorties du terminal en utilisant la macro <code>println!</code>. Dans la plupart des terminaux, il y a deux genres de sorties : la <em>sortie standard</em> (<code>stdout</code>) pour les informations générales et <em>la sortie d’erreur standard</em> (<code>stderr</code>) pour les messages d’erreur. Cette distinction permet à l’utilisateur de choisir de rediriger la sortie des messages sans erreurs d’un programme vers un fichier mais continuer à afficher les messages d’erreur à l’écran.</p>
 <p>La macro <code>println!</code> ne peut écrire que sur la sortie standard, donc nous devons utiliser autre chose pour écrire sur la sortie d’erreur standard.</p>
-<h3 id="checking-where-errors-are-written"><a class="header" href="#checking-where-errors-are-written">Checking Where Errors Are Written</a></h3>
-<p>First, let’s observe how the content printed by <code>minigrep</code> is currently being written to standard output, including any error messages we want to write to standard error instead. We’ll do that by redirecting the standard output stream to a file while intentionally causing an error. We won’t redirect the standard error stream, so any content sent to standard error will continue to display on the screen.</p>
-<p>Command line programs are expected to send error messages to the standard error stream so that we can still see error messages on the screen even if we redirect the standard output stream to a file. Our program is not currently well behaved: We’re about to see that it saves the error message output to a file instead!</p>
-<p>To demonstrate this behavior, we’ll run the program with <code>&gt;</code> and the file path, <em>output.txt</em>, that we want to redirect the standard output stream to. We won’t pass any arguments, which should cause an error:</p>
+<h3 id="vérifier-où-sont-écrites-les-erreurs"><a class="header" href="#vérifier-où-sont-écrites-les-erreurs">Vérifier où sont écrites les erreurs</a></h3>
+<p>Commençons par observer comment le contenu écrit par <code>minigrep</code> est actuellement écrit sur la sortie standard, y compris les messages d’erreur que nous souhaitons plutôt écrire sur la sortie d’erreur standard. Nous allons faire cela en redirigeant le flux de sortie standard vers un fichier pendant que nous déclencherons intentionnellement une erreur. Nous ne redirigerons pas le flux de sortie d’erreur standard, si bien que n’importe quel contenu envoyé à la sortie d’erreur standard va continuer à s’afficher à l’écran.</p>
+<p>Les programmes en ligne de commande sont censés envoyer leurs messages d’erreur dans le flux d’erreurs standard afin que nous puissions continuer à voir les messages d’erreurs à l’écran même si nous redirigeons le flux de la sortie standard dans un fichier. Notre programme ne se comporte pas comme il le devrait : nous allons voir qu’à la place, il envoie les messages d’erreur dans le fichier !</p>
+<p>Pour démontrer ce comportement, nous allons exécuter le programme avec <code>&gt;</code> suivi du nom du fichier, <em>sortie.txt</em>, dans lequel nous souhaitons rediriger le flux de sortie standard. Nous ne fournissons aucun argument, ce qui va causer une erreur :</p>
 <pre><code class="language-console">$ cargo run &gt; output.txt
 </code></pre>
-<p>The <code>&gt;</code> syntax tells the shell to write the contents of standard output to <em>output.txt</em> instead of the screen. We didn’t see the error message we were expecting printed to the screen, so that means it must have ended up in the file. This is what <em>output.txt</em> contains:</p>
-<pre><code class="language-text">Problem parsing arguments: not enough arguments
+<p>La syntaxe indique à l’invite de commande d’écrire le contenu de la sortie standard dans <em>sortie.txt</em> plutôt qu’à l’écran. Nous n’avons pas vu le message d’erreur que nous nous attendions de voir à l’écran, ce qui veut dire qu’il a dû finir dans le fichier. Voici ce que <em>sortie.txt</em> contient :</p>
+<pre><code class="language-text">Problème rencontré lors de l'interprétation des arguments : il n'y a pas assez d'arguments
 </code></pre>
-<p>Yup, our error message is being printed to standard output. It’s much more useful for error messages like this to be printed to standard error so that only data from a successful run ends up in the file. We’ll change that.</p>
-<h3 id="printing-errors-to-standard-error"><a class="header" href="#printing-errors-to-standard-error">Printing Errors to Standard Error</a></h3>
+<p>Effectivement, notre message d’erreur est écrit sur la sortie standard. Il serait bien plus utile que les messages d’erreur comme celui-ci soient écrits sur la sortie d’erreur standard afin que seules les données produites par exécution fructueuse finissent dans le fichier. Nous allons corriger cela.</p>
+<h3 id="écrire-les-erreurs-sur-la-sortie-derreur-standard-1"><a class="header" href="#écrire-les-erreurs-sur-la-sortie-derreur-standard-1">Écrire les erreurs sur la sortie d’erreur standard</a></h3>
 <p>Nous allons utiliser le code de l’encart 12-24 pour changer la manière dont les messages d’erreur sont écrits. Grâce au remaniement que nous avons fait plus tôt dans ce chapitre, tout le code qui écrit les messages d’erreurs se trouve dans une seule fonction, <code>main</code>. La bibliothèque standard fournit la macro <code>eprintln!</code> qui écrit dans le flux d’erreur standard, donc changeons les deux endroits où nous appelons <code>println!</code> afin d’utiliser <code>eprintln!</code> à la place.</p>
 <figure class="listing" id="listing-12-24">
 <span class="file-name">Filename: src/main.rs</span>
@@ -262,38 +262,38 @@
 </span><span class="boring">use std::fs;
 </span><span class="boring">use std::process;
 </span><span class="boring">
-</span><span class="boring">use minigrep::{search, search_case_insensitive};
+</span><span class="boring">use minigrep::{rechercher, rechercher_insensible_casse};
 </span><span class="boring">
 </span>fn main() {
     let args: Vec&lt;String&gt; = env::args().collect();
 
     let config = Config::build(&amp;args).unwrap_or_else(|err| {
-        eprintln!("Problem parsing arguments: {err}");
+        eprintln!("Problème rencontré lors de l'interprétation des arguments : {err}");
         process::exit(1);
     });
 
     if let Err(e) = run(config) {
-        eprintln!("Application error: {e}");
+        eprintln!("Erreur applicative : {e}");
         process::exit(1);
     }
 }
 <span class="boring">
 </span><span class="boring">pub struct Config {
-</span><span class="boring">    pub query: String,
-</span><span class="boring">    pub file_path: String,
-</span><span class="boring">    pub ignore_case: bool,
+</span><span class="boring">    pub recherche: String,
+</span><span class="boring">    pub chemin_fichier: String
+</span><span class="boring">    pub ignore_casse: bool,
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">impl Config {
 </span><span class="boring">    fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
 </span><span class="boring">        if args.len() &lt; 3 {
-</span><span class="boring">            return Err("not enough arguments");
+</span><span class="boring">            return Err("il n'y a pas assez d'arguments");
 </span><span class="boring">        }
 </span><span class="boring">
-</span><span class="boring">        let query = args[1].clone();
-</span><span class="boring">        let file_path = args[2].clone();
+</span><span class="boring">        let recherche = args[1].clone();
+</span><span class="boring">        let chemin_fichier = args[2].clone();
 </span><span class="boring">
-</span><span class="boring">        let ignore_case = env::var("IGNORE_CASE").is_ok();
+</span><span class="boring">        let ignore_casse = env::var("IGNORE_CASSE").is_ok();
 </span><span class="boring">
 </span><span class="boring">        Ok(Config {
 </span><span class="boring">            query,
@@ -304,38 +304,38 @@
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
-</span><span class="boring">    let contents = fs::read_to_string(config.file_path)?;
+</span><span class="boring">    let contenu = fs::read_to_string(config.chemin_fichier)?;
 </span><span class="boring">
-</span><span class="boring">    let results = if config.ignore_case {
-</span><span class="boring">        search_case_insensitive(&amp;config.query, &amp;contents)
+</span><span class="boring">    let resultats = if config.sensible_casse {
+</span><span class="boring">        search_case_insensitive(&amp;config.recherche, &amp;contenu)
 </span><span class="boring">    } else {
-</span><span class="boring">        search(&amp;config.query, &amp;contents)
+</span><span class="boring">        search(&amp;config.recherche, &amp;contenu)
 </span><span class="boring">    };
 </span><span class="boring">
-</span><span class="boring">    for line in results {
-</span><span class="boring">        println!("{line}");
+</span><span class="boring">    for line in resultats {
+</span><span class="boring">        println!("{ligne}");
 </span><span class="boring">    }
 </span><span class="boring">
 </span><span class="boring">    Ok(())
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-12-24">Listing 12-24</a>: Writing error messages to standard error instead of standard output using <code>eprintln!</code></figcaption>
 </figure>
-<p>Let’s now run the program again in the same way, without any arguments and redirecting standard output with <code>&gt;</code>:</p>
+<p>Exécutons maintenant à nouveau le programme de la même manière, sans aucun argument et en redirigeant la sortie standard avec <code>&gt;</code> :</p>
 <pre><code class="language-console">$ cargo run &gt; output.txt
-Problem parsing arguments: not enough arguments
+Problème rencontré lors de l'interprétation des arguments : il n'y a pas assez d'arguments
 </code></pre>
-<p>Now we see the error onscreen and <em>output.txt</em> contains nothing, which is the behavior we expect of command line programs.</p>
+<p>Désormais nous pouvons voir l’erreur à l’écran et <em>sortie.txt</em> ne contient rien, ce qui est le comportement que nous attendons d’un programme en ligne de commande.</p>
 <p>Exécutons le programme à nouveau avec des arguments qui ne causent pas d’erreur tout en continuant à rediriger la sortie standard vers un fichier, comme ceci :</p>
 <pre><code class="language-console">$ cargo run -- to poem.txt &gt; output.txt
 </code></pre>
-<p>We won’t see any output to the terminal, and <em>output.txt</em> will contain our results:</p>
+<p>Nous ne voyons rien sur la sortie du terminal, et <em>sortie.txt</em> devrait contenir notre résultat :</p>
 <p><span class="filename">Filename: output.txt</span></p>
 <pre><code class="language-text">Are you nobody, too?
 How dreary to be somebody!
 </code></pre>
 <p>Ceci prouve qu’en fonction des circonstances, nous utilisons maintenant la sortie standard pour la sortie sans les erreurs et l’erreur standard pour la sortie d’erreur.</p>
 <h2 id="résumé"><a class="header" href="#résumé">Résumé</a></h2>
-<p>This chapter recapped some of the major concepts you’ve learned so far and covered how to perform common I/O operations in Rust. By using command line arguments, files, environment variables, and the <code>eprintln!</code> macro for printing errors, you’re now prepared to write command line applications. Combined with the concepts in previous chapters, your code will be well organized, store data effectively in the appropriate data structures, handle errors nicely, and be well tested.</p>
+<p>Ce chapitre a résumé certains des concepts majeurs que vous avez appris précédemment et expliqué comment procéder à des opérations courantes sur les entrées/sorties en Rust. En utilisant les arguments en ligne de commande, les fichiers, les variables d’environnement et la macro <code>eprintln!</code> pour écrire les erreurs, vous pouvez désormais écrire des applications en ligne de commande. En combinant cela avec les concepts vus dans les chapitres précédents, votre code restera bien organisé, stockera les données dans les bonnes structures de données, gèrera correctement les erreurs et sera correctement testé.</p>
 <p>Maintenant, nous allons découvrir quelques fonctionnalités de Rust qui ont été influencées par les langages fonctionnels : les fermetures et les itérateurs.</p>
 
                     </main>

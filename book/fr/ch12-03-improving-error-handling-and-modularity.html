@@ -96,7 +96,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-380cec70.js";
+            window.path_to_searchindex_js = "searchindex-6fee2bed.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-09667002.js"></script>
@@ -239,30 +239,30 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h2 id="remanier-le-code-pour-améliorer-sa-modularité-et-la-gestion-des-erreurs"><a class="header" href="#remanier-le-code-pour-améliorer-sa-modularité-et-la-gestion-des-erreurs">Remanier le code pour améliorer sa modularité et la gestion des erreurs</a></h2>
-<p>To improve our program, we’ll fix four problems that have to do with the program’s structure and how it’s handling potential errors. First, our <code>main</code> function now performs two tasks: It parses arguments and reads files. As our program grows, the number of separate tasks the <code>main</code> function handles will increase. As a function gains responsibilities, it becomes more difficult to reason about, harder to test, and harder to change without breaking one of its parts. It’s best to separate functionality so that each function is responsible for one task.</p>
-<p>This issue also ties into the second problem: Although <code>query</code> and <code>file_path</code> are configuration variables to our program, variables like <code>contents</code> are used to perform the program’s logic. The longer <code>main</code> becomes, the more variables we’ll need to bring into scope; the more variables we have in scope, the harder it will be to keep track of the purpose of each. It’s best to group the configuration variables into one structure to make their purpose clear.</p>
-<p>The third problem is that we’ve used <code>expect</code> to print an error message when reading the file fails, but the error message just prints <code>Should have been able to read the file</code>. Reading a file can fail in a number of ways: For example, the file could be missing, or we might not have permission to open it. Right now, regardless of the situation, we’d print the same error message for everything, which wouldn’t give the user any information!</p>
-<p>Fourth, we use <code>expect</code> to handle an error, and if the user runs our program without specifying enough arguments, they’ll get an <code>index out of bounds</code> error from Rust that doesn’t clearly explain the problem. It would be best if all the error-handling code were in one place so that future maintainers had only one place to consult the code if the error-handling logic needed to change. Having all the error-handling code in one place will also ensure that we’re printing messages that will be meaningful to our end users.</p>
-<p>Let’s address these four problems by refactoring our project.</p>
+<p>Pour améliorer notre programme, nous allons résoudre quatre problèmes liés à la structure du programme et à la façon dont il gère de potentielles erreurs. Premièrement, notre fonction <code>main</code> assure deux tâches : elle interprète les arguments et elle lit des fichiers. Au fur et à mesure que notre programme grossit, le nombre des différentes tâches qu’assure la fonction <code>main</code> va continuer à s’agrandir. Plus une fonction assure des tâches différentes, plus cela devient difficile de la comprendre, de la tester, et d’y faire des changements sans casser ses autres constituants. Il est largement préférable de séparer les fonctionnalités afin que chaque fonction n’assure qu’une seule tâche.</p>
+<p>Cette problématique est aussi liée au deuxième problème : bien que <code>recherche</code> et <code>chemin_fichier</code> soient des variables de configuration de notre programme, les variables telles que <code>contenu</code> sont utilisées pour appuyer la logique du programme. Plus <code>main</code> est grand, plus nous aurons des variables à importer dans la portée ; plus nous avons des variables dans notre portée, plus il sera difficile de se souvenir à quoi elles servent. Il est préférable de regrouper les variables de configuration dans une structure pour clarifier leur usage.</p>
+<p>Le troisième problème est que nous avons utilisé <code>expect</code> pour afficher un message d’erreur lorsque la lecture du fichier échoue, mais le message affiche uniquement <code>Quelque chose s'est mal passé lors de la lecture du fichier</code>. Lire un fichier peut échouer pour de nombreuses raisons : par exemple, le fichier peut ne pas exister, ou parce que nous n’avons pas le droit de l’ouvrir. Pour le moment, quelle que soit la raison, nous affichons le même message d’erreur pour tout, ce qui ne donne aucune information à l’utilisateur !</p>
+<p>Quatrièmement, nous utilisons <code>expect</code> pour gérer une erreur, et si l’utilisateur lance notre programme sans renseigner d’arguments, il va avoir une erreur <code>index out of bounds</code> provenant de Rust, qui n’explique pas clairement le problème. Il serait plus judicieux que tout le code de gestion des erreurs se trouve au même endroit afin que les futurs mainteneurs n’aient qu’un seul endroit à consulter dans le code si la logique de gestion des erreurs doit être modifiée. Avoir tout le code de gestion des erreurs dans un seul endroit va aussi garantir que nous affichons des messages qui ont du sens pour les utilisateurs.</p>
+<p>Corrigeons ces quatre problèmes en remaniant notre projet.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="separation-of-concerns-for-binary-projects"></a></p>
-<h3 id="separating-concerns-in-binary-projects"><a class="header" href="#separating-concerns-in-binary-projects">Separating Concerns in Binary Projects</a></h3>
-<p>The organizational problem of allocating responsibility for multiple tasks to the <code>main</code> function is common to many binary projects. As a result, many Rust programmers find it useful to split up the separate concerns of a binary program when the <code>main</code> function starts getting large. This process has the following steps:</p>
+<h3 id="séparation-des-tâches-des-projets-de-binaires"><a class="header" href="#séparation-des-tâches-des-projets-de-binaires">Séparation des tâches des projets de binaires</a></h3>
+<p>Le problème de l’organisation de la répartition des tâches multiples dans la fonction <code>main</code> est commun à de nombreux projets binaires. En conséquence, de nombreux développeurs Rust trouvent utile de séparer les tâches d’un programme binaire lorsque <code>main</code> commence à grossir. Ce processus se décompose selon les étapes suivantes :</p>
 <ul>
-<li>Split your program into a <em>main.rs</em> file and a <em>lib.rs</em> file and move your program’s logic to <em>lib.rs</em>.</li>
-<li>As long as your command line parsing logic is small, it can remain in the <code>main</code> function.</li>
-<li>When the command line parsing logic starts getting complicated, extract it from the <code>main</code> function into other functions or types.</li>
+<li>Diviser votre programme dans un fichier <em>main.rs</em> et un fichier <em>lib.rs</em> et déplacer la logique de votre programme dans <em>lib.rs</em>.</li>
+<li>Tant que votre logique d’interprétation de la ligne de commande reste petite, elle peut rester dans la fonction <code>main</code>.</li>
+<li>Lorsque la logique d’interprétation de la ligne de commande commence à devenir compliquée, il faut la déplacer de la fonction <code>main</code> vers d’autres fonctions ou types.</li>
 </ul>
 <p>Les fonctionnalités qui restent dans la fonction <code>main</code> après cette procédure seront les suivantes :</p>
 <ul>
-<li>Calling the command line parsing logic with the argument values</li>
-<li>Setting up any other configuration</li>
-<li>Calling a <code>run</code> function in <em>lib.rs</em></li>
-<li>Handling the error if <code>run</code> returns an error</li>
+<li>Appeler la logique d’interprétation de ligne de commande avec les valeurs des arguments</li>
+<li>Régler toutes les autres configurations</li>
+<li>Appeler une fonction <code>run</code> de <em>lib.rs</em></li>
+<li>Gérer l’erreur si <code>run</code> retourne une erreur</li>
 </ul>
-<p>This pattern is about separating concerns: <em>main.rs</em> handles running the program and <em>lib.rs</em> handles all the logic of the task at hand. Because you can’t test the <code>main</code> function directly, this structure lets you test all of your program’s logic by moving it out of the <code>main</code> function. The code that remains in the <code>main</code> function will be small enough to verify its correctness by reading it. Let’s rework our program by following this process.</p>
-<h4 id="extracting-the-argument-parser"><a class="header" href="#extracting-the-argument-parser">Extracting the Argument Parser</a></h4>
-<p>We’ll extract the functionality for parsing arguments into a function that <code>main</code> will call. Listing 12-5 shows the new start of the <code>main</code> function that calls a new function <code>parse_config</code>, which we’ll define in <em>src/main.rs</em>.</p>
+<p>Cette méthode permet de séparer les responsabilités : <em>main.rs</em> se charge de lancer le programme, et <em>lib.rs</em> renferme toute la logique des tâches à accomplir. Comme vous ne pouvez pas directement tester la fonction <code>main</code>, cette structure vous permet de tester toute la logique de votre programme en la déplaçant en-dehors de la fonction <code>main</code>. Le seul code qui restera dans la fonction <code>main</code>sera suffisamment petit pour s’assurer qu’il soit correct en le lisant. Lançons-nous dans le remaniement de notre programme en suivant cette procédure.</p>
+<h4 id="extraction-de-linterpréteur-des-arguments"><a class="header" href="#extraction-de-linterpréteur-des-arguments">Extraction de l’interpréteur des arguments</a></h4>
+<p>Nous allons déplacer la fonctionnalité de l’interprétation des arguments dans une fonction que <code>main</code> va appeler. L’encart 12-5 montre le nouveau début de la fonction <code>main</code> qui appelle une nouvelle fonction <code>interpreter_config</code>, que nous allons définir dans <em>src/main.rs</em>.</p>
 <figure class="listing" id="listing-12-5">
 <span class="file-name">Filename: src/main.rs</span>
 <pre><code class="language-rust ignore"><span class="boring">use std::env;
@@ -271,33 +271,33 @@
 </span>fn main() {
     let args: Vec&lt;String&gt; = env::args().collect();
 
-    let (query, file_path) = parse_config(&amp;args);
+    let (recherche, chemin_fichier) = interpreter_config(&amp;args);
 
     // -- partie masquée ici --
 <span class="boring">
-</span><span class="boring">    println!("Searching for {query}");
-</span><span class="boring">    println!("In file {file_path}");
+</span><span class="boring">    println!("On recherche : {recherche}");
+</span><span class="boring">    println!("Dans le fichier : {chemin_fichier}");
 </span><span class="boring">
-</span><span class="boring">    let contents = fs::read_to_string(file_path)
-</span><span class="boring">        .expect("Should have been able to read the file");
+</span><span class="boring">    let contenu = fs::read_to_string(chemin_fichier)
+</span><span class="boring">        .expect("Aurait dû pouvoir lire le fichier");
 </span><span class="boring">
-</span><span class="boring">    println!("With text:\n{contents}");
+</span><span class="boring">    println!("Dans le texte :\n{contenu}");
 </span>}
 
-fn parse_config(args: &amp;[String]) -&gt; (&amp;str, &amp;str) {
-    let query = &amp;args[1];
-    let file_path = &amp;args[2];
+fn interpreter_config(args: &amp;[String]) -&gt; (&amp;str, &amp;str) {
+    let recherche = &amp;args[1];
+    let chemin_fichier = &amp;args[2];
 
-    (query, file_path)
+    (recherche, chemin_fichier)
 }</code></pre>
 <figcaption><a href="#listing-12-5">Listing 12-5</a>: Extracting a <code>parse_config</code> function from <code>main</code></figcaption>
 </figure>
-<p>We’re still collecting the command line arguments into a vector, but instead of assigning the argument value at index 1 to the variable <code>query</code> and the argument value at index 2 to the variable <code>file_path</code> within the <code>main</code> function, we pass the whole vector to the <code>parse_config</code> function. The <code>parse_config</code> function then holds the logic that determines which argument goes in which variable and passes the values back to <code>main</code>. We still create the <code>query</code> and <code>file_path</code> variables in <code>main</code>, but <code>main</code> no longer has the responsibility of determining how the command line arguments and variables correspond.</p>
+<p>Nous continuons à récupérer les arguments de la ligne de commande dans un vecteur, mais au lieu d’assigner la valeur de l’argument d’indice 1 à la variable <code>recherche</code> et la valeur de l’argument d’indice 2 à la variable <code>chemin_fichier</code> dans la fonction <code>main</code>, nous passons le vecteur entier à la fonction <code>interpreter_config</code>. La fonction <code>interpreter_config</code> renferme la logique qui détermine quel argument va dans quelle variable et renvoie les valeurs au <code>main</code>. Nous continuons à créer les variables <code>recherche</code> et <code>chemin_fichier</code> dans le <code>main</code>, mais <code>main</code> n’a plus la responsabilité de déterminer quelles sont les variables qui correspondent aux arguments de la ligne de commande.</p>
 <p>Ce remaniement peut sembler excessif pour notre petit programme, mais nous remanions de manière incrémentale par de petites étapes. Après avoir fait ces changements, lancez à nouveau le programme pour vérifier que l’envoi des arguments fonctionne toujours. C’est une bonne chose de vérifier souvent lorsque vous avancez, pour vous aider à mieux identifier les causes de problèmes lorsqu’ils apparaissent.</p>
-<h4 id="grouping-configuration-values"><a class="header" href="#grouping-configuration-values">Grouping Configuration Values</a></h4>
+<h4 id="grouper-les-valeurs-de-configuration"><a class="header" href="#grouper-les-valeurs-de-configuration">Grouper les valeurs de configuration</a></h4>
 <p>Nous pouvons appliquer une nouvelle petite étape pour améliorer la fonction <code>interpreter_config</code>. Pour le moment, nous retournons un tuple, mais ensuite nous divisons immédiatement ce tuple à nouveau en plusieurs éléments. C’est un signe que nous n’avons peut-être pas la bonne approche.</p>
-<p>Another indicator that shows there’s room for improvement is the <code>config</code> part of <code>parse_config</code>, which implies that the two values we return are related and are both part of one configuration value. We’re not currently conveying this meaning in the structure of the data other than by grouping the two values into a tuple; we’ll instead put the two values into one struct and give each of the struct fields a meaningful name. Doing so will make it easier for future maintainers of this code to understand how the different values relate to each other and what their purpose is.</p>
-<p>Listing 12-6 shows the improvements to the <code>parse_config</code> function.</p>
+<p>Un autre signe qui indique qu’il y a encore de la place pour de l’amélioration est la partie <code>config</code> de <code>interpreter_config</code> qui sous-entend que les deux valeurs que nous retournons sont liées et font partie d’une même valeur de configuration. Or, à ce stade, nous ne tenons pas compte de cela dans la structure des données que nous utilisons si ce n’est en regroupant les deux valeurs dans un tuple ; à la place, nous mettrons les deux valeurs dans une seule structure et donnerons un nom significatif à chacun des champs de la structure. Faire ainsi permet de faciliter la compréhension du code par les futurs développeurs de ce code pour mettre en évidence le lien entre les deux valeurs et leurs rôles respectifs.</p>
+<p>L’encart 12-6 montre les améliorations apportées à la fonction <code>interpreter_config</code>.</p>
 <figure class="listing" id="listing-12-6">
 <span class="file-name">Filename: src/main.rs</span>
 <pre><code class="language-rust should_panic noplayground"><span class="boring">use std::env;
@@ -306,43 +306,43 @@ fn parse_config(args: &amp;[String]) -&gt; (&amp;str, &amp;str) {
 </span>fn main() {
     let args: Vec&lt;String&gt; = env::args().collect();
 
-    let config = parse_config(&amp;args);
+    let config = interpreter_config(&amp;args);
 
-    println!("Searching for {}", config.query);
-    println!("In file {}", config.file_path);
+    println!("On recherche : {}", config.recherche);
+    println!("Dans le fichier : {}", config.chemin_fichier);
 
-    let contents = fs::read_to_string(config.file_path)
-        .expect("Should have been able to read the file");
+    let contenu = fs::read_to_string(config.chemin_fichier)
+        .expect("Aurait dû pouvoir lire le fichier");
 
     // -- partie masquée ici --
 <span class="boring">
-</span><span class="boring">    println!("With text:\n{contents}");
+</span><span class="boring">    println!("Dans le texte :\n{contenu}");
 </span>}
 
 struct Config {
-    query: String,
-    file_path: String,
+    recherche: String,
+    chemin_fichier: String,
 }
 
-fn parse_config(args: &amp;[String]) -&gt; Config {
-    let query = args[1].clone();
-    let file_path = args[2].clone();
+fn interpreter_config(args: &amp;[String]) -&gt; Config {
+    let recherche = args[1].clone();
+    let chemin_fichier = args[2].clone();
 
-    Config { query, file_path }
+    Config { recherche, chemin_fichier }
 }</code></pre>
 <figcaption><a href="#listing-12-6">Listing 12-6</a>: Refactoring <code>parse_config</code> to return an instance of a <code>Config</code> struct</figcaption>
 </figure>
-<p>We’ve added a struct named <code>Config</code> defined to have fields named <code>query</code> and <code>file_path</code>. The signature of <code>parse_config</code> now indicates that it returns a <code>Config</code> value. In the body of <code>parse_config</code>, where we used to return string slices that reference <code>String</code> values in <code>args</code>, we now define <code>Config</code> to contain owned <code>String</code> values. The <code>args</code> variable in <code>main</code> is the owner of the argument values and is only letting the <code>parse_config</code> function borrow them, which means we’d violate Rust’s borrowing rules if <code>Config</code> tried to take ownership of the values in <code>args</code>.</p>
-<p>There are a number of ways we could manage the <code>String</code> data; the easiest, though somewhat inefficient, route is to call the <code>clone</code> method on the values. This will make a full copy of the data for the <code>Config</code> instance to own, which takes more time and memory than storing a reference to the string data. However, cloning the data also makes our code very straightforward because we don’t have to manage the lifetimes of the references; in this circumstance, giving up a little performance to gain simplicity is a worthwhile trade-off.</p>
+<p>Nous avons ajouté une structure <code>Config</code> qui a deux champs <code>recherche</code> et <code>chemin_fichier</code>. La signature de <code>interpreter_config</code> indique maintenant qu’elle retourne une valeur <code>Config</code>. Dans le corps de <code>interpreter_config</code>, où nous retournions une slice de chaînes de caractères qui pointaient sur des valeurs <code>String</code> présentes dans <code>args</code>, nous définissons maintenant la structure <code>Config</code> pour contenir des valeurs <code>String</code> qu’elle possède. La variable <code>args</code> du <code>main</code> est la propriétaire des valeurs des arguments et permet uniquement à la fonction <code>interpreter_config</code> de les emprunter, ce qui signifie que nous violons les règles d’emprunt de Rust si <code>Config</code> essaye de prendre possession des valeurs provenant de <code>args</code>.</p>
+<p>Il y a plusieurs manières de gérer les données <code>String</code>, mais la façon la plus facile, bien que non optimisée, est d’appeler la méthode <code>clone</code> sur les valeurs. Cela va produire une copie complète des données pour que l’instance de <code>Config</code> puisse se les approprier, ce qui va prendre plus de temps et de mémoire que de stocker une référence vers les données de la chaîne de caractères. Cependant le clonage des données rend votre code très simple car nous n’avons pas à gérer les durées de vie des références ; dans ces circonstances, sacrifier un peu de performances pour gagner en simplicité est un compromis qui en vaut la peine.</p>
 <section class="note" aria-role="note">
-<h3 id="the-trade-offs-of-using-clone"><a class="header" href="#the-trade-offs-of-using-clone">The Trade-Offs of Using <code>clone</code></a></h3>
-<p>There’s a tendency among many Rustaceans to avoid using <code>clone</code> to fix ownership problems because of its runtime cost. In <a href="ch13-00-functional-features.html">Chapter 13</a><!-- ignore -->, you’ll learn how to use more efficient methods in this type of situation. But for now, it’s okay to copy a few strings to continue making progress because you’ll make these copies only once and your file path and query string are very small. It’s better to have a working program that’s a bit inefficient than to try to hyperoptimize code on your first pass. As you become more experienced with Rust, it’ll be easier to start with the most efficient solution, but for now, it’s perfectly acceptable to call <code>clone</code>.</p>
+<h3 id="les-contreparties-de-lutilisation-de-clone"><a class="header" href="#les-contreparties-de-lutilisation-de-clone">Les contreparties de l’utilisation de <code>clone</code></a></h3>
+<p>Il y a une tendance chez les Rustacés de s’interdire l’utilisation de <code>clone</code> pour régler les problèmes d’appartenance à cause de son coût à l’exécution. Dans le <a href="ch13-00-functional-features.html">chapitre 13</a><!-- ignore -->, vous allez apprendre à utiliser des méthodes plus efficaces dans ce genre de situation. Mais pour le moment, ce n’est pas un problème de copier quelques chaînes de caractères pour continuer à progresser car vous allez le faire une seule fois et les chaînes de caractères <code>chemin_fichier</code> et <code>recherche</code> sont très courtes. Il est plus important d’avoir un programme fonctionnel qui n’est pas très optimisé plutôt que d’essayer d’optimiser à outrance le code dès sa première écriture. Plus vous deviendrez expérimenté en Rust, plus il sera facile de commencer par la solution la plus performante, mais pour le moment, il est parfaitement acceptable de faire appel à <code>clone</code>.</p>
 </section>
-<p>We’ve updated <code>main</code> so that it places the instance of <code>Config</code> returned by <code>parse_config</code> into a variable named <code>config</code>, and we updated the code that previously used the separate <code>query</code> and <code>file_path</code> variables so that it now uses the fields on the <code>Config</code> struct instead.</p>
-<p>Now our code more clearly conveys that <code>query</code> and <code>file_path</code> are related and that their purpose is to configure how the program will work. Any code that uses these values knows to find them in the <code>config</code> instance in the fields named for their purpose.</p>
-<h4 id="creating-a-constructor-for-config"><a class="header" href="#creating-a-constructor-for-config">Creating a Constructor for <code>Config</code></a></h4>
-<p>So far, we’ve extracted the logic responsible for parsing the command line arguments from <code>main</code> and placed it in the <code>parse_config</code> function. Doing so helped us see that the <code>query</code> and <code>file_path</code> values were related, and that relationship should be conveyed in our code. We then added a <code>Config</code> struct to name the related purpose of <code>query</code> and <code>file_path</code> and to be able to return the values’ names as struct field names from the <code>parse_config</code> function.</p>
-<p>So, now that the purpose of the <code>parse_config</code> function is to create a <code>Config</code> instance, we can change <code>parse_config</code> from a plain function to a function named <code>new</code> that is associated with the <code>Config</code> struct. Making this change will make the code more idiomatic. We can create instances of types in the standard library, such as <code>String</code>, by calling <code>String::new</code>. Similarly, by changing <code>parse_config</code> into a <code>new</code> function associated with <code>Config</code>, we’ll be able to create instances of <code>Config</code> by calling <code>Config::new</code>. Listing 12-7 shows the changes we need to make.</p>
+<p>Nous avons actualisé <code>main</code> pour qu’il utilise l’instance de <code>Config</code> retournée par <code>interpreter_config</code> dans une variable <code>config</code>, et nous avons rafraîchi le code qui utilisait les variables séparées <code>recherche</code> et <code>chemin_fichier</code> pour qu’il utilise maintenant les champs de la structure <code>Config</code> à la place.</p>
+<p>Maintenant, notre code indique clairement que <code>recherche</code> et <code>chemin_fichier</code> sont reliés et que leur but est de configurer le fonctionnement du programme. N’importe quel code qui utilise ces valeurs sait comment les retrouver dans les champs de l’instance <code>config</code> grâce à leurs noms donnés à cet effet.</p>
+<h4 id="créer-un-constructeur-pour-config"><a class="header" href="#créer-un-constructeur-pour-config">Créer un constructeur pour <code>Config</code></a></h4>
+<p>Pour l’instant, nous avons extrait la logique en charge d’interpréter les arguments de la ligne de commande à partir du <code>main</code> et nous l’avons placé dans la fonction <code>interpreter_config</code>. Cela nous a aidé à découvrir que les valeurs <code>recherche</code> et <code>chemin_fichier</code> étaient liées et que ce lien devait être retranscrit dans notre code. Nous avons ensuite créé une structure <code>Config</code> afin de donner un nom au rôle apparenté à <code>recherche</code> et à <code>chemin_fichier</code>, et pour pouvoir retourner les noms des valeurs sous la forme de noms de champs à partir de la fonction <code>interpreter_config</code>.</p>
+<p>Maintenant que le but de la fonction <code>interpreter_config</code> est de créer une instance de <code>Config</code>, nous pouvons transformer <code>interpreter_config</code> d’une simple fonction à une fonction <code>new</code> qui est associée à la structure <code>Config</code>. Ce changement rendra le code plus familier. Habituellement, nous créons des instances de types de la bibliothèque standard, comme <code>String</code>, en appelant <code>String::new</code>. Si on change le <code>interpreter_config</code> en une fonction <code>new</code> associée à <code>Config</code>, nous pourrons créer de la même façon des instances de <code>Config</code> en appelant <code>Config::new</code>. L’encart 12-7 nous montre les changements que nous devons faire pour cela.</p>
 <figure class="listing" id="listing-12-7">
 <span class="file-name">Filename: src/main.rs</span>
 <pre><code class="language-rust should_panic noplayground"><span class="boring">use std::env;
@@ -353,13 +353,13 @@ fn parse_config(args: &amp;[String]) -&gt; Config {
 
     let config = Config::new(&amp;args);
 <span class="boring">
-</span><span class="boring">    println!("Searching for {}", config.query);
-</span><span class="boring">    println!("In file {}", config.file_path);
+</span><span class="boring">    println!("On recherche : {}", config.recherche);
+</span><span class="boring">    println!("Dans le fichier : {}", config.chemin_fichier);
 </span><span class="boring">
-</span><span class="boring">    let contents = fs::read_to_string(config.file_path)
-</span><span class="boring">        .expect("Should have been able to read the file");
+</span><span class="boring">    let contenu = fs::read_to_string(config.chemin_fichier)
+</span><span class="boring">        .expect("Aurait dû pouvoir lire le fichier");
 </span><span class="boring">
-</span><span class="boring">    println!("With text:\n{contents}");
+</span><span class="boring">    println!("Dans le texte :\n{contenu}");
 </span>
     // -- partie masquée ici --
 }
@@ -367,22 +367,22 @@ fn parse_config(args: &amp;[String]) -&gt; Config {
 // -- partie masquée ici --
 
 <span class="boring">struct Config {
-</span><span class="boring">    query: String,
-</span><span class="boring">    file_path: String,
+</span><span class="boring">    recherche: String,
+</span><span class="boring">    chemin_fichier: String,
 </span><span class="boring">}
 </span><span class="boring">
 </span>impl Config {
     fn new(args: &amp;[String]) -&gt; Config {
-        let query = args[1].clone();
-        let file_path = args[2].clone();
+        let recherche = args[1].clone();
+        let chemin_fichier = args[2].clone();
 
-        Config { query, file_path }
+        Config { recherche, chemin_fichier }
     }
 }</code></pre>
 <figcaption><a href="#listing-12-7">Listing 12-7</a>: Changing <code>parse_config</code> into <code>Config::new</code></figcaption>
 </figure>
 <p>Nous avons actualisé le <code>main</code> où nous appelions <code>interpreter_config</code> pour appeler à la place le <code>Config::new</code>. Nous avons changé le nom de <code>interpreter_config</code> par <code>new</code> et nous l’avons déplacé dans un bloc <code>impl</code>, ce qui relie la fonction <code>new</code> à <code>Config</code>. Essayez à nouveau de compiler ce code pour vous assurer qu’il fonctionne.</p>
-<h3 id="fixing-the-error-handling"><a class="header" href="#fixing-the-error-handling">Fixing the Error Handling</a></h3>
+<h3 id="corriger-la-gestion-des-erreurs"><a class="header" href="#corriger-la-gestion-des-erreurs">Corriger la gestion des erreurs</a></h3>
 <p>Maintenant, nous allons nous pencher sur la correction de la gestion des erreurs. Rappellez-vous que la tentative d’accéder aux valeurs dans le vecteur <code>args</code> aux indices 1 ou 2 va faire paniquer le programme si le vecteur contient moins de trois éléments. Essayez de lancer le programme sans aucun argument ; cela donnera quelque chose comme ceci :</p>
 <pre><code class="language-console">$ cargo run
    Compiling minigrep v0.1.0 (file:///projects/minigrep)
@@ -393,9 +393,9 @@ thread 'main' panicked at src/main.rs:27:21:
 index out of bounds: the len is 1 but the index is 1
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 </code></pre>
-<p>The line <code>index out of bounds: the len is 1 but the index is 1</code> is an error message intended for programmers. It won’t help our end users understand what they should do instead. Let’s fix that now.</p>
-<h4 id="improving-the-error-message"><a class="header" href="#improving-the-error-message">Improving the Error Message</a></h4>
-<p>In Listing 12-8, we add a check in the <code>new</code> function that will verify that the slice is long enough before accessing index 1 and index 2. If the slice isn’t long enough, the program panics and displays a better error message.</p>
+<p>La ligne <code>index out of bounds: the len is 1 but the index is 1</code> est un message d’erreur destiné aux développeurs. Il n’aidera pas nos utilisateurs finaux à comprendre ce qu’ils devraient faire à la place. Corrigeons cela dès maintenant.</p>
+<h4 id="améliorer-le-message-derreur"><a class="header" href="#améliorer-le-message-derreur">Améliorer le message d’erreur</a></h4>
+<p>Dans l’encart 12-8, nous ajoutons une vérification dans la fonction <code>new</code>, qui va vérifier que le slice est suffisamment grand avant d’accéder aux indices 1 et 2. Si le slice n’est pas suffisamment grand, le programme va paniquer et afficher un meilleur message d’erreur.</p>
 <figure class="listing" id="listing-12-8">
 <span class="file-name">Filename: src/main.rs</span>
 <pre><code class="language-rust ignore"><span class="boring">use std::env;
@@ -406,37 +406,37 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 </span><span class="boring">
 </span><span class="boring">    let config = Config::new(&amp;args);
 </span><span class="boring">
-</span><span class="boring">    println!("Searching for {}", config.query);
-</span><span class="boring">    println!("In file {}", config.file_path);
+</span><span class="boring">    println!("On recherche : {}", config.recherche);
+</span><span class="boring">    println!("Dans le fichier : {}", config.chemin_fichier);
 </span><span class="boring">
-</span><span class="boring">    let contents = fs::read_to_string(config.file_path)
-</span><span class="boring">        .expect("Should have been able to read the file");
+</span><span class="boring">    let contenu = fs::read_to_string(config.chemin_fichier)
+</span><span class="boring">        .expect("Aurait dû pouvoir lire le fichier");
 </span><span class="boring">
-</span><span class="boring">    println!("With text:\n{contents}");
+</span><span class="boring">    println!("Dans le texte :\n{contenu}");
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">struct Config {
-</span><span class="boring">    query: String,
-</span><span class="boring">    file_path: String,
+</span><span class="boring">    recherche: String,
+</span><span class="boring">    chemin_fichier: String,
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">impl Config {
 </span>    // -- partie masquée ici --
     fn new(args: &amp;[String]) -&gt; Config {
         if args.len() &lt; 3 {
-            panic!("not enough arguments");
+            panic!("il n'y a pas assez d'arguments");
         }
         // -- partie masquée ici --
 <span class="boring">
-</span><span class="boring">        let query = args[1].clone();
-</span><span class="boring">        let file_path = args[2].clone();
+</span><span class="boring">        let recherche = args[1].clone();
+</span><span class="boring">        let chemin_fichier = args[2].clone();
 </span><span class="boring">
-</span><span class="boring">        Config { query, file_path }
+</span><span class="boring">        Config { recherche, chemin_fichier }
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-12-8">Listing 12-8</a>: Adding a check for the number of arguments</figcaption>
 </figure>
-<p>This code is similar to <a href="ch09-03-to-panic-or-not-to-panic.html#creating-custom-types-for-validation">the <code>Guess::new</code> function we wrote in Listing 9-13</a><!-- ignore -->, where we called <code>panic!</code> when the <code>value</code> argument was out of the range of valid values. Instead of checking for a range of values here, we’re checking that the length of <code>args</code> is at least <code>3</code> and the rest of the function can operate under the assumption that this condition has been met. If <code>args</code> has fewer than three items, this condition will be <code>true</code>, and we call the <code>panic!</code> macro to end the program immediately.</p>
+<p>Ce code est similaire à <a href="ch09-03-to-panic-or-not-to-panic.html#types-personnalis%C3%A9s-pour-la-v%C3%A9rification">la fonction Supposition::new que nous avons écrite dans l’encart 9-13</a><!-- ignore -->, dans laquelle nous appelions <code>panic!</code> lorsque l’argument <code>valeur</code> était hors de l’intervalle des valeurs valides. Plutôt que de vérifier un intervalle de valeurs dans le cas présent, nous vérifions que la taille de <code>args</code> est au moins de <code>3</code> et que le reste de la fonction puisse fonctionner en s’appuyant sur l’affirmation que cette condition a bien été remplie. Si <code>args</code> avait moins de trois éléments, cette condition serait <code>true</code>, et nous appellerions alors la macro <code>panic!</code> pour mettre fin au programme immédiatement.</p>
 <p>Avec ces quelques lignes de code en plus dans <code>new</code>, lançons le programme sans aucun argument à nouveau pour voir à quoi ressemble désormais l’erreur :</p>
 <pre><code class="language-console">$ cargo run
    Compiling minigrep v0.1.0 (file:///projects/minigrep)
@@ -444,15 +444,15 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
      Running `target/debug/minigrep`
 
 thread 'main' panicked at src/main.rs:26:13:
-not enough arguments
+il n'y a pas assez d'arguments
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 </code></pre>
-<p>This output is better: We now have a reasonable error message. However, we also have extraneous information we don’t want to give to our users. Perhaps the technique we used in Listing 9-13 isn’t the best one to use here: A call to <code>panic!</code> is more appropriate for a programming problem than a usage problem, <a href="ch09-03-to-panic-or-not-to-panic.html#guidelines-for-error-handling">as discussed in Chapter 9</a><!-- ignore -->. Instead, we’ll use the other technique you learned about in Chapter 9—<a href="ch09-02-recoverable-errors-with-result.html">returning a <code>Result</code></a><!-- ignore --> that indicates either success or an error.</p>
+<p>Cette sortie est meilleure : nous avons maintenant un message d’erreur compréhensible. Cependant, nous avons aussi des informations superflues que nous ne souhaitons pas afficher à nos utilisateurs. Peut-être que la technique que nous avons utilisée dans l’encart 9-13 n’est pas la plus appropriée dans ce cas : un appel à <code>panic!</code> est plus approprié pour un problème de développement qu’un problème d’utilisation, <a href="ch09-03-to-panic-or-not-to-panic.html#recommandations-pour-g%C3%A9rer-les-erreurs">comme nous l’avons appris au chapitre 9</a><!-- ignore -->. À la place, nous pourrions utiliser une autre technique que vous avez apprise au chapitre 9 — <a href="ch09-02-recoverable-errors-with-result.html#des-erreurs-r%C3%A9cup%C3%A9rables-avec-result">retourner un <code>Result</code></a><!-- ignore --> qui indique si c’est un succès ou une erreur.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="returning-a-result-from-new-instead-of-calling-panic"></a></p>
-<h4 id="returning-a-result-instead-of-calling-panic"><a class="header" href="#returning-a-result-instead-of-calling-panic">Returning a <code>Result</code> Instead of Calling <code>panic!</code></a></h4>
-<p>We can instead return a <code>Result</code> value that will contain a <code>Config</code> instance in the successful case and will describe the problem in the error case. We’re also going to change the function name from <code>new</code> to <code>build</code> because many programmers expect <code>new</code> functions to never fail. When <code>Config::build</code> is communicating to <code>main</code>, we can use the <code>Result</code> type to signal there was a problem. Then, we can change <code>main</code> to convert an <code>Err</code> variant into a more practical error for our users without the surrounding text about <code>thread 'main'</code> and <code>RUST_BACKTRACE</code> that a call to <code>panic!</code> causes.</p>
-<p>Listing 12-9 shows the changes we need to make to the return value of the function we’re now calling <code>Config::build</code> and the body of the function needed to return a <code>Result</code>. Note that this won’t compile until we update <code>main</code> as well, which we’ll do in the next listing.</p>
+<h4 id="retourner-un-result-plutôt-que-dappeler-panic"><a class="header" href="#retourner-un-result-plutôt-que-dappeler-panic">Retourner un <code>Result</code> plutôt que d’appeler <code>panic!</code></a></h4>
+<p>Nous pouvons à la place retourner une valeur <code>Result</code> qui contiendra une instance de <code>Config</code> dans le cas d’un succès et va décrire le problème dans le cas d’une erreur. Nous allons aussi changer le nom de la fonction de <code>new</code> à <code>build</code> car de nombreux programmeurs s’attendent à ce que les fonctions <code>new</code> n’échouent jamais. Lorsque <code>Config::build</code> communiquera avec <code>main</code>, nous pourrons utiliser le type de <code>Result</code> pour signaler où il y a un problème. Ensuite, nous pourrons changer le <code>main</code> pour convertir une variante de <code>Err</code> dans une erreur plus pratique pour nos utilisateurs sans avoir le texte à propos de <code>thread 'main'</code> et de <code>RUST_BACKTRACE</code> qui sont provoqués par l’appel à <code>panic!</code>.</p>
+<p>L’encart 12-9 montre les changements que nous devons apporter à la valeur de retour de la fonction que nous appelons maintenant <code>Config::build</code>, ainsi qu’au le corps de la fonction pour pouvoir retourner un <code>Result</code>. Notez que cela ne va pas se compiler tant que nous ne corrigeons pas aussi <code>main</code>, ce que nous allons faire dans le prochain encart.</p>
 <figure class="listing" id="listing-12-9">
 <span class="file-name">Filename: src/main.rs</span>
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">use std::env;
@@ -463,41 +463,41 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 </span><span class="boring">
 </span><span class="boring">    let config = Config::new(&amp;args);
 </span><span class="boring">
-</span><span class="boring">    println!("Searching for {}", config.query);
-</span><span class="boring">    println!("In file {}", config.file_path);
+</span><span class="boring">    println!("On recherche : {}", config.recherche);
+</span><span class="boring">    println!("Dans le fichier : {}", config.chemin_fichier);
 </span><span class="boring">
-</span><span class="boring">    let contents = fs::read_to_string(config.file_path)
-</span><span class="boring">        .expect("Should have been able to read the file");
+</span><span class="boring">    let contenu = fs::read_to_string(config.chemin_fichier)
+</span><span class="boring">        .expect("Aurait dû pouvoir lire le fichier");
 </span><span class="boring">
-</span><span class="boring">    println!("With text:\n{contents}");
+</span><span class="boring">    println!("Dans le texte :\n{contenu}");
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">struct Config {
-</span><span class="boring">    query: String,
-</span><span class="boring">    file_path: String,
+</span><span class="boring">    recherche: String,
+</span><span class="boring">    chemin_fichier: String,
 </span><span class="boring">}
 </span><span class="boring">
 </span>impl Config {
     fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
         if args.len() &lt; 3 {
-            return Err("not enough arguments");
+            return Err("il n'y a pas assez d'arguments");
         }
 
-        let query = args[1].clone();
-        let file_path = args[2].clone();
+        let recherche = args[1].clone();
+        let chemin_fichier = args[2].clone();
 
-        Ok(Config { query, file_path })
+        Ok(Config { recherche, chemin_fichier })
     }
 }</code></pre>
 <figcaption><a href="#listing-12-9">Listing 12-9</a>: Returning a <code>Result</code> from <code>Config::build</code></figcaption>
 </figure>
-<p>Our <code>build</code> function returns a <code>Result</code> with a <code>Config</code> instance in the success case and a string literal in the error case. Our error values will always be string literals that have the <code>'static</code> lifetime.</p>
-<p>We’ve made two changes in the body of the function: Instead of calling <code>panic!</code> when the user doesn’t pass enough arguments, we now return an <code>Err</code> value, and we’ve wrapped the <code>Config</code> return value in an <code>Ok</code>. These changes make the function conform to its new type signature.</p>
-<p>Returning an <code>Err</code> value from <code>Config::build</code> allows the <code>main</code> function to handle the <code>Result</code> value returned from the <code>build</code> function and exit the process more cleanly in the error case.</p>
+<p>Notre fonction <code>build</code> retourne un <code>Result</code> contenant une instance de <code>Config</code> dans le cas d’un succès et un littéral de chaîne de caractères dans le cas d’une erreur. Nos valeurs d’erreur seront toujours des littéraux de chaîne de caractères qui ont la durée de vie <code>'static</code>.</p>
+<p>Nous avons fait deux changements dans le corps de notre fonction : plutôt que d’avoir à appeler <code>panic!</code> lorsque l’utilisateur n’envoie pas assez d’arguments, nous retournons maintenant une valeur <code>Err</code>, et nous avons intégré la valeur de retour <code>Config</code> dans un <code>Ok</code>. Ces modifications rendent la fonction conforme à son nouveau type de signature.</p>
+<p>Retourner une valeur <code>Err</code> à partir de <code>Config::build</code> permet à la fonction <code>main</code> de gérer la valeur <code>Result</code> retournée par la fonction <code>build</code> et de terminer plus proprement le processus dans le cas d’une erreur.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="calling-confignew-and-handling-errors"></a></p>
-<h4 id="calling-configbuild-and-handling-errors"><a class="header" href="#calling-configbuild-and-handling-errors">Calling <code>Config::build</code> and Handling Errors</a></h4>
-<p>To handle the error case and print a user-friendly message, we need to update <code>main</code> to handle the <code>Result</code> being returned by <code>Config::build</code>, as shown in Listing 12-10. We’ll also take the responsibility of exiting the command line tool with a nonzero error code away from <code>panic!</code> and instead implement it by hand. A nonzero exit status is a convention to signal to the process that called our program that the program exited with an error state.</p>
+<h4 id="appeler-configbuild-et-gérer-les-erreurs"><a class="header" href="#appeler-configbuild-et-gérer-les-erreurs">Appeler <code>Config::build</code> et gérer les erreurs</a></h4>
+<p>Pour gérer les cas d’erreurs et afficher un message correct pour l’utilisateur, nous devons mettre à jour <code>main</code> pour gérer le <code>Result</code> retourné par <code>Config::build</code>, comme dans l’encart 12-10. Nous allons aussi prendre la décision de quitter l’outil en ligne de commande avec un code d’erreur différent de zéro avec <code>panic!</code> et nous allons, à la place,  l’implémenter manuellement. Un statut de sortie différent de zéro est une convention pour signaler au processus qui a appelé notre programme que le programme s’est terminé dans un état d’erreur.</p>
 <figure class="listing" id="listing-12-10">
 <span class="file-name">Filename: src/main.rs</span>
 <pre><code class="language-rust ignore"><span class="boring">use std::env;
@@ -508,54 +508,54 @@ fn main() {
     let args: Vec&lt;String&gt; = env::args().collect();
 
     let config = Config::build(&amp;args).unwrap_or_else(|err| {
-        println!("Problem parsing arguments: {err}");
+        println!("Problème rencontré lors de l'interprétation des arguments : {err}");
         process::exit(1);
     });
 
     // -- partie masquée ici --
 <span class="boring">
-</span><span class="boring">    println!("Searching for {}", config.query);
-</span><span class="boring">    println!("In file {}", config.file_path);
+</span><span class="boring">    println!("On recherche : {}", config.recherche);
+</span><span class="boring">    println!("Dans le fichier : {}", config.chemin_fichier);
 </span><span class="boring">
-</span><span class="boring">    let contents = fs::read_to_string(config.file_path)
-</span><span class="boring">        .expect("Should have been able to read the file");
+</span><span class="boring">    let contenu = fs::read_to_string(config.chemin_fichier)
+</span><span class="boring">        .expect("Aurait dû pouvoir lire le fichier");
 </span><span class="boring">
-</span><span class="boring">    println!("With text:\n{contents}");
+</span><span class="boring">    println!("Dans le texte :\n{contenu}");
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">struct Config {
-</span><span class="boring">    query: String,
-</span><span class="boring">    file_path: String,
+</span><span class="boring">    recherche: String,
+</span><span class="boring">    chemin_fichier: String,
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">impl Config {
 </span><span class="boring">    fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
 </span><span class="boring">        if args.len() &lt; 3 {
-</span><span class="boring">            return Err("not enough arguments");
+</span><span class="boring">            return Err("il n'y a pas assez d'arguments");
 </span><span class="boring">        }
 </span><span class="boring">
-</span><span class="boring">        let query = args[1].clone();
-</span><span class="boring">        let file_path = args[2].clone();
+</span><span class="boring">        let recherche = args[1].clone();
+</span><span class="boring">        let chemin_fichier = args[2].clone();
 </span><span class="boring">
-</span><span class="boring">        Ok(Config { query, file_path })
+</span><span class="boring">        Ok(Config { recherche, chemin_fichier })
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-12-10">Listing 12-10</a>: Exiting with an error code if building a <code>Config</code> fails</figcaption>
 </figure>
-<p>In this listing, we’ve used a method we haven’t covered in detail yet: <code>unwrap_or_else</code>, which is defined on <code>Result&lt;T, E&gt;</code> by the standard library. Using <code>unwrap_or_else</code> allows us to define some custom, non-<code>panic!</code> error handling. If the <code>Result</code> is an <code>Ok</code> value, this method’s behavior is similar to <code>unwrap</code>: It returns the inner value that <code>Ok</code> is wrapping. However, if the value is an <code>Err</code> value, this method calls the code in the closure, which is an anonymous function we define and pass as an argument to <code>unwrap_or_else</code>. We’ll cover closures in more detail in <a href="ch13-00-functional-features.html">Chapter 13</a><!-- ignore -->. For now, you just need to know that <code>unwrap_or_else</code> will pass the inner value of the <code>Err</code>, which in this case is the static string <code>"not enough arguments"</code> that we added in Listing 12-9, to our closure in the argument <code>err</code> that appears between the vertical pipes. The code in the closure can then use the <code>err</code> value when it runs.</p>
-<p>We’ve added a new <code>use</code> line to bring <code>process</code> from the standard library into scope. The code in the closure that will be run in the error case is only two lines: We print the <code>err</code> value and then call <code>process::exit</code>. The <code>process::exit</code> function will stop the program immediately and return the number that was passed as the exit status code. This is similar to the <code>panic!</code>-based handling we used in Listing 12-8, but we no longer get all the extra output. Let’s try it:</p>
+<p>Dans cet encart, nous avons utilisé une méthode que nous n’avons pas encore détaillée pour l’instant : <code>unwrap_or_else</code>, qui est définie sur <code>Result&lt;T, E&gt;</code> par la bibliothèque standard. L’utilisation de <code>unwrap_or_else</code> nous permet de définir une gestion des erreurs personnalisée, exempte de <code>panic!</code>. Si le <code>Result</code> est une valeur <code>Ok</code>, le comportement de cette méthode est similaire à <code>unwrap</code> : elle retourne la valeur à l’intérieur du <code>Ok</code>. Cependant, si la valeur est une valeur <code>Err</code>, cette méthode appelle le code dans la <em>fermeture</em>, qui est une fonction anonyme que nous définissons et passons en argument de <code>unwrap_or_else</code>. Nous verrons les fermetures plus en détail dans le <a href="ch13-00-functional-features.html">chapitre 13</a><!-- ignore -->. Pour l’instant, vous avez juste à savoir que le <code>unwrap_or_else</code> va passer la valeur interne du <code>Err</code> (qui dans ce cas est la chaîne de caractères statique <code>"pas assez d'arguments"</code> que nous avons ajoutée dans l’encart 12-9) à notre fermeture dans l’argument <code>err</code> qui est présent entre deux barres verticales. Le code dans la fermeture peut ensuite utiliser la valeur <code>err</code> lorsqu’il est exécuté.</p>
+<p>Nous avons ajouté une nouvelle ligne <code>use</code> pour importer <code>process</code> dans la portée à partir de la bibliothèque standard. Le code dans la fermeture qui sera exécuté dans le cas d’une erreur fait uniquement deux lignes : nous affichons la valeur de <code>err</code> et nous appelons ensuite <code>process::exit</code>. La fonction <code>process::exit</code> va stopper le programme immédiatement et retourner le nombre qui lui a été donné en paramètre comme code de statut de sortie. C’est semblable à la gestion basée sur <code>panic!</code> que nous avons utilisée à l’encart 12-8, mais nous n’avons plus tout le texte en plus. Essayons cela :</p>
 <pre><code class="language-console">$ cargo run
    Compiling minigrep v0.1.0 (file:///projects/minigrep)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.48s
      Running `target/debug/minigrep`
-Problem parsing arguments: not enough arguments
+Problème rencontré lors de l'interprétation des arguments : il n'y a pas assez d'arguments
 </code></pre>
-<p>Great! This output is much friendlier for our users.</p>
+<p>Très bien ! Cette sortie est bien plus compréhensible pour nos utilisateurs.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="extracting-logic-from-the-main-function"></a></p>
-<h3 id="extracting-logic-from-main"><a class="header" href="#extracting-logic-from-main">Extracting Logic from <code>main</code></a></h3>
-<p>Now that we’ve finished refactoring the configuration parsing, let’s turn to the program’s logic. As we stated in <a href="#separation-of-concerns-for-binary-projects">“Separating Concerns in Binary Projects”</a><!-- ignore -->, we’ll extract a function named <code>run</code> that will hold all the logic currently in the <code>main</code> function that isn’t involved with setting up configuration or handling errors. When we’re done, the <code>main</code> function will be concise and easy to verify by inspection, and we’ll be able to write tests for all the other logic.</p>
-<p>Listing 12-11 shows the small, incremental improvement of extracting a <code>run</code> function.</p>
+<h3 id="extraction-de-la-logique-du-main"><a class="header" href="#extraction-de-la-logique-du-main">Extraction de la logique du <code>main</code></a></h3>
+<p>Maintenant que nous avons fini le remaniement de l’interprétation de la configuration, occupons-nous de la logique du programme. Comme nous l’avons dit dans <a href="#separation-of-concerns-for-binary-projects">“Séparation des tâches des projets de binaires”</a><!-- ignore -->, nous allons extraire une fonction <code>run</code> qui va contenir toute la logique qui est actuellement dans la fonction <code>main</code> qui n’est pas liée au réglage de la configuration ou la gestion des erreurs. Lorsque nous aurons terminé, la fonction <code>main</code> sera plus concise et facile à vérifier en l’inspectant, et nous pourrons écrire des tests pour toutes les autres logiques.</p>
+<p>L’encart 12-11 montre les petites améliorations progressives pour extraire une fonction <code>run</code>.</p>
 <figure class="listing" id="listing-12-11">
 <span class="file-name">Filename: src/main.rs</span>
 <pre><code class="language-rust ignore"><span class="boring">use std::env;
@@ -568,40 +568,40 @@ Problem parsing arguments: not enough arguments
 <span class="boring">    let args: Vec&lt;String&gt; = env::args().collect();
 </span><span class="boring">
 </span><span class="boring">    let config = Config::build(&amp;args).unwrap_or_else(|err| {
-</span><span class="boring">        println!("Problem parsing arguments: {err}");
+</span><span class="boring">        println!("Problème rencontré lors de l'interprétation des arguments : {err}");
 </span><span class="boring">        process::exit(1);
 </span><span class="boring">    });
 </span><span class="boring">
-</span>    println!("Searching for {}", config.query);
-    println!("In file {}", config.file_path);
+</span>    println!("On recherche : {}", config.recherche);
+    println!("Dans le fichier : {}", config.chemin_fichier);
 
     run(config);
 }
 
 fn run(config: Config) {
-    let contents = fs::read_to_string(config.file_path)
-        .expect("Should have been able to read the file");
+    let contenu = fs::read_to_string(config.chemin_fichier)
+        .expect("Aurait dû pouvoir lire le fichier");
 
-    println!("With text:\n{contents}");
+    println!("Dans le texte :\n{contenu}");
 }
 
 // -- partie masquée ici --
 <span class="boring">
 </span><span class="boring">struct Config {
-</span><span class="boring">    query: String,
-</span><span class="boring">    file_path: String,
+</span><span class="boring">    recherche: String,
+</span><span class="boring">    chemin_fichier: String,
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">impl Config {
 </span><span class="boring">    fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
 </span><span class="boring">        if args.len() &lt; 3 {
-</span><span class="boring">            return Err("not enough arguments");
+</span><span class="boring">            return Err("il n'y a pas assez d'arguments");
 </span><span class="boring">        }
 </span><span class="boring">
-</span><span class="boring">        let query = args[1].clone();
-</span><span class="boring">        let file_path = args[2].clone();
+</span><span class="boring">        let recherche = args[1].clone();
+</span><span class="boring">        let chemin_fichier = args[2].clone();
 </span><span class="boring">
-</span><span class="boring">        Ok(Config { query, file_path })
+</span><span class="boring">        Ok(Config { recherche, chemin_fichier })
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-12-11">Listing 12-11</a>: Extracting a <code>run</code> function containing the rest of the program logic</figcaption>
@@ -609,8 +609,8 @@ fn run(config: Config) {
 <p>La fonction <code>run</code> contient maintenant toute la logique qui restait dans le <code>main</code>, en commençant par la lecture du fichier. La fonction <code>run</code> prend l’instance de <code>Config</code> en argument.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="returning-errors-from-the-run-function"></a></p>
-<h4 id="returning-errors-from-run"><a class="header" href="#returning-errors-from-run">Returning Errors from <code>run</code></a></h4>
-<p>With the remaining program logic separated into the <code>run</code> function, we can improve the error handling, as we did with <code>Config::build</code> in Listing 12-9. Instead of allowing the program to panic by calling <code>expect</code>, the <code>run</code> function will return a <code>Result&lt;T, E&gt;</code> when something goes wrong. This will let us further consolidate the logic around handling errors into <code>main</code> in a user-friendly way. Listing 12-12 shows the changes we need to make to the signature and body of <code>run</code>.</p>
+<h4 id="retourner-des-erreurs-depuis-run"><a class="header" href="#retourner-des-erreurs-depuis-run">Retourner des erreurs depuis <code>run</code></a></h4>
+<p>Avec le restant de la logique du programme maintenant séparée dans la fonction <code>run</code>, nous pouvons améliorer la gestion des erreurs, comme nous l’avons fait avec <code>Config::build</code> dans l’encart 12-9. Plutôt que de permettre au programme de paniquer en appelant <code>expect</code>, la fonction <code>run</code> va retourner un <code>Result&lt;T, E&gt;</code> lorsque quelque chose se passe mal. Cela va nous permettre de consolider davantage la logique de gestion des erreurs dans <code>main</code> pour qu’elle soit plus conviviale pour l’utilisateur. L’encart 12-12 montre les changements que nous devons appliquer à la signature et au corps du <code>run</code>.</p>
 <figure class="listing" id="listing-12-12">
 <span class="file-name">Filename: src/main.rs</span>
 <pre><code class="language-rust ignore"><span class="boring">use std::env;
@@ -625,48 +625,48 @@ fn run(config: Config) {
 </span><span class="boring">    let args: Vec&lt;String&gt; = env::args().collect();
 </span><span class="boring">
 </span><span class="boring">    let config = Config::build(&amp;args).unwrap_or_else(|err| {
-</span><span class="boring">        println!("Problem parsing arguments: {err}");
+</span><span class="boring">        println!("Problème rencontré lors de l'interprétation des arguments : {err}");
 </span><span class="boring">        process::exit(1);
 </span><span class="boring">    });
 </span><span class="boring">
-</span><span class="boring">    println!("Searching for {}", config.query);
-</span><span class="boring">    println!("In file {}", config.file_path);
+</span><span class="boring">    println!("On recherche : {}", config.recherche);
+</span><span class="boring">    println!("Dans le fichier : {}", config.chemin_fichier);
 </span><span class="boring">
 </span><span class="boring">    run(config);
 </span><span class="boring">}
 </span><span class="boring">
 </span>fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
-    let contents = fs::read_to_string(config.file_path)?;
+    let contenu = fs::read_to_string(config.chemin_fichier)?;
 
-    println!("With text:\n{contents}");
+    println!("Dans le texte :\n{contenu}");
 
     Ok(())
 }
 <span class="boring">
 </span><span class="boring">struct Config {
-</span><span class="boring">    query: String,
-</span><span class="boring">    file_path: String,
+</span><span class="boring">    recherche: String,
+</span><span class="boring">    chemin_fichier: String,
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">impl Config {
 </span><span class="boring">    fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
 </span><span class="boring">        if args.len() &lt; 3 {
-</span><span class="boring">            return Err("not enough arguments");
+</span><span class="boring">            return Err("il n'y a pas assez d'arguments");
 </span><span class="boring">        }
 </span><span class="boring">
-</span><span class="boring">        let query = args[1].clone();
-</span><span class="boring">        let file_path = args[2].clone();
+</span><span class="boring">        let recherche = args[1].clone();
+</span><span class="boring">        let chemin_fichier = args[2].clone();
 </span><span class="boring">
-</span><span class="boring">        Ok(Config { query, file_path })
+</span><span class="boring">        Ok(Config { recherche, chemin_fichier })
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-12-12">Listing 12-12</a>: Changing the <code>run</code> function to return <code>Result</code></figcaption>
 </figure>
 <p>Nous avons fait trois changements significatifs ici. Premièrement, nous avons changé le type de retour de la fonction <code>run</code> en <code>Result&lt;(), Box&lt;dyn Error&gt;&gt;</code>. Cette fonction renvoyait précédemment le type unité, <code>()</code>, que nous gardons comme valeur de retour dans le cas de <code>Ok</code>.</p>
-<p>For the error type, we used the trait object <code>Box&lt;dyn Error&gt;</code> (and we brought <code>std::error::Error</code> into scope with a <code>use</code> statement at the top). We’ll cover trait objects in <a href="ch18-00-oop.html">Chapter 18</a><!-- ignore -->. For now, just know that <code>Box&lt;dyn Error&gt;</code> means the function will return a type that implements the <code>Error</code> trait, but we don’t have to specify what particular type the return value will be. This gives us flexibility to return error values that may be of different types in different error cases. The <code>dyn</code> keyword is short for <em>dynamic</em>.</p>
-<p>Second, we’ve removed the call to <code>expect</code> in favor of the <code>?</code> operator, as we talked about in <a href="ch09-02-recoverable-errors-with-result.html#a-shortcut-for-propagating-errors-the--operator">Chapter 9</a><!-- ignore -->. Rather than <code>panic!</code> on an error, <code>?</code> will return the error value from the current function for the caller to handle.</p>
-<p>Third, the <code>run</code> function now returns an <code>Ok</code> value in the success case. We’ve declared the <code>run</code> function’s success type as <code>()</code> in the signature, which means we need to wrap the unit type value in the <code>Ok</code> value. This <code>Ok(())</code> syntax might look a bit strange at first. But using <code>()</code> like this is the idiomatic way to indicate that we’re calling <code>run</code> for its side effects only; it doesn’t return a value we need.</p>
-<p>When you run this code, it will compile but will display a warning:</p>
+<p>En ce qui concerne le type d’erreur, nous avons utilisé <em>l’objet trait</em> <code>Box&lt;dyn Error&gt;</code> (et nous avons importé <code>std::error::Error</code> dans la portée avec une instruction <code>use</code> en haut). Nous allons voir les objets trait dans le <a href="ch18-00-oop.html">chapitre 18</a><!-- ignore -->. Pour l’instant, retenez juste que <code>Box&lt;dyn Error&gt;</code> signifie que la fonction va retourner un type qui implémente le trait <code>Error</code>, mais que nous n’avons pas à spécifier quel sera précisément le type de la valeur de retour. Cela nous donne la flexibilité de retourner des valeurs d’erreurs qui peuvent être de différents types dans différents cas d’erreurs. Le mot-clé <code>dyn</code> est un raccourci pour “dynamique”.</p>
+<p>Deuxièmement, nous avons enlevé l’appel à <code>expect</code> pour privilégier l’opérateur <code>?</code>, que nous avons vu dans le <a href="ch09-02-recoverable-errors-with-result.html#a-shortcut-for-propagating-errors-the--operator">chapitre 9</a><!-- ignore -->. Au lieu de faire un <code>panic!</code> sur une erreur, <code>?</code> va retourner la valeur d’erreur de la fonction courante vers le code qui l’a appelé pour qu’il la gère.</p>
+<p>Troisièmement, la fonction <code>run</code> retourne maintenant une valeur <code>Ok</code> dans les cas de succès. Nous avons déclaré dans la signature que le type de succès de la fonction <code>run</code> était <code>()</code>, ce qui signifie que nous avons enveloppé la valeur de type unité dans la valeur <code>Ok</code>. Cette syntaxe <code>Ok(())</code> peut sembler un peu étrange au départ. Mais utiliser <code>()</code> de cette manière est la façon idéale d’indiquer que nous appelons <code>run</code> uniquement pour ses effets de bord ; elle ne retourne pas de valeur dont nous pourrions avoir besoin.</p>
+<p>Lorsque vous exécutez ce code, il va se compiler mais il va afficher unavertissement :</p>
 <pre><code class="language-console">$ cargo run -- the poem.txt
    Compiling minigrep v0.1.0 (file:///projects/minigrep)
 warning: unused `Result` that must be used
@@ -685,9 +685,9 @@ help: use `let _ = ...` to ignore the resulting value
 warning: `minigrep` (bin "minigrep") generated 1 warning
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.71s
      Running `target/debug/minigrep the poem.txt`
-Searching for the
-In file poem.txt
-With text:
+On recherche : the
+Dans le fichier : poem.txt
+Dans le texte :
 I'm nobody! Who are you?
 Are you nobody, too?
 Then there's a pair of us - don't tell!
@@ -700,8 +700,8 @@ To an admiring bog!
 
 </code></pre>
 <p>Rust nous informe que notre code ignore la valeur <code>Result</code> et que cette valeur <code>Result</code> pourrait indiquer qu’une erreur s’est passée. Mais nous ne vérifions pas pour savoir si oui ou non il y a eu une erreur, et le compilateur nous rappelle que nous devrions avoir du code de gestion des erreurs ici ! Corrigeons dès à présent ce problème.</p>
-<h4 id="handling-errors-returned-from-run-in-main"><a class="header" href="#handling-errors-returned-from-run-in-main">Handling Errors Returned from <code>run</code> in <code>main</code></a></h4>
-<p>We’ll check for errors and handle them using a technique similar to one we used with <code>Config::build</code> in Listing 12-10, but with a slight difference:</p>
+<h4 id="gérer-les-erreurs-retournées-par-run-dans-main"><a class="header" href="#gérer-les-erreurs-retournées-par-run-dans-main">Gérer les erreurs retournées par <code>run</code> dans <code>main</code></a></h4>
+<p>Nous allons vérifier les erreurs et les gérer en utilisant une technique similaire à celle que nous avons utilisée avec <code>Config::build</code> dans l’encart 12-10, mais avec une légère différence :</p>
 <p><span class="filename">Fichier : src/main.rs</span></p>
 <pre><code class="language-rust ignore"><span class="boring">use std::env;
 </span><span class="boring">use std::error::Error;
@@ -714,59 +714,59 @@ To an admiring bog!
 <span class="boring">    let args: Vec&lt;String&gt; = env::args().collect();
 </span><span class="boring">
 </span><span class="boring">    let config = Config::build(&amp;args).unwrap_or_else(|err| {
-</span><span class="boring">        println!("Problem parsing arguments: {err}");
+</span><span class="boring">        println!("Problème rencontré lors de l'interprétation des arguments : {err}");
 </span><span class="boring">        process::exit(1);
 </span><span class="boring">    });
 </span><span class="boring">
-</span>    println!("Searching for {}", config.query);
-    println!("In file {}", config.file_path);
+</span>    println!("On recherche : {}", config.recherche);
+    println!("Dans le fichier : {}", config.chemin_fichier);
 
     if let Err(e) = run(config) {
-        println!("Application error: {e}");
+        println!("Erreur applicative : {e}");
         process::exit(1);
     }
 }
 <span class="boring">
 </span><span class="boring">fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
-</span><span class="boring">    let contents = fs::read_to_string(config.file_path)?;
+</span><span class="boring">    let contenu = fs::read_to_string(config.chemin_fichier)?;
 </span><span class="boring">
-</span><span class="boring">    println!("With text:\n{contents}");
+</span><span class="boring">    println!("Dans le texte :\n{contenu}");
 </span><span class="boring">
 </span><span class="boring">    Ok(())
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">struct Config {
-</span><span class="boring">    query: String,
-</span><span class="boring">    file_path: String,
+</span><span class="boring">    recherche: String,
+</span><span class="boring">    chemin_fichier: String,
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">impl Config {
 </span><span class="boring">    fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
 </span><span class="boring">        if args.len() &lt; 3 {
-</span><span class="boring">            return Err("not enough arguments");
+</span><span class="boring">            return Err("il n'y a pas assez d'arguments");
 </span><span class="boring">        }
 </span><span class="boring">
-</span><span class="boring">        let query = args[1].clone();
-</span><span class="boring">        let file_path = args[2].clone();
+</span><span class="boring">        let recherche = args[1].clone();
+</span><span class="boring">        let chemin_fichier = args[2].clone();
 </span><span class="boring">
-</span><span class="boring">        Ok(Config { query, file_path })
+</span><span class="boring">        Ok(Config { recherche, chemin_fichier })
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
-<p>We use <code>if let</code> rather than <code>unwrap_or_else</code> to check whether <code>run</code> returns an <code>Err</code> value and to call <code>process::exit(1)</code> if it does. The <code>run</code> function doesn’t return a value that we want to <code>unwrap</code> in the same way that <code>Config::build</code> returns the <code>Config</code> instance. Because <code>run</code> returns <code>()</code> in the success case, we only care about detecting an error, so we don’t need <code>unwrap_or_else</code> to return the unwrapped value, which would only be <code>()</code>.</p>
-<p>The bodies of the <code>if let</code> and the <code>unwrap_or_else</code> functions are the same in both cases: We print the error and exit.</p>
-<h3 id="splitting-code-into-a-library-crate"><a class="header" href="#splitting-code-into-a-library-crate">Splitting Code into a Library Crate</a></h3>
-<p>Our <code>minigrep</code> project is looking good so far! Now we’ll split the <em>src/main.rs</em> file and put some code into the <em>src/lib.rs</em> file. That way, we can test the code and have a <em>src/main.rs</em> file with fewer responsibilities.</p>
-<p>Let’s define the code responsible for searching text in <em>src/lib.rs</em> rather than in <em>src/main.rs</em>, which will let us (or anyone else using our <code>minigrep</code> library) call the searching function from more contexts than our <code>minigrep</code> binary.</p>
-<p>First, let’s define the <code>search</code> function signature in <em>src/lib.rs</em> as shown in Listing 12-13, with a body that calls the <code>unimplemented!</code> macro. We’ll explain the signature in more detail when we fill in the implementation.</p>
+<p>Nous utilisons <code>if let</code> plutôt que <code>unwrap_or_else</code> pour vérifier si <code>run</code> retourne un valeur <code>Err</code> et appeler <code>process::exit(1)</code> le cas échéant. La fonction <code>run</code> ne retourne pas de valeur sur laquelle nous aurions besoin d’utiliser <code>unwrap</code> comme avec le <code>Config::build</code> qui retournait une instance de <code>Config</code>. Comme <code>run</code> retourne <code>()</code> dans le cas d’un succès, nous nous préoccupons uniquement de détecter les erreurs, donc nous n’avons pas besoin de <code>unwrap_or_else</code> pour retourner la valeur extraite, qui sera toujours <code>()</code>.</p>
+<p>Les corps du <code>if let</code> et de la fonction <code>unwrap_or_else</code> sont identiques dans les deux cas : nous affichons l’erreur et nous quittons.</p>
+<h3 id="déplacer-le-code-dans-une-crate-de-bibliothèque"><a class="header" href="#déplacer-le-code-dans-une-crate-de-bibliothèque">Déplacer le code dans une crate de bibliothèque</a></h3>
+<p>Notre projet <code>minigrep</code> se présente plutôt bien pour le moment ! Maintenant, nous allons diviser notre fichier <em>src/main.rs</em> et déplacer du code dans le fichier <em>src/lib.rs</em>. Ainsi, nous pourrons le tester et avoir un fichier <em>src/main.rs</em> qui héberge moins de fonctionnalités.</p>
+<p>Définissons le code chargé de la recherche de texte dans <em>src/lib.rs</em> plutôt que dans <em>src/main.rs</em>, ce qui nous permettra (ainsi qu’à toute autre personne utilisant notre bibliothèque <code>minigrep</code>) d’appeler la fonction de recherche depuis davantage de contextes que notre binaire <code>minigrep</code>.</p>
+<p>Commençons par définir la signature de la fonction <code>rechercher</code> dans <em>src/lib.rs</em>, comme indiqué dans l’encart 12-13, avec un corps qui appelle la macro <code>unimplemented!</code>. Nous expliquerons cette signature plus en détail lorsque nous rédigerons l’implémentation.</p>
 <figure class="listing" id="listing-12-13">
 <span class="file-name">Filename: src/lib.rs</span>
-<pre><code class="language-rust ignore does_not_compile">pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
+<pre><code class="language-rust ignore does_not_compile">pub fn rechercher&lt;'a&gt;(recherche: &amp;str, contenu: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
     unimplemented!();
 }</code></pre>
 <figcaption><a href="#listing-12-13">Listing 12-13</a>: Defining the <code>search</code> function in <em>src/lib.rs</em></figcaption>
 </figure>
-<p>We’ve used the <code>pub</code> keyword on the function definition to designate <code>search</code> as part of our library crate’s public API. We now have a library crate that we can use from our binary crate and that we can test!</p>
-<p>Now we need to bring the code defined in <em>src/lib.rs</em> into the scope of the binary crate in <em>src/main.rs</em> and call it, as shown in Listing 12-14.</p>
+<p>Nous avons utilisé le mot-clé <code>pub</code> dans la définition de fonction pour indiquer que <code>rechercher</code> fait partie de l’API publique de notre crate de bibliothèque. Nous avons maintenant une crate de bibliothèque que nous pouvons utiliser et que nous pouvons tester !</p>
+<p>Maintenant, nous devons importer le code défini dans <em>src/lib.rs</em> dans la portée de la crate binaire dans <em>src/main.rs</em> et l’appeller, comme montré dans l’encart 12-14.</p>
 <figure class="listing" id="listing-12-14">
 <span class="file-name">Filename: src/main.rs</span>
 <pre><code class="language-rust ignore"><span class="boring">use std::env;
@@ -775,19 +775,19 @@ To an admiring bog!
 </span><span class="boring">use std::process;
 </span><span class="boring">
 </span>// -- partie masquée ici --
-use minigrep::search;
+use minigrep::rechercher;
 
 fn main() {
     // -- partie masquée ici --
 <span class="boring">    let args: Vec&lt;String&gt; = env::args().collect();
 </span><span class="boring">
 </span><span class="boring">    let config = Config::build(&amp;args).unwrap_or_else(|err| {
-</span><span class="boring">        println!("Problem parsing arguments: {err}");
+</span><span class="boring">        println!("Problème rencontré lors de l'interprétation des arguments : {err}");
 </span><span class="boring">        process::exit(1);
 </span><span class="boring">    });
 </span><span class="boring">
 </span><span class="boring">    if let Err(e) = run(config) {
-</span><span class="boring">        println!("Application error: {e}");
+</span><span class="boring">        println!("Erreur applicative : {e}");
 </span><span class="boring">        process::exit(1);
 </span><span class="boring">    }
 </span>}
@@ -796,38 +796,38 @@ fn main() {
 
 <span class="boring">
 </span><span class="boring">struct Config {
-</span><span class="boring">    query: String,
-</span><span class="boring">    file_path: String,
+</span><span class="boring">    recherche: String,
+</span><span class="boring">    chemin_fichier: String,
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">impl Config {
 </span><span class="boring">    fn build(args: &amp;[String]) -&gt; Result&lt;Config, &amp;'static str&gt; {
 </span><span class="boring">        if args.len() &lt; 3 {
-</span><span class="boring">            return Err("not enough arguments");
+</span><span class="boring">            return Err("il n'y a pas assez d'arguments");
 </span><span class="boring">        }
 </span><span class="boring">
-</span><span class="boring">        let query = args[1].clone();
-</span><span class="boring">        let file_path = args[2].clone();
+</span><span class="boring">        let recherche = args[1].clone();
+</span><span class="boring">        let chemin_fichier = args[2].clone();
 </span><span class="boring">
-</span><span class="boring">        Ok(Config { query, file_path })
+</span><span class="boring">        Ok(Config { recherche, chemin_fichier })
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
 </span>fn run(config: Config) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
-    let contents = fs::read_to_string(config.file_path)?;
+    let contenu = fs::read_to_string(config.chemin_fichier)?;
 
-    for line in search(&amp;config.query, &amp;contents) {
-        println!("{line}");
+    for ligne in rechercher(&amp;config.recherche, &amp;contenu) {
+        println!("{ligne}");
     }
 
     Ok(())
 }</code></pre>
 <figcaption><a href="#listing-12-14">Listing 12-14</a>: Using the <code>minigrep</code> library crate’s <code>search</code> function in <em>src/main.rs</em></figcaption>
 </figure>
-<p>We add a <code>use minigrep::search</code> line to bring the <code>search</code> function from the library crate into the binary crate’s scope. Then, in the <code>run</code> function, rather than printing out the contents of the file, we call the <code>search</code> function and pass the <code>config.query</code> value and <code>contents</code> as arguments. Then, <code>run</code> will use a <code>for</code> loop to print each line returned from <code>search</code> that matched the query. This is also a good time to remove the <code>println!</code> calls in the <code>main</code> function that displayed the query and the file path so that our program only prints the search results (if no errors occur).</p>
-<p>Note that the search function will be collecting all the results into a vector it returns before any printing happens. This implementation could be slow to display results when searching large files, because results aren’t printed as they’re found; we’ll discuss a possible way to fix this using iterators in Chapter 13.</p>
-<p>Whew! That was a lot of work, but we’ve set ourselves up for success in the future. Now it’s much easier to handle errors, and we’ve made the code more modular. Almost all of our work will be done in <em>src/lib.rs</em> from here on out.</p>
-<p>Let’s take advantage of this newfound modularity by doing something that would have been difficult with the old code but is easy with the new code: We’ll write some tests!</p>
+<p>Nous avons ajouté une ligne <code>use minigrep::Config</code> pour apporter la fonction <code>rechercher</code> de la crate de bibliothèque dans la portée de la crate binaire. Ensuite, dans la fonction <code>run</code>, au lieu d’afficher le contenu du fichier, nous appelons la fonction <code>rechercher</code> en lui passant la valeur <code>config.recherche</code> et <code>contenu</code> comme arguments. Puis, <code>run</code> utilise une boucle <code>for</code> pour afficher chaque ligne retournée depuis <code>rechercher</code> qui correspond à la recherche. C’est aussi l’occasion d’enlever les appels à <code>println!</code> de la fonction <code>main</code> qui affichaient la recherche et le chemin du fichier, de sorte que notre programme n’affiche que les résultats de la recherche (si aucune erreur n’est survenue).</p>
+<p>Notez que la fonction de recherche va collecter tous les résultats dans un vecteur qu’elle renvoie avant qu’aucun affichage n’arrive. Cette implémentation pourrait s’avérer lente à afficher les résultats quand elle traite de gros fichiers, parce que les résultats ne sont pas affichés au fur et à mesure qu’ils sont trouvés ; nous discuterons d’un moyen envisageable pour remédier à ceci en utilisant les itérateurs dans le chapitre 13.</p>
+<p>Ouah ! C’était pas mal de travail, mais nous nous sommes organisés pour nous assurer le succès à venir. Maintenant il est bien plus facile de gérer les erreurs, et nous avons rendu le code plus modulaire. À partir de maintenant, l’essentiel de notre travail sera effectué dans <em>src/lib.rs</em>.</p>
+<p>Profitons de cette nouvelle modularité en accomplissant quelque chose qui aurait été difficile à faire avec l’ancien code, mais qui est facile avec ce nouveau code : nous allons écrire des tests !</p>
 
                     </main>
 

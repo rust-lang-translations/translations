@@ -96,7 +96,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-380cec70.js";
+            window.path_to_searchindex_js = "searchindex-6fee2bed.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-09667002.js"></script>
@@ -240,22 +240,22 @@
                     <main>
                         <!-- Old headings. Do not remove or links may break. -->
 <p><a id="developing-the-librarys-functionality-with-test-driven-development"></a></p>
-<h2 id="adding-functionality-with-test-driven-development"><a class="header" href="#adding-functionality-with-test-driven-development">Adding Functionality with Test-Driven Development</a></h2>
-<p>Now that we have the search logic in <em>src/lib.rs</em> separate from the <code>main</code> function, it’s much easier to write tests for the core functionality of our code. We can call functions directly with various arguments and check return values without having to call our binary from the command line.</p>
-<p>In this section, we’ll add the searching logic to the <code>minigrep</code> program using the test-driven development (TDD) process with the following steps:</p>
+<h2 id="ajouter-des-fonctionnalités-à-laide-du-développement-piloté-par-les-tests"><a class="header" href="#ajouter-des-fonctionnalités-à-laide-du-développement-piloté-par-les-tests">Ajouter des fonctionnalités à l’aide du développement piloté par les tests</a></h2>
+<p>Maintenant que la logique de recherche est dans <em>src/lib.rs</em>, à part de la fonction <code>main</code>, il est bien plus facile d’écrire les tests pour les fonctionnalités de base de notre code. Nous pouvons appeler les fonctions directement avec différents arguments et vérifier les valeurs de retour sans avoir à appeler notre binaire dans la ligne de commande.</p>
+<p>Dans cette section, nous allons ajouter la logique de recherche au programme <code>minigrep</code> en utilisant le processus de développement piloté par les tests (c’est le TDD : <em>Test-Driven Development</em>) avec les étapes suivantes :</p>
 <ol>
-<li>Write a test that fails and run it to make sure it fails for the reason you expect.</li>
-<li>Write or modify just enough code to make the new test pass.</li>
-<li>Refactor the code you just added or changed and make sure the tests continue to pass.</li>
-<li>Repeat from step 1!</li>
+<li>Écrivez un test qui échoue et lancez-le pour vous assurer qu’il va échouer pour la raison que vous attendiez.</li>
+<li>Écrivez ou modifiez juste assez de code pour faire réussir ce nouveau test.</li>
+<li>Remaniez le code que vous venez d’ajouter ou de changer pour vous assurer que les tests continuent à réussir.</li>
+<li>Recommencez à l’étape 1 !</li>
 </ol>
-<p>Though it’s just one of many ways to write software, TDD can help drive code design. Writing the test before you write the code that makes the test pass helps maintain high test coverage throughout the process.</p>
-<p>We’ll test-drive the implementation of the functionality that will actually do the searching for the query string in the file contents and produce a list of lines that match the query. We’ll add this functionality in a function called <code>search</code>.</p>
-<h3 id="writing-a-failing-test"><a class="header" href="#writing-a-failing-test">Writing a Failing Test</a></h3>
-<p>In <em>src/lib.rs</em>, we’ll add a <code>tests</code> module with a test function, as we did in <a href="ch11-01-writing-tests.html#the-anatomy-of-a-test-function">Chapter 11</a><!-- ignore -->. The test function specifies the behavior we want the <code>search</code> function to have: It will take a query and the text to search, and it will return only the lines from the text that contain the query. Listing 12-15 shows this test.</p>
+<p>Bien que ce processus n’est qu’une des différentes manières d’écrire des programmes, le TDD peut aussi aider à piloter sa conception. Écrire les tests avant d’écrire le code qui fait réussir les tests aide à maintenir une haute couverture de tests tout le long du processus.</p>
+<p>Nous allons expérimenter cela avec l’implémentation de la fonctionnalité qui va rechercher la chaîne de caractères demandée dans le contenu du fichier et générer une liste de lignes qui correspond à cette recherche. Nous ajouterons cette fonctionnalité dans une fonction <code>rechercher</code>.</p>
+<h3 id="écrire-un-test-qui-échoue"><a class="header" href="#écrire-un-test-qui-échoue">Écrire un test qui échoue</a></h3>
+<p>Comme nous n’en avons plus besoin, enlevons les instructions <code>println!</code> de <em>src/lib.rs</em> et <em>src/main.rs</em> que nous avions utilisé pour vérifier le bon comportement du programme. Ensuite, Dans <em>src/lib.rs</em>, nous allons ajouter un module <code>tests</code> avec une fonction de test, comme nous l’avions fait dans le <a href="ch11-01-writing-tests.html#the-anatomy-of-a-test-function">chapitre 11</a><!-- ignore -->. La fonction de test définit le comportement que nous voulons qu’ait la fonction <code>rechercher</code> : elle va prendre en arguments une recherche et le texte dans lequel rechercher, et elle va retourner seulement les lignes du texte qui correspondent à la recherche. L’encart 12-15 montre ce test.</p>
 <figure class="listing" id="listing-12-15">
 <span class="file-name">Filename: src/lib.rs</span>
-<pre><code class="language-rust ignore does_not_compile"><span class="boring">pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
+<pre><code class="language-rust ignore does_not_compile"><span class="boring">pub fn rechercher&lt;'a&gt;(recherche: &amp;str, contenu: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
 </span><span class="boring">    unimplemented!();
 </span><span class="boring">}
 </span><span class="boring">
@@ -266,23 +266,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn one_result() {
-        let query = "duct";
-        let contents = "\
+    fn un_resultat() {
+        let recherche = "duct";
+        let contenu = "\
 Rust:
-safe, fast, productive.
-Pick three.";
+sécurité, rapidité, productivité.
+Obtenez les trois en même temps.";
 
-        assert_eq!(vec!["safe, fast, productive."], search(query, contents));
+        assert_eq!(vec!["sécurité, rapidité, productivité."], rechercher(recherche, contenu));
     }
 }</code></pre>
 <figcaption><a href="#listing-12-15">Listing 12-15</a>: Creating a failing test for the <code>search</code> function for the functionality we wish we had</figcaption>
 </figure>
-<p>This test searches for the string <code>"duct"</code>. The text we’re searching is three lines, only one of which contains <code>"duct"</code> (note that the backslash after the opening double quote tells Rust not to put a newline character at the beginning of the contents of this string literal). We assert that the value returned from the <code>search</code> function contains only the line we expect.</p>
-<p>If we run this test, it will currently fail because the <code>unimplemented!</code> macro panics with the message “not implemented”. In accordance with TDD principles, we’ll take a small step of adding just enough code to get the test to not panic when calling the function by defining the <code>search</code> function to always return an empty vector, as shown in Listing 12-16. Then, the test should compile and fail because an empty vector doesn’t match a vector containing the line <code>"safe, fast, productive."</code>.</p>
+<p>Ce test recherche la chaîne de caractères <code>"duct"</code>. Le texte dans lequel nous recherchons fait trois lignes, et seulement une d’entre elles contient <code>"duct"</code> (remarquez que la barre oblique inverse après le double guillemet ouvrant indique à Rust de ne pas insérer un caractère de nouvelle ligne au début du contenu de ce littéral de chaîne de caractère). Nous vérifions que la valeur retournée par la fonction <code>rechercher</code> contient seulement la ligne que nous avions prévue.</p>
+<p>Si nous exécutons ce test, il va échouer pour le moment car la macro <code>unimplemented!</code> panique avec le message “not implemented”. En suivant les principes TDD, nous allons ajouter juste assez de code pour que le test puisse ne pas paniquer lors de l’appel de la fonction, en définissant la fonction <code>rechercher</code> de manière à ce qu’elle renvoie toujours un vecteur vide, comme dans l’encart 12-16. Ensuite, le test devrait compiler et échouer car un vecteur vide ne correspond pas au vecteur qui contient la ligne <code>"sécurité, rapidité, productivité."</code></p>
 <figure class="listing" id="listing-12-16">
 <span class="file-name">Filename: src/lib.rs</span>
-<pre><code class="language-rust noplayground">pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
+<pre><code class="language-rust noplayground">pub fn rechercher&lt;'a&gt;(recherche: &amp;str, contenu: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
     vec![]
 }
 <span class="boring">
@@ -291,57 +291,57 @@ Pick three.";
 </span><span class="boring">    use super::*;
 </span><span class="boring">
 </span><span class="boring">    #[test]
-</span><span class="boring">    fn one_result() {
-</span><span class="boring">        let query = "duct";
-</span><span class="boring">        let contents = "\
+</span><span class="boring">    fn un_resultat() {
+</span><span class="boring">        let recherche = "duct";
+</span><span class="boring">        let contenu = "\
 </span><span class="boring">Rust:
-</span><span class="boring">safe, fast, productive.
-</span><span class="boring">Pick three.";
+</span><span class="boring">sécurité, rapidité, productivité.
+</span><span class="boring">Obtenez les trois en même temps.";
 </span><span class="boring">
-</span><span class="boring">        assert_eq!(vec!["safe, fast, productive."], search(query, contents));
+</span><span class="boring">        assert_eq!(vec!["sécurité, rapidité, productivité."], rechercher(recherche, contenu));
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-12-16">Listing 12-16</a>: Defining just enough of the <code>search</code> function so that calling it won’t panic</figcaption>
 </figure>
-<p>Now let’s discuss why we need to define an explicit lifetime <code>'a</code> in the signature of <code>search</code> and use that lifetime with the <code>contents</code> argument and the return value. Recall in <a href="ch10-03-lifetime-syntax.html">Chapter 10</a><!-- ignore --> that the lifetime parameters specify which argument lifetime is connected to the lifetime of the return value. In this case, we indicate that the returned vector should contain string slices that reference slices of the argument <code>contents</code> (rather than the argument <code>query</code>).</p>
-<p>In other words, we tell Rust that the data returned by the <code>search</code> function will live as long as the data passed into the <code>search</code> function in the <code>contents</code> argument. This is important! The data referenced <em>by</em> a slice needs to be valid for the reference to be valid; if the compiler assumes we’re making string slices of <code>query</code> rather than <code>contents</code>, it will do its safety checking incorrectly.</p>
+<p>Voyons maintenant pourquoi nous avons besoin de définir explicitement une durée de vie <code>'a</code> dans la signature de <code>rechercher</code> et de l’utiliser sur l’argument <code>contenu</code> ainsi que la valeur de retour. Rappelez-vous que dans le <a href="ch10-03-lifetime-syntax.html">chapitre 10</a><!-- ignore --> nous avions vu que le paramètre de durée de vie indique quelle durée de vie d’argument est connectée à la durée de vie de la valeur de retour. Dans notre cas, nous indiquons que le vecteur retourné devrait contenir des slices de chaînes de caractères qui proviennent des slices de l’argument <code>contenu</code> (et pas de l’argument <code>recherche</code>).</p>
+<p>Autrement dit, nous disons à Rust que les données retournées par la fonction <code>rechercher</code> vont vivre aussi longtemps que la donnée dans l’argument <code>contenu</code> de la fonction <code>rechercher</code>. C’est très important ! Les données sur lesquelles pointent les slices doivent toujours être en vigueur pour que la référence reste valide ; si le compilateur croit que nous créons des slices de <code>recherche</code> plutôt que de <code>contenu</code>, ses vérifications de sécurité seront incorrectes.</p>
 <p>Si nous oublions les annotations de durée de vie et que nous essayons de compiler cette fonction, nous allons obtenir cette erreur :</p>
 <pre><code class="language-console">$ cargo build
    Compiling minigrep v0.1.0 (file:///projects/minigrep)
 error[E0106]: missing lifetime specifier
  --&gt; src/lib.rs:1:51
   |
-1 | pub fn search(query: &amp;str, contents: &amp;str) -&gt; Vec&lt;&amp;str&gt; {
-  |                      ----            ----         ^ expected named lifetime parameter
+1 | pub fn rechercher(recherche: &amp;str, contenu: &amp;str) -&gt; Vec&lt;&amp;str&gt; {
+  |                              ----           ----         ^ expected named lifetime parameter
   |
   = help: this function's return type contains a borrowed value, but the signature does not say whether it is borrowed from `query` or `contents`
 help: consider introducing a named lifetime parameter
   |
-1 | pub fn search&lt;'a&gt;(query: &amp;'a str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
-  |              ++++         ++                 ++              ++
+1 | pub fn rechercher&lt;'a&gt;(recherche: &amp;'a str, contenu: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
+  |                  ++++             ++                ++              ++
 
 For more information about this error, try `rustc --explain E0106`.
 error: could not compile `minigrep` (lib) due to 1 previous error
 </code></pre>
-<p>Rust can’t know which of the two parameters we need for the output, so we need to tell it explicitly. Note that the help text suggests specifying the same lifetime parameter for all the parameters and the output type, which is incorrect! Because <code>contents</code> is the parameter that contains all of our text and we want to return the parts of that text that match, we know <code>contents</code> is the only parameter that should be connected to the return value using the lifetime syntax.</p>
-<p>Other programming languages don’t require you to connect arguments to return values in the signature, but this practice will get easier over time. You might want to compare this example with the examples in the <a href="ch10-03-lifetime-syntax.html#validating-references-with-lifetimes">“Validating References with Lifetimes”</a><!-- ignore --> section in Chapter 10.</p>
-<h3 id="writing-code-to-pass-the-test"><a class="header" href="#writing-code-to-pass-the-test">Writing Code to Pass the Test</a></h3>
+<p>Rust ne peut pas deviner lequel des deux paramètres nous allons utiliser, donc nous devons lui dire explicitement. Notez que le texte d’aide suggère de préciser la durée de vie pour tous les paramètres et le type de retour, ce qui est incorrect ! Comme <code>contenu</code> est le paramètre qui contient tout notre texte et que nous voulons retourner des extraits de ce texte qui correspondent à la recherche, nous savons que <code>contenu</code> est le seul paramètre qui doit être connecté à la valeur de retour, en utilisant la syntaxe de durée de vie.</p>
+<p>Les autres langages de programmation n’ont pas besoin que vous connectiez les arguments aux valeurs de retour dans la signature, mais cette pratique deviendra plus facile au fil du temps. Vous pouvez comparer cet exemple aux exemples de la section <a href="ch10-03-lifetime-syntax.html#validating-references-with-lifetimes">“La conformité des références avec les durées de vies”</a><!-- ignore --> du chapitre 10.</p>
+<h3 id="écrire-du-code-pour-réussir-au-test"><a class="header" href="#écrire-du-code-pour-réussir-au-test">Écrire du code pour réussir au test</a></h3>
 <p>Pour le moment, notre test échoue car nous retournons toujours un vecteur vide. Pour corriger cela et implémenter <code>rechercher</code>, notre programme doit suivre les étapes suivantes :</p>
 <ol>
-<li>Iterate through each line of the contents.</li>
-<li>Check whether the line contains our query string.</li>
-<li>If it does, add it to the list of values we’re returning.</li>
-<li>If it doesn’t, do nothing.</li>
-<li>Return the list of results that match.</li>
+<li>Itérer sur chacune des lignes de <code>contenu</code>.</li>
+<li>Vérifier si la ligne contient la chaîne de caractères recherchée.</li>
+<li>Si c’est le cas, l’ajouter à la liste des valeurs que nous retournerons.</li>
+<li>Si ce n’est pas le cas, ne rien faire.</li>
+<li>Retourner la liste des résultats qui ont été trouvés.</li>
 </ol>
-<p>Let’s work through each step, starting with iterating through lines.</p>
-<h4 id="iterating-through-lines-with-the-lines-method"><a class="header" href="#iterating-through-lines-with-the-lines-method">Iterating Through Lines with the <code>lines</code> Method</a></h4>
-<p>Rust has a helpful method to handle line-by-line iteration of strings, conveniently named <code>lines</code>, that works as shown in Listing 12-17. Note that this won’t compile yet.</p>
+<p>Travaillons sur chacune de ces étapes, en commençant par l’itération sur les lignes.</p>
+<h4 id="itérer-sur-chacune-des-lignes-avec-la-méthode-lines"><a class="header" href="#itérer-sur-chacune-des-lignes-avec-la-méthode-lines">Itérer sur chacune des lignes avec la méthode <code>lines</code></a></h4>
+<p>Rust a une méthode très pratique pour gérer l’itération ligne-par-ligne des chaînes de caractères, judicieusement appelée <code>lines</code>, qui fonctionne comme dans l’encart 12-17. Notez que cela ne se compile pas encore.</p>
 <figure class="listing" id="listing-12-17">
 <span class="file-name">Filename: src/lib.rs</span>
-<pre><code class="language-rust ignore does_not_compile">pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
-    for line in contents.lines() {
-        // do something with line
+<pre><code class="language-rust ignore does_not_compile">pub fn rechercher&lt;'a&gt;(recherche: &amp;str, contenu: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
+    for ligne in contenu.lines() {
+        // faire quelquechose avec ligne ici
     }
 }
 <span class="boring">
@@ -350,27 +350,27 @@ error: could not compile `minigrep` (lib) due to 1 previous error
 </span><span class="boring">    use super::*;
 </span><span class="boring">
 </span><span class="boring">    #[test]
-</span><span class="boring">    fn one_result() {
-</span><span class="boring">        let query = "duct";
-</span><span class="boring">        let contents = "\
+</span><span class="boring">    fn un_resultat() {
+</span><span class="boring">        let recherche = "duct";
+</span><span class="boring">        let contenu = "\
 </span><span class="boring">Rust:
-</span><span class="boring">safe, fast, productive.
-</span><span class="boring">Pick three.";
+</span><span class="boring">sécurité, rapidité, productivité.
+</span><span class="boring">Obtenez les trois en même temps.";
 </span><span class="boring">
-</span><span class="boring">        assert_eq!(vec!["safe, fast, productive."], search(query, contents));
+</span><span class="boring">        assert_eq!(vec!["sécurité, rapidité, productivité."], rechercher(recherche, contenu));
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-12-17">Listing 12-17</a>: Iterating through each line in <code>contents</code></figcaption>
 </figure>
-<p>The <code>lines</code> method returns an iterator. We’ll talk about iterators in depth in <a href="ch13-02-iterators.html">Chapter 13</a><!-- ignore -->. But recall that you saw this way of using an iterator in <a href="ch03-05-control-flow.html#looping-through-a-collection-with-for">Listing 3-5</a><!-- ignore -->, where we used a <code>for</code> loop with an iterator to run some code on each item in a collection.</p>
-<h4 id="searching-each-line-for-the-query"><a class="header" href="#searching-each-line-for-the-query">Searching Each Line for the Query</a></h4>
-<p>Next, we’ll check whether the current line contains our query string. Fortunately, strings have a helpful method named <code>contains</code> that does this for us! Add a call to the <code>contains</code> method in the <code>search</code> function, as shown in Listing 12-18. Note that this still won’t compile yet.</p>
+<p>La méthode <code>lines</code> retourne un itérateur. Nous verrons plus tard les itérateurs dans le <a href="ch13-02-iterators.html">chapitre 13</a><!-- ignore -->, mais souvenez-vous que vous avez vu cette façon d’utiliser un itérateur dans <a href="ch03-05-control-flow.html#looping-through-a-collection-with-for">l’encart 3-5</a><!-- ignore -->, dans lequel nous avions utilisé une boucle <code>for</code> sur un itérateur pour exécuter du code sur chaque élément d’une collection.</p>
+<h4 id="trouver-chaque-ligne-correspondant-à-la-recherche"><a class="header" href="#trouver-chaque-ligne-correspondant-à-la-recherche">Trouver chaque ligne correspondant à la recherche</a></h4>
+<p>Ensuite, nous allons vérifier que la ligne courante contient la chaîne de caractères que nous recherchons. Heureusement, les chaînes de caractères ont une méthode <code>contains</code> assez pratique qui fait cela pour nous ! Ajoutez l’appel à la méthode <code>contains</code> dans la fonction <code>rechercher</code>, comme dans l’encart 12-18. Notez qu’ici non plus nous ne pouvons pas encore compiler.</p>
 <figure class="listing" id="listing-12-18">
 <span class="file-name">Filename: src/lib.rs</span>
-<pre><code class="language-rust ignore does_not_compile">pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
-    for line in contents.lines() {
-        if line.contains(query) {
-            // do something with line
+<pre><code class="language-rust ignore does_not_compile">pub fn rechercher&lt;'a&gt;(recherche: &amp;str, contenu: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
+    for ligne in contenu.lines() {
+        if ligne.contains(recherche) {
+            // faire quelquechose avec la ligne ici
         }
     }
 }
@@ -380,33 +380,33 @@ error: could not compile `minigrep` (lib) due to 1 previous error
 </span><span class="boring">    use super::*;
 </span><span class="boring">
 </span><span class="boring">    #[test]
-</span><span class="boring">    fn one_result() {
-</span><span class="boring">        let query = "duct";
-</span><span class="boring">        let contents = "\
+</span><span class="boring">    fn un_resultat() {
+</span><span class="boring">        let recherche = "duct";
+</span><span class="boring">        let contenu = "\
 </span><span class="boring">Rust:
-</span><span class="boring">safe, fast, productive.
-</span><span class="boring">Pick three.";
+</span><span class="boring">sécurité, rapidité, productivité.
+</span><span class="boring">Obtenez les trois en même temps.";
 </span><span class="boring">
-</span><span class="boring">        assert_eq!(vec!["safe, fast, productive."], search(query, contents));
+</span><span class="boring">        assert_eq!(vec!["sécurité, rapidité, productivité."], rechercher(recherche, contenu));
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-12-18">Listing 12-18</a>: Adding functionality to see whether the line contains the string in <code>query</code></figcaption>
 </figure>
-<p>At the moment, we’re building up functionality. To get the code to compile, we need to return a value from the body as we indicated we would in the function signature.</p>
-<h4 id="storing-matching-lines"><a class="header" href="#storing-matching-lines">Storing Matching Lines</a></h4>
-<p>To finish this function, we need a way to store the matching lines that we want to return. For that, we can make a mutable vector before the <code>for</code> loop and call the <code>push</code> method to store a <code>line</code> in the vector. After the <code>for</code> loop, we return the vector, as shown in Listing 12-19.</p>
+<p>Pour le moment, nous construisions des fonctionnalités. Pour que le code puisse se compiler, nous devons retourner une valeur depuis le corps de la fonction, comme nous l’avons indiqué dans la signature de la fonction.</p>
+<h4 id="stocker-les-lignes-trouvées"><a class="header" href="#stocker-les-lignes-trouvées">Stocker les lignes trouvées</a></h4>
+<p>Pour terminer cette fonction, nous avons aussi besoin d’un moyen de stocker les lignes qui contiennent la chaîne de caractères que nous recherchons. Pour cela, nous pouvons créer un vecteur mutable avant la boucle <code>for</code> et appeler la méthode <code>push</code> pour enregistrer la <code>ligne</code> dans le vecteur. Après la boucle <code>for</code>, nous retournons le vecteur, comme dans l’encart 12-19 :</p>
 <figure class="listing" id="listing-12-19">
 <span class="file-name">Filename: src/lib.rs</span>
-<pre><code class="language-rust ignore">pub fn search&lt;'a&gt;(query: &amp;str, contents: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
-    let mut results = Vec::new();
+<pre><code class="language-rust ignore">pub fn rechercher&lt;'a&gt;(recherche: &amp;str, contenu: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
+    let mut resultats = Vec::new();
 
-    for line in contents.lines() {
-        if line.contains(query) {
-            results.push(line);
+    for ligne in contenu.lines() {
+        if ligne.contains(recherche) {
+            resultats.push(ligne);
         }
     }
 
-    results
+    resultats
 }
 <span class="boring">
 </span><span class="boring">#[cfg(test)]
@@ -414,14 +414,14 @@ error: could not compile `minigrep` (lib) due to 1 previous error
 </span><span class="boring">    use super::*;
 </span><span class="boring">
 </span><span class="boring">    #[test]
-</span><span class="boring">    fn one_result() {
-</span><span class="boring">        let query = "duct";
-</span><span class="boring">        let contents = "\
+</span><span class="boring">    fn un_resultat() {
+</span><span class="boring">        let recherche = "duct";
+</span><span class="boring">        let contenu = "\
 </span><span class="boring">Rust:
-</span><span class="boring">safe, fast, productive.
-</span><span class="boring">Pick three.";
+</span><span class="boring">sécurité, rapidité, productivité.
+</span><span class="boring">Obtenez les trois en même temps.";
 </span><span class="boring">
-</span><span class="boring">        assert_eq!(vec!["safe, fast, productive."], search(query, contents));
+</span><span class="boring">        assert_eq!(vec!["sécurité, rapidité, productivité."], rechercher(recherche, contenu));
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-12-19">Listing 12-19</a>: Storing the lines that match so that we can return them</figcaption>
@@ -450,16 +450,16 @@ running 0 tests
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 </code></pre>
-<p>Our test passed, so we know it works!</p>
-<p>At this point, we could consider opportunities for refactoring the implementation of the search function while keeping the tests passing to maintain the same functionality. The code in the search function isn’t too bad, but it doesn’t take advantage of some useful features of iterators. We’ll return to this example in <a href="ch13-02-iterators.html">Chapter 13</a><!-- ignore -->, where we’ll explore iterators in detail, and look at how to improve it.</p>
-<p>Now the entire program should work! Let’s try it out, first with a word that should return exactly one line from the Emily Dickinson poem: <em>frog</em>.</p>
+<p>Notre test a réussi, donc nous savons que cela fonctionne !</p>
+<p>Arrivés à ce stade, nous pourrions envisager des pistes de remaniement pour l’implémentation de la fonction de recherche tout en faisant en sorte que les tests réussissent toujours afin de conserver les mêmes fonctionnalités. Le code de la fonction de recherche n’est pas mauvais, mais il ne profite pas de quelques fonctionnalités utiles des itérateurs. Nous retrouverons cet exemple dans le <a href="ch13-02-iterators.html">chapitre 13</a><!-- ignore -->, dans lequel nous explorerons les itérateurs en détail, et ainsi découvrir comment nous pourrions l’améliorer.</p>
+<p>Maintenant, l’intégralité du programme devrait fonctionner ! Essayons-le, pour commencer avec un mot qui devrait retourner exactement une seule ligne du poème d’Emily Dickinson, “frog” :</p>
 <pre><code class="language-console">$ cargo run -- frog poem.txt
    Compiling minigrep v0.1.0 (file:///projects/minigrep)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.38s
      Running `target/debug/minigrep frog poem.txt`
 How public, like a frog
 </code></pre>
-<p>Cool! Now let’s try a word that will match multiple lines, like <em>body</em>:</p>
+<p>Super ! Maintenant, essayons un mot qui devrait retourner plusieurs lignes, comme “body” :</p>
 <pre><code class="language-console">$ cargo run -- body poem.txt
    Compiling minigrep v0.1.0 (file:///projects/minigrep)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.0s
@@ -468,7 +468,7 @@ I'm nobody! Who are you?
 Are you nobody, too?
 How dreary to be somebody!
 </code></pre>
-<p>And finally, let’s make sure that we don’t get any lines when we search for a word that isn’t anywhere in the poem, such as <em>monomorphization</em>:</p>
+<p>Et enfin, assurons-nous que nous n’obtenons aucune ligne lorsque nous cherchons un mot qui n’est nulle part dans le poème, comme “monomorphization” :</p>
 <pre><code class="language-console">$ cargo run -- monomorphization poem.txt
    Compiling minigrep v0.1.0 (file:///projects/minigrep)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.0s
