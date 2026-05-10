@@ -96,7 +96,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6fee2bed.js";
+            window.path_to_searchindex_js = "searchindex-4d6b7b65.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-09667002.js"></script>
@@ -239,9 +239,9 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h2 id="amélioration-de-notre-projet-dentréesortie"><a class="header" href="#amélioration-de-notre-projet-dentréesortie">Amélioration de notre projet d’entrée/sortie</a></h2>
-<p>With this new knowledge about iterators, we can improve the I/O project in Chapter 12 by using iterators to make places in the code clearer and more concise. Let’s look at how iterators can improve our implementation of the <code>Config::build</code> function and the <code>search</code> function.</p>
-<h3 id="removing-a-clone-using-an-iterator"><a class="header" href="#removing-a-clone-using-an-iterator">Removing a <code>clone</code> Using an Iterator</a></h3>
-<p>In Listing 12-6, we added code that took a slice of <code>String</code> values and created an instance of the <code>Config</code> struct by indexing into the slice and cloning the values, allowing the <code>Config</code> struct to own those values. In Listing 13-17, we’ve reproduced the implementation of the <code>Config::build</code> function as it was in Listing 12-23.</p>
+<p>Grâce à ces nouvelles connaissances sur les itérateurs, nous pouvons améliorer le projet d’entrée/sortie du chapitre 12 en utilisant des itérateurs pour rendre certains endroits du code plus clairs et plus concis. Voyons comment les itérateurs peuvent améliorer notre implémentation de la fonction <code>Config::build</code> et de la fonction <code>rechercher</code>.</p>
+<h3 id="supprimer-lappel-à-clone-à-laide-dun-itérateur"><a class="header" href="#supprimer-lappel-à-clone-à-laide-dun-itérateur">Supprimer l’appel à <code>clone</code> à l’aide d’un itérateur</a></h3>
+<p>Dans l’encart 12-6, nous avions ajouté du code qui prenait une <em>slice</em> de <code>String</code> et qui créait une instance de la structure <code>Config</code> en utilisant les indices de la <em>slice</em> et en clonant les valeurs, permettant ainsi à la structure <code>Config</code> de posséder ces valeurs. Dans l’encart 13-17, nous avons reproduit l’implémentation de la fonction <code>Config::build</code> telle qu’elle était dans l’encart 12-23 à la fin du chapitre 12 :</p>
 <figure class="listing" id="listing-13-17">
 <span class="file-name">Filename: src/main.rs</span>
 <pre><code class="language-rust ignore"><span class="boring">use std::env;
@@ -283,9 +283,9 @@
         let ignore_casse = env::var("IGNORE_CASSE").is_ok();
 
         Ok(Config {
-            query,
-            file_path,
-            ignore_case,
+            recherche,
+            chemin_fichier,
+            ignore_casse,
         })
     }
 }
@@ -294,12 +294,12 @@
 </span><span class="boring">    let contenu = fs::read_to_string(config.chemin_fichier)?;
 </span><span class="boring">
 </span><span class="boring">    let resultats = if config.sensible_casse {
-</span><span class="boring">        search_case_insensitive(&amp;config.recherche, &amp;contenu)
+</span><span class="boring">        rechercher_insensible_casse(&amp;config.recherche, &amp;contenu)
 </span><span class="boring">    } else {
-</span><span class="boring">        search(&amp;config.recherche, &amp;contenu)
+</span><span class="boring">        recherche(&amp;config.recherche, &amp;contenu)
 </span><span class="boring">    };
 </span><span class="boring">
-</span><span class="boring">    for line in resultats {
+</span><span class="boring">    for ligne in resultats {
 </span><span class="boring">        println!("{ligne}");
 </span><span class="boring">    }
 </span><span class="boring">
@@ -308,11 +308,11 @@
 <figcaption><a href="#listing-13-17">Listing 13-17</a>: Reproduction of the <code>Config::build</code> function from Listing 12-23</figcaption>
 </figure>
 <p>À ce moment-là, nous avions dit de ne pas s’inquiéter des appels inefficaces à <code>clone</code> parce que nous les supprimerions à l’avenir. Et bien, ce moment est venu !</p>
-<p>We needed <code>clone</code> here because we have a slice with <code>String</code> elements in the parameter <code>args</code>, but the <code>build</code> function doesn’t own <code>args</code>. To return ownership of a <code>Config</code> instance, we had to clone the values from the <code>query</code> and <code>file_path</code> fields of <code>Config</code> so that the <code>Config</code> instance can own its values.</p>
-<p>With our new knowledge about iterators, we can change the <code>build</code> function to take ownership of an iterator as its argument instead of borrowing a slice. We’ll use the iterator functionality instead of the code that checks the length of the slice and indexes into specific locations. This will clarify what the <code>Config::build</code> function is doing because the iterator will access the values.</p>
-<p>Once <code>Config::build</code> takes ownership of the iterator and stops using indexing operations that borrow, we can move the <code>String</code> values from the iterator into <code>Config</code> rather than calling <code>clone</code> and making a new allocation.</p>
-<h4 id="using-the-returned-iterator-directly"><a class="header" href="#using-the-returned-iterator-directly">Using the Returned Iterator Directly</a></h4>
-<p>Open your I/O project’s <em>src/main.rs</em> file, which should look like this:</p>
+<p>Nous avions besoin de <code>clone</code> ici parce que nous avons une slice d’éléments <code>String</code> dans le paramètre <code>args</code>, mais la fonction <code>build</code> ne possède pas <code>args</code>. Pour renvoyer la propriété d’une instance de <code>Config</code>, nous avons dû cloner les valeurs des champs <code>recherche</code> et <code>chemin_fichier</code> de <code>Config</code> afin que cette instance de <code>Config</code> puisse prendre possession de ces valeurs.</p>
+<p>Avec nos nouvelles connaissances sur les itérateurs, nous pouvons changer la fonction <code>new</code> pour prendre possession d’un itérateur passé en argument au lieu d’emprunter une <em>slice</em>. Nous utiliserons les fonctionnalités des itérateurs à la place du code qui vérifie la taille de la slice et qui utilise les indices des éléments précis. Cela clarifiera ce que la fonction <code>Config::new</code> fait car c’est l’itérateur qui accédera aux valeurs.</p>
+<p>Une fois que <code>Config::build</code> prend possession de l’itérateur et cesse d’utiliser les opérations avec les indices et d’emprunter les données, nous pouvons déplacer les valeurs <code>String</code> de l’iterator dans <code>Config</code> plutôt que de faire appel à <code>clone</code> et de créer par conséquent de nouvelles allocations.</p>
+<h4 id="utiliser-directement-litérateur-retourné"><a class="header" href="#utiliser-directement-litérateur-retourné">Utiliser directement l’itérateur retourné</a></h4>
+<p>Ouvrez le fichier <em>src/main.rs</em> de votre projet d’entrée/sortie, qui devrait ressembler à ceci :</p>
 <p><span class="filename">Fichier : src/main.rs</span></p>
 <pre><code class="language-rust ignore"><span class="boring">use std::env;
 </span><span class="boring">use std::error::Error;
@@ -325,14 +325,14 @@
     let args: Vec&lt;String&gt; = env::args().collect();
 
     let config = Config::build(&amp;args).unwrap_or_else(|err| {
-        eprintln!("Problème rencontré lors de l'interprétation des arguments : {err}");
+        eprintln!("Problème rencontré lors de l'interprétation des arguments : {err}");
         process::exit(1);
     });
 
     // -- partie masquée ici --
 <span class="boring">
 </span><span class="boring">    if let Err(e) = run(config) {
-</span><span class="boring">        eprintln!("Erreur applicative : {e}");
+</span><span class="boring">        eprintln!("Erreur applicative : {e}");
 </span><span class="boring">        process::exit(1);
 </span><span class="boring">    }
 </span>}
@@ -355,9 +355,9 @@
 </span><span class="boring">        let ignore_casse = env::var("IGNORE_CASSE").is_ok();
 </span><span class="boring">
 </span><span class="boring">        Ok(Config {
-</span><span class="boring">            query,
-</span><span class="boring">            file_path,
-</span><span class="boring">            ignore_case,
+</span><span class="boring">            recherche,
+</span><span class="boring">            chemin_fichier,
+</span><span class="boring">            ignore_casse,
 </span><span class="boring">        })
 </span><span class="boring">    }
 </span><span class="boring">}
@@ -366,18 +366,18 @@
 </span><span class="boring">    let contenu = fs::read_to_string(config.chemin_fichier)?;
 </span><span class="boring">
 </span><span class="boring">    let resultats = if config.sensible_casse {
-</span><span class="boring">        search_case_insensitive(&amp;config.recherche, &amp;contenu)
+</span><span class="boring">        rechercher_insensible_casse(&amp;config.recherche, &amp;contenu)
 </span><span class="boring">    } else {
-</span><span class="boring">        search(&amp;config.recherche, &amp;contenu)
+</span><span class="boring">        recherche(&amp;config.recherche, &amp;contenu)
 </span><span class="boring">    };
 </span><span class="boring">
-</span><span class="boring">    for line in resultats {
+</span><span class="boring">    for ligne in resultats {
 </span><span class="boring">        println!("{ligne}");
 </span><span class="boring">    }
 </span><span class="boring">
 </span><span class="boring">    Ok(())
 </span><span class="boring">}</span></code></pre>
-<p>We’ll first change the start of the <code>main</code> function that we had in Listing 12-24 to the code in Listing 13-18, which this time uses an iterator. This won’t compile until we update <code>Config::build</code> as well.</p>
+<p>Nous allons commencer par changer le début de la fonction <code>main</code> que nous avions dans l’encart 12-24 pour le code dans l’encart 13-18 qui, cette fois-ci, utilise un itérateur. Ceci ne compilera pas encore jusqu’à ce que nous mettions également à jour <code>Config::build</code>.</p>
 <figure class="listing" id="listing-13-18">
 <span class="file-name">Filename: src/main.rs</span>
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">use std::env;
@@ -389,14 +389,14 @@
 </span><span class="boring">
 </span>fn main() {
     let config = Config::build(env::args()).unwrap_or_else(|err| {
-        eprintln!("Problème rencontré lors de l'interprétation des arguments : {err}");
+        eprintln!("Problème rencontré lors de l'interprétation des arguments : {err}");
         process::exit(1);
     });
 
     // -- partie masquée ici --
 <span class="boring">
 </span><span class="boring">    if let Err(e) = run(config) {
-</span><span class="boring">        eprintln!("Erreur applicative : {e}");
+</span><span class="boring">        eprintln!("Erreur applicative : {e}");
 </span><span class="boring">        process::exit(1);
 </span><span class="boring">    }
 </span>}
@@ -419,9 +419,9 @@
 </span><span class="boring">        let ignore_casse = env::var("IGNORE_CASSE").is_ok();
 </span><span class="boring">
 </span><span class="boring">        Ok(Config {
-</span><span class="boring">            query,
-</span><span class="boring">            file_path,
-</span><span class="boring">            ignore_case,
+</span><span class="boring">            recherche,
+</span><span class="boring">            chemin_fichier,
+</span><span class="boring">            ignore_casse,
 </span><span class="boring">        })
 </span><span class="boring">    }
 </span><span class="boring">}
@@ -430,12 +430,12 @@
 </span><span class="boring">    let contenu = fs::read_to_string(config.chemin_fichier)?;
 </span><span class="boring">
 </span><span class="boring">    let resultats = if config.sensible_casse {
-</span><span class="boring">        search_case_insensitive(&amp;config.recherche, &amp;contenu)
+</span><span class="boring">        rechercher_insensible_casse(&amp;config.recherche, &amp;contenu)
 </span><span class="boring">    } else {
-</span><span class="boring">        search(&amp;config.recherche, &amp;contenu)
+</span><span class="boring">        recherche(&amp;config.recherche, &amp;contenu)
 </span><span class="boring">    };
 </span><span class="boring">
-</span><span class="boring">    for line in resultats {
+</span><span class="boring">    for ligne in resultats {
 </span><span class="boring">        println!("{ligne}");
 </span><span class="boring">    }
 </span><span class="boring">
@@ -443,8 +443,8 @@
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-13-18">Listing 13-18</a>: Passing the return value of <code>env::args</code> to <code>Config::build</code></figcaption>
 </figure>
-<p>The <code>env::args</code> function returns an iterator! Rather than collecting the iterator values into a vector and then passing a slice to <code>Config::build</code>, now we’re passing ownership of the iterator returned from <code>env::args</code> to <code>Config::build</code> directly.</p>
-<p>Next, we need to update the definition of <code>Config::build</code>. Let’s change the signature of <code>Config::build</code> to look like Listing 13-19. This still won’t compile, because we need to update the function body.</p>
+<p>La fonction <code>env::args</code> retourne un itérateur ! Plutôt que de collecter les valeurs de l’itérateur dans un vecteur et de passer ensuite une <em>slice</em> à <code>Config::build</code>, nous passons maintenant la possession de l’itérateur de <code>env::args</code> directement à <code>Config::build</code>.</p>
+<p>Ensuite, nous devons mettre à jour la définition de <code>Config::build</code>. Modifions la signature de <code>Config::build</code> pour qu’elle ressemble à l’encart 13-16. Ceci ne compilera pas encore car nous devons mettre à jour le corps de la fonction.</p>
 <figure class="listing" id="listing-13-19">
 <span class="file-name">Filename: src/main.rs</span>
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">use std::env;
@@ -456,12 +456,12 @@
 </span><span class="boring">
 </span><span class="boring">fn main() {
 </span><span class="boring">    let config = Config::build(env::args()).unwrap_or_else(|err| {
-</span><span class="boring">        eprintln!("Problème rencontré lors de l'interprétation des arguments : {err}");
+</span><span class="boring">        eprintln!("Problème rencontré lors de l'interprétation des arguments : {err}");
 </span><span class="boring">        process::exit(1);
 </span><span class="boring">    });
 </span><span class="boring">
 </span><span class="boring">    if let Err(e) = run(config) {
-</span><span class="boring">        eprintln!("Erreur applicative : {e}");
+</span><span class="boring">        eprintln!("Erreur applicative : {e}");
 </span><span class="boring">        process::exit(1);
 </span><span class="boring">    }
 </span><span class="boring">}
@@ -487,9 +487,9 @@
 </span><span class="boring">        let ignore_casse = env::var("IGNORE_CASSE").is_ok();
 </span><span class="boring">
 </span><span class="boring">        Ok(Config {
-</span><span class="boring">            query,
-</span><span class="boring">            file_path,
-</span><span class="boring">            ignore_case,
+</span><span class="boring">            recherche,
+</span><span class="boring">            chemin_fichier,
+</span><span class="boring">            ignore_casse,
 </span><span class="boring">        })
 </span><span class="boring">    }
 </span><span class="boring">}
@@ -498,12 +498,12 @@
 </span><span class="boring">    let contenu = fs::read_to_string(config.chemin_fichier)?;
 </span><span class="boring">
 </span><span class="boring">    let resultats = if config.sensible_casse {
-</span><span class="boring">        search_case_insensitive(&amp;config.recherche, &amp;contenu)
+</span><span class="boring">        rechercher_insensible_casse(&amp;config.recherche, &amp;contenu)
 </span><span class="boring">    } else {
-</span><span class="boring">        search(&amp;config.recherche, &amp;contenu)
+</span><span class="boring">        recherche(&amp;config.recherche, &amp;contenu)
 </span><span class="boring">    };
 </span><span class="boring">
-</span><span class="boring">    for line in resultats {
+</span><span class="boring">    for ligne in resultats {
 </span><span class="boring">        println!("{ligne}");
 </span><span class="boring">    }
 </span><span class="boring">
@@ -511,13 +511,13 @@
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-13-19">Listing 13-19</a>: Updating the signature of <code>Config::build</code> to expect an iterator</figcaption>
 </figure>
-<p>The standard library documentation for the <code>env::args</code> function shows that the type of the iterator it returns is <code>std::env::Args</code>, and that type implements the <code>Iterator</code> trait and returns <code>String</code> values.</p>
-<p>We’ve updated the signature of the <code>Config::build</code> function so that the parameter <code>args</code> has a generic type with the trait bounds <code>impl Iterator&lt;Item = String&gt;</code> instead of <code>&amp;[String]</code>. This usage of the <code>impl Trait</code> syntax we discussed in the <a href="ch10-02-traits.html#traits-as-parameters">“Using Traits as Parameters”</a><!-- ignore --> section of Chapter 10 means that <code>args</code> can be any type that implements the <code>Iterator</code> trait and returns <code>String</code> items.</p>
-<p>Because we’re taking ownership of <code>args</code> and we’ll be mutating <code>args</code> by iterating over it, we can add the <code>mut</code> keyword into the specification of the <code>args</code> parameter to make it mutable.</p>
+<p>La documentation de la bibliothèque standard pour la fonction <code>env::args</code> indique que le type de l’itérateur qu’elle renvoie est <code>std::env::Args</code>, et que ce type implémente le trait <code>Iterator</code> et renvoie des valeurs de type <code>String</code>.“</p>
+<p>Nous avons mis à jour la signature de la fonction <code>Config::build</code> de manière à ce que le paramètre <code>args</code> ait un type générique avec les contraintes de trait <code>impl Iterator&lt;Item = String&gt;</code> au lieu de  <code>&amp;[String]</code>. Cette utilisation de la syntaxe <code>impl Trait</code>, dont nous avons parlé dans la section <a href="ch10-02-traits.html#utilisation-des-traits-comme-param%C3%A8tres">“Utilisation des traits comme paramètres”</a><!-- ignore --> du chapitre 10, signifie que <code>args</code> peut être de n’importe quel type qui implémente le trait <code>Iterator</code> et renvoie des éléments de type <code>String</code>.</p>
+<p>Comme nous prenons possession de <code>args</code> et que nous allons le modifier<code>args</code> en le parcourant, nous pouvons ajouter le mot-clé <code>mut</code> dans la spécification du paramètre <code>args</code> pour le rendre modifiable.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="using-iterator-trait-methods-instead-of-indexing"></a></p>
-<h4 id="using-iterator-trait-methods"><a class="header" href="#using-iterator-trait-methods">Using <code>Iterator</code> Trait Methods</a></h4>
-<p>Next, we’ll fix the body of <code>Config::build</code>. Because <code>args</code> implements the <code>Iterator</code> trait, we know we can call the <code>next</code> method on it! Listing 13-20 updates the code from Listing 12-23 to use the <code>next</code> method.</p>
+<h4 id="utilisation-des-méthodes-du-trait-iterator"><a class="header" href="#utilisation-des-méthodes-du-trait-iterator">Utilisation des méthodes du trait <code>Iterator</code></a></h4>
+<p>Corrigeons ensuite le corps de <code>Config::build</code>. Comme <code>args</code> implémente le trait <code>Iterator</code>, nous savons que nous pouvons appeler la méthode <code>next</code> dessus ! L’encart 13-20 met à jour le code de l’encart 12-23 afin d’utiliser la méthode <code>next</code> :</p>
 <figure class="listing" id="listing-13-20">
 <span class="file-name">Filename: src/main.rs</span>
 <pre><code class="language-rust ignore noplayground"><span class="boring">use std::env;
@@ -529,12 +529,12 @@
 </span><span class="boring">
 </span><span class="boring">fn main() {
 </span><span class="boring">    let config = Config::build(env::args()).unwrap_or_else(|err| {
-</span><span class="boring">        eprintln!("Problème rencontré lors de l'interprétation des arguments : {err}");
+</span><span class="boring">        eprintln!("Problème rencontré lors de l'interprétation des arguments : {err}");
 </span><span class="boring">        process::exit(1);
 </span><span class="boring">    });
 </span><span class="boring">
 </span><span class="boring">    if let Err(e) = run(config) {
-</span><span class="boring">        eprintln!("Erreur applicative : {e}");
+</span><span class="boring">        eprintln!("Erreur applicative : {e}");
 </span><span class="boring">        process::exit(1);
 </span><span class="boring">    }
 </span><span class="boring">}
@@ -551,22 +551,22 @@
     ) -&gt; Result&lt;Config, &amp;'static str&gt; {
         args.next();
 
-        let query = match args.next() {
+        let recherche = match args.next() {
             Some(arg) =&gt; arg,
-            None =&gt; return Err("Didn't get a query string"),
+            None =&gt; return Err("nous n'avons pas de chaîne de caractères"),
         };
 
-        let file_path = match args.next() {
+        let nom_fichier = match args.next() {
             Some(arg) =&gt; arg,
-            None =&gt; return Err("Didn't get a file path"),
+            None =&gt; return Err("nous n'avons pas de nom de fichier"),
         };
 
         let ignore_casse = env::var("IGNORE_CASSE").is_ok();
 
         Ok(Config {
-            query,
-            file_path,
-            ignore_case,
+            recherche,
+            chemin_fichier,
+            ignore_casse,
         })
     }
 }
@@ -575,12 +575,12 @@
 </span><span class="boring">    let contenu = fs::read_to_string(config.chemin_fichier)?;
 </span><span class="boring">
 </span><span class="boring">    let resultats = if config.sensible_casse {
-</span><span class="boring">        search_case_insensitive(&amp;config.recherche, &amp;contenu)
+</span><span class="boring">        rechercher_insensible_casse(&amp;config.recherche, &amp;contenu)
 </span><span class="boring">    } else {
-</span><span class="boring">        search(&amp;config.recherche, &amp;contenu)
+</span><span class="boring">        recherche(&amp;config.recherche, &amp;contenu)
 </span><span class="boring">    };
 </span><span class="boring">
-</span><span class="boring">    for line in resultats {
+</span><span class="boring">    for ligne in resultats {
 </span><span class="boring">        println!("{ligne}");
 </span><span class="boring">    }
 </span><span class="boring">
@@ -588,11 +588,11 @@
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-13-20">Listing 13-20</a>: Changing the body of <code>Config::build</code> to use iterator methods</figcaption>
 </figure>
-<p>Remember that the first value in the return value of <code>env::args</code> is the name of the program. We want to ignore that and get to the next value, so first we call <code>next</code> and do nothing with the return value. Then, we call <code>next</code> to get the value we want to put in the <code>query</code> field of <code>Config</code>. If <code>next</code> returns <code>Some</code>, we use a <code>match</code> to extract the value. If it returns <code>None</code>, it means not enough arguments were given, and we return early with an <code>Err</code> value. We do the same thing for the <code>file_path</code> value.</p>
+<p>Rappelez-vous que la première valeur de ce qui est retourné par <code>env::args</code> est le nom du programme. Nous voulons ignorer cette valeur et passer à la suivante, donc d’abord nous appelons une fois <code>next</code> et nous ne faisons rien avec sa valeur de retour. Ensuite, nous appelons <code>next</code> pour obtenir la valeur que nous voulons mettre dans le champ <code>recherche</code> de <code>Config</code>. Si <code>next</code> renvoie un <code>Some</code>, nous utilisons un <code>match</code> pour extraire sa valeur. S’il retourne <code>None</code>, cela signifie que pas assez d’arguments ont été fournis, si bien que nous quittons aussitôt la fonction en retournant une valeur <code>Err</code>. Nous procédons de même pour la valeur <code>chemin_fichier</code>.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="making-code-clearer-with-iterator-adapters"></a></p>
-<h3 id="clarifying-code-with-iterator-adapters"><a class="header" href="#clarifying-code-with-iterator-adapters">Clarifying Code with Iterator Adapters</a></h3>
-<p>We can also take advantage of iterators in the <code>search</code> function in our I/O project, which is reproduced here in Listing 13-21 as it was in Listing 12-19.</p>
+<h3 id="clarification-du-code-avec-des-adaptateurs-ditération"><a class="header" href="#clarification-du-code-avec-des-adaptateurs-ditération">Clarification du code avec des adaptateurs d’itération</a></h3>
+<p>Nous pouvons également tirer parti des itérateurs dans la fonction <code>rechercher</code> de notre projet d’entrée/sortie, qui est reproduite ici dans l’encart 13-21, telle qu’elle était dans l’encart 12-19.</p>
 <figure class="listing" id="listing-13-21">
 <span class="file-name">Filename: src/lib.rs</span>
 <pre><code class="language-rust ignore">pub fn rechercher&lt;'a&gt;(recherche: &amp;str, contenu: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
@@ -624,19 +624,19 @@
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-13-21">Listing 13-21</a>: The implementation of the <code>search</code> function from Listing 12-19</figcaption>
 </figure>
-<p>We can write this code in a more concise way using iterator adapter methods. Doing so also lets us avoid having a mutable intermediate <code>results</code> vector. The functional programming style prefers to minimize the amount of mutable state to make code clearer. Removing the mutable state might enable a future enhancement to make searching happen in parallel because we wouldn’t have to manage concurrent access to the <code>results</code> vector. Listing 13-22 shows this change.</p>
+<p>Nous pouvons écrire ce code de façon plus concise en utilisant des méthodes des adaptateurs d’itération. Ce faisant, nous évitons ainsi d’avoir le vecteur mutable <code>resultats</code>. Le style de programmation fonctionnelle préfère minimiser la quantité d’états modifiables pour rendre le code plus clair. Supprimer l’état mutable pourrait nous aider à faire une amélioration future afin que la recherche se fasse en parallèle, car nous n’aurions pas à gérer l’accès concurrent au vecteur <code>resultats</code>. L’encart 13-22 montre ce changement.</p>
 <figure class="listing" id="listing-13-22">
 <span class="file-name">Filename: src/lib.rs</span>
 <pre><code class="language-rust ignore">pub fn rechercher&lt;'a&gt;(recherche: &amp;str, contenu: &amp;'a str) -&gt; Vec&lt;&amp;'a str&gt; {
     contents
         .lines()
-        .filter(|line| line.contains(query))
+        .filter(|ligne| ligne.contains(recherche))
         .collect()
 }
 <span class="boring">
 </span><span class="boring">pub fn rechercher_insensible_casse&lt;'a&gt;(
 </span><span class="boring">    recherche: &amp;str,
-</span><span class="boring">    contenu: &amp;'a str
+</span><span class="boring">    contenu: &amp;'a str,
 </span><span class="boring">) -&gt; Vec&lt;&amp;'a str&gt; {
 </span><span class="boring">    let recherche = recherche.to_lowercase();
 </span><span class="boring">    let mut resultats = Vec::new();
@@ -683,13 +683,13 @@
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-13-22">Listing 13-22</a>: Using iterator adapter methods in the implementation of the <code>search</code> function</figcaption>
 </figure>
-<p>Recall that the purpose of the <code>search</code> function is to return all lines in <code>contents</code> that contain the <code>query</code>. Similar to the <code>filter</code> example in Listing 13-16, this code uses the <code>filter</code> adapter to keep only the lines for which <code>line.contains(query)</code> returns <code>true</code>. We then collect the matching lines into another vector with <code>collect</code>. Much simpler! Feel free to make the same change to use iterator methods in the <code>search_case_insensitive</code> function as well.</p>
-<p>For a further improvement, return an iterator from the <code>search</code> function by removing the call to <code>collect</code> and changing the return type to <code>impl Iterator&lt;Item = &amp;'a str&gt;</code> so that the function becomes an iterator adapter. Note that you’ll also need to update the tests! Search through a large file using your <code>minigrep</code> tool before and after making this change to observe the difference in behavior. Before this change, the program won’t print any results until it has collected all of the results, but after the change, the results will be printed as each matching line is found because the <code>for</code> loop in the <code>run</code> function is able to take advantage of the laziness of the iterator.</p>
+<p>Souvenez-vous que le but de la fonction <code>rechercher</code> est de renvoyer toutes les lignes dans <code>contenu</code> qui contiennent <code>recherche</code>. Comme dans l’exemple de <code>filter</code> dans l’encart 13-16, ce code utilise l’adaptateur <code>filter</code> pour ne garder que les lignes pour lesquelles <code>ligne.contains(recherche)</code> renvoie <code>true</code>. Nous collectons ensuite les lignes correspondantes dans un autre vecteur avec <code>collect</code>. C’est bien plus simple ! N’hésitez pas à faire le même changement pour utiliser les méthodes d’itération dans la fonction <code>rechercher_insensible_casse</code>.</p>
+<p>Pour encore améliorer le code, renvoyez un itérateur depuis la fonction <code>search</code> en supprimant l’appel à <code>collect</code> et en changeant le type de retour à <code>impl Iterator&lt;Item = &amp;'a str&gt;</code>, de sorte que la fonction devienne un adaptateur d’itérateur. Notez que vous devrez aussi mettre à jour les tests ! Faites une recherche dans un fichier volumineux en utilisant votre outil <code>minigrep</code> avant et après avoir procédé à ces changements, afin d’observer la différence de comportement. Avant cette modification, le programme n’affichait aucun résultat tant qu’il n’avait pas collecté tous les résultats, mais après la modification, les résultats vont s’afficher à mesure que chaque ligne correspondant au motif est trouvée, car la boucle <code>for</code> dans la fonction <code>run</code> est capable de tirer parti du fait que l’itérateur fait des <em>évaluations paresseuses</em>.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="choosing-between-loops-or-iterators"></a></p>
-<h3 id="choosing-between-loops-and-iterators"><a class="header" href="#choosing-between-loops-and-iterators">Choosing Between Loops and Iterators</a></h3>
-<p>The next logical question is which style you should choose in your own code and why: the original implementation in Listing 13-21 or the version using iterators in Listing 13-22 (assuming we’re collecting all the results before returning them rather than returning the iterator). Most Rust programmers prefer to use the iterator style. It’s a bit tougher to get the hang of at first, but once you get a feel for the various iterator adapters and what they do, iterators can be easier to understand. Instead of fiddling with the various bits of looping and building new vectors, the code focuses on the high-level objective of the loop. This abstracts away some of the commonplace code so that it’s easier to see the concepts that are unique to this code, such as the filtering condition each element in the iterator must pass.</p>
-<p>But are the two implementations truly equivalent? The intuitive assumption might be that the lower-level loop will be faster. Let’s talk about performance.</p>
+<h3 id="choix-entre-boucles-et-itérateurs"><a class="header" href="#choix-entre-boucles-et-itérateurs">Choix entre boucles et itérateurs</a></h3>
+<p>Logiquement, la question suivante est de savoir quel style utiliser dans votre propre code et pourquoi : l’implémentation originale de l’encart 13-21 ou la version utilisant l’itérateur dans l’encart 13-22 (en supposition que nous collections tous les résultats avant de les retourner, au lieu de retourner l’itérateur). La plupart des développeurs Rust préfèrent utiliser le style avec l’itérateur. C’est un peu plus difficile à comprendre au début, mais une fois que vous avez compris les différents adaptateurs d’itération et ce qu’ils font, les itérateurs peuvent devenir plus faciles à comprendre. Au lieu de jongler avec différentes boucles et de construire de nouveaux vecteurs, ce code se concentre sur l’objectif de haut niveau de la boucle. Cette abstraction permet d’éliminer une partie du code trivial, de sorte qu’il soit plus facile de dégager les concepts propres à ce code, comme le filtrage de chaque élément de l’itérateur qui est appliqué.</p>
+<p>Mais ces deux implémentations sont-elles réellement équivalentes ? L’hypothèse intuitive pourrait être que la boucle de plus bas niveau sera plus rapide. Intéressons nous donc maintenant à leurs performances.</p>
 
                     </main>
 
