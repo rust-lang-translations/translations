@@ -96,10 +96,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4d6b7b65.js";
+            window.path_to_searchindex_js = "searchindex-4691ee04.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-09667002.js"></script>
+        <script src="toc-ad0b9b5c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -239,9 +239,9 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h2 id="les-boucles-de-références-peuvent-provoquer-des-fuites-de-mémoire"><a class="header" href="#les-boucles-de-références-peuvent-provoquer-des-fuites-de-mémoire">Les boucles de références peuvent provoquer des fuites de mémoire</a></h2>
-<p>Rust’s memory safety guarantees make it difficult, but not impossible, to accidentally create memory that is never cleaned up (known as a <em>memory leak</em>). Preventing memory leaks entirely is not one of Rust’s guarantees, meaning memory leaks are memory safe in Rust. We can see that Rust allows memory leaks by using <code>Rc&lt;T&gt;</code> and <code>RefCell&lt;T&gt;</code>: It’s possible to create references where items refer to each other in a cycle. This creates memory leaks because the reference count of each item in the cycle will never reach 0, and the values will never be dropped.</p>
-<h3 id="creating-a-reference-cycle"><a class="header" href="#creating-a-reference-cycle">Creating a Reference Cycle</a></h3>
-<p>Let’s look at how a reference cycle might happen and how to prevent it, starting with the definition of the <code>List</code> enum and a <code>tail</code> method in Listing 15-25.</p>
+<p>Les garanties de sécurité de la mémoire de Rust rendent difficile, mais pas impossible, la création accidentelle de mémoire qui n’est jamais nettoyée (aussi appelée <em>fuite de mémoire</em>). Éviter totalement les fuites de mémoire n’est pas une des garanties de Rust, en tout cas pas comme pour l’accès concurrent au moment de la compilation, ce qui signifie que les fuites de mémoire sont sans risque pour la mémoire avec Rust. Nous pouvons constater que Rust permet les fuites de mémoire en utilisant <code>Rc&lt;T&gt;</code> et <code>RefCell&lt;T&gt;</code> : il est possible de créer des références où les éléments se réfèrent entre eux de manière cyclique. Cela crée des fuites de mémoire car le compteur de références de chaque élément dans la boucle de références ne vaudra jamais 0, et les valeurs ne seront jamais libérées.</p>
+<h3 id="créer-une-boucle-de-références"><a class="header" href="#créer-une-boucle-de-références">Créer une boucle de références</a></h3>
+<p>Voyons comment une boucle de références peut exister et comment l’éviter, en commençant par la définition de l’énumération <code>List</code> et la méthode <code>parcourir</code> de l’encart 15-25.</p>
 <figure class="listing" id="listing-15-25">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust edition2024">use crate::List::{Cons, Nil};
@@ -255,7 +255,7 @@ enum List {
 }
 
 impl List {
-    fn tail(&amp;self) -&gt; Option&lt;&amp;RefCell&lt;Rc&lt;List&gt;&gt;&gt; {
+    fn parcourir(&amp;self) -&gt; Option&lt;&amp;RefCell&lt;Rc&lt;List&gt;&gt;&gt; {
         match self {
             Cons(_, item) =&gt; Some(item),
             Nil =&gt; None,
@@ -266,8 +266,8 @@ impl List {
 </span><span class="boring">fn main() {}</span></code></pre>
 <figcaption><a href="#listing-15-25">Listing 15-25</a>: A cons list definition that holds a <code>RefCell&lt;T&gt;</code> so that we can modify what a <code>Cons</code> variant is referring to</figcaption>
 </figure>
-<p>We’re using another variation of the <code>List</code> definition from Listing 15-5. The second element in the <code>Cons</code> variant is now <code>RefCell&lt;Rc&lt;List&gt;&gt;</code>, meaning that instead of having the ability to modify the <code>i32</code> value as we did in Listing 15-24, we want to modify the <code>List</code> value a <code>Cons</code> variant is pointing to. We’re also adding a <code>tail</code> method to make it convenient for us to access the second item if we have a <code>Cons</code> variant.</p>
-<p>In Listing 15-26, we’re adding a <code>main</code> function that uses the definitions in Listing 15-25. This code creates a list in <code>a</code> and a list in <code>b</code> that points to the list in <code>a</code>. Then, it modifies the list in <code>a</code> to point to <code>b</code>, creating a reference cycle. There are <code>println!</code> statements along the way to show what the reference counts are at various points in this process.</p>
+<p>Nous utilisons une autre variation de la définition de <code>List</code> de l’encart 15-5. Le second élément dans la variante <code>Cons</code> est maintenant un <code>RefCell&lt;Rc&lt;List&gt;&gt;</code>, ce qui signifie qu’au lieu de pouvoir modifier la valeur <code>i32</code> comme nous l’avions fait dans l’encart 15-24, nous modifions la valeur <code>List</code> sur laquelle une variante <code>Cons</code> pointe. Nous ajoutons également une méthode <code>parcourir</code> pour nous faciliter l’accès au second élément si nous avons une variante <code>Cons</code>.</p>
+<p>Dans l’encart 15-26, nous ajoutons une fonction <code>main</code> qui utilise les définitions de l’encart 15-25. Ce code crée une liste dans <code>a</code> et une liste dans <code>b</code> qui pointe sur la liste de <code>a</code>. Ensuite, on modifie la liste de <code>a</code> pour pointer sur <code>b</code>, ce qui crée une boucle de références. Il y a aussi des instructions <code>println!</code> tout du long pour montrer la valeur des compteurs de références à différents endroits du processus.</p>
 <figure class="listing" id="listing-15-26">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust edition2024"><span class="boring">use crate::List::{Cons, Nil};
@@ -281,7 +281,7 @@ impl List {
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">impl List {
-</span><span class="boring">    fn tail(&amp;self) -&gt; Option&lt;&amp;RefCell&lt;Rc&lt;List&gt;&gt;&gt; {
+</span><span class="boring">    fn parcourir(&amp;self) -&gt; Option&lt;&amp;RefCell&lt;Rc&lt;List&gt;&gt;&gt; {
 </span><span class="boring">        match self {
 </span><span class="boring">            Cons(_, item) =&gt; Some(item),
 </span><span class="boring">            Nil =&gt; None,
@@ -292,254 +292,254 @@ impl List {
 </span>fn main() {
     let a = Rc::new(Cons(5, RefCell::new(Rc::new(Nil))));
 
-    println!("a initial rc count = {}", Rc::strong_count(&amp;a));
-    println!("a next item = {:?}", a.tail());
+    println!("compteur initial de a = {}", Rc::strong_count(&amp;a));
+    println!("prochain élément de a = {:?}", a.parcourir());
 
     let b = Rc::new(Cons(10, RefCell::new(Rc::clone(&amp;a))));
 
-    println!("a rc count after b creation = {}", Rc::strong_count(&amp;a));
-    println!("b initial rc count = {}", Rc::strong_count(&amp;b));
-    println!("b next item = {:?}", b.tail());
+    println!("compteur de a après création de b = {}", Rc::strong_count(&amp;a));
+    println!("compteur initial de b = {}", Rc::strong_count(&amp;b));
+    println!("prochain élément de b = {:?}", b.parcourir());
 
-    if let Some(link) = a.tail() {
-        *link.borrow_mut() = Rc::clone(&amp;b);
+    if let Some(lien) = a.parcourir() {
+        *lien.borrow_mut() = Rc::clone(&amp;b);
     }
 
-    println!("b rc count after changing a = {}", Rc::strong_count(&amp;b));
-    println!("a rc count after changing a = {}", Rc::strong_count(&amp;a));
+    println!("compteur de b après avoir changé a = {}", Rc::strong_count(&amp;b));
+    println!("compteur de a après avoir changé a = {}", Rc::strong_count(&amp;a));
 
-    // Uncomment the next line to see that we have a cycle;
-    // it will overflow the stack.
-    // println!("a next item = {:?}", a.tail());
+    // Décommentez la ligne suivante pour constater que nous sommes dans
+    // une boucle de références, cela fera déborder la pile
+    // println!("prochain élément de a = {:?}", a.parcourir());
 }</code></pre>
 <figcaption><a href="#listing-15-26">Listing 15-26</a>: Creating a reference cycle of two <code>List</code> values pointing to each other</figcaption>
 </figure>
-<p>We create an <code>Rc&lt;List&gt;</code> instance holding a <code>List</code> value in the variable <code>a</code> with an initial list of <code>5, Nil</code>. We then create an <code>Rc&lt;List&gt;</code> instance holding another <code>List</code> value in the variable <code>b</code> that contains the value <code>10</code> and points to the list in <code>a</code>.</p>
-<p>We modify <code>a</code> so that it points to <code>b</code> instead of <code>Nil</code>, creating a cycle. We do that by using the <code>tail</code> method to get a reference to the <code>RefCell&lt;Rc&lt;List&gt;&gt;</code> in <code>a</code>, which we put in the variable <code>link</code>. Then, we use the <code>borrow_mut</code> method on the <code>RefCell&lt;Rc&lt;List&gt;&gt;</code> to change the value inside from an <code>Rc&lt;List&gt;</code> that holds a <code>Nil</code> value to the <code>Rc&lt;List&gt;</code> in <code>b</code>.</p>
+<p>Nous créons une instance <code>Rc&lt;List&gt;</code> qui stocke une valeur <code>List</code> dans la variable <code>a</code> avec une valeur initiale de <code>5, Nil</code>. Nous créons ensuite une instance <code>Rc&lt;List&gt;</code> qui stocke une autre valeur <code>List</code> dans la variable <code>b</code> qui contient la valeur <code>10</code> et pointe vers la liste dans <code>a</code>.</p>
+<p>Nous modifions <code>a</code> afin qu’elle pointe sur <code>b</code> au lieu de <code>Nil</code>, ce qui crée une boucle. Nous faisons ceci en utilisant la méthode <code>parcourir</code> pour obtenir une référence au <code>RefCell&lt;Rc&lt;List&gt;&gt;</code> présent dans <code>a</code>, que nous plaçons dans la variable <code>lien</code>. Ensuite nous utilisons la méthode <code>borrow_mut</code> sur le <code>RefCell&lt;Rc&lt;List&gt;&gt;</code> pour remplacer la valeur actuellement présente en son sein, la <code>Rc&lt;List&gt;</code> contenant <code>Nil</code>, par la <code>Rc&lt;List&gt;</code> présente dans <code>b</code>.</p>
 <p>Lorsque nous exécutons ce code, en gardant le dernier <code>println!</code> commenté pour le moment, nous obtenons ceci :</p>
 <pre><code class="language-console">$ cargo run
    Compiling cons-list v0.1.0 (file:///projects/cons-list)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.53s
      Running `target/debug/cons-list`
-a initial rc count = 1
-a next item = Some(RefCell { value: Nil })
-a rc count after b creation = 2
-b initial rc count = 1
-b next item = Some(RefCell { value: Cons(5, RefCell { value: Nil }) })
-b rc count after changing a = 2
-a rc count after changing a = 2
+compteur initial de a = 1
+prochain élément de a = Some(RefCell { value: Nil })
+compteur de a après création de b = 2
+compteur initial de b = 1
+prochain élément de b = Some(RefCell { value: Cons(5, RefCell { value: Nil }) })
+compteur de b après avoir changé a = 2
+compteur de a après avoir changé a = 2
 </code></pre>
-<p>The reference count of the <code>Rc&lt;List&gt;</code> instances in both <code>a</code> and <code>b</code> is 2 after we change the list in <code>a</code> to point to <code>b</code>. At the end of <code>main</code>, Rust drops the variable <code>b</code>, which decreases the reference count of the <code>b</code> <code>Rc&lt;List&gt;</code> instance from 2 to 1. The memory that <code>Rc&lt;List&gt;</code> has on the heap won’t be dropped at this point because its reference count is 1, not 0. Then, Rust drops <code>a</code>, which decreases the reference count of the <code>a</code> <code>Rc&lt;List&gt;</code> instance from 2 to 1 as well. This instance’s memory can’t be dropped either, because the other <code>Rc&lt;List&gt;</code> instance still refers to it. The memory allocated to the list will remain uncollected forever. To visualize this reference cycle, we’ve created the diagram in Figure 15-4.</p>
+<p>Les compteurs de références des instances de <code>Rc&lt;List&gt;</code> valent tous les deux 2 pour <code>a</code> et <code>b</code> après avoir modifié <code>a</code> pour qu’elle pointe sur <code>b</code>. À la fin du <code>main</code>, Rust nettoie d’abord la variable <code>b</code>, ce qui décrémente le compteur de références dans l’instance <code>Rc&lt;List&gt;</code> de 2 à 1. La mémoire utilisée sur le tas par <code>Rc&lt;List&gt;</code> ne sera pas libérée à ce moment, car son compteur de références est à 1, et non pas 0. Puis, Rust libère <code>a</code>, ce qui décrémente le compteur <code>a</code> de références <code>Rc&lt;List&gt;</code> de 2 à 1, également. La mémoire de cette instance ne peut pas non plus être libérée car l’autre instance <code>Rc&lt;List&gt;</code> y fait toujours référence. La mémoire alouée à la liste ne sera jamais libérée. Pour représenter cette boucle de références, nous avons créé un diagramme dans l’illustration 15-4.</p>
 <img alt="A rectangle labeled &#39;a&#39; that points to a rectangle containing the integer 5. A rectangle labeled &#39;b&#39; that points to a rectangle containing the integer 10. The rectangle containing 5 points to the rectangle containing 10, and the rectangle containing 10 points back to the rectangle containing 5, creating a cycle." src="img/trpl15-04.svg" class="center" />
 <p><span class="caption">Illustration 15-4 : Une boucle de références entre les listes <code>a</code> et <code>b</code> qui se pointent mutuellement dessus</span></p>
 <p>Si vous décommentez le dernier <code>println!</code> et que vous exécutez le programme, Rust va essayer d’afficher cette boucle avec <code>a</code> qui pointe sur <code>b</code> qui pointe sur <code>a</code> … et ainsi de suite jusqu’à ce que cela fasse déborder la pile.</p>
-<p>Compared to a real-world program, the consequences of creating a reference cycle in this example aren’t very dire: Right after we create the reference cycle, the program ends. However, if a more complex program allocated lots of memory in a cycle and held onto it for a long time, the program would use more memory than it needed and might overwhelm the system, causing it to run out of available memory.</p>
+<p>Par rapport à un programme dans le monde réel, les conséquences de la boucle dans cet exemple ne sont pas désastreuses : juste après avoir créé la boucle de références, le programme se termine. Cependant, si un programme plus complexe alloue beaucoup de mémoire dans une boucle de références et la garde pendant longtemps, le programme va utiliser bien plus de mémoire qu’il n’en a besoin et pourrait saturer le système en consommant ainsi toute la mémoire disponible.</p>
 <p>La création de boucles de références n’est pas facile à réaliser, mais n’est pas non plus impossible. Si vous avez des valeurs <code>RefCell&lt;T&gt;</code> qui contiennent des valeurs <code>Rc&lt;T&gt;</code> ou des combinaisons similaires de types emboîtés avec de la mutabilité interne et du comptage de références, vous devez vous assurer que vous ne créez pas de boucles ; vous ne pouvez pas compter sur Rust pour les détecter. La création de boucle de références devrait être un bogue de logique de votre programme dont vous devriez réduire le risque en pratiquant des tests automatisés, des revues de code, ainsi que d’autres pratiques de développement.</p>
 <p>Une autre solution pour éviter les boucles de références est de réorganiser vos structures de données afin que certaines références prennent possession et d’autres non. Par conséquent, vous pouvez obtenir des boucles de certaines références qui prennent possession ou d’autres références qui ne prennent pas possession, et seules celles qui prennent possession décident si oui ou non une valeur peut être libérée. Dans l’encart 15-25, nous voulons toujours que les variantes <code>Cons</code> possèdent leur propre liste, donc il est impossible de réorganiser la structure des données. Voyons maintenant un exemple qui utilise des graphes constitués de nœuds parents et de nœuds enfants pour voir quand des relations sans possessions constituent un moyen approprié d’éviter les boucles de références.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="preventing-reference-cycles-turning-an-rct-into-a-weakt"></a></p>
-<h3 id="preventing-reference-cycles-using-weakt"><a class="header" href="#preventing-reference-cycles-using-weakt">Preventing Reference Cycles Using <code>Weak&lt;T&gt;</code></a></h3>
-<p>So far, we’ve demonstrated that calling <code>Rc::clone</code> increases the <code>strong_count</code> of an <code>Rc&lt;T&gt;</code> instance, and an <code>Rc&lt;T&gt;</code> instance is only cleaned up if its <code>strong_count</code> is 0. You can also create a weak reference to the value within an <code>Rc&lt;T&gt;</code> instance by calling <code>Rc::downgrade</code> and passing a reference to the <code>Rc&lt;T&gt;</code>. <em>Strong references</em> are how you can share ownership of an <code>Rc&lt;T&gt;</code> instance. <em>Weak references</em> don’t express an ownership relationship, and their count doesn’t affect when an <code>Rc&lt;T&gt;</code> instance is cleaned up. They won’t cause a reference cycle, because any cycle involving some weak references will be broken once the strong reference count of values involved is 0.</p>
-<p>When you call <code>Rc::downgrade</code>, you get a smart pointer of type <code>Weak&lt;T&gt;</code>. Instead of increasing the <code>strong_count</code> in the <code>Rc&lt;T&gt;</code> instance by 1, calling <code>Rc::downgrade</code> increases the <code>weak_count</code> by 1. The <code>Rc&lt;T&gt;</code> type uses <code>weak_count</code> to keep track of how many <code>Weak&lt;T&gt;</code> references exist, similar to <code>strong_count</code>. The difference is the <code>weak_count</code> doesn’t need to be 0 for the <code>Rc&lt;T&gt;</code> instance to be cleaned up.</p>
-<p>Because the value that <code>Weak&lt;T&gt;</code> references might have been dropped, to do anything with the value that a <code>Weak&lt;T&gt;</code> is pointing to you must make sure the value still exists. Do this by calling the <code>upgrade</code> method on a <code>Weak&lt;T&gt;</code> instance, which will return an <code>Option&lt;Rc&lt;T&gt;&gt;</code>. You’ll get a result of <code>Some</code> if the <code>Rc&lt;T&gt;</code> value has not been dropped yet and a result of <code>None</code> if the <code>Rc&lt;T&gt;</code> value has been dropped. Because <code>upgrade</code> returns an <code>Option&lt;Rc&lt;T&gt;&gt;</code>, Rust will ensure that the <code>Some</code> case and the <code>None</code> case are handled, and there won’t be an invalid pointer.</p>
-<p>As an example, rather than using a list whose items know only about the next item, we’ll create a tree whose items know about their child items <em>and</em> their parent items.</p>
+<h3 id="éviter-les-boucles-de-références-en-utilisant-weakt"><a class="header" href="#éviter-les-boucles-de-références-en-utilisant-weakt">Éviter les boucles de références en utilisant <code>Weak&lt;T&gt;</code></a></h3>
+<p>Précédemment, nous avons démontré que l’appel à <code>Rc::clone</code> augmente le <code>strong_count</code> d’une instance de <code>Rc&lt;T&gt;</code>, et une instance <code>Rc&lt;T&gt;</code> est nettoyée seulement si son <code>strong_count</code> est à 0. Vous pouvez aussi créer une référence faible (NdT : d’où le <code>weak</code>) vers la valeur présente dans une instance <code>Rc&lt;T&gt;</code> en appelant <code>Rc::downgrade</code> et en lui passant une référence vers le <code>Rc&lt;T&gt;</code>. Les <em>références fortes</em> désignent la manière de partager la propriété d’une instance <code>Rc&lt;T&gt;</code>. Les <em>références faibles</em> n’expriment pas de relation de possession, et leur compteur n’a aucune incidence quand une instance de <code>Rc&lt;T&gt;</code> est libérée. Ils ne provoqueront pas de boucle de références car n’importe quelle boucle impliquant des références faibles sera détruite une fois que le compteur de références fortes des valeurs impliquées vaudra 0.</p>
+<p>Lorsque vous faites appel à <code>Rc::downgrade</code>, vous obtenez un pointeur intelligent du type <code>Weak&lt;T&gt;</code>. Plutôt que d’augmenter le <code>strong_count</code> de l’instance de 1, l’appel à <code>Rc::downgrade</code> augmente le <code>weak_count</code> de 1. Le type <code>Rc&lt;T&gt;</code> utilise le <code>weak_count</code> pour compter combien de références <code>Weak&lt;T&gt;</code> existent, de la même manière que <code>strong_count</code>. La différence réside dans le fait que <code>weak_count</code> n’a pas besoin d’être à 0 pour que l’instance <code>Rc&lt;T&gt;</code> soit nettoyée.</p>
+<p>Comme la valeur contenue dans une référence <code>Weak&lt;T&gt;</code> peut être libérée, pour pouvoir faire quelque chose avec cette valeur, vous devez vous assurer qu’elle existe toujours. Vous pouvez faire ceci en appelant la méthode <code>upgrade</code> sur une instance <code>Weak&lt;T&gt;</code>, qui va retourner une <code>Option&lt;Rc&lt;T&gt;&gt;</code>. Ce résultat retournera <code>Some</code> si la valeur <code>Rc&lt;T&gt;</code> n’a pas encore été libérée, et un <code>None</code> si la valeur <code>Rc&lt;T&gt;</code> a été libérée. Comme <code>upgrade</code> retourne une <code>Option&lt;Rc&lt;T&gt;&gt;</code>, Rust va s’assurer que les cas de <code>Some</code> et de <code>None</code> sont bien gérés, et qu’il n’existe pas de pointeur invalide.</p>
+<p>Par exemple, plutôt que d’utiliser une liste dont les éléments ne connaissent que les éléments suivants, nous allons créer un arbre dont les éléments connaissent les éléments enfants <em>et</em> leurs éléments parents.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="creating-a-tree-data-structure-a-node-with-child-nodes"></a></p>
-<h4 id="creating-a-tree-data-structure"><a class="header" href="#creating-a-tree-data-structure">Creating a Tree Data Structure</a></h4>
-<p>To start, we’ll build a tree with nodes that know about their child nodes. We’ll create a struct named <code>Node</code> that holds its own <code>i32</code> value as well as references to its child <code>Node</code> values:</p>
+<h4 id="création-dune-structure-darbre-de-données"><a class="header" href="#création-dune-structure-darbre-de-données">Création d’une structure d’arbre de données</a></h4>
+<p>Pour commencer, nous allons créer un arbre avec des nœuds qui connaissent leurs nœuds enfants. Nous allons créer une structure <code>Noeud</code> qui contient sa propre valeur ainsi que les références vers ses <code>Noeud</code> enfants :</p>
 <p><span class="filename">Fichier : src/main.rs</span></p>
 <pre class="playground"><code class="language-rust edition2024">use std::cell::RefCell;
 use std::rc::Rc;
 
 #[derive(Debug)]
-struct Node {
+struct Noeud {
     valeur: i32,
-    children: RefCell&lt;Vec&lt;Rc&lt;Node&gt;&gt;&gt;,
+    enfants: RefCell&lt;Vec&lt;Rc&lt;Noeud&gt;&gt;&gt;,
 }
 <span class="boring">
 </span><span class="boring">fn main() {
-</span><span class="boring">    let leaf = Rc::new(Node {
-</span><span class="boring">        value: 3,
-</span><span class="boring">        children: RefCell::new(vec![]),
+</span><span class="boring">    let feuille = Rc::new(Noeud {
+</span><span class="boring">        valeur: 3,
+</span><span class="boring">        enfants: RefCell::new(vec![]),
 </span><span class="boring">    });
 </span><span class="boring">
-</span><span class="boring">    let branch = Rc::new(Node {
-</span><span class="boring">        value: 5,
-</span><span class="boring">        children: RefCell::new(vec![Rc::clone(&amp;leaf)]),
+</span><span class="boring">    let branche = Rc::new(Noeud {
+</span><span class="boring">        valeur: 5,
+</span><span class="boring">        enfants: RefCell::new(vec![Rc::clone(&amp;feuille)]),
 </span><span class="boring">    });
 </span><span class="boring">}</span></code></pre>
-<p>We want a <code>Node</code> to own its children, and we want to share that ownership with variables so that we can access each <code>Node</code> in the tree directly. To do this, we define the <code>Vec&lt;T&gt;</code> items to be values of type <code>Rc&lt;Node&gt;</code>. We also want to modify which nodes are children of another node, so we have a <code>RefCell&lt;T&gt;</code> in <code>children</code> around the <code>Vec&lt;Rc&lt;Node&gt;&gt;</code>.</p>
-<p>Next, we’ll use our struct definition and create one <code>Node</code> instance named <code>leaf</code> with the value <code>3</code> and no children, and another instance named <code>branch</code> with the value <code>5</code> and <code>leaf</code> as one of its children, as shown in Listing 15-27.</p>
+<p>Nous souhaitons qu’un <code>Noeud</code> prenne possession de ses enfants, et nous souhaitons partager la possession avec des variables afin d’accéder directement à chaque <code>Noeud</code> de l’arbre. Pour pouvoir faire ceci, nous définissons les éléments du <code>Vec&lt;T&gt;</code> comme étant des valeurs du type <code>Rc&lt;Noeud&gt;</code>. Nous souhaitons également pouvoir modifier le fait que tel nœud soit enfant de tel autre, donc, dans <code>enfants</code>, nous englobons le <code>Vec&lt;Rc&lt;Noeud&gt;&gt;</code> dans un <code>RefCell&lt;T&gt;</code>.</p>
+<p>Ensuite, nous allons utiliser notre définition de structure et créer une instance de <code>Noeud</code> qui s’appellera <code>feuille</code> avec la valeur <code>3</code> et sans enfant, comme dans l’encart 15-27.</p>
 <figure class="listing" id="listing-15-27">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust edition2024"><span class="boring">use std::cell::RefCell;
 </span><span class="boring">use std::rc::Rc;
 </span><span class="boring">
 </span><span class="boring">#[derive(Debug)]
-</span><span class="boring">struct Node {
+</span><span class="boring">struct Noeud {
 </span><span class="boring">    valeur: i32,
-</span><span class="boring">    children: RefCell&lt;Vec&lt;Rc&lt;Node&gt;&gt;&gt;,
+</span><span class="boring">    enfants: RefCell&lt;Vec&lt;Rc&lt;Noeud&gt;&gt;&gt;,
 </span><span class="boring">}
 </span><span class="boring">
 </span>fn main() {
-    let leaf = Rc::new(Node {
-        value: 3,
-        children: RefCell::new(vec![]),
+    let feuille = Rc::new(Noeud {
+        valeur: 3,
+        enfants: RefCell::new(vec![]),
     });
 
-    let branch = Rc::new(Node {
-        value: 5,
-        children: RefCell::new(vec![Rc::clone(&amp;leaf)]),
+    let branche = Rc::new(Noeud {
+        valeur: 5,
+        enfants: RefCell::new(vec![Rc::clone(&amp;feuille)]),
     });
 }</code></pre>
 <figcaption><a href="#listing-15-27">Listing 15-27</a>: Creating a <code>leaf</code> node with no children and a <code>branch</code> node with <code>leaf</code> as one of its children</figcaption>
 </figure>
 <p>Nous créons un clone du <code>Rc&lt;Noeud&gt;</code> dans <code>feuille</code> et nous le stockons dans <code>branche</code>, ce qui signifie que le <code>Noeud</code> dans <code>feuille</code> a maintenant deux propriétaires : <code>feuille</code> et <code>branche</code>. Nous pouvons obtenir <code>feuille</code> à partir de <code>branche</code> en utilisant <code>branche.feuille</code>, mais il n’y a pas de moyen d’obtenir <code>branche</code> à partir de <code>feuille</code>. La raison est que <code>feuille</code> n’a pas de référence vers <code>branche</code> et ne sait pas s’ils sont liés. Nous voulons que <code>feuille</code> sache quelle <code>branche</code> est son parent. C’est ce que nous allons faire dès maintenant.</p>
-<h4 id="adding-a-reference-from-a-child-to-its-parent"><a class="header" href="#adding-a-reference-from-a-child-to-its-parent">Adding a Reference from a Child to Its Parent</a></h4>
+<h4 id="ajouter-une-référence-à-un-enfant-vers-son-parent"><a class="header" href="#ajouter-une-référence-à-un-enfant-vers-son-parent">Ajouter une référence à un enfant vers son parent</a></h4>
 <p>Pour que le nœud enfant connaisse son parent, nous devons ajouter un champ <code>parent</code> vers notre définition de structure <code>Noeud</code>. La difficulté ici est de choisir quel sera le type de <code>parent</code>. Nous savons qu’il ne peut pas contenir de <code>Rc&lt;T&gt;</code>, car cela créera une boucle de référence avec <code>feuille.parent</code> qui pointe sur <code>branche</code> et <code>branche.enfant</code> qui pointe sur <code>feuille</code>, ce qui va faire que leurs valeurs <code>strong_count</code> ne seront jamais à 0.</p>
-<p>Thinking about the relationships another way, a parent node should own its children: If a parent node is dropped, its child nodes should be dropped as well. However, a child should not own its parent: If we drop a child node, the parent should still exist. This is a case for weak references!</p>
-<p>So, instead of <code>Rc&lt;T&gt;</code>, we’ll make the type of <code>parent</code> use <code>Weak&lt;T&gt;</code>, specifically a <code>RefCell&lt;Weak&lt;Node&gt;&gt;</code>. Now our <code>Node</code> struct definition looks like this:</p>
+<p>En concevant le lien d’une autre manière, un nœud parent devrait prendre possession de ses enfants : si un nœud parent est libéré, ses nœuds enfants devraient aussi être libérés. Cependant, un enfant ne devrait pas prendre possession de son parent : si nous libérons un nœud enfant, le parent doit toujours exister. C’est donc un cas d’emploi pour les références faibles !</p>
+<p>Donc, plutôt qu’un <code>Rc&lt;T&gt;</code>, nous allons faire en sorte que le type de <code>parent</code> soit un <code>Weak&lt;T&gt;</code>, plus précisément un <code>RefCell&lt;Weak&lt;Noeud&gt;&gt;</code>. Maintenant, la définition de notre structure <code>Noeud</code> devrait ressembler à ceci :</p>
 <p><span class="filename">Fichier : src/main.rs</span></p>
 <pre class="playground"><code class="language-rust edition2024">use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
 #[derive(Debug)]
-struct Node {
+struct Noeud {
     valeur: i32,
-    parent: RefCell&lt;Weak&lt;Node&gt;&gt;,
-    children: RefCell&lt;Vec&lt;Rc&lt;Node&gt;&gt;&gt;,
+    parent: RefCell&lt;Weak&lt;Noeud&gt;&gt;,
+    enfants: RefCell&lt;Vec&lt;Rc&lt;Noeud&gt;&gt;&gt;,
 }
 <span class="boring">
 </span><span class="boring">fn main() {
-</span><span class="boring">    let leaf = Rc::new(Node {
-</span><span class="boring">        value: 3,
+</span><span class="boring">    let feuille = Rc::new(Noeud {
+</span><span class="boring">        valeur: 3,
 </span><span class="boring">        parent: RefCell::new(Weak::new()),
-</span><span class="boring">        children: RefCell::new(vec![]),
+</span><span class="boring">        enfants: RefCell::new(vec![]),
 </span><span class="boring">    });
 </span><span class="boring">
-</span><span class="boring">    println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
+</span><span class="boring">    println!("parent de la feuille = {:?}", feuille.parent.borrow().upgrade());
 </span><span class="boring">
-</span><span class="boring">    let branch = Rc::new(Node {
-</span><span class="boring">        value: 5,
+</span><span class="boring">    let branche = Rc::new(Noeud {
+</span><span class="boring">        valeur: 5,
 </span><span class="boring">        parent: RefCell::new(Weak::new()),
-</span><span class="boring">        children: RefCell::new(vec![Rc::clone(&amp;leaf)]),
+</span><span class="boring">        enfants: RefCell::new(vec![Rc::clone(&amp;feuille)]),
 </span><span class="boring">    });
 </span><span class="boring">
-</span><span class="boring">    *leaf.parent.borrow_mut() = Rc::downgrade(&amp;branch);
+</span><span class="boring">    *feuille.parent.borrow_mut() = Rc::downgrade(&amp;branche);
 </span><span class="boring">
-</span><span class="boring">    println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
+</span><span class="boring">    println!("parent de la feuille = {:?}", feuille.parent.borrow().upgrade());
 </span><span class="boring">}</span></code></pre>
-<p>A node will be able to refer to its parent node but doesn’t own its parent. In Listing 15-28, we update <code>main</code> to use this new definition so that the <code>leaf</code> node will have a way to refer to its parent, <code>branch</code>.</p>
+<p>Un nœud devrait pouvoir avoir une référence vers son nœud parent, mais il ne devrait pas prendre possession de son parent. Dans l’encart 15-28, nous mettons à jour cette nouvelle définition pour que le nœud <code>feuille</code> puisse avoir un moyen de pointer vers son parent, <code>branche</code> :</p>
 <figure class="listing" id="listing-15-28">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust edition2024"><span class="boring">use std::cell::RefCell;
 </span><span class="boring">use std::rc::{Rc, Weak};
 </span><span class="boring">
 </span><span class="boring">#[derive(Debug)]
-</span><span class="boring">struct Node {
+</span><span class="boring">struct Noeud {
 </span><span class="boring">    valeur: i32,
-</span><span class="boring">    parent: RefCell&lt;Weak&lt;Node&gt;&gt;,
-</span><span class="boring">    children: RefCell&lt;Vec&lt;Rc&lt;Node&gt;&gt;&gt;,
+</span><span class="boring">    parent: RefCell&lt;Weak&lt;Noeud&gt;&gt;,
+</span><span class="boring">    enfants: RefCell&lt;Vec&lt;Rc&lt;Noeud&gt;&gt;&gt;,
 </span><span class="boring">}
 </span><span class="boring">
 </span>fn main() {
-    let leaf = Rc::new(Node {
-        value: 3,
+    let feuille = Rc::new(Noeud {
+        valeur: 3,
         parent: RefCell::new(Weak::new()),
-        children: RefCell::new(vec![]),
+        enfants: RefCell::new(vec![]),
     });
 
-    println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
+    println!("parent de la feuille = {:?}", feuille.parent.borrow().upgrade());
 
-    let branch = Rc::new(Node {
-        value: 5,
+    let branche = Rc::new(Noeud {
+        valeur: 5,
         parent: RefCell::new(Weak::new()),
-        children: RefCell::new(vec![Rc::clone(&amp;leaf)]),
+        enfants: RefCell::new(vec![Rc::clone(&amp;feuille)]),
     });
 
-    *leaf.parent.borrow_mut() = Rc::downgrade(&amp;branch);
+    *feuille.parent.borrow_mut() = Rc::downgrade(&amp;branche);
 
-    println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
+    println!("parent de la feuille = {:?}", feuille.parent.borrow().upgrade());
 }</code></pre>
 <figcaption><a href="#listing-15-28">Listing 15-28</a>: A <code>leaf</code> node with a weak reference to its parent node, <code>branch</code></figcaption>
 </figure>
-<p>Creating the <code>leaf</code> node looks similar to Listing 15-27 with the exception of the <code>parent</code> field: <code>leaf</code> starts out without a parent, so we create a new, empty <code>Weak&lt;Node&gt;</code> reference instance.</p>
+<p>La création du nœud <code>feuille</code> semble être identique à l’encart 15-27, sauf pour le champ <code>parent</code> : <code>feuille</code> commence sans parent, donc nous créons une nouvelle instance de référence de type <code>Weak&lt;Noeud&gt;</code>, qui est vide.</p>
 <p>À ce moment-là, lorsque nous essayons d’obtenir une référence vers le parent de <code>feuille</code> en utilisant la méthode <code>upgrade</code>, nous obtenons une valeur <code>None</code>. Nous constatons cela dans la première instruction <code>println!</code> sur la sortie :</p>
-<pre><code class="language-text">leaf parent = None
+<pre><code class="language-text">parent de la feuille = None
 </code></pre>
-<p>When we create the <code>branch</code> node, it will also have a new <code>Weak&lt;Node&gt;</code> reference in the <code>parent</code> field because <code>branch</code> doesn’t have a parent node. We still have <code>leaf</code> as one of the children of <code>branch</code>. Once we have the <code>Node</code> instance in <code>branch</code>, we can modify <code>leaf</code> to give it a <code>Weak&lt;Node&gt;</code> reference to its parent. We use the <code>borrow_mut</code> method on the <code>RefCell&lt;Weak&lt;Node&gt;&gt;</code> in the <code>parent</code> field of <code>leaf</code>, and then we use the <code>Rc::downgrade</code> function to create a <code>Weak&lt;Node&gt;</code> reference to <code>branch</code> from the <code>Rc&lt;Node&gt;</code> in <code>branch</code>.</p>
-<p>When we print the parent of <code>leaf</code> again, this time we’ll get a <code>Some</code> variant holding <code>branch</code>: Now <code>leaf</code> can access its parent! When we print <code>leaf</code>, we also avoid the cycle that eventually ended in a stack overflow like we had in Listing 15-26; the <code>Weak&lt;Node&gt;</code> references are printed as <code>(Weak)</code>:</p>
-<pre><code class="language-text">leaf parent = Some(Node { value: 5, parent: RefCell { value: (Weak) },
-children: RefCell { value: [Node { value: 3, parent: RefCell { value: (Weak) },
-children: RefCell { value: [] } }] } })
+<p>Lorsque nous créons le nœud <code>branche</code>, il va aussi avoir une nouvelle référence <code>Weak&lt;Noeud&gt;</code> dans le champ <code>parent</code>, car <code>branche</code> n’a pas de nœud parent. Nous avons néanmoins <code>feuille</code> dans <code>enfants</code> de <code>branche</code>. Une fois que nous avons l’instance de <code>Noeud</code> dans <code>branche</code>, nous pouvons modifier <code>feuille</code> pour lui donner une référence <code>Weak&lt;Noeud&gt;</code> vers son parent. Nous utilisons la méthode <code>borrow_mut</code> sur la <code>RefCell&lt;Weak&lt;Noeud&gt;&gt;</code> du champ <code>parent</code> de <code>feuille</code>, et ensuite nous utilisons la fonction <code>Rc::downgrade</code> pour créer une référence de type <code>Weak&lt;Node&gt;</code> vers <code>branche</code> à partir du <code>Rc&lt;Noeud&gt;</code> présent dans <code>branche</code>.</p>
+<p>Lorsque nous affichons à nouveau le parent de <code>feuille</code>, cette fois nous obtenons la variante <code>Some</code> qui contient <code>branche</code> : désormais, <code>feuille</code> peut accéder à son parent ! Lorsque nous affichons <code>feuille</code>, nous avons aussi évité la boucle qui aurait probablement fini en débordement de pile comme nous l’avions expérimenté dans l’encart 15-26 ; les références <code>Weak&lt;Noeud&gt;</code> s’écrivent <code>(Weak)</code> :</p>
+<pre><code class="language-text">parent de la feuille = Some(Noeud { valeur: 5, parent: RefCell { value: (Weak) },
+enfants: RefCell { value: [Noeud { valeur: 3, parent: RefCell { value: (Weak) },
+enfants: RefCell { value: [] } }] } })
 </code></pre>
 <p>L’absence d’une sortie infinie nous confirme que ce code ne crée pas de boucle de références. Nous pouvons aussi le constater en affichant les valeurs que nous pouvons obtenir en faisant appel à <code>Rc::strong_count</code> et <code>Rc::weak_count</code>.</p>
-<h4 id="visualizing-changes-to-strong_count-and-weak_count"><a class="header" href="#visualizing-changes-to-strong_count-and-weak_count">Visualizing Changes to <code>strong_count</code> and <code>weak_count</code></a></h4>
-<p>Let’s look at how the <code>strong_count</code> and <code>weak_count</code> values of the <code>Rc&lt;Node&gt;</code> instances change by creating a new inner scope and moving the creation of <code>branch</code> into that scope. By doing so, we can see what happens when <code>branch</code> is created and then dropped when it goes out of scope. The modifications are shown in Listing 15-29.</p>
+<h4 id="visualiser-les-modifications-de-strong_count-et-weak_count"><a class="header" href="#visualiser-les-modifications-de-strong_count-et-weak_count">Visualiser les modifications de <code>strong_count</code> et <code>weak_count</code></a></h4>
+<p>Regardons comment changent les valeurs <code>strong_count</code> et <code>weak_count</code> des instances de <code>Rc&lt;Noeud&gt;</code> en créant une portée interne et en déplaçant la création de <code>branche</code> dans cette portée. En faisant ceci, nous pourrons constater ce qui se passe lorsque <code>branche</code> est créée et lorsqu’elle sera libérée lorsqu’elle sortira de la portée. Ces modifications sont présentées dans l’encart 15-29.</p>
 <figure class="listing" id="listing-15-29">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust edition2024"><span class="boring">use std::cell::RefCell;
 </span><span class="boring">use std::rc::{Rc, Weak};
 </span><span class="boring">
 </span><span class="boring">#[derive(Debug)]
-</span><span class="boring">struct Node {
+</span><span class="boring">struct Noeud {
 </span><span class="boring">    valeur: i32,
-</span><span class="boring">    parent: RefCell&lt;Weak&lt;Node&gt;&gt;,
-</span><span class="boring">    children: RefCell&lt;Vec&lt;Rc&lt;Node&gt;&gt;&gt;,
+</span><span class="boring">    parent: RefCell&lt;Weak&lt;Noeud&gt;&gt;,
+</span><span class="boring">    enfants: RefCell&lt;Vec&lt;Rc&lt;Noeud&gt;&gt;&gt;,
 </span><span class="boring">}
 </span><span class="boring">
 </span>fn main() {
-    let leaf = Rc::new(Node {
-        value: 3,
+    let feuille = Rc::new(Noeud {
+        valeur: 3,
         parent: RefCell::new(Weak::new()),
-        children: RefCell::new(vec![]),
+        enfants: RefCell::new(vec![]),
     });
 
     println!(
-        "leaf strong = {}, weak = {}",
-        Rc::strong_count(&amp;leaf),
-        Rc::weak_count(&amp;leaf),
+        "feuille strong = {}, weak = {}",
+        Rc::strong_count(&amp;feuille),
+        Rc::weak_count(&amp;feuille),
     );
 
     {
-        let branch = Rc::new(Node {
-            value: 5,
+        let branche = Rc::new(Noeud {
+            valeur: 5,
             parent: RefCell::new(Weak::new()),
-            children: RefCell::new(vec![Rc::clone(&amp;leaf)]),
+            enfants: RefCell::new(vec![Rc::clone(&amp;feuille)]),
         });
 
-        *leaf.parent.borrow_mut() = Rc::downgrade(&amp;branch);
+        *feuille.parent.borrow_mut() = Rc::downgrade(&amp;branche);
 
         println!(
-            "branch strong = {}, weak = {}",
-            Rc::strong_count(&amp;branch),
-            Rc::weak_count(&amp;branch),
+            "branche strong = {}, weak = {}",
+            Rc::strong_count(&amp;branche),
+            Rc::weak_count(&amp;branche),
         );
 
         println!(
-            "leaf strong = {}, weak = {}",
-            Rc::strong_count(&amp;leaf),
-            Rc::weak_count(&amp;leaf),
+            "feuille strong = {}, weak = {}",
+            Rc::strong_count(&amp;feuille),
+            Rc::weak_count(&amp;feuille),
         );
     }
 
-    println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
+    println!("parent de la feuille = {:?}", feuille.parent.borrow().upgrade());
     println!(
-        "leaf strong = {}, weak = {}",
-        Rc::strong_count(&amp;leaf),
-        Rc::weak_count(&amp;leaf),
+        "feuille strong = {}, weak = {}",
+        Rc::strong_count(&amp;feuille),
+        Rc::weak_count(&amp;feuille),
     );
 }</code></pre>
 <figcaption><a href="#listing-15-29">Listing 15-29</a>: Creating <code>branch</code> in an inner scope and examining strong and weak reference counts</figcaption>
 </figure>
-<p>After <code>leaf</code> is created, its <code>Rc&lt;Node&gt;</code> has a strong count of 1 and a weak count of 0. In the inner scope, we create <code>branch</code> and associate it with <code>leaf</code>, at which point when we print the counts, the <code>Rc&lt;Node&gt;</code> in <code>branch</code> will have a strong count of 1 and a weak count of 1 (for <code>leaf.parent</code> pointing to <code>branch</code> with a <code>Weak&lt;Node&gt;</code>). When we print the counts in <code>leaf</code>, we’ll see it will have a strong count of 2 because <code>branch</code> now has a clone of the <code>Rc&lt;Node&gt;</code> of <code>leaf</code> stored in <code>branch.children</code> but will still have a weak count of 0.</p>
+<p>Après la création de <code>feuille</code>, son <code>Rc&lt;Noeud&gt;</code> a le compteur strong à 1 et le compteur weak à 0. Dans la portée interne, nous créons <code>branche</code> et l’associons à <code>feuille</code>, et à partir de là, lorsque nous affichons les compteurs, le <code>Rc&lt;Noeud&gt;</code> dans <code>branche</code> aura le compteur strong à 1 et le compteur weak à 1 (pour que <code>feuille.parent</code> pointe sur <code>branche</code> avec un <code>Weak&lt;Noeud&gt;</code>). Lorsque nous affichons les compteurs dans <code>feuille</code> nous constatons qu’il a le compteur strong à 2, car <code>branche</code> a maintenant un clone du <code>Rc&lt;Noeud&gt;</code> de <code>feuille</code> stocké dans <code>branche.enfants</code>, mais a toujours le compteur weak à 0.</p>
 <p>Lorsque la portée interne se termine, <code>branche</code> sort de la portée et le compteur strong de <code>Rc&lt;Noeud&gt;</code> décroît à 0, donc son <code>Noeud</code> est libéré. Le compteur weak à 1 de <code>feuille.parent</code> n’a aucune répercussion suite à la libération ou non du <code>Noeud</code>, donc nous ne sommes pas dans une situation de fuite de mémoire !</p>
-<p>If we try to access the parent of <code>leaf</code> after the end of the scope, we’ll get <code>None</code> again. At the end of the program, the <code>Rc&lt;Node&gt;</code> in <code>leaf</code> has a strong count of 1 and a weak count of 0 because the variable <code>leaf</code> is now the only reference to the <code>Rc&lt;Node&gt;</code> again.</p>
+<p>Si nous essayons d’accéder au parent de <code>feuille</code> après la fin de la portée, nous allons à nouveau obtenir <code>None</code>. À la fin du programme, le <code>Rc&lt;Noeud&gt;</code> dans <code>feuille</code> a son compteur strong à 1 et son compteur weak à 0 car la variable <code>feuille</code> est à nouveau la seule référence au <code>Rc&lt;Noeud&gt;</code>.</p>
 <p>Toute cette logique qui gère les compteurs et les libérations des valeurs est intégrée dans <code>Rc&lt;T&gt;</code> et <code>Weak&lt;T&gt;</code> et leurs implémentations du trait <code>Drop</code>. En précisant dans la définition de <code>Noeud</code> que le lien entre un enfant et son parent doit être une référence <code>Weak&lt;T&gt;</code>, vous pouvez avoir des nœuds parents qui pointent sur des nœuds enfants et vice versa sans risquer de créer des boucles de références et des fuites de mémoire.</p>
 <h2 id="résumé"><a class="header" href="#résumé">Résumé</a></h2>
-<p>This chapter covered how to use smart pointers to make different guarantees and trade-offs from those Rust makes by default with regular references. The <code>Box&lt;T&gt;</code> type has a known size and points to data allocated on the heap. The <code>Rc&lt;T&gt;</code> type keeps track of the number of references to data on the heap so that the data can have multiple owners. The <code>RefCell&lt;T&gt;</code> type with its interior mutability gives us a type that we can use when we need an immutable type but need to change an inner value of that type; it also enforces the borrowing rules at runtime instead of at compile time.</p>
+<p>Ce chapitre a expliqué l’utilisation des pointeurs intelligents pour appliquer des garanties et des compromis différents de ceux qu’applique Rust par défaut avec les références classiques. Le type <code>Box&lt;T&gt;</code> a une taille connue et pointe sur une donnée allouée sur le tas. Le type <code>Rc&lt;T&gt;</code> compte le nombre de références vers une donnée présente sur le tas afin que cette donnée puisse avoir plusieurs propriétaires. Le type <code>RefCell&lt;T&gt;</code> nous permet de l’utiliser lorsque nous avons besoin d’un type immuable mais que nous avons besoin de changer une valeur interne à ce type, grâce à sa fonctionnalité de mutabilité interne ; elle nous permet aussi d’appliquer les règles d’emprunt à l’exécution plutôt qu’à la compilation.</p>
 <p>Nous avons aussi vu les traits <code>Deref</code> et <code>Drop</code>, qui offrent des fonctionnalités très importantes aux pointeurs intelligents. Nous avons expérimenté les boucles de références qui peuvent causer des fuites de mémoire et nous avons vu comment les éviter en utilisant <code>Weak&lt;T&gt;</code>.</p>
-<p>If this chapter has piqued your interest and you want to implement your own smart pointers, check out <a href="../nomicon/index.html">“The Rustonomicon”</a> for more useful information.</p>
+<p>Si ce chapitre a éveillé votre curiosité et que vous souhaitez mettre en œuvre vos propres pointeurs intelligents, visitez <a href="../nomicon/index.html">“The Rustonomicon”</a> pour en savoir plus.</p>
 <p>Au chapitre suivant, nous allons parler de concurrence en Rust. Vous découvrirez peut-être même quelques nouveaux pointeurs intelligents …</p>
 
                     </main>
