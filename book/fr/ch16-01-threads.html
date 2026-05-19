@@ -96,7 +96,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4691ee04.js";
+            window.path_to_searchindex_js = "searchindex-f15e5372.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-ad0b9b5c.js"></script>
@@ -239,17 +239,17 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h2 id="utiliser-les-tâches-pour-exécuter-simultanément-du-code"><a class="header" href="#utiliser-les-tâches-pour-exécuter-simultanément-du-code">Utiliser les tâches pour exécuter simultanément du code</a></h2>
-<p>In most current operating systems, an executed program’s code is run in a <em>process</em>, and the operating system will manage multiple processes at once. Within a program, you can also have independent parts that run simultaneously. The features that run these independent parts are called <em>threads</em>. For example, a web server could have multiple threads so that it can respond to more than one request at the same time.</p>
-<p>Splitting the computation in your program into multiple threads to run multiple tasks at the same time can improve performance, but it also adds complexity. Because threads can run simultaneously, there’s no inherent guarantee about the order in which parts of your code on different threads will run. This can lead to problems, such as:</p>
+<p>Dans la plupart des systèmes d’exploitation actuels, le code d’un programme est exécuté dans un <em>processus</em>, et le système d’exploitation gère plusieurs processus à la fois. Dans votre programme, vous pouvez vous aussi avoir des parties indépendantes qui s’exécutent simultanément. Les éléments qui font fonctionner ces parties indépendantes sont appelés les <em>tâches</em>. Par exemple, un serveur web peut disposer de plusieurs tâches afin de pouvoir répondre à plus d’une requête à la fois.</p>
+<p>Le découpage des calculs de votre programme dans plusieurs tâches pour faire plusieurs choses à la fois peut améliorer sa performance, mais cela rajoute aussi de la complexité. Comme les tâches peuvent s’exécuter de manière simultanée, il n’y a pas de garantie absolue sur l’ordre d’exécution des différentes parties de votre code. Cela peut poser des problèmes, tels que :</p>
 <ul>
-<li>Race conditions, in which threads are accessing data or resources in an inconsistent order</li>
-<li>Deadlocks, in which two threads are waiting for each other, preventing both threads from continuing</li>
-<li>Bugs that only happen in certain situations and are hard to reproduce and fix reliably</li>
+<li>les situations de concurrence, durant lesquelles les tâches accèdent à des données ou des ressources dans un ordre incohérent ;</li>
+<li>des interblocages, durant lesquels deux tâches attendent mutuellement que l’autre finisse d’utiliser une ressource que l’autre tâche utilise, bloquant la progression des deux tâches ;</li>
+<li>des bogues qui surgissent uniquement dans certaines situations et qui sont difficiles à reproduire et corriger durablement.</li>
 </ul>
 <p>Rust cherche à atténuer les effets indésirables de l’utilisation des tâches, mais le développement dans un contexte multitâches exige toujours une attention particulière et nécessite une structure de code différente de celle des programmes qui s’exécutent dans une seule tâche.</p>
-<p>Programming languages implement threads in a few different ways, and many operating systems provide an API the programming language can call for creating new threads. The Rust standard library uses a <em>1:1</em> model of thread implementation, whereby a program uses one operating system thread per one language thread. There are crates that implement other models of threading that make different trade-offs to the 1:1 model. (Rust’s async system, which we will see in the next chapter, provides another approach to concurrency as well.)</p>
-<h3 id="creating-a-new-thread-with-spawn"><a class="header" href="#creating-a-new-thread-with-spawn">Creating a New Thread with <code>spawn</code></a></h3>
-<p>To create a new thread, we call the <code>thread::spawn</code> function and pass it a closure (we talked about closures in Chapter 13) containing the code we want to run in the new thread. The example in Listing 16-1 prints some text from a main thread and other text from a new thread.</p>
+<p>Les langages de programmation implémentent les tâches de différentes manières, et de nombreux systèmes d’exploitation offrent une API que le langage de programmation peut appeler pour créer de nouvelles tâches. La bibliothèque standard de Rust utilise un modèle d’implémentation des tâches de type <em>1:1</em>, dans lequel un programme utilise une tâche du système d’exploitation par tâche dans le langage de programmation. Il existe des crates qui implémentent d’autres modèles qui font des choix différents (le système asynchrone de Rust, que nous aborderons dans le chapitre suivant, fournit une autre approche de la concurrence).</p>
+<h3 id="créer-une-nouvelle-tâche-avec-spawn"><a class="header" href="#créer-une-nouvelle-tâche-avec-spawn">Créer une nouvelle tâche avec <code>spawn</code></a></h3>
+<p>Pour créer une nouvelle tâche, nous appelons la fonction <code>thread::spawn</code> et nous lui passons une fermeture (nous avons vu les fermetures au chapitre 13) qui contient le code que nous souhaitons exécuter dans la nouvelle tâche. L’exemple dans l’encart 16-1 affiche du texte à partir de la tâche principale et un autre texte à partir d’une nouvelle tâche.</p>
 <figure class="listing" id="listing-16-1">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust edition2024">use std::thread;
@@ -258,78 +258,78 @@ use std::time::Duration;
 fn main() {
     thread::spawn(|| {
         for i in 1..10 {
-            println!("hi number {i} from the spawned thread!");
+            println!("Bonjour n°{} à partir de la nouvelle tâche !", i);
             thread::sleep(Duration::from_millis(1));
         }
     });
 
     for i in 1..5 {
-        println!("hi number {i} from the main thread!");
+        println!("Bonjour n°{} à partir de la tâche principale !", i);
         thread::sleep(Duration::from_millis(1));
     }
 }</code></pre>
 <figcaption><a href="#listing-16-1">Listing 16-1</a>: Creating a new thread to print one thing while the main thread prints something else</figcaption>
 </figure>
-<p>Note that when the main thread of a Rust program completes, all spawned threads are shut down, whether or not they have finished running. The output from this program might be a little different every time, but it will look similar to the following:</p>
+<p>Remarquez que lorsque la tâche principale d’un programme Rust s’arrête, toutes les tâches créées sont arrêtées, qu’elles aient terminé leur exécution ou pas. La sortie de ce programme peut être différente à chaque fois, mais elle devrait ressembler à ceci :</p>
 <!-- Not extracting output because changes to this output aren't significant;
 the changes are likely to be due to the threads running differently rather than
 changes in the compiler -->
-<pre><code class="language-text">hi number 1 from the main thread!
-hi number 1 from the spawned thread!
-hi number 2 from the main thread!
-hi number 2 from the spawned thread!
-hi number 3 from the main thread!
-hi number 3 from the spawned thread!
-hi number 4 from the main thread!
-hi number 4 from the spawned thread!
-hi number 5 from the spawned thread!
+<pre><code class="language-text">Bonjour n°1 à partir de la tâche principale !
+Bonjour n°1 à partir de la nouvelle tâche !
+Bonjour n°2 à partir de la tâche principale !
+Bonjour n°2 à partir de la nouvelle tâche !
+Bonjour n°3 à partir de la tâche principale !
+Bonjour n°3 à partir de la nouvelle tâche !
+Bonjour n°4 à partir de la tâche principale !
+Bonjour n°4 à partir de la nouvelle tâche !
+Bonjour n°5 à partir de la nouvelle tâche !
 </code></pre>
-<p>The calls to <code>thread::sleep</code> force a thread to stop its execution for a short duration, allowing a different thread to run. The threads will probably take turns, but that isn’t guaranteed: It depends on how your operating system schedules the threads. In this run, the main thread printed first, even though the print statement from the spawned thread appears first in the code. And even though we told the spawned thread to print until <code>i</code> is <code>9</code>, it only got to <code>5</code> before the main thread shut down.</p>
+<p>Les appels à <code>thread::sleep</code> forcent une tâche à mettre en pause son exécution pendant une petite durée, permettant à une autre tâche de s’exécuter. Les tâches se relaieront probablement, mais ce n’est pas garanti : cela dépend de comment votre système d’exploitation agence les tâches. Lors de cette exécution, la tâche principale a écrit en premier, même si l’instruction d’écriture de la nouvelle tâche apparaissait d’abord dans le code. Et même si nous avons demandé à la nouvelle tâche d’écrire jusqu’à ce que <code>i</code> vaille <code>9</code>, elle ne l’a fait que jusqu’à <code>5</code>, moment où la tâche principale s’est arrêtée.</p>
 <p>Si vous exécutez ce code et que vous ne voyez que du texte provenant de la tâche principale, ou que vous ne voyez aucun chevauchement, essayez d’augmenter les nombres dans les intervalles pour donner plus d’opportunités au système d’exploitation pour basculer entre les tâches.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="waiting-for-all-threads-to-finish-using-join-handles"></a></p>
-<h3 id="waiting-for-all-threads-to-finish"><a class="header" href="#waiting-for-all-threads-to-finish">Waiting for All Threads to Finish</a></h3>
-<p>The code in Listing 16-1 not only stops the spawned thread prematurely most of the time due to the main thread ending, but because there is no guarantee on the order in which threads run, we also can’t guarantee that the spawned thread will get to run at all!</p>
-<p>We can fix the problem of the spawned thread not running or of it ending prematurely by saving the return value of <code>thread::spawn</code> in a variable. The return type of <code>thread::spawn</code> is <code>JoinHandle&lt;T&gt;</code>. A <code>JoinHandle&lt;T&gt;</code> is an owned value that, when we call the <code>join</code> method on it, will wait for its thread to finish. Listing 16-2 shows how to use the <code>JoinHandle&lt;T&gt;</code> of the thread we created in Listing 16-1 and how to call <code>join</code> to make sure the spawned thread finishes before <code>main</code> exits.</p>
+<h3 id="attendre-que-toutes-les-tâches-aient-fini"><a class="header" href="#attendre-que-toutes-les-tâches-aient-fini">Attendre que toutes les tâches aient fini</a></h3>
+<p>Le code dans l’encart 16-1 non seulement stoppe la nouvelle tâche prématurément la plupart du temps à cause de la fin de la tâche principale, mais parce qu’il n’y a pas de garantie sur l’ordre dans lequel les tâches vont s’exécuter, nous ne garantissons pas non plus que la nouvelle tâche va s’exécuter ne serait-ce qu’une seule fois !</p>
+<p>Nous pouvons régler le problème des nouvelles tâches qui ne s’exécutent pas, ou qui se terminent prématurément, en sauvegardant la valeur de retour de <code>thread::spawn</code> dans une variable. Le type de retour de <code>thread::spawn</code> est <code>JoinHandle&lt;T&gt;</code>. Un <code>JoinHandle&lt;T&gt;</code> est une valeur possédée qui, lorsque nous appelons la méthode <code>join</code> sur elle, va attendre que ses tâches finissent. L’encart 16-2 montre comment utiliser le <code>JoinHandle&lt;T&gt;</code> de la tâche que nous avons créée dans l’encart 16-1 et comment appeler la méthode <code>join</code> pour s’assurer que la nouvelle tâche finit bien avant que <code>main</code> ne se termine.</p>
 <figure class="listing" id="listing-16-2">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust edition2024">use std::thread;
 use std::time::Duration;
 
 fn main() {
-    let handle = thread::spawn(|| {
+    let manipulateur = thread::spawn(|| {
         for i in 1..10 {
-            println!("hi number {i} from the spawned thread!");
+            println!("Bonjour n°{} à partir de la nouvelle tâche !", i);
             thread::sleep(Duration::from_millis(1));
         }
     });
 
     for i in 1..5 {
-        println!("hi number {i} from the main thread!");
+        println!("Bonjour n°{} à partir de la tâche principale !", i);
         thread::sleep(Duration::from_millis(1));
     }
 
-    handle.join().unwrap();
+    manipulateur.join().unwrap();
 }</code></pre>
 <figcaption><a href="#listing-16-2">Listing 16-2</a>: Saving a <code>JoinHandle&lt;T&gt;</code> from <code>thread::spawn</code> to guarantee the thread is run to completion</figcaption>
 </figure>
-<p>Calling <code>join</code> on the handle blocks the thread currently running until the thread represented by the handle terminates. <em>Blocking</em> a thread means that thread is prevented from performing work or exiting. Because we’ve put the call to <code>join</code> after the main thread’s <code>for</code> loop, running Listing 16-2 should produce output similar to this:</p>
+<p>L’appel à <code>join</code> sur le manipulateur bloque la tâche qui s’exécute actuellement jusqu’à ce que la tâche représentée par le manipulateur se termine. <em>Bloquer</em> une tâche signifie que cette tâche est empêchée d’accomplir un quelconque travail ou de se terminer. Comme nous avons inséré l’appel à <code>join</code> après la boucle <code>for</code> de la tâche principale, l’exécution de l’encart 16-2 devrait produire un résultat similaire à celui-ci :</p>
 <!-- Not extracting output because changes to this output aren't significant;
 the changes are likely to be due to the threads running differently rather than
 changes in the compiler -->
-<pre><code class="language-text">hi number 1 from the main thread!
-hi number 2 from the main thread!
-hi number 1 from the spawned thread!
-hi number 3 from the main thread!
-hi number 2 from the spawned thread!
-hi number 4 from the main thread!
-hi number 3 from the spawned thread!
-hi number 4 from the spawned thread!
-hi number 5 from the spawned thread!
-hi number 6 from the spawned thread!
-hi number 7 from the spawned thread!
-hi number 8 from the spawned thread!
-hi number 9 from the spawned thread!
+<pre><code class="language-text">Bonjour n°1 à partir de la tâche principale !
+Bonjour n°2 à partir de la tâche principale !
+Bonjour n°1 à partir de la nouvelle tâche !
+Bonjour n°3 à partir de la tâche principale !
+Bonjour n°2 à partir de la nouvelle tâche !
+Bonjour n°4 à partir de la tâche principale !
+Bonjour n°3 à partir de la nouvelle tâche !
+Bonjour n°4 à partir de la nouvelle tâche !
+Bonjour n°5 à partir de la nouvelle tâche !
+Bonjour n°6 à partir de la nouvelle tâche !
+Bonjour n°7 à partir de la nouvelle tâche !
+Bonjour n°8 à partir de la nouvelle tâche !
+Bonjour n°9 à partir de la nouvelle tâche !
 </code></pre>
 <p>Les deux tâches continuent à alterner, mais la tâche principale attend à cause de l’appel à <code>manipulateur.join()</code> et ne se termine pas avant que la nouvelle tâche ne soit finie.</p>
 <p>Mais voyons maintenant ce qui se passe lorsque nous déplaçons le <code>manipulateur.join()</code> avant la boucle <code>for</code> du <code>main</code> comme ceci :</p>
@@ -339,17 +339,17 @@ hi number 9 from the spawned thread!
 use std::time::Duration;
 
 fn main() {
-    let handle = thread::spawn(|| {
+    let manipulateur = thread::spawn(|| {
         for i in 1..10 {
-            println!("hi number {i} from the spawned thread!");
+            println!("Bonjour n°{} à partir de la nouvelle tâche !", i);
             thread::sleep(Duration::from_millis(1));
         }
     });
 
-    handle.join().unwrap();
+    manipulateur.join().unwrap();
 
     for i in 1..5 {
-        println!("hi number {i} from the main thread!");
+        println!("Bonjour n°{} à partir de la tâche principale !", i);
         thread::sleep(Duration::from_millis(1));
     }
 }</code></pre>
@@ -358,25 +358,25 @@ fn main() {
 <!-- Not extracting output because changes to this output aren't significant;
 the changes are likely to be due to the threads running differently rather than
 changes in the compiler -->
-<pre><code class="language-text">hi number 1 from the spawned thread!
-hi number 2 from the spawned thread!
-hi number 3 from the spawned thread!
-hi number 4 from the spawned thread!
-hi number 5 from the spawned thread!
-hi number 6 from the spawned thread!
-hi number 7 from the spawned thread!
-hi number 8 from the spawned thread!
-hi number 9 from the spawned thread!
-hi number 1 from the main thread!
-hi number 2 from the main thread!
-hi number 3 from the main thread!
-hi number 4 from the main thread!
+<pre><code class="language-text">Bonjour n°1 à partir de la nouvelle tâche !
+Bonjour n°2 à partir de la nouvelle tâche !
+Bonjour n°3 à partir de la nouvelle tâche !
+Bonjour n°4 à partir de la nouvelle tâche !
+Bonjour n°5 à partir de la nouvelle tâche !
+Bonjour n°6 à partir de la nouvelle tâche !
+Bonjour n°7 à partir de la nouvelle tâche !
+Bonjour n°8 à partir de la nouvelle tâche !
+Bonjour n°9 à partir de la nouvelle tâche !
+Bonjour n°1 à partir de la tâche principale !
+Bonjour n°2 à partir de la tâche principale !
+Bonjour n°3 à partir de la tâche principale !
+Bonjour n°4 à partir de la tâche principale !
 </code></pre>
 <p>Des petits détails, comme l’endroit où <code>join</code> est appelé, peuvent déterminer si vos tâches peuvent être exécutées ou non en même temps.</p>
-<h3 id="using-move-closures-with-threads"><a class="header" href="#using-move-closures-with-threads">Using <code>move</code> Closures with Threads</a></h3>
-<p>We’ll often use the <code>move</code> keyword with closures passed to <code>thread::spawn</code> because the closure will then take ownership of the values it uses from the environment, thus transferring ownership of those values from one thread to another. In <a href="ch13-01-closures.html#capturing-references-or-moving-ownership">“Capturing References or Moving Ownership”</a><!-- ignore
---> in Chapter 13, we discussed <code>move</code> in the context of closures. Now we’ll concentrate more on the interaction between <code>move</code> and <code>thread::spawn</code>.</p>
-<p>Notice in Listing 16-1 that the closure we pass to <code>thread::spawn</code> takes no arguments: We’re not using any data from the main thread in the spawned thread’s code. To use data from the main thread in the spawned thread, the spawned thread’s closure must capture the values it needs. Listing 16-3 shows an attempt to create a vector in the main thread and use it in the spawned thread. However, this won’t work yet, as you’ll see in a moment.</p>
+<h3 id="utiliser-les-fermetures-move-avec-les-tâches"><a class="header" href="#utiliser-les-fermetures-move-avec-les-tâches">Utiliser les fermetures <code>move</code> avec les tâches</a></h3>
+<p>Nous utiliserons souvent le mot-clé <code>move</code> avec des fermetures passées à <code>thread::spawn</code> car la fermeture va alors prendre possession des valeurs de son environnement qu’elle utilise, ce qui transfère la possession des valeurs d’une tâche à une autre. Dans <a href="ch13-01-closures.html#capturing-references-or-moving-ownership">“Capturing References or Moving Ownership”</a><!-- ignore
+--> dans le chapitre 13, nous avons présenté <code>move</code> dans le contexte des fermetures. À présent, nous allons plus nous concentrer sur l’interaction entre <code>move</code> et <code>thread::spawn</code>.</p>
+<p>Remarquez dans l’encart 16-1 que la fermeture que nous donnons à <code>thread::spawn</code> ne prend pas d’arguments : nous n’utilisons aucune donnée de la tâche principale dans le code de la nouvelle tâche. Pour utiliser des données de la tâche principale dans la nouvelle tâche, la fermeture de la nouvelle tâche doit capturer les valeurs dont elle a besoin. L’encart 16-3 montre une tentative de création d’un vecteur dans la tâche principale et son utilisation dans la nouvelle tâche. Cependant, cela ne fonctionne pas encore, comme vous allez le constater dans un moment.</p>
 <figure class="listing" id="listing-16-3">
 <span class="file-name">Filename: src/main.rs</span>
 <pre><code class="language-rust ignore does_not_compile">use std::thread;
@@ -384,11 +384,11 @@ hi number 4 from the main thread!
 fn main() {
     let v = vec![1, 2, 3];
 
-    let handle = thread::spawn(|| {
-        println!("Here's a vector: {v:?}");
+    let manipulateur = thread::spawn(|| {
+        println!("Voici un vecteur : {v:?}");
     });
 
-    handle.join().unwrap();
+    manipulateur.join().unwrap();
 }</code></pre>
 <figcaption><a href="#listing-16-3">Listing 16-3</a>: Attempting to use a vector created by the main thread in another thread</figcaption>
 </figure>
@@ -398,29 +398,29 @@ fn main() {
 error[E0373]: closure may outlive the current function, but it borrows `v`, which is owned by the current function
  --&gt; src/main.rs:6:32
   |
-6 |     let handle = thread::spawn(|| {
-  |                                ^^ may outlive borrowed value `v`
-7 |         println!("Here's a vector: {v:?}");
-  |                                     - `v` is borrowed here
+6 |     let manipulateur = thread::spawn(|| {
+  |                                      ^^ may outlive borrowed value `v`
+7 |         println!("Here's a vector: {:?}", v);
+  |                                           - `v` is borrowed here
   |
 note: function requires argument type to outlive `'static`
  --&gt; src/main.rs:6:18
   |
-6 |       let handle = thread::spawn(|| {
-  |  __________________^
-7 | |         println!("Here's a vector: {v:?}");
+6 |       let manipulateur = thread::spawn(|| {
+  |  ________________________^
+7 | |         println!("Voici un vecteur :{v:?}");
 8 | |     });
   | |______^
 help: to force the closure to take ownership of `v` (and any other referenced variables), use the `move` keyword
   |
-6 |     let handle = thread::spawn(move || {
-  |                                ++++
+6 |     let manipulateur = thread::spawn(move || {
+  |                                      ++++
 
 For more information about this error, try `rustc --explain E0373`.
 error: could not compile `threads` (bin "threads") due to 1 previous error
 </code></pre>
-<p>Rust <em>infers</em> how to capture <code>v</code>, and because <code>println!</code> only needs a reference to <code>v</code>, the closure tries to borrow <code>v</code>. However, there’s a problem: Rust can’t tell how long the spawned thread will run, so it doesn’t know whether the reference to <code>v</code> will always be valid.</p>
-<p>Listing 16-4 provides a scenario that’s more likely to have a reference to <code>v</code> that won’t be valid.</p>
+<p>Rust <em>déduit</em> comment capturer <code>v</code>, et comme <code>println!</code> n’a besoin que d’une référence à <code>v</code>, la fermeture essaye d’emprunter <code>v</code>. Cependant, il y a un problème : Rust ne peut pas savoir combien de temps la tâche va s’exécuter, donc il ne peut pas savoir si la référence à <code>v</code> sera toujours valide.</p>
+<p>L’encart 16-4 propose un scénario qui a plus de chances d’avoir une référence à <code>v</code> qui ne sera plus valide.</p>
 <figure class="listing" id="listing-16-4">
 <span class="file-name">Filename: src/main.rs</span>
 <pre><code class="language-rust ignore does_not_compile">use std::thread;
@@ -428,27 +428,27 @@ error: could not compile `threads` (bin "threads") due to 1 previous error
 fn main() {
     let v = vec![1, 2, 3];
 
-    let handle = thread::spawn(|| {
-        println!("Here's a vector: {v:?}");
+    let manipulateur = thread::spawn(|| {
+        println!("Voici un vecteur : {v:?}");
     });
 
-    drop(v); // oh no!
+    drop(v); // oh, non !
 
-    handle.join().unwrap();
+    manipulateur.join().unwrap();
 }</code></pre>
 <figcaption><a href="#listing-16-4">Listing 16-4</a>: A thread with a closure that attempts to capture a reference to <code>v</code> from a main thread that drops <code>v</code></figcaption>
 </figure>
-<p>If Rust allowed us to run this code, there’s a possibility that the spawned thread would be immediately put in the background without running at all. The spawned thread has a reference to <code>v</code> inside, but the main thread immediately drops <code>v</code>, using the <code>drop</code> function we discussed in Chapter 15. Then, when the spawned thread starts to execute, <code>v</code> is no longer valid, so a reference to it is also invalid. Oh no!</p>
+<p>Si Rust nous autorisait à exécuter ce code, il y aurait une possibilité que la nouvelle tâche soit immédiatement placée en arrière-plan sans être exécutée du tout. La nouvelle tâche a une référence à <code>v</code> en son sein, mais la tâche principale libère immédiatement <code>v</code>, en utilisant la fonction <code>drop</code> que nous avons vue au chapitre 15. Ensuite, lorsque la nouvelle tâche commence à s’exécuter, <code>v</code> n’est plus en vigueur, donc une référence à cette dernière est elle aussi invalide !</p>
 <p>Pour corriger l’erreur de compilation de l’encart 16-3, nous pouvons appliquer le conseil du message d’erreur :</p>
 <!-- manual-regeneration
 after automatic regeneration, look at listings/ch16-fearless-concurrency/listing-16-03/output.txt and copy the relevant part
 -->
 <pre><code class="language-text">help: to force the closure to take ownership of `v` (and any other referenced variables), use the `move` keyword
   |
-6 |     let handle = thread::spawn(move || {
-  |                                ++++
+6 |     let manipulateur = thread::spawn(move || {
+  |                                      ++++
 </code></pre>
-<p>By adding the <code>move</code> keyword before the closure, we force the closure to take ownership of the values it’s using rather than allowing Rust to infer that it should borrow the values. The modification to Listing 16-3 shown in Listing 16-5 will compile and run as we intend.</p>
+<p>En ajoutant le mot-clé <code>move</code> avant la fermeture, nous forçons la fermeture à prendre possession des valeurs qu’elle utilise au lieu de laisser Rust déduire qu’il doit emprunter les valeurs. Les modifications à l’encart 16-3 proposées dans l’encart 16-5 devraient se compiler et s’exécuter comme prévu.</p>
 <figure class="listing" id="listing-16-5">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust edition2024">use std::thread;
@@ -456,15 +456,15 @@ after automatic regeneration, look at listings/ch16-fearless-concurrency/listing
 fn main() {
     let v = vec![1, 2, 3];
 
-    let handle = thread::spawn(move || {
-        println!("Here's a vector: {v:?}");
+    let manipulateur = thread::spawn(move || {
+        println!("Voici un vecteur : {v:?}");
     });
 
-    handle.join().unwrap();
+    manipulateur.join().unwrap();
 }</code></pre>
 <figcaption><a href="#listing-16-5">Listing 16-5</a>: Using the <code>move</code> keyword to force a closure to take ownership of the values it uses</figcaption>
 </figure>
-<p>We might be tempted to try the same thing to fix the code in Listing 16-4 where the main thread called <code>drop</code> by using a <code>move</code> closure. However, this fix will not work because what Listing 16-4 is trying to do is disallowed for a different reason. If we added <code>move</code> to the closure, we would move <code>v</code> into the closure’s environment, and we could no longer call <code>drop</code> on it in the main thread. We would get this compiler error instead:</p>
+<p>Nous pourrions être tentés de tenter la même chose pour rectifier le code de l’encart 16-4 dans lequel la tâche principale fait appel à <code>drop</code> en utilisant une fermeture <code>move</code>. Cependant, ceci ne fonctionnera pas car ce que l’encart 16-4 essaye de faire n’est pas autorisé pour une raison différente de la précédente. Si nous ajoutions <code>move</code> à la fermeture, nous déplacerions <code>v</code> dans l’environnement de la fermeture, et nous ne pourrions plus appeler <code>drop</code> sur <code>v</code> dans la tâche principale. Nous obtiendrons à la place cette erreur de compilation :</p>
 <pre><code class="language-console">$ cargo run
    Compiling threads v0.1.0 (file:///projects/threads)
 error[E0382]: use of moved value: `v`
@@ -473,26 +473,26 @@ error[E0382]: use of moved value: `v`
  4 |     let v = vec![1, 2, 3];
    |         - move occurs because `v` has type `Vec&lt;i32&gt;`, which does not implement the `Copy` trait
  5 |
- 6 |     let handle = thread::spawn(move || {
-   |                                ------- value moved into closure here
- 7 |         println!("Here's a vector: {v:?}");
-   |                                     - variable moved due to use in closure
+ 6 |     let manipulateur = thread::spawn(move || {
+   |                                      ------- value moved into closure here
+ 7 |         println!("Voici un vecteur : {v:?}");
+   |                                       - variable moved due to use in closure
 ...
-10 |     drop(v); // oh no!
+10 |     drop(v); // oh, non !
    |          ^ value used here after move
    |
 help: consider cloning the value before moving it into the closure
    |
  6 ~     let value = v.clone();
- 7 ~     let handle = thread::spawn(move || {
- 8 ~         println!("Here's a vector: {value:?}");
+ 7 ~     let manipulateur = thread::spawn(move || {
+ 8 ~         println!("Voici un vecteur : {value:?}");
    |
 
 For more information about this error, try `rustc --explain E0382`.
 error: could not compile `threads` (bin "threads") due to 1 previous error
 </code></pre>
-<p>Rust’s ownership rules have saved us again! We got an error from the code in Listing 16-3 because Rust was being conservative and only borrowing <code>v</code> for the thread, which meant the main thread could theoretically invalidate the spawned thread’s reference. By telling Rust to move ownership of <code>v</code> to the spawned thread, we’re guaranteeing to Rust that the main thread won’t use <code>v</code> anymore. If we change Listing 16-4 in the same way, we’re then violating the ownership rules when we try to use <code>v</code> in the main thread. The <code>move</code> keyword overrides Rust’s conservative default of borrowing; it doesn’t let us violate the ownership rules.</p>
-<p>Now that we’ve covered what threads are and the methods supplied by the thread API, let’s look at some situations in which we can use threads.</p>
+<p>Les règles de possession de Rust nous ont encore sauvé la mise ! Nous obtenions une erreur avec le code de l’encart 16-3 car Rust a été conservateur et a juste emprunté <code>v</code> pour la tâche, ce qui signifie que la tâche principale pouvait théoriquement neutraliser la référence de la tâche créée. En demandant à Rust de déplacer la possession de <code>v</code> à la nouvelle tâche, nous avons garanti à Rust que la tâche principale n’utiliserait plus <code>v</code>. Si nous changeons l’encart 16-4 de la même manière, nous violons les règles de possession lorsque nous essayons d’utiliser <code>v</code> dans la tâche principale. Le mot-clé <code>move</code> remplace le comportement d’emprunt conservateur par défaut de Rust; il ne nous laisse pas enfreindre les règles de possession.</p>
+<p>Maintenant que nous avons vu ce que sont les tâches et les méthodes fournies par leur API, découvrons quelques situations dans lesquelles nous pouvons utiliser les tâches.</p>
 
                     </main>
 

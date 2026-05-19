@@ -96,7 +96,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4691ee04.js";
+            window.path_to_searchindex_js = "searchindex-f15e5372.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-ad0b9b5c.js"></script>
@@ -241,11 +241,11 @@
                         <!-- Old headings. Do not remove or links may break. -->
 <p><a id="using-message-passing-to-transfer-data-between-threads"></a></p>
 <h2 id="utiliser-lenvoi-de-messages-pour-transférer-des-données-entre-les-tâches"><a class="header" href="#utiliser-lenvoi-de-messages-pour-transférer-des-données-entre-les-tâches">Utiliser l’envoi de messages pour transférer des données entre les tâches</a></h2>
-<p>One increasingly popular approach to ensuring safe concurrency is message passing, where threads or actors communicate by sending each other messages containing data. Here’s the idea in a slogan from <a href="https://golang.org/doc/effective_go.html#concurrency">the Go language documentation</a>: “Do not communicate by sharing memory; instead, share memory by communicating.”</p>
-<p>To accomplish message-sending concurrency, Rust’s standard library provides an implementation of channels. A <em>channel</em> is a general programming concept by which data is sent from one thread to another.</p>
-<p>You can imagine a channel in programming as being like a directional channel of water, such as a stream or a river. If you put something like a rubber duck into a river, it will travel downstream to the end of the waterway.</p>
-<p>A channel has two halves: a transmitter and a receiver. The transmitter half is the upstream location where you put the rubber duck into the river, and the receiver half is where the rubber duck ends up downstream. One part of your code calls methods on the transmitter with the data you want to send, and another part checks the receiving end for arriving messages. A channel is said to be <em>closed</em> if either the transmitter or receiver half is dropped.</p>
-<p>Here, we’ll work up to a program that has one thread to generate values and send them down a channel, and another thread that will receive the values and print them out. We’ll be sending simple values between threads using a channel to illustrate the feature. Once you’re familiar with the technique, you could use channels for any threads that need to communicate with each other, such as a chat system or a system where many threads perform parts of a calculation and send the parts to one thread that aggregates the results.</p>
+<p>Une approche de plus en plus populaire pour garantir la sécurité de la concurrence est l’envoi de messages, avec lequel les tâches ou les acteurs communiquent en envoyant aux autres des messages contenant des données. Voici l’idée résumée, tirée d’un slogan provenant de <a href="https://golang.org/doc/effective_go.html#concurrency">la documentation du langage Go</a> : “Ne communiquez pas en partageant la mémoire ; partagez plutôt la mémoire en communiquant”.</p>
+<p>Pour accomplir l’envoi simultané de messages, la bibliothèque standard de Rust fournit une implémentation de canaux. Un <em>canal</em> est un concept de programmation qui permet de transmettre des données d’une tâche à une autre.</p>
+<p>Vous pouvez imaginer un canal de programmation comme étant un canal d’eau, comme un ruisseau ou une rivière. Si vous posez quelque chose comme un canard en plastique sur une rivière, il se déplacera vers l’aval jusqu’à la fin de la voie d’eau.</p>
+<p>Un canal est divisé en deux parties : un émetteur et un récepteur. La partie de l’émetteur est le lieu en amont où vous déposez les canards en plastique sur la rivière, et la partie du récepteur est celle où les canards en plastique finissent leur voyage. Une partie de votre code appelle des méthodes de l’émetteur en lui passant les données que vous souhaitez envoyer, tandis qu’une autre partie attend que des messages arrivent. Un canal est déclaré <em>fermé</em> lorsque l’une des parties, l’émetteur ou le récepteur, est libérée.</p>
+<p>Ici, nous allons concevoir un programme qui a une tâche pour générer des valeurs et les envoyer dans un canal, et une autre tâche qui va recevoir les valeurs et les afficher. Nous allons envoyer de simples valeurs entre les tâches en utilisant un canal pour illustrer cette fonctionnalité. Une fois que vous serez familier avec cette technique, vous pourrez utiliser les canaux pour n’importe quelles tâches qui ont besoin de communiquer entre elles, comme par exemple un système de dialogue en ligne ou un système où de nombreuses tâches font chacune une partie d’un gros calcul et envoient leur résultat à une tâche chargée de les agréger.</p>
 <p>Pour commencer, dans l’encart 16-6, nous allons créer un canal mais nous n’allons rien faire avec. Remarquez qu’il ne se compilera pas encore car Rust ne peut pas savoir le type de valeurs que nous souhaitons envoyer dans le canal.</p>
 <figure class="listing" id="listing-16-6">
 <span class="file-name">Filename: src/main.rs</span>
@@ -256,9 +256,9 @@ fn main() {
 }</code></pre>
 <figcaption><a href="#listing-16-6">Listing 16-6</a>: Creating a channel and assigning the two halves to <code>tx</code> and <code>rx</code></figcaption>
 </figure>
-<p>We create a new channel using the <code>mpsc::channel</code> function; <code>mpsc</code> stands for <em>multiple producer, single consumer</em>. In short, the way Rust’s standard library implements channels means a channel can have multiple <em>sending</em> ends that produce values but only one <em>receiving</em> end that consumes those values. Imagine multiple streams flowing together into one big river: Everything sent down any of the streams will end up in one river at the end. We’ll start with a single producer for now, but we’ll add multiple producers when we get this example working.</p>
-<p>The <code>mpsc::channel</code> function returns a tuple, the first element of which is the sending end—the transmitter—and the second element of which is the receiving end—the receiver. The abbreviations <code>tx</code> and <code>rx</code> are traditionally used in many fields for <em>transmitter</em> and <em>receiver</em>, respectively, so we name our variables as such to indicate each end. We’re using a <code>let</code> statement with a pattern that destructures the tuples; we’ll discuss the use of patterns in <code>let</code> statements and destructuring in Chapter 19. For now, know that using a <code>let</code> statement in this way is a convenient approach to extract the pieces of the tuple returned by <code>mpsc::channel</code>.</p>
-<p>Let’s move the transmitting end into a spawned thread and have it send one string so that the spawned thread is communicating with the main thread, as shown in Listing 16-7. This is like putting a rubber duck in the river upstream or sending a chat message from one thread to another.</p>
+<p>Nous créons un nouveau canal en utilisant la fonction <code>mpsc::channel</code> ; <code>mpsc</code> signifie <em>multiple producer, single consumer</em>, c’est-à-dire <em>plusieurs producteurs, un seul consommateur</em>. En bref, la façon dont la bibliothèque standard de Rust a implémenté ces canaux permet d’avoir plusieurs extrémités <em>émettrices</em> qui produisent des valeurs, mais seulement une seule extrémité <em>réceptrice</em> qui consomme ces valeurs. Imaginez plusieurs ruisseaux qui se rejoignent en une seule grosse rivière : tout ce qui est déposé sur les ruisseaux va finir dans une seule rivière à la fin. Nous allons commencer avec un seul producteur pour le moment, mais nous allons ajouter d’autres producteurs lorsque notre exemple fonctionnera.</p>
+<p>La fonction <code>mpsc::channel</code> retourne un tuple dont le premier élément est celui qui permet d’envoyer —l’émetteur— et dont le second est celui qui reçoit —le récepteur—. Les abréviations <code>tx</code> et <code>rx</code> sont utilisés traditionnellement dans de nombreux domaines pour signifier respectivement <em>transmetteur</em> (émetteur) et <em>récepteur</em>, nous avons donc nommé nos variables ainsi pour indiquer clairement le rôle de chaque élément. Nous utilisons une instruction <code>let</code> avec un motif qui déstructure les tuples ; nous verrons l’utilisation des motifs dans les instructions <code>let</code> et la déstructuration au chapitre 19. Pour le moment, retenez que l’utilisation d’une instruction <code>let</code> est une façon d’extraire facilement les éléments du tuple retourné par <code>mpsc::channel</code>.</p>
+<p>Déplaçons maintenant l’élément de transmission dans une nouvelle tâche et faisons-lui envoyer une chaîne de caractères afin que la nouvelle tâche communique avec la tâche principale, comme dans l’encart 16-7. C’est comme poser un canard en plastique sur l’amont de la rivière ou envoyer un message instantané d’une tâche à une autre.</p>
 <figure class="listing" id="listing-16-7">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust edition2024">use std::sync::mpsc;
@@ -268,15 +268,15 @@ fn main() {
     let (tx, rx) = mpsc::channel();
 
     thread::spawn(move || {
-        let val = String::from("hi");
-        tx.send(val).unwrap();
+        let valeur = String::from("salut");
+        tx.send(valeur).unwrap();
     });
 }</code></pre>
 <figcaption><a href="#listing-16-7">Listing 16-7</a>: Moving <code>tx</code> to a spawned thread and sending <code>"hi"</code></figcaption>
 </figure>
-<p>Again, we’re using <code>thread::spawn</code> to create a new thread and then using <code>move</code> to move <code>tx</code> into the closure so that the spawned thread owns <code>tx</code>. The spawned thread needs to own the transmitter to be able to send messages through the channel.</p>
-<p>The transmitter has a <code>send</code> method that takes the value we want to send. The <code>send</code> method returns a <code>Result&lt;T, E&gt;</code> type, so if the receiver has already been dropped and there’s nowhere to send a value, the send operation will return an error. In this example, we’re calling <code>unwrap</code> to panic in case of an error. But in a real application, we would handle it properly: Return to Chapter 9 to review strategies for proper error handling.</p>
-<p>In Listing 16-8, we’ll get the value from the receiver in the main thread. This is like retrieving the rubber duck from the water at the end of the river or receiving a chat message.</p>
+<p>Nous utilisons à nouveau <code>thread::spawn</code> pour créer une nouvelle tâche et ensuite utiliser <code>move</code> pour déplacer <code>tx</code> dans la fermeture afin que la nouvelle tâche possède désormais <code>tx</code>. La nouvelle tâche a besoin de posséder l’émetteur pour être en capacité d’envoyer des messages dans ce canal.</p>
+<p>L’émetteur a une méthode <code>send</code> qui prend en argument la valeur que nous souhaitons envoyer. La méthode <code>send</code> retourne un type <code>Result&lt;T, E&gt;</code>, donc si le récepteur a déjà été libéré et qu’il n’y a nulle part où envoyer la valeur, l’opération d’envoi va retourner une erreur. Dans cet exemple, nous faisons appel à <code>unwrap</code> pour paniquer en cas d’erreur. Mais dans un vrai programme, nous devrions gérer ce cas correctement : retournez au chapitre 9 pour revoir les stratégies permettant de gérer correctement les erreurs.</p>
+<p>Dans l’encart 16-8, nous allons obtenir la valeur du récepteur dans la tâche principale. C’est comme récupérer le canard en plastique dans l’eau à la fin de la rivière, ou récupérer un message instantané.</p>
 <figure class="listing" id="listing-16-8">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust edition2024">use std::sync::mpsc;
@@ -286,29 +286,29 @@ fn main() {
     let (tx, rx) = mpsc::channel();
 
     thread::spawn(move || {
-        let val = String::from("hi");
-        tx.send(val).unwrap();
+        let valeur = String::from("salut");
+        tx.send(valeur).unwrap();
     });
 
-    let received = rx.recv().unwrap();
-    println!("Got: {received}");
+    let recu = rx.recv().unwrap();
+    println!("On a reçu : {recu}");
 }</code></pre>
 <figcaption><a href="#listing-16-8">Listing 16-8</a>: Receiving the value <code>"hi"</code> in the main thread and printing it</figcaption>
 </figure>
-<p>The receiver has two useful methods: <code>recv</code> and <code>try_recv</code>. We’re using <code>recv</code>, short for <em>receive</em>, which will block the main thread’s execution and wait until a value is sent down the channel. Once a value is sent, <code>recv</code> will return it in a <code>Result&lt;T, E&gt;</code>. When the transmitter closes, <code>recv</code> will return an error to signal that no more values will be coming.</p>
-<p>The <code>try_recv</code> method doesn’t block, but will instead return a <code>Result&lt;T, E&gt;</code> immediately: an <code>Ok</code> value holding a message if one is available and an <code>Err</code> value if there aren’t any messages this time. Using <code>try_recv</code> is useful if this thread has other work to do while waiting for messages: We could write a loop that calls <code>try_recv</code> every so often, handles a message if one is available, and otherwise does other work for a little while until checking again.</p>
+<p>Le récepteur a deux modes intéressants : <code>recv</code> et <code>try_recv</code>. Nous avons utilisé <code>recv</code>, un raccourci pour <em>recevoir</em>, qui va bloquer l’exécution de la tâche principale et attendre jusqu’à ce qu’une valeur soit envoyée dans le canal. Une fois qu’une valeur est envoyée, <code>recv</code> va la retourner dans un <code>Result&lt;T, E&gt;</code>. Lorsque l’émetteur se ferme, <code>recv</code> va retourner une erreur pour signaler qu’il n’y aura plus de valeurs qui arriveront.</p>
+<p>La méthode <code>try_recv</code> ne bloque pas, mais va plutôt retourner immédiatement un <code>Result&lt;T, E&gt;</code> : une valeur <code>Ok</code> qui contiendra un message s’il y en a un de disponible, et une valeur <code>Err</code> s’il n’y a pas de message cette fois-ci. L’utilisation de <code>try_recv</code> est pratique si cette tâche a d’autres choses à faire pendant qu’elle attend les messages : nous pouvons ainsi écrire une boucle qui appelle régulièrement <code>try_recv</code>, gère le message s’il y en a un, et sinon fait d’autres choses avant de vérifier à nouveau.</p>
 <p>Nous avons utilisé <code>recv</code> dans cet exemple pour des raisons de simplicité ; nous n’avons rien d’autre à faire dans la tâche principale que d’attendre les messages, donc bloquer la tâche principale est acceptable.</p>
 <p>Lorsque nous exécutons le code de l’encart 16-8, nous allons voir la valeur s’afficher grâce à la tâche principale :</p>
 <!-- Not extracting output because changes to this output aren't significant;
 the changes are likely to be due to the threads running differently rather than
 changes in the compiler -->
-<pre><code class="language-text">Got: hi
+<pre><code class="language-text">On a reçu : salut
 </code></pre>
-<p>Perfect!</p>
+<p>C’est parfait ainsi !</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="channels-and-ownership-transference"></a></p>
-<h3 id="transferring-ownership-through-channels"><a class="header" href="#transferring-ownership-through-channels">Transferring Ownership Through Channels</a></h3>
-<p>The ownership rules play a vital role in message sending because they help you write safe, concurrent code. Preventing errors in concurrent programming is the advantage of thinking about ownership throughout your Rust programs. Let’s do an experiment to show how channels and ownership work together to prevent problems: We’ll try to use a <code>val</code> value in the spawned thread <em>after</em> we’ve sent it down the channel. Try compiling the code in Listing 16-9 to see why this code isn’t allowed.</p>
+<h3 id="transfert-de-possession-via-les-canaux"><a class="header" href="#transfert-de-possession-via-les-canaux">Transfert de possession via les canaux</a></h3>
+<p>Les règles de possession jouent un rôle vital dans l’envoi de messages car elles vous aident à écrire du code sûr et concurrent. Réfléchir à la possession avec vos programmes Rust vous offre l’avantage d’éviter des erreurs de développement avec la concurrence. Faisons une expérience pour montrer comment la possession et les canaux fonctionnent ensemble pour éviter les problèmes : nous allons essayer d’utiliser la <code>valeur</code> dans la nouvelle tâche <em>après</em> que nous l’avons envoyée dans le canal. Essayez de compiler le code de l’encart 16-9 pour découvrir pourquoi ce code n’est pas autorisé.</p>
 <figure class="listing" id="listing-16-9">
 <span class="file-name">Filename: src/main.rs</span>
 <pre><code class="language-rust ignore does_not_compile">use std::sync::mpsc;
@@ -318,40 +318,40 @@ fn main() {
     let (tx, rx) = mpsc::channel();
 
     thread::spawn(move || {
-        let val = String::from("hi");
-        tx.send(val).unwrap();
-        println!("val is {val}");
+        let valeur = String::from("salut");
+        tx.send(valeur).unwrap();
+        println!("valeur vaut {valeur}");
     });
 
-    let received = rx.recv().unwrap();
-    println!("Got: {received}");
+    let recu = rx.recv().unwrap();
+    println!("On a reçu : {recu}");
 }</code></pre>
 <figcaption><a href="#listing-16-9">Listing 16-9</a>: Attempting to use <code>val</code> after we’ve sent it down the channel</figcaption>
 </figure>
-<p>Here, we try to print <code>val</code> after we’ve sent it down the channel via <code>tx.send</code>. Allowing this would be a bad idea: Once the value has been sent to another thread, that thread could modify or drop it before we try to use the value again. Potentially, the other thread’s modifications could cause errors or unexpected results due to inconsistent or nonexistent data. However, Rust gives us an error if we try to compile the code in Listing 16-9:</p>
+<p>Ici, nous essayons d’afficher <code>valeur</code> après que nous l’avons envoyée dans le canal avec <code>tx.send</code>. Ce serait une mauvaise idée de permettre cela : une fois que la valeur a été envoyée à une autre tâche, cette tâche peut la modifier ou la libérer avant que nous essayions de l’utiliser à nouveau. Il est possible que des modifications faites par l’autre tâche puissent causer des erreurs ou des résultats inattendus à cause de données incohérentes ou manquantes. Toutefois, Rust nous affiche une erreur si nous essayons de compiler le code de l’encart 16-9 :</p>
 <pre><code class="language-console">$ cargo run
    Compiling message-passing v0.1.0 (file:///projects/message-passing)
-error[E0382]: borrow of moved value: `val`
+error[E0382]: borrow of moved value: `valeur`
   --&gt; src/main.rs:10:27
    |
- 8 |         let val = String::from("hi");
-   |             --- move occurs because `val` has type `String`, which does not implement the `Copy` trait
- 9 |         tx.send(val).unwrap();
-   |                 --- value moved here
-10 |         println!("val is {val}");
-   |                           ^^^ value borrowed here after move
+ 8 |         let valeur = String::from("salut");
+   |             ------ move occurs because `valeur` has type `String`, which does not implement the `Copy` trait
+ 9 |         tx.send(valeur).unwrap();
+   |                 ------ value moved here
+10 |         println!("valeur vaut {valeur}");
+   |                                ^^^^^^ value borrowed here after move
    |
    = note: this error originates in the macro `$crate::format_args_nl` which comes from the expansion of the macro `println` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 For more information about this error, try `rustc --explain E0382`.
 error: could not compile `message-passing` (bin "message-passing") due to 1 previous error
 </code></pre>
-<p>Our concurrency mistake has caused a compile-time error. The <code>send</code> function takes ownership of its parameter, and when the value is moved the receiver takes ownership of it. This stops us from accidentally using the value again after sending it; the ownership system checks that everything is okay.</p>
+<p>Notre erreur de concurrence a provoqué une erreur à la compilation. La fonction <code>send</code> prend possession de ses paramètres, et lorsque la valeur est déplacée, le récepteur en prend possession. Cela nous évite d’utiliser à nouveau accidentellement la valeur après l’avoir envoyée ; le système de possession vérifie que tout est en ordre.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="sending-multiple-values-and-seeing-the-receiver-waiting"></a></p>
-<h3 id="sending-multiple-values"><a class="header" href="#sending-multiple-values">Sending Multiple Values</a></h3>
-<p>The code in Listing 16-8 compiled and ran, but it didn’t clearly show us that two separate threads were talking to each other over the channel.</p>
-<p>In Listing 16-10, we’ve made some modifications that will prove the code in Listing 16-8 is running concurrently: The spawned thread will now send multiple messages and pause for a second between each message.</p>
+<h3 id="envoyer-plusieurs-valeurs"><a class="header" href="#envoyer-plusieurs-valeurs">Envoyer plusieurs valeurs</a></h3>
+<p>Le code de l’encart 16-8 s’est compilé et exécuté, mais il ne nous a pas clairement indiqué que deux tâches séparées communiquaient entre elles via le canal.</p>
+<p>Dans l’encart 16-10, nous avons fait quelques modifications qui prouvent que le code de l’encart 16-8 est exécuté avec de la concurrence : la nouvelle tâche va maintenant envoyer plusieurs messages et faire une pause d’une seconde entre chaque message.</p>
 <figure class="listing" id="listing-16-10">
 <span class="file-name">Filename: src/main.rs</span>
 <pre><code class="language-rust noplayground">use std::sync::mpsc;
@@ -362,41 +362,41 @@ fn main() {
     let (tx, rx) = mpsc::channel();
 
     thread::spawn(move || {
-        let vals = vec![
-            String::from("hi"),
-            String::from("from"),
-            String::from("the"),
-            String::from("thread"),
+        let valeurs = vec![
+            String::from("salut"),
+            String::from("à partir"),
+            String::from("de la"),
+            String::from("nouvelle tâche"),
         ];
 
-        for val in vals {
-            tx.send(val).unwrap();
+        for valeur in valeurs {
+            tx.send(valeur).unwrap();
             thread::sleep(Duration::from_secs(1));
         }
     });
 
-    for received in rx {
-        println!("Got: {received}");
+    for recu in rx {
+        println!("On a reçu : {recu}");
     }
 }</code></pre>
 <figcaption><a href="#listing-16-10">Listing 16-10</a>: Sending multiple messages and pausing between each one</figcaption>
 </figure>
-<p>This time, the spawned thread has a vector of strings that we want to send to the main thread. We iterate over them, sending each individually, and pause between each by calling the <code>thread::sleep</code> function with a <code>Duration</code> value of one second.</p>
-<p>In the main thread, we’re not calling the <code>recv</code> function explicitly anymore: Instead, we’re treating <code>rx</code> as an iterator. For each value received, we’re printing it. When the channel is closed, iteration will end.</p>
-<p>When running the code in Listing 16-10, you should see the following output with a one-second pause in between each line:</p>
+<p>Cette fois-ci, la nouvelle tâche a un vecteur de chaînes de caractères que nous souhaitons envoyer à la tâche principale. Nous itérons sur celui-ci, nous envoyons les chaînes une par une en faisant une pause entre chaque envoi en appelant la fonction <code>thread::sleep</code> avec une valeur <code>Duration</code> d’une seconde.</p>
+<p>Dans la tâche principale, nous n’appelons plus explicitement la fonction <code>recv</code> : à la place, nous utilisons <code>rx</code> comme un itérateur. Pour chaque valeur reçue, nous l’affichons. Lorsque le canal se fermera, l’itération se terminera.</p>
+<p>Lorsque nous exécutons le code de l’encart 16-10, nous devrions voir la sortie suivante, avec une pause d’une seconde entre chaque ligne :</p>
 <!-- Not extracting output because changes to this output aren't significant;
 the changes are likely to be due to the threads running differently rather than
 changes in the compiler -->
-<pre><code class="language-text">Got: hi
-Got: from
-Got: the
-Got: thread
+<pre><code class="language-text">On a reçu : salut
+On a reçu : à partir
+On a reçu : de la
+On a reçu : nouvelle tâche
 </code></pre>
 <p>Comme nous n’avons pas de code qui met en pause ou retarde la boucle <code>for</code> de la tâche principale, nous pouvons dire que la tâche principale est en attente de réception des valeurs de la part de la nouvelle tâche.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="creating-multiple-producers-by-cloning-the-transmitter"></a></p>
-<h3 id="creating-multiple-producers"><a class="header" href="#creating-multiple-producers">Creating Multiple Producers</a></h3>
-<p>Earlier we mentioned that <code>mpsc</code> was an acronym for <em>multiple producer, single consumer</em>. Let’s put <code>mpsc</code> to use and expand the code in Listing 16-10 to create multiple threads that all send values to the same receiver. We can do so by cloning the transmitter, as shown in Listing 16-11.</p>
+<h3 id="création-de-plusieurs-producteurs"><a class="header" href="#création-de-plusieurs-producteurs">Création de plusieurs producteurs</a></h3>
+<p>Précédemment, nous avions évoqué que <code>mpsc</code> était un acronyme pour <em>multiple producer, single consumer</em>. Mettons <code>mpsc</code> en œuvre en élargissant le code de l’encart 16-10 pour créer plusieurs tâches qui vont toutes envoyer des valeurs au même récepteur. Nous pouvons faire ceci en clonant l’émetteur, comme dans l’encart 16-11 :</p>
 <figure class="listing" id="listing-16-11">
 <span class="file-name">Filename: src/main.rs</span>
 <pre><code class="language-rust noplayground"><span class="boring">use std::sync::mpsc;
@@ -410,56 +410,56 @@ Got: thread
 
     let tx1 = tx.clone();
     thread::spawn(move || {
-        let vals = vec![
-            String::from("hi"),
-            String::from("from"),
-            String::from("the"),
-            String::from("thread"),
+        let valeurs = vec![
+            String::from("salut"),
+            String::from("à partir"),
+            String::from("de la"),
+            String::from("nouvelle tâche"),
         ];
 
-        for val in vals {
+        for valeur in valeurs {
             tx1.send(val).unwrap();
             thread::sleep(Duration::from_secs(1));
         }
     });
 
     thread::spawn(move || {
-        let vals = vec![
-            String::from("more"),
-            String::from("messages"),
-            String::from("for"),
-            String::from("you"),
+        let valeurs = vec![
+            String::from("encore plus"),
+            String::from("de messages"),
+            String::from("pour"),
+            String::from("vous"),
         ];
 
-        for val in vals {
-            tx.send(val).unwrap();
+        for valeur in valeurs {
+            tx.send(valeur).unwrap();
             thread::sleep(Duration::from_secs(1));
         }
     });
 
-    for received in rx {
-        println!("Got: {received}");
+    for recu in rx {
+        println!("On a reçu : {recu}");
     }
 
     // -- partie masquée ici --
 <span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-16-11">Listing 16-11</a>: Sending multiple messages from multiple producers</figcaption>
 </figure>
-<p>This time, before we create the first spawned thread, we call <code>clone</code> on the transmitter. This will give us a new transmitter we can pass to the first spawned thread. We pass the original transmitter to a second spawned thread. This gives us two threads, each sending different messages to the one receiver.</p>
-<p>When you run the code, your output should look something like this:</p>
+<p>Cette fois-ci, avant de créer la première nouvelle tâche, nous appelons <code>clone</code> sur l’émetteur. Cela va nous donner un nouvel émetteur que nous pouvons passer à la première nouvelle tâche. Nous passons ensuite l’émetteur original à une seconde nouvelle tâche. Cela va nous donner deux tâches, chacune envoyant des messages différents au récepteur.</p>
+<p>Lorsque vous exécuterez ce code, votre sortie devrait ressembler à ceci :</p>
 <!-- Not extracting output because changes to this output aren't significant;
 the changes are likely to be due to the threads running differently rather than
 changes in the compiler -->
-<pre><code class="language-text">Got: hi
-Got: more
-Got: from
-Got: messages
-Got: for
-Got: the
-Got: thread
-Got: you
+<pre><code class="language-text">On a reçu : salut
+On a reçu : encore plus
+On a reçu : à partir
+On a reçu : de messages
+On a reçu : pour
+On a reçu : de la
+On a reçu : nouvelle tâche
+On a reçu : pour vous
 </code></pre>
-<p>You might see the values in another order, depending on your system. This is what makes concurrency interesting as well as difficult. If you experiment with <code>thread::sleep</code>, giving it various values in the different threads, each run will be more nondeterministic and create different output each time.</p>
+<p>Vous pourrez peut-être constater que les valeurs sont dans un autre ordre chez vous, en fonction de votre système. C’est ce qui rend la concurrence aussi intéressante que difficile. Si vous jouez avec la valeur de <code>thread::sleep</code> en lui donnant différentes valeurs dans différentes tâches, chaque exécution sera encore moins déterministe et créera une sortie différente à chaque fois.</p>
 <p>Maintenant que nous avons découvert le fonctionnement des canaux, examinons un autre genre de concurrence.</p>
 
                     </main>
