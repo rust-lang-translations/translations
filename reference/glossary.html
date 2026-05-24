@@ -93,7 +93,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-70b8761d.js";
+            window.path_to_searchindex_js = "searchindex-9758d208.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-01ec0cab.js"></script>
@@ -357,6 +357,62 @@ let vec = [1, 2, 3].iter().map(|n| n * 2).collect::&lt;Vec&lt;_&gt;&gt;();
 
 <h3 id="uninhabited"><a class="header" href="#uninhabited">Uninhabited</a></h3>
 <p>A type is uninhabited if it has no constructors and therefore can never be instantiated. An uninhabited type is “empty” in the sense that there are no values of the type. The canonical example of an uninhabited type is the <a href="types/never.html">never type</a> <code>!</code>, or an enum with no variants <code>enum Never { }</code>. Opposite of <a href="#inhabited">Inhabited</a>.</p>
+<div class="rule" id="r-glossary.zst"><a class="rule-link" href="#r-glossary.zst" title="glossary.zst"><span>[glossary<wbr>.zst]</span></a>
+</div>
+
+<h3 id="zero-sized-type-zst"><a class="header" href="#zero-sized-type-zst">Zero-sized type (ZST)</a></h3>
+<p>A type is zero sized (a ZST) if its size is 0. Such types have at most one possible value. Examples include:</p>
+<ul>
+<li>The <a href="types/tuple.html#r-type.tuple.unit">unit type</a> (see <a href="type-layout.html#r-layout.tuple.unit">layout.tuple.unit</a>).</li>
+<li><a href="types/function-item.html#r-type.fn-item">Function items</a> (see <a href="types/function-item.html#r-type.fn-item.intro">type.fn-item.intro</a>).</li>
+<li>The constructors of <a href="items/structs.html#r-items.struct.tuple">tuple-like structs</a> (see <a href="types/function-item.html#r-type.fn-item.intro">type.fn-item.intro</a>).</li>
+<li>The constructors of <a href="items/enumerations.html#r-items.enum.constructor-namespace">tuple-like enum variants</a> (see <a href="types/function-item.html#r-type.fn-item.intro">type.fn-item.intro</a>).</li>
+<li><code>repr(C)</code> <a href="items/structs.html">structs</a> with no fields or where all fields are zero-sized (see <a href="type-layout.html#r-layout.repr.c.struct.size-field-offset">layout.repr.c.struct.size-field-offset</a>).</li>
+<li><code>repr(transparent)</code> <a href="items/structs.html">structs</a> with no fields or where all fields are zero-sized (see <a href="type-layout.html#r-layout.repr.transparent.layout-abi">layout.repr.transparent.layout-abi</a>).</li>
+<li><a href="types/array.html#r-type.array">Arrays</a> of zero-sized types (see <a href="type-layout.html#r-layout.array">layout.array</a>).</li>
+<li><a href="types/array.html#r-type.array">Arrays</a> of length zero (see <a href="type-layout.html#r-layout.array">layout.array</a>).</li>
+<li><a href="items/unions.html">Unions</a> of zero-sized types (see <a href="items/unions.html#r-items.union.common-storage">items.union.common-storage</a>).</li>
+</ul>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use core::mem::{size_of, size_of_val};
+</span>fn f() {}
+struct S(u8);
+enum E { V(u8) }
+#[repr(C)]
+struct C1 {}
+#[repr(C)]
+struct C2 {
+    f1: (),
+    f2: [(); 10],
+    f3: [u8; 0],
+    f4: C1,
+}
+#[repr(transparent)]
+struct T1 {}
+#[repr(transparent)]
+struct T2 {
+    f1: (),
+    f2: [(); 10],
+    f3: [u8; 0],
+}
+union U {
+    f1: (),
+    f2: [(); 10],
+    f3: [u8; 0],
+}
+assert_eq!(0, size_of::&lt;()&gt;());
+assert_eq!(0, size_of_val(&amp;f));
+assert_eq!(0, size_of_val(&amp;S));
+assert_eq!(0, size_of_val(&amp;E::V));
+assert_eq!(0, size_of::&lt;C1&gt;());
+assert_eq!(0, size_of::&lt;C2&gt;());
+assert_eq!(0, size_of::&lt;T1&gt;());
+assert_eq!(0, size_of::&lt;T2&gt;());
+assert_eq!(0, size_of::&lt;[(); 10]&gt;());
+assert_eq!(0, size_of::&lt;[u8; 0]&gt;());
+assert_eq!(0, size_of::&lt;U&gt;());
+<span class="boring">}</span></code></pre>
 
                     </main>
 

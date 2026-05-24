@@ -93,7 +93,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-70b8761d.js";
+            window.path_to_searchindex_js = "searchindex-9758d208.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-01ec0cab.js"></script>
@@ -250,6 +250,7 @@ a crate.</p>
 <p>See <em><a href="items/functions.html#extern-function-qualifier">extern functions</a></em> for information on specifying the ABI for exporting
 functions. See <em><a href="items/external-blocks.html">external blocks</a></em> for information on specifying the ABI for
 linking external libraries.</p>
+<!-- template:attributes -->
 <div class="rule" id="r-abi.used"><a class="rule-link" href="#r-abi.used" title="abi.used"><span>[abi<wbr>.used]</span></a>
 </div>
 
@@ -257,50 +258,67 @@ linking external libraries.</p>
 <div class="rule" id="r-abi.used.intro"><a class="rule-link" href="#r-abi.used.intro" title="abi.used.intro"><span>[abi<wbr>.used<wbr>.intro]</span></a>
 </div>
 
-<p>The <em><code>used</code> attribute</em> can only be applied to <a href="items/static-items.html"><code>static</code> items</a>. This <a href="attributes.html">attribute</a> forces the
-compiler to keep the variable in the output object file (.o, .rlib, etc. excluding final binaries)
-even if the variable is not used, or referenced, by any other item in the crate.
-However, the linker is still free to remove such an item.</p>
-<p>Below is an example that shows under what conditions the compiler keeps a <code>static</code> item in the
-output object file.</p>
+<p>The <em><code>used</code> <a href="attributes.html">attribute</a></em> forces a <a href="items/static-items.html">static</a> to be kept in the output object file (.o, .rlib, etc., excluding final binaries) even if it’s never used or referenced by any other item in the crate. The linker, however, is still free to remove it.</p>
+<div class="alert alert-example">
+<blockquote>
+<p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"></path></svg>Example</p>
+
 <pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// foo.rs
+</span>// lib.rs
 
-// This is kept because of `#[used]`:
+// This is kept because of `#[used]`.
 #[used]
-static FOO: u32 = 0;
+static S1: u8 = 0;
 
-// This is removable because it is unused:
+// This is removable because it's unused.
 #[allow(dead_code)]
-static BAR: u32 = 0;
+static S2: u8 = 0;
 
-// This is kept because it is publicly reachable:
-pub static BAZ: u32 = 0;
+// This is kept because it's publicly reachable.
+pub static S3: u8 = 0;
 
-// This is kept because it is referenced by a public, reachable function:
-static QUUX: u32 = 0;
+// This is kept because it's referenced by a publicly
+// reachable function.
+static S4: u8 = 0;
+#[unsafe(no_mangle)] pub fn f4() -&gt; &amp;'static u8 { &amp;S4 }
 
-pub fn quux() -&gt; &amp;'static u32 {
-    &amp;QUUX
-}
-
-// This is removable because it is referenced by a private, unused (dead) function:
-static CORGE: u32 = 0;
-
+// This is removable because it's referenced only by a
+// private, unused (dead) function.
+static S5: u8 = 0;
 #[allow(dead_code)]
-fn corge() -&gt; &amp;'static u32 {
-    &amp;CORGE
-}
+fn f5() -&gt; &amp;'static u8 { &amp;S5 }
 <span class="boring">}</span></code></pre>
-<pre><code class="language-console">$ rustc -O --emit=obj --crate-type=rlib foo.rs
-
-$ nm -C foo.o
-0000000000000000 R foo::BAZ
-0000000000000000 r foo::FOO
-0000000000000000 R foo::QUUX
-0000000000000000 T foo::quux
+<pre><code class="language-console">$ rustc -O --emit=obj --crate-type=rlib lib.rs
+$ LC_ALL=C nm -C lib.o
+0000000000000000 R lib::S1
+0000000000000000 R lib::S3
+0000000000000000 r lib::S4
+0000000000000000 T f4
 </code></pre>
+</blockquote>
+</div>
+
+<div class="rule" id="r-abi.used.syntax"><a class="rule-link" href="#r-abi.used.syntax" title="abi.used.syntax"><span>[abi<wbr>.used<wbr>.syntax]</span></a>
+</div>
+
+<p>The <code>used</code> attribute uses the <a href="attributes.html#grammar-MetaWord">MetaWord</a> syntax.</p>
+<div class="rule" id="r-abi.used.allowed-positions"><a class="rule-link" href="#r-abi.used.allowed-positions" title="abi.used.allowed-positions"><span>[abi<wbr>.used<wbr>.allowed-positions]</span></a>
+</div>
+
+<p>The <code>used</code> attribute may only be applied to <a href="items/static-items.html#r-items.static"><code>static</code> items</a>.</p>
+<div class="rule" id="r-abi.used.duplicates"><a class="rule-link" href="#r-abi.used.duplicates" title="abi.used.duplicates"><span>[abi<wbr>.used<wbr>.duplicates]</span></a>
+</div>
+
+<p>Only the first use of <code>used</code> on an item has effect.</p>
+<div class="alert alert-note">
+<blockquote>
+<p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+
+<p><code>rustc</code> lints against any use following the first.</p>
+</blockquote>
+</div>
+
 <div class="rule" id="r-abi.no_mangle"><a class="rule-link" href="#r-abi.no_mangle" title="abi.no_mangle"><span>[abi<wbr>.no_mangle]</span></a>
 </div>
 
@@ -353,10 +371,12 @@ extern "C" fn foo() {}
 <!-- no_run: don't link. The format of the section name is platform-specific. -->
 <pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
+</span><span class="boring">#[cfg(target_os = "linux")] {
 </span>#[unsafe(no_mangle)]
 #[unsafe(link_section = ".example_section")]
 pub static VAR1: u32 = 1;
-<span class="boring">}</span></code></pre>
+<span class="boring">}
+</span><span class="boring">}</span></code></pre>
 <div class="rule" id="r-abi.link_section.unsafe"><a class="rule-link" href="#r-abi.link_section.unsafe" title="abi.link_section.unsafe"><span>[abi<wbr>.link_section<wbr>.unsafe]</span></a>
 </div>
 
