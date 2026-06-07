@@ -93,7 +93,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9758d208.js";
+            window.path_to_searchindex_js = "../searchindex-9e6a93da.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-01ec0cab.js"></script>
@@ -513,6 +513,7 @@ pub fn example() {}
 </div>
 
 <p>When <code>cold</code> is applied to a function in a <a href="../items/traits.html#r-items.traits">trait</a>, it applies only to the code of the <a href="../items/traits.html#r-items.traits.associated-item-decls">default definition</a>.</p>
+<!-- template:attributes -->
 <div class="rule" id="r-attributes.codegen.naked"><a class="rule-link" href="#r-attributes.codegen.naked" title="attributes.codegen.naked"><span>[attributes<wbr>.codegen<wbr>.naked]</span></a>
 </div>
 
@@ -520,51 +521,104 @@ pub fn example() {}
 <div class="rule" id="r-attributes.codegen.naked.intro"><a class="rule-link" href="#r-attributes.codegen.naked.intro" title="attributes.codegen.naked.intro"><span>[attributes<wbr>.codegen<wbr>.naked<wbr>.intro]</span></a>
 </div>
 
-<p>The <em><code>naked</code> <a href="../attributes.html">attribute</a></em> prevents the compiler from emitting a function prologue and epilogue for the attributed function.</p>
-<div class="rule" id="r-attributes.codegen.naked.body"><a class="rule-link" href="#r-attributes.codegen.naked.body" title="attributes.codegen.naked.body"><span>[attributes<wbr>.codegen<wbr>.naked<wbr>.body]</span></a>
+<p>The <em><code>naked</code> <a href="../attributes.html">attribute</a></em> prevents the compiler from emitting a function prologue and epilogue for the attributed function — a <em>naked function</em>.</p>
+<div class="alert alert-example">
+<blockquote>
+<p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"></path></svg>Example</p>
+
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">#[cfg(target_arch = "x86_64")] {
+</span>/// Adds 3 to the given number.
+// SAFETY: The body respects the "sysv64" calling convention,
+// upholds the signature, and does not fall through.
+#[unsafe(naked)]
+pub extern "sysv64" fn add_n(number: u64) -&gt; u64 {
+    core::arch::naked_asm!(
+        "add rdi, {}",
+        "mov rax, rdi",
+        "ret",
+        const 3,
+    )
+}
+<span class="boring">}
+</span><span class="boring">}</span></code></pre>
+</blockquote>
 </div>
 
-<p>The <a href="../items/functions.html#function-body">function body</a> must consist of exactly one <a href="../inline-assembly.html"><code>naked_asm!</code></a> macro invocation.</p>
-<div class="rule" id="r-attributes.codegen.naked.prologue-epilogue"><a class="rule-link" href="#r-attributes.codegen.naked.prologue-epilogue" title="attributes.codegen.naked.prologue-epilogue"><span>[attributes<wbr>.codegen<wbr>.naked<wbr>.prologue-epilogue]</span></a>
+<div class="rule" id="r-attributes.codegen.naked.syntax"><a class="rule-link" href="#r-attributes.codegen.naked.syntax" title="attributes.codegen.naked.syntax"><span>[attributes<wbr>.codegen<wbr>.naked<wbr>.syntax]</span></a>
 </div>
 
-<p>No function prologue or epilogue is generated for the attributed function. The assembly code in the <code>naked_asm!</code> block constitutes the full body of a naked function.</p>
-<div class="rule" id="r-attributes.codegen.naked.unsafe-attribute"><a class="rule-link" href="#r-attributes.codegen.naked.unsafe-attribute" title="attributes.codegen.naked.unsafe-attribute"><span>[attributes<wbr>.codegen<wbr>.naked<wbr>.unsafe-attribute]</span></a>
+<p>The <code>naked</code> attribute uses the <a href="../attributes.html#grammar-MetaWord">MetaWord</a> syntax.</p>
+<div class="rule" id="r-attributes.codegen.naked.allowed-positions"><a class="rule-link" href="#r-attributes.codegen.naked.allowed-positions" title="attributes.codegen.naked.allowed-positions"><span>[attributes<wbr>.codegen<wbr>.naked<wbr>.allowed-positions]</span></a>
 </div>
 
-<p>The <code>naked</code> attribute is an <a href="../attributes.html#r-attributes.safety">unsafe attribute</a>. Annotating a function with <code>#[unsafe(naked)]</code> comes with the safety obligation that the body must respect the function’s calling convention, uphold its signature, and either return or diverge (i.e., not fall through past the end of the assembly code).</p>
-<div class="rule" id="r-attributes.codegen.naked.call-stack"><a class="rule-link" href="#r-attributes.codegen.naked.call-stack" title="attributes.codegen.naked.call-stack"><span>[attributes<wbr>.codegen<wbr>.naked<wbr>.call-stack]</span></a>
+<p>The <code>naked</code> attribute may only be applied to <a href="../items/functions.html#r-items.fn">free functions</a>, <a href="../items/associated-items.html#r-items.associated.fn">associated functions</a> in an <a href="../items/implementations.html#r-items.impl.inherent">inherent impl</a> or <a href="../items/implementations.html#r-items.impl.trait">trait impl</a>, and associated functions in a <a href="../items/traits.html#r-items.traits">trait definition</a> when those functions have a <a href="../items/traits.html#r-items.traits.associated-item-decls">default definition</a>.</p>
+<div class="rule" id="r-attributes.codegen.naked.duplicates"><a class="rule-link" href="#r-attributes.codegen.naked.duplicates" title="attributes.codegen.naked.duplicates"><span>[attributes<wbr>.codegen<wbr>.naked<wbr>.duplicates]</span></a>
 </div>
 
-<p>The assembly code may assume that the call stack and register state are valid on entry as per the signature and calling convention of the function.</p>
-<div class="rule" id="r-attributes.codegen.naked.no-duplication"><a class="rule-link" href="#r-attributes.codegen.naked.no-duplication" title="attributes.codegen.naked.no-duplication"><span>[attributes<wbr>.codegen<wbr>.naked<wbr>.no-duplication]</span></a>
-</div>
-
-<p>The assembly code may not be duplicated by the compiler except when monomorphizing polymorphic functions.</p>
+<p>Only the first use of <code>naked</code> on a function has effect.</p>
 <div class="alert alert-note">
 <blockquote>
 <p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
 
-<p>Guaranteeing when the assembly code may or may not be duplicated is important for naked functions that define symbols.</p>
+<p><code>rustc</code> lints against any use following the first.</p>
+</blockquote>
+</div>
+
+<div class="rule" id="r-attributes.codegen.naked.unsafe"><a class="rule-link" href="#r-attributes.codegen.naked.unsafe" title="attributes.codegen.naked.unsafe"><span>[attributes<wbr>.codegen<wbr>.naked<wbr>.unsafe]</span></a>
+</div>
+
+<p>The <code>naked</code> attribute must be marked with <a href="../attributes.html#r-attributes.safety"><code>unsafe</code></a> because the body must respect the function’s calling convention, uphold its signature, and either return or diverge (i.e., not fall through past the end of the assembly code).</p>
+<div class="rule" id="r-attributes.codegen.naked.body"><a class="rule-link" href="#r-attributes.codegen.naked.body" title="attributes.codegen.naked.body"><span>[attributes<wbr>.codegen<wbr>.naked<wbr>.body]</span></a>
+</div>
+
+<p>The <a href="../items/functions.html#r-items.fn.body">function body</a> must consist of exactly one <a href="../inline-assembly.html#r-asm"><code>naked_asm!</code></a> macro invocation.</p>
+<div class="rule" id="r-attributes.codegen.naked.prologue-epilogue"><a class="rule-link" href="#r-attributes.codegen.naked.prologue-epilogue" title="attributes.codegen.naked.prologue-epilogue"><span>[attributes<wbr>.codegen<wbr>.naked<wbr>.prologue-epilogue]</span></a>
+</div>
+
+<p>The compiler emits no prologue or epilogue for a naked function: the assembly code in the <a href="../inline-assembly.html#r-asm"><code>naked_asm!</code></a> invocation constitutes its entire body.</p>
+<div class="rule" id="r-attributes.codegen.naked.call-stack"><a class="rule-link" href="#r-attributes.codegen.naked.call-stack" title="attributes.codegen.naked.call-stack"><span>[attributes<wbr>.codegen<wbr>.naked<wbr>.call-stack]</span></a>
+</div>
+
+<p>On entry the assembly code may assume that the call stack and register state are valid per the function’s signature and calling convention.</p>
+<div class="rule" id="r-attributes.codegen.naked.no-duplication"><a class="rule-link" href="#r-attributes.codegen.naked.no-duplication" title="attributes.codegen.naked.no-duplication"><span>[attributes<wbr>.codegen<wbr>.naked<wbr>.no-duplication]</span></a>
+</div>
+
+<p>The compiler may not duplicate the assembly code except when monomorphizing a polymorphic function.</p>
+<div class="alert alert-note">
+<blockquote>
+<p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+
+<p>This guarantee matters for naked functions that define symbols.</p>
 </blockquote>
 </div>
 
 <div class="rule" id="r-attributes.codegen.naked.unused-variables"><a class="rule-link" href="#r-attributes.codegen.naked.unused-variables" title="attributes.codegen.naked.unused-variables"><span>[attributes<wbr>.codegen<wbr>.naked<wbr>.unused-variables]</span></a>
 </div>
 
-<p>The <a href="../../rustc/lints/listing/warn-by-default.html#unused-variables"><code>unused_variables</code></a> lint is suppressed within naked functions.</p>
+<p>The <a href="../../rustc/lints/listing/warn-by-default.html#unused-variables"><code>unused_variables</code> lint</a> is suppressed in naked functions.</p>
 <div class="rule" id="r-attributes.codegen.naked.inline"><a class="rule-link" href="#r-attributes.codegen.naked.inline" title="attributes.codegen.naked.inline"><span>[attributes<wbr>.codegen<wbr>.naked<wbr>.inline]</span></a>
 </div>
 
-<p>The <a href="#the-inline-attribute"><code>inline</code></a> attribute cannot by applied to a naked function.</p>
+<p>The <a href="codegen.html#r-attributes.codegen.inline"><code>inline</code> attribute</a> cannot be applied to a naked function.</p>
 <div class="rule" id="r-attributes.codegen.naked.track_caller"><a class="rule-link" href="#r-attributes.codegen.naked.track_caller" title="attributes.codegen.naked.track_caller"><span>[attributes<wbr>.codegen<wbr>.naked<wbr>.track_caller]</span></a>
 </div>
 
-<p>The <a href="#the-track_caller-attribute"><code>track_caller</code></a> attribute cannot be applied to a naked function.</p>
+<p>The <a href="codegen.html#r-attributes.codegen.track_caller"><code>track_caller</code> attribute</a> cannot be applied to a naked function.</p>
 <div class="rule" id="r-attributes.codegen.naked.testing"><a class="rule-link" href="#r-attributes.codegen.naked.testing" title="attributes.codegen.naked.testing"><span>[attributes<wbr>.codegen<wbr>.naked<wbr>.testing]</span></a>
 </div>
 
-<p>The <a href="testing.html">testing attributes</a> cannot be applied to a naked function.</p>
+<p>The <a href="testing.html#r-attributes.testing">testing attributes</a> cannot be applied to a naked function.</p>
+<div class="rule" id="r-attributes.codegen.naked.target_feature"><a class="rule-link" href="#r-attributes.codegen.naked.target_feature" title="attributes.codegen.naked.target_feature"><span>[attributes<wbr>.codegen<wbr>.naked<wbr>.target_feature]</span></a>
+</div>
+
+<p>The <a href="codegen.html#r-attributes.codegen.target_feature"><code>target_feature</code> attribute</a> cannot be applied to a naked function.</p>
+<!-- TODO: Reflexive rules? -->
+<div class="rule" id="r-attributes.codegen.naked.abi"><a class="rule-link" href="#r-attributes.codegen.naked.abi" title="attributes.codegen.naked.abi"><span>[attributes<wbr>.codegen<wbr>.naked<wbr>.abi]</span></a>
+</div>
+
+<p>A naked function cannot use the <a href="../items/external-blocks.html#r-items.extern.abi.rust">“Rust” ABI</a>.</p>
 <!-- template:attributes -->
 <div class="rule" id="r-attributes.codegen.no_builtins"><a class="rule-link" href="#r-attributes.codegen.no_builtins" title="attributes.codegen.no_builtins"><span>[attributes<wbr>.codegen<wbr>.no_builtins]</span></a>
 </div>
