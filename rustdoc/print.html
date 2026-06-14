@@ -93,7 +93,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-430a9bb6.js";
+            window.path_to_searchindex_js = "searchindex-c622d499.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-818727da.js"></script>
@@ -1959,8 +1959,8 @@ render differently in this case:</p>
 whereas <code>3.</code> and <code>4.</code> will be replaced by a link targeting <code>e</code> for <code>[d](e)</code> and <code>g</code> for <code>[f]</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="documentation-tests"><a class="header" href="#documentation-tests">Documentation tests</a></h1>
-<p><code>rustdoc</code> supports executing your documentation examples as tests. This makes sure
-that examples within your documentation are up to date and working.</p>
+<p><code>rustdoc</code> supports executing your documentation examples as tests.
+This makes sure that examples within your documentation are up to date and working.</p>
 <p>The basic idea is this:</p>
 <pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -1971,10 +1971,12 @@ that examples within your documentation are up to date and working.</p>
 /// ```
 <span class="boring">fn f() {}
 </span><span class="boring">}</span></code></pre>
-<p>The triple backticks start and end code blocks. If this were in a file named <code>foo.rs</code>,
-running <code>rustdoc --test foo.rs</code> will extract this example, and then run it as a test.</p>
-<p>Please note that by default, if no language is set for the block code, rustdoc
-assumes it is Rust code. So the following:</p>
+<p>Here, the triple backticks start and end the code block.
+If this were in a file named <code>foo.rs</code>, running <code>rustdoc --test foo.rs</code> will extract this example,
+and then run it as a test.</p>
+<p>Please note that by default,
+if no language is set for the block code, rustdoc assumes it is Rust code.
+So the following:</p>
 <pre><code class="language-markdown">```rust
 let x = 5;
 ```
@@ -2223,19 +2225,36 @@ we can add the <code>#[macro_use]</code> attribute. Second, we’ll need to add 
 <code>main()</code> as well (for reasons discussed above). Finally, a judicious use of
 <code>#</code> to comment out those two things, so they don’t show up in the output.</p>
 <h2 id="attributes-1"><a class="header" href="#attributes-1">Attributes</a></h2>
-<p>Code blocks can be annotated with attributes that help <code>rustdoc</code> do the right
-thing when testing your code:</p>
-<p>The <code>ignore</code> attribute tells Rust to ignore your code. This is almost never
-what you want as it’s the most generic. Instead, consider annotating it
-with <code>text</code> if it’s not code or using <code>#</code>s to get a working example that
-only shows the part you care about.</p>
+<p>Code blocks can be annotated with attributes that tell <code>rustdoc</code> how to build and interpret the test.
+They follow the <a href="https://spec.commonmark.org/0.29/#code-fence">code fence</a> in the opening line.
+As such, they share the place with language strings like <code>rust</code> or <code>text</code>.
+Multiple attributes can be provided by separating them with commas, spaces or tabs.
+You can also write comments which are enclosed in parentheses <code>(…)</code>.</p>
+<p>As alluded to in the introduction at the very top,
+unless you specify <code>rust</code> or something that isn’t an attribute (except for <code>custom</code>),
+the code block is assumed to be Rust source code (and is syntax highlighted as such).</p>
+<p>You can of course add <code>rust</code> explicitly (like <code>rust,ignore</code>) if the Markdown is also consumed by
+other tools (e.g., if it’s contained inside of a <code>README.md</code> that’s included via <code>include_str</code>).</p>
+<h3 id="ignore"><a class="header" href="#ignore"><code>ignore</code></a></h3>
+<p>The <code>ignore</code> attribute tells <code>rustdoc</code> to ignore your code. This is useful if you would like to
+have Rust syntax highlighting but the snippet is incomplete or pseudocode.
+It is customary to add the reason why it should be ignored in a <code>(…)</code> comment.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>/// ```ignore
 /// fn foo() {
 /// ```
+///
+/// ```ignore (needs extra dependency)
+/// use dependency::functionality;
+/// functionality();
+/// ```
 <span class="boring">fn foo() {}
 </span><span class="boring">}</span></code></pre>
+<p>Do note that this is almost never what you want as it’s the most generic.
+Instead, consider annotating it with <code>text</code> if it’s not code or
+using <code>#</code>s to get a working example that only shows the part you care about.</p>
+<h3 id="should_panic"><a class="header" href="#should_panic"><code>should_panic</code></a></h3>
 <p><code>should_panic</code> tells <code>rustdoc</code> that the code should compile correctly but
 panic during execution. If the code doesn’t panic, the test will fail.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -2245,6 +2264,7 @@ panic during execution. If the code doesn’t panic, the test will fail.</p>
 /// ```
 <span class="boring">fn foo() {}
 </span><span class="boring">}</span></code></pre>
+<h3 id="no_run"><a class="header" href="#no_run"><code>no_run</code></a></h3>
 <p>The <code>no_run</code> attribute will compile your code but not run it. This is
 important for examples such as “Here’s how to retrieve a web page,”
 which you would want to ensure compiles, but might be run in a test
@@ -2259,10 +2279,9 @@ used to demonstrate code snippets that can cause Undefined Behavior.</p>
 /// ```
 <span class="boring">fn foo() {}
 </span><span class="boring">}</span></code></pre>
+<h3 id="compile_fail"><a class="header" href="#compile_fail"><code>compile_fail</code></a></h3>
 <p><code>compile_fail</code> tells <code>rustdoc</code> that the compilation should fail. If it
-compiles, then the test will fail. However, please note that code failing
-with the current Rust release may work in a future release, as new features
-are added.</p>
+compiles, then the test will fail.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>/// ```compile_fail
@@ -2271,6 +2290,12 @@ are added.</p>
 /// ```
 <span class="boring">fn foo() {}
 </span><span class="boring">}</span></code></pre>
+<div class="warning">
+However, please note that code failing with the current Rust release may work in a future release,
+as new features are added!
+</div>
+
+<h3 id="edition"><a class="header" href="#edition"><code>edition…</code></a></h3>
 <p><code>edition2015</code>, <code>edition2018</code>, <code>edition2021</code>, and <code>edition2024</code> tell <code>rustdoc</code>
 that the code sample should be compiled using the respective edition of Rust.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -2286,6 +2311,7 @@ that the code sample should be compiled using the respective edition of Rust.</p
 /// ```
 <span class="boring">fn foo() {}
 </span><span class="boring">}</span></code></pre>
+<h3 id="standalone_crate"><a class="header" href="#standalone_crate"><code>standalone_crate</code></a></h3>
 <p>Starting in the 2024 edition<sup class="footnote-reference" id="fr-edition-note-1"><a href="#footnote-edition-note">1</a></sup>, compatible doctests are merged as one before being
 run. We combine doctests for performance reasons: the slowest part of doctests is to compile them.
 Merging all of them into one file and compiling this new file, then running the doctests is much
@@ -2322,7 +2348,7 @@ should not be merged with the others. So the previous code should use it:</p>
 <span class="boring">}</span></code></pre>
 <p>In this case, it means that the line information will not change if you add/remove other
 doctests.</p>
-<h3 id="ignoring-targets"><a class="header" href="#ignoring-targets">Ignoring targets</a></h3>
+<h3 id="ignore--ignoring-targets"><a class="header" href="#ignore--ignoring-targets"><code>ignore-…</code>: Ignoring targets</a></h3>
 <p>Attributes starting with <code>ignore-</code> can be used to ignore doctests for specific
 targets. For example, <code>ignore-x86_64</code> will avoid building doctests when the
 target name contains <code>x86_64</code>.</p>
@@ -2353,7 +2379,7 @@ struct Foo;
 <span class="boring">}</span></code></pre>
 <p>In older versions, this will be ignored on all targets, but starting with
 version 1.88.0, <code>ignore-x86_64</code> will override <code>ignore</code>.</p>
-<h3 id="custom-css-classes-for-code-blocks"><a class="header" href="#custom-css-classes-for-code-blocks">Custom CSS classes for code blocks</a></h3>
+<h3 id="--custom-custom-css-classes-for-code-blocks"><a class="header" href="#--custom-custom-css-classes-for-code-blocks"><code>{…}</code> &amp; <code>custom</code>: Custom CSS classes for code blocks</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>/// ```custom,{class=language-c}
@@ -2375,8 +2401,9 @@ don’t forget to add the <code>custom</code> attribute.</p>
 /// ```
 pub struct Bar;
 <span class="boring">}</span></code></pre>
-<p>To be noted, <code>rust</code> and <code>.rust</code>/<code>class=rust</code> have different effects: <code>rust</code> indicates that this is
-a Rust code block whereas the two others add a “rust” CSS class on the code block.</p>
+<p>To be noted, <code>rust</code> and <code>{.rust}</code> / <code>{class=rust}</code> have different effects:
+<code>rust</code> indicates that this is a Rust code block whereas
+the two others add a “rust” CSS class on the code block in the generated HTML.</p>
 <p>You can also use double quotes:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2385,19 +2412,31 @@ a Rust code block whereas the two others add a “rust” CSS class on the code 
 /// ```
 pub struct Bar;
 <span class="boring">}</span></code></pre>
+<h3 id="test_harness"><a class="header" href="#test_harness"><code>test_harness</code></a></h3>
+<p>With <code>test_harness</code> applied, <code>rustdoc</code> will run any contained <em>test functions</em>
+instead of the (potentially implicit) <code>main</code> function.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>//! ```test_harness
+//! #[test]
+//! #[should_panic]
+//! fn abc() { assert!(false); }
+//!
+//! #[test]
+//! fn xyz() { assert!(true); }
+//! ```
+<span class="boring">}</span></code></pre>
+<p>You can read more about <em>test functions</em> in <a href="../book/ch11-01-writing-tests.html">the Book</a> or in <a href="../reference/attributes/testing.html">the Rust Reference</a>.</p>
 <h2 id="syntax-reference"><a class="header" href="#syntax-reference">Syntax reference</a></h2>
-<p>The <em>exact</em> syntax for code blocks, including the edge cases, can be found
-in the <a href="https://spec.commonmark.org/0.29/#fenced-code-blocks">Fenced Code Blocks</a>
-section of the CommonMark specification.</p>
-<p>Rustdoc also accepts <em>indented</em> code blocks as an alternative to fenced
-code blocks: instead of surrounding your code with three backticks, you
-can indent each line by four or more spaces.</p>
+<p>The <em>exact</em> syntax for code blocks, including the edge cases,
+can be found in the <a href="https://spec.commonmark.org/0.29/#fenced-code-blocks">Fenced Code Blocks</a> section of the CommonMark specification.</p>
+<p>Rustdoc also accepts <em>indented</em> code blocks as an alternative to fenced code blocks:
+Instead of surrounding your code with a <a href="https://spec.commonmark.org/0.29/#code-fence">code fence</a> (e.g., three backticks),
+you can indent each line by four or more spaces.</p>
 <pre><code class="language-markdown">    let foo = "foo";
     assert_eq!(foo, "foo");
 </code></pre>
-<p>These, too, are documented in the CommonMark specification, in the
-<a href="https://spec.commonmark.org/0.29/#indented-code-blocks">Indented Code Blocks</a>
-section.</p>
+<p>These, too, are documented in the CommonMark specification, in the <a href="https://spec.commonmark.org/0.29/#indented-code-blocks">Indented Code Blocks</a> section.</p>
 <p>However, it’s preferable to use fenced code blocks over indented code blocks.
 Not only are fenced code blocks considered more idiomatic for Rust code,
 but there is no way to use attributes such as <code>ignore</code> or <code>should_panic</code> with
