@@ -96,10 +96,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d2248916.js";
+            window.path_to_searchindex_js = "searchindex-e705db65.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e6f954e3.js"></script>
+        <script src="toc-cf7f76ff.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -239,618 +239,618 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h2 id="implémenter-un-patron-de-conception-orienté-objet"><a class="header" href="#implémenter-un-patron-de-conception-orienté-objet">Implémenter un patron de conception orienté-objet</a></h2>
-<p>The <em>state pattern</em> is an object-oriented design pattern. The crux of the pattern is that we define a set of states a value can have internally. The states are represented by a set of <em>state objects</em>, and the value’s behavior changes based on its state. We’re going to work through an example of a blog post struct that has a field to hold its state, which will be a state object from the set “draft,” “review,” or “published.”</p>
-<p>The state objects share functionality: In Rust, of course, we use structs and traits rather than objects and inheritance. Each state object is responsible for its own behavior and for governing when it should change into another state. The value that holds a state object knows nothing about the different behavior of the states or when to transition between states.</p>
-<p>The advantage of using the state pattern is that, when the business requirements of the program change, we won’t need to change the code of the value holding the state or the code that uses the value. We’ll only need to update the code inside one of the state objects to change its rules or perhaps add more state objects.</p>
-<p>First, we’re going to implement the state pattern in a more traditional object-oriented way. Then, we’ll use an approach that’s a bit more natural in Rust. Let’s dig in to incrementally implement a blog post workflow using the state pattern.</p>
-<p>The final functionality will look like this:</p>
+<p>Le <em>patron état</em> est un patron de conception orienté objet. Le point essentiel de ce patron est que nous définissons un ensemble d’états qu’une valeur peut possède en interne. Les états sont représentés par un ensemble d’<em>objets état</em>, et le comportement de la valeur change en fonction de son état. Nous allons voir, à travers un exemple d’une structure de billet de blog qui a un champ contenant son état, lequel sera un objet état appartenant à l’ensemble “brouillon”, “en révision”, ou “publié”.</p>
+<p>Les objets état partagent des fonctionnalités : en Rust, bien sûr, nous utilisons des structures et des traits plutôt que des objets et de l’héritage. Chaque objet état est responsable de son propre comportement et décide lorsqu’il doit changer pour un autre état. La valeur contenue dans un objet état ne sait rien sur les différents comportements des états et ne sait pas quand il va changer d’état.</p>
+<p>L’avantage d’utiliser le patron état est que, lorsque les exigences métier du programme changent, nous n’avons pas besoin de changer le code à l’intérieur de l’objet état ou le code qui utilise l’objet. Nous avons juste besoin de modifier le code dans un des objets état pour changer son fonctionnement ou pour ajouter d’autres objets état.</p>
+<p>Nous allons commencer par implémenter le patron état dans mode plus traditionnel, orienté objet. Puis nous utiliserons une approche un peu plus naturelle en Rust. Voyons comment implémenter progressivement le déroulement d’un billet de blog en utilisant le patron état.</p>
+<p>Les fonctionnalités finales du blog seront les suivantes :</p>
 <ol>
-<li>A blog post starts as an empty draft.</li>
-<li>When the draft is done, a review of the post is requested.</li>
-<li>When the post is approved, it gets published.</li>
-<li>Only published blog posts return content to print so that unapproved posts can’t accidentally be published.</li>
+<li>Un billet de blog commence par un brouillon vide.</li>
+<li>Lorsque le brouillon est terminé, une relecture du billet est demandée.</li>
+<li>Lorsqu’un billet est approuvé, il est publié.</li>
+<li>Seuls les billets de blog publiés retournent du contenu à afficher, si bien que les billets non approuvés ne peuvent pas être publiés accidentellement.</li>
 </ol>
 <p>Tous les autres changements effectués sur un billet n’auront pas d’effet. Par exemple, si nous essayons d’approuver un brouillon de billet de blog avant d’avoir demandé une relecture, le billet devrait rester à l’état de brouillon non publié.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="a-traditional-object-oriented-attempt"></a></p>
-<h3 id="attempting-traditional-object-oriented-style"><a class="header" href="#attempting-traditional-object-oriented-style">Attempting Traditional Object-Oriented Style</a></h3>
-<p>There are infinite ways to structure code to solve the same problem, each with different trade-offs. This section’s implementation is more of a traditional object-oriented style, which is possible to write in Rust, but doesn’t take advantage of some of Rust’s strengths. Later, we’ll demonstrate a different solution that still uses the object-oriented design pattern but is structured in a way that might look less familiar to programmers with object-oriented experience. We’ll compare the two solutions to experience the trade-offs of designing Rust code differently than code in other languages.</p>
-<p>Listing 18-11 shows this workflow in code form: This is an example usage of the API we’ll implement in a library crate named <code>blog</code>. This won’t compile yet because we haven’t implemented the <code>blog</code> crate.</p>
+<h3 id="tentative-de-style-orienté-objet-traditionnel"><a class="header" href="#tentative-de-style-orienté-objet-traditionnel">Tentative de style orienté-objet traditionnel</a></h3>
+<p>Il y a une infinité de manières d’organiser du code pour résoudre un seul problème, chacune faisant des compromis différents. L’implémentation présentée dans cette section est plus dans un style orienté-objet traditionnel, qu’il est possible d’écrire en Rust, mais qui ne tire pas parti de certains des atouts de Rust. Plus tard, nous présenterons une autre solution utilisant toujours le modèle de conception orienté objet mais qui est structuré d’une manière qui pourrait sembler moins familière aux programmeurs ayant une expérience de programmation orientée objet. Nous comparerons les deux solutions afin de mettre en évidence les compromis liés à la conception de code Rust d’une manière différente du code dans d’autres langages.</p>
+<p>L’encart 18-11 présente ce processus de publication sous forme de code : c’est un exemple d’utilisation de l’API que nous allons implémenter dans une crate de bibliothèque <code>blog</code>. Elle ne va pas encore se compiler car nous n’avons pas encore implémenté la crate <code>blog</code>.</p>
 <figure class="listing" id="listing-18-11">
 <span class="file-name">Filename: src/main.rs</span>
-<pre><code class="language-rust ignore does_not_compile">use blog::Post;
+<pre><code class="language-rust ignore does_not_compile">use blog::Billet;
 
 fn main() {
-    let mut post = Post::new();
+    let mut billet = Billet::new();
 
-    post.add_text("I ate a salad for lunch today");
-    assert_eq!("", post.content());
+    billet.ajouter_texte("J'ai mangé une salade au déjeuner aujourd'hui");
+    assert_eq!("", billet.contenu());
 
-    post.request_review();
-    assert_eq!("", post.content());
+    billet.demander_relecture();
+    assert_eq!("", billet.contenu());
 
-    post.approve();
-    assert_eq!("I ate a salad for lunch today", post.content());
+    billet.approuver();
+    assert_eq!("J'ai mangé une salade au déjeuner aujourd'hui", billet.contenu());
 }</code></pre>
 <figcaption><a href="#listing-18-11">Listing 18-11</a>: Code that demonstrates the desired behavior we want our <code>blog</code> crate to have</figcaption>
 </figure>
-<p>We want to allow the user to create a new draft blog post with <code>Post::new</code>. We want to allow text to be added to the blog post. If we try to get the post’s content immediately, before approval, we shouldn’t get any text because the post is still a draft. We’ve added <code>assert_eq!</code> in the code for demonstration purposes. An excellent unit test for this would be to assert that a draft blog post returns an empty string from the <code>content</code> method, but we’re not going to write tests for this example.</p>
+<p>Nous voulons permettre à l’utilisateur de créer un nouveau brouillon de billet de blog avec <code>Billet::new</code>. Nous voulons qu’il puisse ajouter du texte au billet de blog. Si nous essayons d’obtenir immédiatement le contenu du billet, avant qu’il ne soit relu, nous n’obtiendrons aucun texte car le billet est toujours un brouillon. Nous avons ajouté des <code>assert_eq!</code> dans le code pour les besoins de la démonstration. Un excellent test unitaire pour cela serait de vérifier qu’un brouillon de billet de blog retourne bien une chaîne de caractères vide à partir de la méthode <code>contenu</code>, mais nous n’allons pas écrire de tests pour cet exemple.</p>
 <p>Ensuite, nous voulons permettre de demander une relecture du billet, et nous souhaitons que <code>contenu</code> retourne toujours une chaîne de caractères vide pendant que nous attendons la relecture. Lorsque la relecture du billet est approuvée, il doit être publié, ce qui signifie que le texte du billet doit être retourné lors de l’appel à <code>contenu</code>.</p>
-<p>Notice that the only type we’re interacting with from the crate is the <code>Post</code> type. This type will use the state pattern and will hold a value that will be one of three state objects representing the various states a post can be in—draft, review, or published. Changing from one state to another will be managed internally within the <code>Post</code> type. The states change in response to the methods called by our library’s users on the <code>Post</code> instance, but they don’t have to manage the state changes directly. Also, users can’t make a mistake with the states, such as publishing a post before it’s reviewed.</p>
+<p>Remarquez que le seul type avec lequel nous interagissons avec la crate est le type <code>Billet</code>. Ce type va utiliser le patron état et va héberger une valeur qui sera un des trois objets état représentant les différents états par lesquels passe un billet : brouillon, en relecture ou publié. Le changement d’un état à un autre sera géré en interne du type <code>Billet</code>. Les états vont changer en réponse à l’appel des méthodes de l’instance de <code>Billet</code> par les utilisateurs de notre bibliothèque qui n’auront donc pas à les gérer directement. Ainsi les utilisateurs ne peuvent pas faire d’erreur avec les états, comme celle de publier un billet avant qu’il ne soit relu par exemple.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="defining-post-and-creating-a-new-instance-in-the-draft-state"></a></p>
-<h4 id="defining-post-and-creating-a-new-instance"><a class="header" href="#defining-post-and-creating-a-new-instance">Defining <code>Post</code> and Creating a New Instance</a></h4>
-<p>Let’s get started on the implementation of the library! We know we need a public <code>Post</code> struct that holds some content, so we’ll start with the definition of the struct and an associated public <code>new</code> function to create an instance of <code>Post</code>, as shown in Listing 18-12. We’ll also make a private <code>State</code> trait that will define the behavior that all state objects for a <code>Post</code> must have.</p>
-<p>Then, <code>Post</code> will hold a trait object of <code>Box&lt;dyn State&gt;</code> inside an <code>Option&lt;T&gt;</code> in a private field named <code>state</code> to hold the state object. You’ll see why the <code>Option&lt;T&gt;</code> is necessary in a bit.</p>
+<h4 id="définir-billet-et-créer-une-nouvelle-instance"><a class="header" href="#définir-billet-et-créer-une-nouvelle-instance">Définir <code>Billet</code> et créer une nouvelle instance</a></h4>
+<p>Commençons l’implémentation de la bibliothèque ! Nous savons que nous aurons besoin d’une structure publique <code>Billet</code> qui héberge du contenu, donc nous allons commencer par définir cette structure ainsi qu’une fonction publique <code>new</code> qui lui est associée pour créer une instance de <code>Billet</code>, comme dans l’encart 18-12. Nous allons aussi créer un trait privé <code>Etat</code> qui définira le comportement de tous les objets état qu’un <code>Billet</code> se doit d’avoir.“</p>
+<p>Ensuite, <code>Billet</code> devra avoir un objet trait de <code>Box&lt;dyn Etat&gt;</code> à l’intérieur d’une <code>Option&lt;T&gt;</code> dans un champ privé <code>etat</code> pour y loger l’objet état. Nous verrons plus tard pourquoi <code>Option&lt;T&gt;</code> est nécessaire.</p>
 <figure class="listing" id="listing-18-12">
 <span class="file-name">Filename: src/lib.rs</span>
-<pre><code class="language-rust noplayground">pub struct Post {
-    state: Option&lt;Box&lt;dyn State&gt;&gt;,
-    content: String,
+<pre><code class="language-rust noplayground">pub struct Billet {
+    etat: Option&lt;Box&lt;dyn Etat&gt;&gt;,
+    contenu: String,
 }
 
-impl Post {
-    pub fn new() -&gt; Post {
-        Post {
-            state: Some(Box::new(Draft {})),
-            content: String::new(),
+impl Billet {
+    pub fn new() -&gt; Billet {
+        Billet {
+            etat: Some(Box::new(Brouillon {})),
+            contenu: String::new(),
         }
     }
 }
 
-trait State {}
+trait Etat {}
 
-struct Draft {}
+struct Brouillon {}
 
-impl State for Draft {}</code></pre>
+impl Etat for Brouillon {}</code></pre>
 <figcaption><a href="#listing-18-12">Listing 18-12</a>: Definition of a <code>Post</code> struct and a <code>new</code> function that creates a new <code>Post</code> instance, a <code>State</code> trait, and a <code>Draft</code> struct</figcaption>
 </figure>
-<p>The <code>State</code> trait defines the behavior shared by different post states. The state objects are <code>Draft</code>, <code>PendingReview</code>, and <code>Published</code>, and they will all implement the <code>State</code> trait. For now, the trait doesn’t have any methods, and we’ll start by defining just the <code>Draft</code> state because that is the state we want a post to start in.</p>
-<p>When we create a new <code>Post</code>, we set its <code>state</code> field to a <code>Some</code> value that holds a <code>Box</code>. This <code>Box</code> points to a new instance of the <code>Draft</code> struct. This ensures that whenever we create a new instance of <code>Post</code>, it will start out as a draft. Because the <code>state</code> field of <code>Post</code> is private, there is no way to create a <code>Post</code> in any other state! In the <code>Post::new</code> function, we set the <code>content</code> field to a new, empty <code>String</code>.</p>
-<h4 id="storing-the-text-of-the-post-content"><a class="header" href="#storing-the-text-of-the-post-content">Storing the Text of the Post Content</a></h4>
-<p>We saw in Listing 18-11 that we want to be able to call a method named <code>add_text</code> and pass it a <code>&amp;str</code> that is then added as the text content of the blog post. We implement this as a method, rather than exposing the <code>content</code> field as <code>pub</code>, so that later we can implement a method that will control how the <code>content</code> field’s data is read. The <code>add_text</code> method is pretty straightforward, so let’s add the implementation in Listing 18-13 to the <code>impl Post</code> block.</p>
+<p>Le trait <code>Etat</code> définit le comportement partagé par plusieurs états de billet. Les objets états sont <code>Brouillon</code>, <code>EnRelecture</code> et <code>Publier</code>, et ils  vont tous implémenter le trait <code>Etat</code>. Pour l’instant, le trait n’a aucune méthode, et nous allons commencer par définir uniquement l’état <code>Brouillon</code> car c’est l’état dans lequel nous voulons que soit un nouveau billet lorsqu’il est créé.</p>
+<p>Lorsque nous créons un nouveau <code>Billet</code>, nous assignons à son champ <code>etat</code> une valeur <code>Some</code> qui contient une <code>Box</code>. Cette <code>Box</code> pointe sur une nouvelle instance de la structure <code>Brouillon</code>. Cela garantira qu’à chaque fois que nous créons une nouvelle instance de <code>Billet</code>, elle commencera à l’état de brouillon. Comme le champ <code>etat</code> de <code>Billet</code> est privé, il n’y a pas d’autre manière de créer un <code>Billet</code> dans un autre état ! Dans la fonction <code>Billet::new</code>, nous assignons une nouvelle <code>String</code> vide au champ <code>contenu</code>.</p>
+<h4 id="stockage-du-texte-du-contenu-du-billet"><a class="header" href="#stockage-du-texte-du-contenu-du-billet">Stockage du texte du contenu du billet</a></h4>
+<p>Nous avons vu dans l’encart 18-11 que nous souhaitons appeler une méthode <code>ajouter_texte</code> et lui passer un <code>&amp;str</code> qui est ensuite ajouté comme le contenu textuel du billet de blog. Nous implémentons ceci avec une méthode, plutôt que d’exposer publiquement le champ <code>contenu</code> avec <code>pub</code>, de sorte que nous pourrons implémenter une méthode plus tard qui va contrôler comment le champ <code>contenu</code> sera lu. La méthode <code>ajouter_texte</code> est assez simple, donc ajoutons son implémentation dans le bloc <code>Billet</code> de l’encart 18-13.</p>
 <figure class="listing" id="listing-18-13">
 <span class="file-name">Filename: src/lib.rs</span>
-<pre><code class="language-rust noplayground"><span class="boring">pub struct Post {
-</span><span class="boring">    state: Option&lt;Box&lt;dyn State&gt;&gt;,
-</span><span class="boring">    content: String,
+<pre><code class="language-rust noplayground"><span class="boring">pub struct Billet {
+</span><span class="boring">    etat: Option&lt;Box&lt;dyn Etat&gt;&gt;,
+</span><span class="boring">    contenu: String,
 </span><span class="boring">}
 </span><span class="boring">
-</span>impl Post {
+</span>impl Billet {
     // -- partie masquée ici --
-<span class="boring">    pub fn new() -&gt; Post {
-</span><span class="boring">        Post {
-</span><span class="boring">            state: Some(Box::new(Draft {})),
-</span><span class="boring">            content: String::new(),
+<span class="boring">    pub fn new() -&gt; Billet {
+</span><span class="boring">        Billet {
+</span><span class="boring">            etat: Some(Box::new(Brouillon {})),
+</span><span class="boring">            contenu: String::new(),
 </span><span class="boring">        }
 </span><span class="boring">    }
 </span><span class="boring">
-</span>    pub fn add_text(&amp;mut self, text: &amp;str) {
-        self.content.push_str(text);
+</span>    pub fn ajouter_texte(&amp;mut self, texte: &amp;str) {
+        self.contenu.push_str(texte);
     }
 }
 <span class="boring">
-</span><span class="boring">trait State {}
+</span><span class="boring">trait Etat {}
 </span><span class="boring">
-</span><span class="boring">struct Draft {}
+</span><span class="boring">struct Brouillon {}
 </span><span class="boring">
-</span><span class="boring">impl State for Draft {}</span></code></pre>
+</span><span class="boring">impl Etat for Brouillon {}</span></code></pre>
 <figcaption><a href="#listing-18-13">Listing 18-13</a>: Implementing the <code>add_text</code> method to add text to a post’s <code>content</code></figcaption>
 </figure>
 <p>The <code>add_text</code> method takes a mutable reference to <code>self</code> because we’re changing the <code>Post</code> instance that we’re calling <code>add_text</code> on. We then call <code>push_str</code> on the <code>String</code> in <code>content</code> and pass the <code>text</code> argument to add to the saved <code>content</code>. This behavior doesn’t depend on the state the post is in, so it’s not part of the state pattern. The <code>add_text</code> method doesn’t interact with the <code>state</code> field at all, but it is part of the behavior we want to support.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="ensuring-the-content-of-a-draft-post-is-empty"></a></p>
-<h4 id="ensuring-that-the-content-of-a-draft-post-is-empty"><a class="header" href="#ensuring-that-the-content-of-a-draft-post-is-empty">Ensuring That the Content of a Draft Post Is Empty</a></h4>
-<p>Even after we’ve called <code>add_text</code> and added some content to our post, we still want the <code>content</code> method to return an empty string slice because the post is still in the draft state, as shown by the first <code>assert_eq!</code> in Listing 18-11. For now, let’s implement the <code>content</code> method with the simplest thing that will fulfill this requirement: always returning an empty string slice. We’ll change this later once we implement the ability to change a post’s state so that it can be published. So far, posts can only be in the draft state, so the post content should always be empty. Listing 18-14 shows this placeholder implementation.</p>
+<h4 id="sassurer-que-le-contenu-dun-brouillon-est-vide"><a class="header" href="#sassurer-que-le-contenu-dun-brouillon-est-vide">S’assurer que le contenu d’un brouillon est vide</a></h4>
+<p>Même si nous avons appelé <code>ajouter_texte</code> et ajouté du contenu dans notre billet, nous voulons que la méthode <code>contenu</code> retourne toujours une slice de chaîne de caractères vide car le billet est toujours à l’état de brouillon, comme le montre le premier <code>assert_eq!</code> de l’encart 18-11. Implémentons maintenant la méthode <code>contenu</code> de la manière la plus simple qui réponde à cette consigne : toujours retourner un slice de chaîne de caractères vide. Nous la changerons plus tard lorsque nous implémenterons la capacité de changer l’état d’un billet afin qu’il puisse être publié. Pour l’instant, les billets ne peuvent qu’être à l’état de brouillon, donc le contenu du billet devrait toujours être vide. L’encart 18-14 montre l’implémentation de ceci.</p>
 <figure class="listing" id="listing-18-14">
 <span class="file-name">Filename: src/lib.rs</span>
-<pre><code class="language-rust noplayground"><span class="boring">pub struct Post {
-</span><span class="boring">    state: Option&lt;Box&lt;dyn State&gt;&gt;,
-</span><span class="boring">    content: String,
+<pre><code class="language-rust noplayground"><span class="boring">pub struct Billet {
+</span><span class="boring">    etat: Option&lt;Box&lt;dyn Etat&gt;&gt;,
+</span><span class="boring">    contenu: String,
 </span><span class="boring">}
 </span><span class="boring">
-</span>impl Post {
+</span>impl Billet {
     // -- partie masquée ici --
-<span class="boring">    pub fn new() -&gt; Post {
-</span><span class="boring">        Post {
-</span><span class="boring">            state: Some(Box::new(Draft {})),
-</span><span class="boring">            content: String::new(),
+<span class="boring">    pub fn new() -&gt; Billet {
+</span><span class="boring">        Billet {
+</span><span class="boring">            etat: Some(Box::new(Brouillon {})),
+</span><span class="boring">            contenu: String::new(),
 </span><span class="boring">        }
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    pub fn add_text(&amp;mut self, text: &amp;str) {
-</span><span class="boring">        self.content.push_str(text);
+</span><span class="boring">    pub fn ajouter_texte(&amp;mut self, texte: &amp;str) {
+</span><span class="boring">        self.contenu.push_str(texte);
 </span><span class="boring">    }
 </span><span class="boring">
-</span>    pub fn content(&amp;self) -&gt; &amp;str {
+</span>    pub fn contenu(&amp;self) -&gt; &amp;str {
         ""
     }
 }
 <span class="boring">
-</span><span class="boring">trait State {}
+</span><span class="boring">trait Etat {}
 </span><span class="boring">
-</span><span class="boring">struct Draft {}
+</span><span class="boring">struct Brouillon {}
 </span><span class="boring">
-</span><span class="boring">impl State for Draft {}</span></code></pre>
+</span><span class="boring">impl Etat for Brouillon {}</span></code></pre>
 <figcaption><a href="#listing-18-14">Listing 18-14</a>: Adding a placeholder implementation for the <code>content</code> method on <code>Post</code> that always returns an empty string slice</figcaption>
 </figure>
-<p>With this added <code>content</code> method, everything in Listing 18-11 through the first <code>assert_eq!</code> works as intended.</p>
+<p>Avec cette méthode <code>contenu</code> ajoutée, tout ce qu’il y a dans l’encart 18-11 fonctionne comme prévu jusqu’au premier <code>assert_eq!</code>.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="requesting-a-review-of-the-post-changes-its-state"></a> <a id="requesting-a-review-changes-the-posts-state"></a></p>
-<h4 id="requesting-a-review-which-changes-the-posts-state"><a class="header" href="#requesting-a-review-which-changes-the-posts-state">Requesting a Review, Which Changes the Post’s State</a></h4>
-<p>Next, we need to add functionality to request a review of a post, which should change its state from <code>Draft</code> to <code>PendingReview</code>. Listing 18-15 shows this code.</p>
+<h4 id="demande-dune-relecture-du-billet-ce-qui-change-son-état"><a class="header" href="#demande-dune-relecture-du-billet-ce-qui-change-son-état">Demande d’une relecture du billet, ce qui change son état</a></h4>
+<p>Ensuite, nous avons besoin d’ajouter une fonctionnalité pour demander la relecture d’un billet, qui devrait changer son état de <code>Brouillon</code> à <code>EnRelecture</code>. L’encart 18-15 montre ce code.</p>
 <figure class="listing" id="listing-18-15">
 <span class="file-name">Filename: src/lib.rs</span>
-<pre><code class="language-rust noplayground"><span class="boring">pub struct Post {
-</span><span class="boring">    state: Option&lt;Box&lt;dyn State&gt;&gt;,
-</span><span class="boring">    content: String,
+<pre><code class="language-rust noplayground"><span class="boring">pub struct Billet {
+</span><span class="boring">    etat: Option&lt;Box&lt;dyn Etat&gt;&gt;,
+</span><span class="boring">    contenu: String,
 </span><span class="boring">}
 </span><span class="boring">
-</span>impl Post {
+</span>impl Billet {
     // -- partie masquée ici --
-<span class="boring">    pub fn new() -&gt; Post {
-</span><span class="boring">        Post {
-</span><span class="boring">            state: Some(Box::new(Draft {})),
-</span><span class="boring">            content: String::new(),
+<span class="boring">    pub fn new() -&gt; Billet {
+</span><span class="boring">        Billet {
+</span><span class="boring">            etat: Some(Box::new(Brouillon {})),
+</span><span class="boring">            contenu: String::new(),
 </span><span class="boring">        }
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    pub fn add_text(&amp;mut self, text: &amp;str) {
-</span><span class="boring">        self.content.push_str(text);
+</span><span class="boring">    pub fn ajouter_texte(&amp;mut self, texte: &amp;str) {
+</span><span class="boring">        self.contenu.push_str(texte);
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    pub fn content(&amp;self) -&gt; &amp;str {
+</span><span class="boring">    pub fn contenu(&amp;self) -&gt; &amp;str {
 </span><span class="boring">        ""
 </span><span class="boring">    }
 </span><span class="boring">
-</span>    pub fn request_review(&amp;mut self) {
-        if let Some(s) = self.state.take() {
-            self.state = Some(s.request_review())
+</span>    pub fn demander_relecture(&amp;mut self) {
+        if let Some(s) = self.etat.take() {
+            self.etat = Some(s.demander_relecture())
         }
     }
 }
 
-trait State {
-    fn request_review(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt;;
+trait Etat {
+    fn demander_relecture(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt;;
 }
 
-struct Draft {}
+struct Brouillon {}
 
-impl State for Draft {
-    fn request_review(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt; {
-        Box::new(PendingReview {})
+impl Etat for Brouillon {
+    fn demander_relecture(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt; {
+        Box::new(EnRelecture {})
     }
 }
 
-struct PendingReview {}
+struct EnRelecture {}
 
-impl State for PendingReview {
-    fn request_review(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt; {
+impl Etat for EnRelecture {
+    fn demander_relecture(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt; {
         self
     }
 }</code></pre>
 <figcaption><a href="#listing-18-15">Listing 18-15</a>: Implementing <code>request_review</code> methods on <code>Post</code> and the <code>State</code> trait</figcaption>
 </figure>
-<p>We give <code>Post</code> a public method named <code>request_review</code> that will take a mutable reference to <code>self</code>. Then, we call an internal <code>request_review</code> method on the current state of <code>Post</code>, and this second <code>request_review</code> method consumes the current state and returns a new state.</p>
-<p>We add the <code>request_review</code> method to the <code>State</code> trait; all types that implement the trait will now need to implement the <code>request_review</code> method. Note that rather than having <code>self</code>, <code>&amp;self</code>, or <code>&amp;mut self</code> as the first parameter of the method, we have <code>self: Box&lt;Self&gt;</code>. This syntax means the method is only valid when called on a <code>Box</code> holding the type. This syntax takes ownership of <code>Box&lt;Self&gt;</code>, invalidating the old state so that the state value of the <code>Post</code> can transform into a new state.</p>
-<p>To consume the old state, the <code>request_review</code> method needs to take ownership of the state value. This is where the <code>Option</code> in the <code>state</code> field of <code>Post</code> comes in: We call the <code>take</code> method to take the <code>Some</code> value out of the <code>state</code> field and leave a <code>None</code> in its place because Rust doesn’t let us have unpopulated fields in structs. This lets us move the <code>state</code> value out of <code>Post</code> rather than borrowing it. Then, we’ll set the post’s <code>state</code> value to the result of this operation.</p>
-<p>We need to set <code>state</code> to <code>None</code> temporarily rather than setting it directly with code like <code>self.state = self.state.request_review();</code> to get ownership of the <code>state</code> value. This ensures that <code>Post</code> can’t use the old <code>state</code> value after we’ve transformed it into a new state.</p>
-<p>The <code>request_review</code> method on <code>Draft</code> returns a new, boxed instance of a new <code>PendingReview</code> struct, which represents the state when a post is waiting for a review. The <code>PendingReview</code> struct also implements the <code>request_review</code> method but doesn’t do any transformations. Rather, it returns itself because when we request a review on a post already in the <code>PendingReview</code> state, it should stay in the <code>PendingReview</code> state.</p>
-<p>Now we can start seeing the advantages of the state pattern: The <code>request_review</code> method on <code>Post</code> is the same no matter its <code>state</code> value. Each state is responsible for its own rules.</p>
-<p>We’ll leave the <code>content</code> method on <code>Post</code> as is, returning an empty string slice. We can now have a <code>Post</code> in the <code>PendingReview</code> state as well as in the <code>Draft</code> state, but we want the same behavior in the <code>PendingReview</code> state. Listing 18-11 now works up to the second <code>assert_eq!</code> call!</p>
+<p>Nous installons la méthode publique <code>demander_relecture</code> sur <code>Billet</code> qui va prendre en argument une référence mutable à <code>self</code>. Ensuite nous appelons la méthode interne <code>demander_relecture</code> sur l’état interne de <code>Billet</code>, et cette deuxième méthode <code>demander_relecture</code> consomme l’état en cours et applique un nouvel état.</p>
+<p>Nous ajoutons la méthode <code>demander_relecture</code> sur le trait <code>Etat</code> ; tous les types qui implémentent le trait vont maintenant devoir implémenter la méthode <code>demander_relecture</code>. Remarquez qu’au lieu d’avoir <code>self</code>, <code>&amp;self</code>, ou <code>&amp;mut self</code> en premier paramètre de la méthode, nous avons <code>self: Box&lt;Self&gt;</code>. Cette syntaxe signifie que la méthode est valide uniquement lorsqu’on l’appelle sur une <code>Box</code> qui contient ce type. Cette syntaxe prend possession de <code>Box&lt;Self&gt;</code>, ce qui annule l’ancien état du <code>Billet</code> qui peut changer pour un nouvel état.</p>
+<p>Pour consommer l’ancien état, la méthode <code>demander_relecture</code> a besoin de prendre possession de la valeur d’état. C’est ce à quoi sert le <code>Option</code> dans le champ <code>etat</code> de <code>Billet</code> : nous faisons appel à la méthode <code>take</code> pour obtenir la valeur dans le <code>Some</code> du champ <code>etat</code> et le remplacer par <code>None</code>, car Rust ne nous permet pas d’avoir des champs non renseignés dans des structures. Cela nous permet d’extraire la valeur de <code>etat</code> d’un <code>Billet</code>, plutôt que de l’emprunter. Ensuite, nous allons réaffecter le résultat de cette opération à <code>etat</code> du <code>Billet</code> concerné.</p>
+<p>Nous devons assigner temporairement <code>None</code> à <code>etat</code> plutôt que de lui donner directement avec du code tel que <code>self.etat = self.etat.demander_relecture();</code> car nous voulons prendre possession de la valeur <code>etat</code>. Cela garantit que <code>Billet</code> ne peut pas utiliser l’ancienne valeur de <code>etat</code> après qu’on ait changé cet état.</p>
+<p>La méthode <code>demander_relecture</code> sur <code>Brouillon</code> retourne une nouvelle instance d’une structure <code>EnRelecture</code> dans une <code>Box</code>, qui représente l’état lorsqu’un billet est en attente de relecture. La structure <code>EnRelecture</code> implémente elle aussi la méthode <code>demander_relecture</code> mais ne fait aucune modification. À la place, elle se retourne elle-même, car lorsque nous demandons une relecture sur un billet déjà à l’état <code>EnRelecture</code>, il doit rester à l’état <code>EnRelecture</code>.</p>
+<p>Désormais nous commençons à voir les avantages du patron état : la méthode <code>demander_relecture</code> sur <code>Billet</code> est la même peu importe la valeur de son <code>etat</code>. Chaque état est maître de son fonctionnement.</p>
+<p>Nous allons conserver la méthode <code>contenu</code> sur <code>Billet</code> comme elle est, elle va donc continuer à retourner une slice de chaîne de caractères vide. Nous pouvons maintenant avoir un <code>Billet</code> à l’état <code>Brouillon</code> ou <code>EnRelecture</code>, mais nous voulons qu’il suive le même comportement lorsqu’il est dans l’état <code>EnRelecture</code>. L’encart 18-11 fonctionne maintenant jusqu’au second appel à <code>assert_eq!</code> !</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="adding-the-approve-method-that-changes-the-behavior-of-content"></a> <a id="adding-approve-to-change-the-behavior-of-content"></a></p>
-<h4 id="adding-approve-to-change-contents-behavior"><a class="header" href="#adding-approve-to-change-contents-behavior">Adding <code>approve</code> to Change <code>content</code>’s Behavior</a></h4>
-<p>The <code>approve</code> method will be similar to the <code>request_review</code> method: It will set <code>state</code> to the value that the current state says it should have when that state is approved, as shown in Listing 18-16.</p>
+<h4 id="ajout-dune-méthode-approuver-qui-change-le-comportement-de-contenu"><a class="header" href="#ajout-dune-méthode-approuver-qui-change-le-comportement-de-contenu">Ajout d’une méthode <code>approuver</code> qui change le comportement de <code>contenu</code></a></h4>
+<p>La méthode <code>approuver</code> ressemble à la méthode <code>demander_relecture</code> : elle va changer <code>etat</code> pour lui donner la valeur que l’état courant retournera lorsqu’il sera approuvé, comme le montre l’encart 18-16.</p>
 <figure class="listing" id="listing-18-16">
 <span class="file-name">Filename: src/lib.rs</span>
-<pre><code class="language-rust noplayground"><span class="boring">pub struct Post {
-</span><span class="boring">    state: Option&lt;Box&lt;dyn State&gt;&gt;,
-</span><span class="boring">    content: String,
+<pre><code class="language-rust noplayground"><span class="boring">pub struct Billet {
+</span><span class="boring">    etat: Option&lt;Box&lt;dyn Etat&gt;&gt;,
+</span><span class="boring">    contenu: String,
 </span><span class="boring">}
 </span><span class="boring">
-</span>impl Post {
+</span>impl Billet {
     // -- partie masquée ici --
-<span class="boring">    pub fn new() -&gt; Post {
-</span><span class="boring">        Post {
-</span><span class="boring">            state: Some(Box::new(Draft {})),
-</span><span class="boring">            content: String::new(),
+<span class="boring">    pub fn new() -&gt; Billet {
+</span><span class="boring">        Billet {
+</span><span class="boring">            etat: Some(Box::new(Brouillon {})),
+</span><span class="boring">            contenu: String::new(),
 </span><span class="boring">        }
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    pub fn add_text(&amp;mut self, text: &amp;str) {
-</span><span class="boring">        self.content.push_str(text);
+</span><span class="boring">    pub fn ajouter_texte(&amp;mut self, texte: &amp;str) {
+</span><span class="boring">        self.contenu.push_str(texte);
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    pub fn content(&amp;self) -&gt; &amp;str {
+</span><span class="boring">    pub fn contenu(&amp;self) -&gt; &amp;str {
 </span><span class="boring">        ""
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    pub fn request_review(&amp;mut self) {
-</span><span class="boring">        if let Some(s) = self.state.take() {
-</span><span class="boring">            self.state = Some(s.request_review())
+</span><span class="boring">    pub fn demander_relecture(&amp;mut self) {
+</span><span class="boring">        if let Some(s) = self.etat.take() {
+</span><span class="boring">            self.etat = Some(s.demander_relecture())
 </span><span class="boring">        }
 </span><span class="boring">    }
 </span><span class="boring">
-</span>    pub fn approve(&amp;mut self) {
-        if let Some(s) = self.state.take() {
-            self.state = Some(s.approve())
+</span>    pub fn approuver(&amp;mut self) {
+        if let Some(s) = self.etat.take() {
+            self.etat = Some(s.approuver())
         }
     }
 }
 
-trait State {
-    fn request_review(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt;;
-    fn approve(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt;;
+trait Etat {
+    fn demander_relecture(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt;;
+    fn approuver(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt;;
 }
 
-struct Draft {}
+struct Brouillon {}
 
-impl State for Draft {
+impl Etat for Brouillon {
     // -- partie masquée ici --
-<span class="boring">    fn request_review(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt; {
-</span><span class="boring">        Box::new(PendingReview {})
+<span class="boring">    fn demander_relecture(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt; {
+</span><span class="boring">        Box::new(EnRelecture {})
 </span><span class="boring">    }
 </span><span class="boring">
-</span>    fn approve(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt; {
+</span>    fn approuver(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt; {
         self
     }
 }
 
-struct PendingReview {}
+struct EnRelecture {}
 
-impl State for PendingReview {
+impl Etat for EnRelecture {
     // -- partie masquée ici --
-<span class="boring">    fn request_review(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt; {
+<span class="boring">    fn demander_relecture(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt; {
 </span><span class="boring">        self
 </span><span class="boring">    }
 </span><span class="boring">
-</span>    fn approve(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt; {
-        Box::new(Published {})
+</span>    fn approuver(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt; {
+        Box::new(Publier {})
     }
 }
 
-struct Published {}
+struct Publier {}
 
-impl State for Published {
-    fn request_review(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt; {
+impl Etat for Publier {
+    fn demander_relecture(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt; {
         self
     }
 
-    fn approve(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt; {
+    fn approuver(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt; {
         self
     }
 }</code></pre>
 <figcaption><a href="#listing-18-16">Listing 18-16</a>: Implementing the <code>approve</code> method on <code>Post</code> and the <code>State</code> trait</figcaption>
 </figure>
 <p>Nous avons ajouté la méthode <code>approuver</code> au trait <code>Etat</code> et ajouté une nouvelle structure <code>Publier</code>, qui implémente <code>Etat</code>.</p>
-<p>Similar to the way <code>request_review</code> on <code>PendingReview</code> works, if we call the <code>approve</code> method on a <code>Draft</code>, it will have no effect because <code>approve</code> will return <code>self</code>. When we call <code>approve</code> on <code>PendingReview</code>, it returns a new, boxed instance of the <code>Published</code> struct. The <code>Published</code> struct implements the <code>State</code> trait, and for both the <code>request_review</code> method and the <code>approve</code> method, it returns itself because the post should stay in the <code>Published</code> state in those cases.</p>
-<p>Now we need to update the <code>content</code> method on <code>Post</code>. We want the value returned from <code>content</code> to depend on the current state of the <code>Post</code>, so we’re going to have the <code>Post</code> delegate to a <code>content</code> method defined on its <code>state</code>, as shown in Listing 18-17.</p>
+<p>Comme pour la façon de fonctionner de <code>demander_relecture</code> sur <code>EnRelecture</code>, si nous faisons appel à la méthode <code>approuver</code> sur un <code>Brouillon</code>, cela n’aura pas d’effet car <code>approuver</code> va retourner <code>self</code>. Lorsque nous appellerons <code>approuver</code> sur <code>EnRelecture</code>, elle va retourner une nouvelle instance de la structure <code>Publier</code> dans une instance de <code>Box</code>. La structure <code>Publier</code> implémente le trait <code>Etat</code>, et pour chacune des méthodes <code>demander_relecture</code> et <code>approuver</code>, elle va retourner elle-même, car le billet doit rester à l’état <code>Publier</code> dans ce cas-là.</p>
+<p>Nous devons maintenant modifier la méthode <code>contenu</code> sur <code>Billet</code>. Nous souhaitons que la valeur retournée par <code>contenu</code> dépende de l’état actuel du <code>Billet</code>, donc nous allons faire en sorte que le <code>Billet</code> délègue sa logique à une méthode <code>contenu</code> défini sur son <code>etat</code>, comme dans l’encart 18-17.</p>
 <figure class="listing" id="listing-18-17">
 <span class="file-name">Filename: src/lib.rs</span>
-<pre><code class="language-rust ignore does_not_compile"><span class="boring">pub struct Post {
-</span><span class="boring">    state: Option&lt;Box&lt;dyn State&gt;&gt;,
-</span><span class="boring">    content: String,
+<pre><code class="language-rust ignore does_not_compile"><span class="boring">pub struct Billet {
+</span><span class="boring">    etat: Option&lt;Box&lt;dyn Etat&gt;&gt;,
+</span><span class="boring">    contenu: String,
 </span><span class="boring">}
 </span><span class="boring">
-</span>impl Post {
+</span>impl Billet {
     // -- partie masquée ici --
-<span class="boring">    pub fn new() -&gt; Post {
-</span><span class="boring">        Post {
-</span><span class="boring">            state: Some(Box::new(Draft {})),
-</span><span class="boring">            content: String::new(),
+<span class="boring">    pub fn new() -&gt; Billet {
+</span><span class="boring">        Billet {
+</span><span class="boring">            etat: Some(Box::new(Brouillon {})),
+</span><span class="boring">            contenu: String::new(),
 </span><span class="boring">        }
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    pub fn add_text(&amp;mut self, text: &amp;str) {
-</span><span class="boring">        self.content.push_str(text);
+</span><span class="boring">    pub fn ajouter_texte(&amp;mut self, texte: &amp;str) {
+</span><span class="boring">        self.contenu.push_str(texte);
 </span><span class="boring">    }
 </span><span class="boring">
-</span>    pub fn content(&amp;self) -&gt; &amp;str {
-        self.state.as_ref().unwrap().content(self)
+</span>    pub fn contenu(&amp;self) -&gt; &amp;str {
+        self.etat.as_ref().unwrap().contenu(self)
     }
     // -- partie masquée ici --
 <span class="boring">
-</span><span class="boring">    pub fn request_review(&amp;mut self) {
-</span><span class="boring">        if let Some(s) = self.state.take() {
-</span><span class="boring">            self.state = Some(s.request_review())
+</span><span class="boring">    pub fn demander_relecture(&amp;mut self) {
+</span><span class="boring">        if let Some(s) = self.etat.take() {
+</span><span class="boring">            self.etat = Some(s.demander_relecture())
 </span><span class="boring">        }
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    pub fn approve(&amp;mut self) {
-</span><span class="boring">        if let Some(s) = self.state.take() {
-</span><span class="boring">            self.state = Some(s.approve())
+</span><span class="boring">    pub fn approuver(&amp;mut self) {
+</span><span class="boring">        if let Some(s) = self.etat.take() {
+</span><span class="boring">            self.etat = Some(s.approuver())
 </span><span class="boring">        }
 </span><span class="boring">    }
 </span>}
 <span class="boring">
-</span><span class="boring">trait State {
-</span><span class="boring">    fn request_review(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt;;
-</span><span class="boring">    fn approve(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt;;
+</span><span class="boring">trait Etat {
+</span><span class="boring">    fn demander_relecture(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt;;
+</span><span class="boring">    fn approuver(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt;;
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">struct Draft {}
+</span><span class="boring">struct Brouillon {}
 </span><span class="boring">
-</span><span class="boring">impl State for Draft {
-</span><span class="boring">    fn request_review(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt; {
-</span><span class="boring">        Box::new(PendingReview {})
+</span><span class="boring">impl Etat for Brouillon {
+</span><span class="boring">    fn demander_relecture(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt; {
+</span><span class="boring">        Box::new(EnRelecture {})
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    fn approve(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt; {
+</span><span class="boring">    fn approuver(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt; {
 </span><span class="boring">        self
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">struct PendingReview {}
+</span><span class="boring">struct EnRelecture {}
 </span><span class="boring">
-</span><span class="boring">impl State for PendingReview {
-</span><span class="boring">    fn request_review(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt; {
+</span><span class="boring">impl Etat for EnRelecture {
+</span><span class="boring">    fn demander_relecture(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt; {
 </span><span class="boring">        self
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    fn approve(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt; {
-</span><span class="boring">        Box::new(Published {})
+</span><span class="boring">    fn approuver(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt; {
+</span><span class="boring">        Box::new(Publier {})
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">struct Published {}
+</span><span class="boring">struct Publier {}
 </span><span class="boring">
-</span><span class="boring">impl State for Published {
-</span><span class="boring">    fn request_review(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt; {
+</span><span class="boring">impl Etat for Publier {
+</span><span class="boring">    fn demander_relecture(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt; {
 </span><span class="boring">        self
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    fn approve(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt; {
+</span><span class="boring">    fn approuver(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt; {
 </span><span class="boring">        self
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-18-17">Listing 18-17</a>: Updating the <code>content</code> method on <code>Post</code> to delegate to a <code>content</code> method on <code>State</code></figcaption>
 </figure>
-<p>Because the goal is to keep all of these rules inside the structs that implement <code>State</code>, we call a <code>content</code> method on the value in <code>state</code> and pass the post instance (that is, <code>self</code>) as an argument. Then, we return the value that’s returned from using the <code>content</code> method on the <code>state</code> value.</p>
-<p>We call the <code>as_ref</code> method on the <code>Option</code> because we want a reference to the value inside the <code>Option</code> rather than ownership of the value. Because <code>state</code> is an <code>Option&lt;Box&lt;dyn State&gt;&gt;</code>, when we call <code>as_ref</code>, an <code>Option&lt;&amp;Box&lt;dyn State&gt;&gt;</code> is returned. If we didn’t call <code>as_ref</code>, we would get an error because we can’t move <code>state</code> out of the borrowed <code>&amp;self</code> of the function parameter.</p>
-<p>We then call the <code>unwrap</code> method, which we know will never panic because we know the methods on <code>Post</code> ensure that <code>state</code> will always contain a <code>Some</code> value when those methods are done. This is one of the cases we talked about in the <a href="ch09-03-to-panic-or-not-to-panic.html#cases-in-which-you-have-more-information-than-the-compiler">“When You Have More Information Than the Compiler”</a><!-- ignore --> section of Chapter 9 when we know that a <code>None</code> value is never possible, even though the compiler isn’t able to understand that.</p>
-<p>At this point, when we call <code>content</code> on the <code>&amp;Box&lt;dyn State&gt;</code>, deref coercion will take effect on the <code>&amp;</code> and the <code>Box</code> so that the <code>content</code> method will ultimately be called on the type that implements the <code>State</code> trait. That means we need to add <code>content</code> to the <code>State</code> trait definition, and that is where we’ll put the logic for what content to return depending on which state we have, as shown in Listing 18-18.</p>
+<p>Comme notre but est de conserver toutes ces règles dans les structures qui implémentent <code>Etat</code>, nous appelons une méthode <code>contenu</code> sur la valeur de <code>etat</code> et nous lui passons en argument l’instance du billet (avec le <code>self</code>). Nous retournons ensuite la valeur retournée par la méthode <code>contenu</code> sur la valeur de <code>etat</code>.</p>
+<p>Nous faisons appel à la méthode <code>as_ref</code> sur <code>Option</code> car nous voulons une référence vers la valeur dans <code>Option</code> plutôt que d’en prendre possession. Comme <code>etat</code> est un <code>Option&lt;Box&lt;dyn Etat&gt;&gt;</code>, lorsque nous faisons appel à <code>as_ref</code>, une <code>Option&lt;&amp;Box&lt;dyn Etat&gt;&gt;</code> est retournée. Si nous n’avions pas fait appel à <code>as_ref</code>, nous aurions obtenu une erreur car nous ne pouvons pas déplacer <code>etat</code> de <code>&amp;self</code>, lui-même est emprunté et provenant des paramètres de la fonction.</p>
+<p>Nous faisons ensuite appel à la méthode <code>unwrap</code>, mais nous savons qu’elle ne va jamais paniquer, car nous savons que les méthodes sur <code>Billet</code> vont garantir que <code>etat</code> contiendra toujours une valeur <code>Some</code> lorsqu’elles seront utilisées. C’est un des cas dont nous avons parlé dans la section <a href="ch09-03-to-panic-or-not-to-panic.html#les-cas-o%C3%B9-vous-avez-plus-dinformations-que-le-compilateur">“Les cas où vous avez plus d’informations que le compilateur”</a><!-- ignore --> du chapitre 9 lorsque nous savions qu’une valeur <code>None</code> ne serait jamais possible, même si le compilateur n’est pas capable de le comprendre.</p>
+<p>À partir de là, lorsque nous faisons appel à <code>contenu</code> sur <code>&amp;Box&lt;dyn Etat&gt;</code>, l’extrapolation de déréférencement va s’appliquer sur le <code>&amp;</code> et le <code>Box</code> pour que la méthode <code>contenu</code> puisse finalement être appelée sur le type qui implémente le trait <code>Etat</code>. Cela signifie que nous devons ajouter <code>contenu</code> à la définition du trait <code>Etat</code>, et c’est ici que nous allons placer la logique qui déterminera quel contenu retourner en fonction de quel état nous avons, comme le montre l’encart 18-18.</p>
 <figure class="listing" id="listing-18-18">
 <span class="file-name">Filename: src/lib.rs</span>
-<pre><code class="language-rust noplayground"><span class="boring">pub struct Post {
-</span><span class="boring">    state: Option&lt;Box&lt;dyn State&gt;&gt;,
-</span><span class="boring">    content: String,
+<pre><code class="language-rust noplayground"><span class="boring">pub struct Billet {
+</span><span class="boring">    etat: Option&lt;Box&lt;dyn Etat&gt;&gt;,
+</span><span class="boring">    contenu: String,
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">impl Post {
-</span><span class="boring">    pub fn new() -&gt; Post {
-</span><span class="boring">        Post {
-</span><span class="boring">            state: Some(Box::new(Draft {})),
-</span><span class="boring">            content: String::new(),
+</span><span class="boring">impl Billet {
+</span><span class="boring">    pub fn new() -&gt; Billet {
+</span><span class="boring">        Billet {
+</span><span class="boring">            etat: Some(Box::new(Brouillon {})),
+</span><span class="boring">            contenu: String::new(),
 </span><span class="boring">        }
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    pub fn add_text(&amp;mut self, text: &amp;str) {
-</span><span class="boring">        self.content.push_str(text);
+</span><span class="boring">    pub fn ajouter_texte(&amp;mut self, texte: &amp;str) {
+</span><span class="boring">        self.contenu.push_str(texte);
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    pub fn content(&amp;self) -&gt; &amp;str {
-</span><span class="boring">        self.state.as_ref().unwrap().content(self)
+</span><span class="boring">    pub fn contenu(&amp;self) -&gt; &amp;str {
+</span><span class="boring">        self.etat.as_ref().unwrap().contenu(self)
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    pub fn request_review(&amp;mut self) {
-</span><span class="boring">        if let Some(s) = self.state.take() {
-</span><span class="boring">            self.state = Some(s.request_review())
+</span><span class="boring">    pub fn demander_relecture(&amp;mut self) {
+</span><span class="boring">        if let Some(s) = self.etat.take() {
+</span><span class="boring">            self.etat = Some(s.demander_relecture())
 </span><span class="boring">        }
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    pub fn approve(&amp;mut self) {
-</span><span class="boring">        if let Some(s) = self.state.take() {
-</span><span class="boring">            self.state = Some(s.approve())
+</span><span class="boring">    pub fn approuver(&amp;mut self) {
+</span><span class="boring">        if let Some(s) = self.etat.take() {
+</span><span class="boring">            self.etat = Some(s.approuver())
 </span><span class="boring">        }
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
-</span>trait State {
+</span>trait Etat {
     // -- partie masquée ici --
-<span class="boring">    fn request_review(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt;;
-</span><span class="boring">    fn approve(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt;;
+<span class="boring">    fn demander_relecture(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt;;
+</span><span class="boring">    fn approuver(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt;;
 </span><span class="boring">
-</span>    fn content&lt;'a&gt;(&amp;self, post: &amp;'a Post) -&gt; &amp;'a str {
+</span>    fn contenu&lt;'a&gt;(&amp;self, billet: &amp;'a Billet) -&gt; &amp;'a str {
         ""
     }
 }
 
 // -- partie masquée ici --
 <span class="boring">
-</span><span class="boring">struct Draft {}
+</span><span class="boring">struct Brouillon {}
 </span><span class="boring">
-</span><span class="boring">impl State for Draft {
-</span><span class="boring">    fn request_review(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt; {
-</span><span class="boring">        Box::new(PendingReview {})
+</span><span class="boring">impl Etat for Brouillon {
+</span><span class="boring">    fn demander_relecture(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt; {
+</span><span class="boring">        Box::new(EnRelecture {})
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    fn approve(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt; {
+</span><span class="boring">    fn approuver(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt; {
 </span><span class="boring">        self
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">struct PendingReview {}
+</span><span class="boring">struct EnRelecture {}
 </span><span class="boring">
-</span><span class="boring">impl State for PendingReview {
-</span><span class="boring">    fn request_review(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt; {
+</span><span class="boring">impl Etat for EnRelecture {
+</span><span class="boring">    fn demander_relecture(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt; {
 </span><span class="boring">        self
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    fn approve(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt; {
-</span><span class="boring">        Box::new(Published {})
+</span><span class="boring">    fn approuver(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt; {
+</span><span class="boring">        Box::new(Publier {})
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
-</span>struct Published {}
+</span>struct Publier {}
 
-impl State for Published {
+impl Etat for Publier {
     // -- partie masquée ici --
-<span class="boring">    fn request_review(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt; {
+<span class="boring">    fn demander_relecture(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt; {
 </span><span class="boring">        self
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    fn approve(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn State&gt; {
+</span><span class="boring">    fn approuver(self: Box&lt;Self&gt;) -&gt; Box&lt;dyn Etat&gt; {
 </span><span class="boring">        self
 </span><span class="boring">    }
 </span><span class="boring">
-</span>    fn content&lt;'a&gt;(&amp;self, post: &amp;'a Post) -&gt; &amp;'a str {
-        &amp;post.content
+</span>    fn contenu&lt;'a&gt;(&amp;self, billet: &amp;'a Billet) -&gt; &amp;'a str {
+        &amp;billet.contenu
     }
 }</code></pre>
 <figcaption><a href="#listing-18-18">Listing 18-18</a>: Adding the <code>content</code> method to the <code>State</code> trait</figcaption>
 </figure>
-<p>We add a default implementation for the <code>content</code> method that returns an empty string slice. That means we don’t need to implement <code>content</code> on the <code>Draft</code> and <code>PendingReview</code> structs. The <code>Published</code> struct will override the <code>content</code> method and return the value in <code>post.content</code>. While convenient, having the <code>content</code> method on <code>State</code> determine the content of the <code>Post</code> is blurring the lines between the responsibility of <code>State</code> and the responsibility of <code>Post</code>.</p>
+<p>Nous avons ajouté une implémentation par défaut pour la méthode <code>contenu</code> qui retourne une slice de chaîne de caractères vide. Cela nous permet de ne pas avoir à implémenter <code>contenu</code> sur les structures <code>Brouillon</code> et <code>EnRelecture</code>. La structure <code>Publier</code> va remplacer la méthode <code>contenu</code> et retourner la valeur présente dans <code>billet.contenu</code>. Bien que ce soit pratique, le fait que la méthode <code>contenu</code> de <code>Etat</code> détermine le contenu du <code>Billet</code> rend floue les limites entre la responsabilité de <code>Etat</code> et celle de <code>Billet</code>.</p>
 <p>Remarquez aussi que nous devons annoter des durées de vie sur cette méthode, comme nous l’avons vu au chapitre 10. Nous allons prendre en argument une référence au <code>billet</code> et retourner une référence à une partie de ce <code>billet</code>, donc la durée de vie retournée par la référence est liée à la durée de vie de l’argument <code>billet</code>.</p>
-<p>And we’re done—all of Listing 18-11 now works! We’ve implemented the state pattern with the rules of the blog post workflow. The logic related to the rules lives in the state objects rather than being scattered throughout <code>Post</code>.</p>
+<p>Et nous avons maintenant terminé, tout le code de l’encart 18-11 fonctionne désormais ! Nous avons implémenté le patron état avec les règles de notre processus de publication définies pour notre blog. La logique des règles est intégrée dans les objets état plutôt que d’être dispersée un peu partout dans <code>Billet</code>.</p>
 <section class="note" aria-role="note">
-<h3 id="why-not-an-enum"><a class="header" href="#why-not-an-enum">Why Not An Enum?</a></h3>
-<p>You may have been wondering why we didn’t use an enum with the different possible post states as variants. That’s certainly a possible solution; try it and compare the end results to see which you prefer! One disadvantage of using an enum is that every place that checks the value of the enum will need a <code>match</code> expression or similar to handle every possible variant. This could get more repetitive than this trait object solution.</p>
+<h3 id="et-pourquoi-pas-une-énumération-"><a class="header" href="#et-pourquoi-pas-une-énumération-">Et pourquoi pas une énumération ?</a></h3>
+<p>Vous vous demandez peut-être pourquoi nous n’avons pas utilisé une énumération avec les différents états possibles des billets en tant que variantes. C’est certainement là une solution possible ; essayez de faire ainsi et comparez les résultats finaux pour voir quelle solution vous préférez ! Un inconvénient de l’utilisation d’une énumération est que chaque endroit qui va vérifier la valeur de l’énumération devra utiliser une expression <code>match</code> ou équivalent pour prendre en compte chaque variante possible. Ceci pourrait devenir plus répétitif que cette solution de l’objet trait.</p>
 </section>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="trade-offs-of-the-state-pattern"></a></p>
-<h4 id="evaluating-the-state-pattern"><a class="header" href="#evaluating-the-state-pattern">Evaluating the State Pattern</a></h4>
-<p>We’ve shown that Rust is capable of implementing the object-oriented state pattern to encapsulate the different kinds of behavior a post should have in each state. The methods on <code>Post</code> know nothing about the various behaviors. Because of the way we organized the code, we have to look in only one place to know the different ways a published post can behave: the implementation of the <code>State</code> trait on the <code>Published</code> struct.</p>
-<p>If we were to create an alternative implementation that didn’t use the state pattern, we might instead use <code>match</code> expressions in the methods on <code>Post</code> or even in the <code>main</code> code that checks the state of the post and changes behavior in those places. That would mean we would have to look in several places to understand all the implications of a post being in the published state.</p>
-<p>With the state pattern, the <code>Post</code> methods and the places we use <code>Post</code> don’t need <code>match</code> expressions, and to add a new state, we would only need to add a new struct and implement the trait methods on that one struct in one location.</p>
+<h4 id="évaluation-du-patron-état"><a class="header" href="#évaluation-du-patron-état">Évaluation du patron état</a></h4>
+<p>Nous avons démontré que Rust est capable d’implémenter le patron état qui est orienté objet pour regrouper les différents types de comportement qu’un billet doit avoir à chaque état. Les méthodes sur <code>Billet</code> ne savent rien des différents comportements. De par la manière dont nous avons organisé le code, nous n’avons qu’à regarder à un seul endroit pour connaître les différents comportements qu’un billet publié va suivre : l’implémentation du trait <code>Etat</code> sur la structure <code>Publier</code>.</p>
+<p>Si nous avions utilisé une autre façon d’implémenter ces règles sans utiliser le patron état, nous aurions dû utiliser des expressions <code>match</code> dans les méthodes de <code>Billet</code> ou même dans le code du <code>main</code> qui vérifie l’état du billet et les comportements associés aux changements d’états. Cela aurait eu pour conséquence d’avoir à regarder à différents endroits pour comprendre toutes les conséquences de la publication d’un billet.</p>
+<p>Avec le patron état, les méthodes de <code>Billet</code> et les endroits où nous utilisons <code>Billet</code> n’ont pas besoin d’expressions <code>match</code>, et pour ajouter un nouvel état, nous avons seulement besoin d’ajouter une nouvelle structure et d’implémenter les méthodes du trait sur cette structure à un seul endroit.</p>
 <p>L’implémentation qui utilise le patron état est facile à améliorer pour ajouter plus de fonctionnalités. Pour découvrir la simplicité de maintenance du code qui utilise le patron état, essayez d’accomplir certaines de ces suggestions :</p>
 <ul>
-<li>Add a <code>reject</code> method that changes the post’s state from <code>PendingReview</code> back to <code>Draft</code>.</li>
-<li>Require two calls to <code>approve</code> before the state can be changed to <code>Published</code>.</li>
-<li>Allow users to add text content only when a post is in the <code>Draft</code> state. Hint: have the state object responsible for what might change about the content but not responsible for modifying the <code>Post</code>.</li>
+<li>Ajouter une méthode <code>rejeter</code> qui fait retourner l’état d’un billet de <code>EnRelecture</code> à <code>Brouillon</code>.</li>
+<li>Attendre deux appels à <code>approuver</code> avant que l’état puisse être changé en <code>Publier</code>.</li>
+<li>Permettre aux utilisateurs d’ajouter du contenu textuel uniquement lorsqu’un billet est à l’état <code>Brouillon</code>. Indice : rendre l’objet état responsable de ce qui peut changer dans le contenu mais pas responsable de la modification de <code>Billet</code>.</li>
 </ul>
 <p>Un inconvénient du patron état est que comme les états implémentent les transitions entre les états, certains des états sont couplés entre eux. Si nous ajoutons un nouvel état entre <code>EnRelecture</code> et <code>Publier</code>, <code>Planifier</code> par exemple, nous devrons alors changer le code dans <code>EnRelecture</code> pour qu’il passe ensuite à l’état <code>Planifier</code> au lieu de <code>Publier</code>. Cela représenterait moins de travail si <code>EnRelecture</code> n’avait pas besoin de changer lorsqu’on ajoute un nouvel état, mais cela signifierait alors qu’il faudrait changer de patron.</p>
-<p>Another downside is that we’ve duplicated some logic. To eliminate some of the duplication, we might try to make default implementations for the <code>request_review</code> and <code>approve</code> methods on the <code>State</code> trait that return <code>self</code>. However, this wouldn’t work: When using <code>State</code> as a trait object, the trait doesn’t know what the concrete <code>self</code> will be exactly, so the return type isn’t known at compile time. (This is one of the dyn compatibility rules mentioned earlier.)</p>
-<p>Other duplication includes the similar implementations of the <code>request_review</code> and <code>approve</code> methods on <code>Post</code>. Both methods use <code>Option::take</code> with the <code>state</code> field of <code>Post</code>, and if <code>state</code> is <code>Some</code>, they delegate to the wrapped value’s implementation of the same method and set the new value of the <code>state</code> field to the result. If we had a lot of methods on <code>Post</code> that followed this pattern, we might consider defining a macro to eliminate the repetition (see the <a href="ch20-05-macros.html#macros">“Macros”</a><!-- ignore --> section in Chapter 20).</p>
-<p>By implementing the state pattern exactly as it’s defined for object-oriented languages, we’re not taking as full advantage of Rust’s strengths as we could. Let’s look at some changes we can make to the <code>blog</code> crate that can make invalid states and transitions into compile-time errors.</p>
+<p>Un autre inconvénient est que nous avons de la logique en double. Pour éviter ces doublons, nous devrions essayer de faire en sorte que les méthodes <code>demander_relecture</code> et <code>approuver</code> qui retournent <code>self</code> deviennent les implémentations par défaut sur le trait <code>Etat</code>. Cependant, cela ne fonctionnerait pas : lors de l’utilisation <code>Etat</code> en tant qu’objet trait, le trait ne sait pas ce qu’est exactement <code>self</code>, le type de retour n’est donc pas connu au moment de la compilation (c’est là l’une des règles de compatibilité dyn mentionnés plus haut).</p>
+<p>Nous avons aussi des doublons dans le code des méthodes <code>demander_relecture</code> et <code>approuver</code> sur <code>Billet</code>. Ces deux méthodes utilisent <code>Option::take</code> avec le champ <code>etat</code> de <code>Billet</code>, et si <code>etat</code> est <code>Some</code>, elles délèguent leur travail à l’implémentation de la valeur encapsulée de la même méthode et assignent la nouvelle valeur du même champ <code>etat</code> au résultat. Si nous avions beaucoup de méthodes sur <code>Billet</code> qui suivaient cette logique, nous devrions envisager de définir une macro pour éviter cette répétition (voir la <a href="ch20-05-macros.html#macros">section dédiée aux macros</a><!-- ignore --> dans le chapitre 20).</p>
+<p>En implémentant le patron état exactement comme il est défini pour les langages orientés-objet, nous ne profitons pas pleinement des avantages de Rust. Voyons voir si nous pouvons faire quelques changements pour que la crate <code>blog</code> puisse lever des erreurs dès la compilation lorsqu’elle aura détecté des états ou des transitions invalides.</p>
 <h3 id="implémenter-les-états-et-les-comportements-avec-des-types"><a class="header" href="#implémenter-les-états-et-les-comportements-avec-des-types">Implémenter les états et les comportements avec des types</a></h3>
-<p>We’ll show you how to rethink the state pattern to get a different set of trade-offs. Rather than encapsulating the states and transitions completely so that outside code has no knowledge of them, we’ll encode the states into different types. Consequently, Rust’s type-checking system will prevent attempts to use draft posts where only published posts are allowed by issuing a compiler error.</p>
-<p>Let’s consider the first part of <code>main</code> in Listing 18-11:</p>
+<p>Nous allons vous montrer comment repenser le patron état pour qu’il offre des compromis différents. Plutôt que d’encapsuler complètement les états et les transitions, faisant que le code externe ne puisse pas les connaître, nous allons coder ces états sous forme de différents types. En conséquence, le système de vérification de type de Rust va empêcher toute tentative d’utilisation des brouillons de billets là où seuls des billets publiés sont autorisés, en provoquant une erreur de compilation.</p>
+<p>Considérons la première partie du <code>main</code> de l’encart 18-11 :</p>
 <figure class="listing">
 <span class="file-name">Filename: src/main.rs</span>
-<pre><code class="language-rust ignore"><span class="boring">use blog::Post;
+<pre><code class="language-rust ignore"><span class="boring">use blog::Billet;
 </span><span class="boring">
 </span>fn main() {
-    let mut post = Post::new();
+    let mut billet = Billet::new();
 
-    post.add_text("I ate a salad for lunch today");
-    assert_eq!("", post.content());
+    billet.ajouter_texte("J'ai mangé une salade au déjeuner aujourd'hui");
+    assert_eq!("", billet.contenu());
 <span class="boring">
-</span><span class="boring">    post.request_review();
-</span><span class="boring">    assert_eq!("", post.content());
+</span><span class="boring">    billet.demander_relecture();
+</span><span class="boring">    assert_eq!("", billet.contenu());
 </span><span class="boring">
-</span><span class="boring">    post.approve();
-</span><span class="boring">    assert_eq!("I ate a salad for lunch today", post.content());
+</span><span class="boring">    billet.approuver();
+</span><span class="boring">    assert_eq!("J'ai mangé une salade au déjeuner aujourd'hui", billet.contenu());
 </span>}</code></pre>
 </figure>
-<p>We still enable the creation of new posts in the draft state using <code>Post::new</code> and the ability to add text to the post’s content. But instead of having a <code>content</code> method on a draft post that returns an empty string, we’ll make it so that draft posts don’t have the <code>content</code> method at all. That way, if we try to get a draft post’s content, we’ll get a compiler error telling us the method doesn’t exist. As a result, it will be impossible for us to accidentally display draft post content in production because that code won’t even compile. Listing 18-19 shows the definition of a <code>Post</code> struct and a <code>DraftPost</code> struct, as well as methods on each.</p>
+<p>Nous pouvons toujours créer de nouveaux billets à l’état de brouillon en utilisant <code>Billet::new</code> et ajouter du texte au contenu du billet. Mais au lieu d’avoir une méthode <code>contenu</code> sur un brouillon de billet qui retourne une chaîne de caractères vide, nous faisons en sorte que les brouillons de billets n’aient même pas de méthode <code>contenu</code>. Ainsi, si nous essayons de récupérer le contenu d’un brouillon de billet, nous obtenons une erreur de compilation qui nous informera que la méthode n’existe pas. Finalement, il nous sera impossible de publier le contenu d’un brouillon de billet en production, car ce code ne se compilera même pas. L’encart 18-19 nous propose les définitions d’une structure <code>Billet</code> et d’une structure <code>BrouillonDeBillet</code> ainsi que leurs méthodes.</p>
 <figure class="listing" id="listing-18-19">
 <span class="file-name">Filename: src/lib.rs</span>
-<pre><code class="language-rust noplayground">pub struct Post {
-    content: String,
+<pre><code class="language-rust noplayground">pub struct Billet {
+    contenu: String,
 }
 
-pub struct DraftPost {
-    content: String,
+pub struct BrouillonDeBillet {
+    contenu: String,
 }
 
-impl Post {
-    pub fn new() -&gt; DraftPost {
-        DraftPost {
-            content: String::new(),
+impl Billet {
+    pub fn new() -&gt; BrouillonDeBillet {
+        BrouillonDeBillet {
+            contenu: String::new(),
         }
     }
 
-    pub fn content(&amp;self) -&gt; &amp;str {
-        &amp;self.content
+    pub fn contenu(&amp;self) -&gt; &amp;str {
+        &amp;self.contenu
     }
 }
 
-impl DraftPost {
-    pub fn add_text(&amp;mut self, text: &amp;str) {
-        self.content.push_str(text);
+impl BrouillonDeBillet {
+    pub fn ajouter_texte(&amp;mut self, texte: &amp;str) {
+        self.contenu.push_str(texte);
     }
 }</code></pre>
 <figcaption><a href="#listing-18-19">Listing 18-19</a>: A <code>Post</code> with a <code>content</code> method and a <code>DraftPost</code> without a <code>content</code> method</figcaption>
 </figure>
 <p>Les deux structures <code>Billet</code> et <code>BrouillonDeBillet</code> ont un champ privé <code>contenu</code> qui stocke le texte du billet de blog. Les structures n’ont plus le champ <code>etat</code> car nous avons déplacé la signification de l’état directement dans le nom de ces types de structures. La structure <code>Billet</code> représente un billet publié et possède une méthode <code>contenu</code> qui retourne le <code>contenu</code>.</p>
 <p>Nous avons toujours la fonction <code>Billet::new</code>, mais au lieu de retourner une instance de <code>Billet</code>, elle va retourner une instance de <code>BrouillonDeBillet</code>. Comme <code>contenu</code> est privé et qu’il n’y a pas de fonction qui retourne <code>Billet</code>, il ne sera pas possible pour le moment de créer une instance de <code>Billet</code>.</p>
-<p>The <code>DraftPost</code> struct has an <code>add_text</code> method, so we can add text to <code>content</code> as before, but note that <code>DraftPost</code> does not have a <code>content</code> method defined! So now the program ensures that all posts start as draft posts, and draft posts don’t have their content available for display. Any attempt to get around these constraints will result in a compiler error.</p>
+<p>La structure <code>BrouillonDeBillet</code> a une méthode <code>ajouter_texte</code>, donc nous pouvons ajouter du texte à <code>contenu</code> comme nous le faisions avant, mais remarquez toutefois que <code>BrouillonDeBillet</code> n’a pas de méthode <code>contenu</code> de définie ! Donc pour l’instant le programme s’assure que tous les billets démarrent à l’état de brouillon et que les brouillons ne proposent pas de contenu à publier. Toute tentative d’outre-passer ces contraintes va déclencher une erreur de compilation.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="implementing-transitions-as-transformations-into-different-types"></a></p>
-<p>So, how do we get a published post? We want to enforce the rule that a draft post has to be reviewed and approved before it can be published. A post in the pending review state should still not display any content. Let’s implement these constraints by adding another struct, <code>PendingReviewPost</code>, defining the <code>request_review</code> method on <code>DraftPost</code> to return a <code>PendingReviewPost</code> and defining an <code>approve</code> method on <code>PendingReviewPost</code> to return a <code>Post</code>, as shown in Listing 18-20.</p>
+<p>Donc, comment publier un billet ? Nous voulons renforcer la règle qui dit qu’un brouillon de billet doit être relu et approuvé avant de pouvoir être publié. Un billet à l’état de relecture doit continuer à ne pas montrer son contenu. Implémentons ces contraintes en introduisant une nouvelle structure, <code>BilletEnRelecture</code>, en définissant la méthode <code>demander_relecture</code> sur <code>BrouillonDeBillet</code> retournant un <code>BilletEnRelecture</code>, et en définissant une méthode <code>approuver</code> sur <code>BilletEnRelecture</code> pour qu’elle retourne un <code>Billet</code>, comme le propose l’encart 18-20.</p>
 <figure class="listing" id="listing-18-20">
 <span class="file-name">Filename: src/lib.rs</span>
-<pre><code class="language-rust noplayground"><span class="boring">pub struct Post {
-</span><span class="boring">    content: String,
+<pre><code class="language-rust noplayground"><span class="boring">pub struct Billet {
+</span><span class="boring">    contenu: String,
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">pub struct DraftPost {
-</span><span class="boring">    content: String,
+</span><span class="boring">pub struct BrouillonDeBillet {
+</span><span class="boring">    contenu: String,
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">impl Post {
-</span><span class="boring">    pub fn new() -&gt; DraftPost {
-</span><span class="boring">        DraftPost {
-</span><span class="boring">            content: String::new(),
+</span><span class="boring">impl Billet {
+</span><span class="boring">    pub fn new() -&gt; BrouillonDeBillet {
+</span><span class="boring">        BrouillonDeBillet {
+</span><span class="boring">            contenu: String::new(),
 </span><span class="boring">        }
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    pub fn content(&amp;self) -&gt; &amp;str {
-</span><span class="boring">        &amp;self.content
+</span><span class="boring">    pub fn contenu(&amp;self) -&gt; &amp;str {
+</span><span class="boring">        &amp;self.contenu
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
-</span>impl DraftPost {
+</span>impl BrouillonDeBillet {
     // -- partie masquée ici --
-<span class="boring">    pub fn add_text(&amp;mut self, text: &amp;str) {
-</span><span class="boring">        self.content.push_str(text);
+<span class="boring">    pub fn ajouter_texte(&amp;mut self, texte: &amp;str) {
+</span><span class="boring">        self.contenu.push_str(texte);
 </span><span class="boring">    }
 </span><span class="boring">
-</span>    pub fn request_review(self) -&gt; PendingReviewPost {
-        PendingReviewPost {
-            content: self.content,
+</span>    pub fn demander_relecture(self) -&gt; BilletEnRelecture {
+        BilletEnRelecture {
+            contenu: self.contenu,
         }
     }
 }
 
-pub struct PendingReviewPost {
-    content: String,
+pub struct BilletEnRelecture {
+    contenu: String,
 }
 
-impl PendingReviewPost {
-    pub fn approve(self) -&gt; Post {
-        Post {
-            content: self.content,
+impl BilletEnRelecture {
+    pub fn approuver(self) -&gt; Billet {
+        Billet {
+            contenu: self.contenu,
         }
     }
 }</code></pre>
 <figcaption><a href="#listing-18-20">Listing 18-20</a>: A <code>PendingReviewPost</code> that gets created by calling <code>request_review</code> on <code>DraftPost</code> and an <code>approve</code> method that turns a <code>PendingReviewPost</code> into a published <code>Post</code></figcaption>
 </figure>
 <p>Les méthodes <code>demander_relecture</code> et <code>approuver</code> prennent possession de <code>self</code>, ce qui consomme les instances de <code>BrouillonDeBillet</code> et de <code>BilletEnRelecture</code> pour les transformer respectivement en <code>BilletEnRelecture</code> et en <code>Billet</code>. Ainsi, il ne restera plus d’instances de <code>BrouillonDeBillet</code> après avoir appelé <code>approuver</code> sur elles, et ainsi de suite. La structure <code>BilletEnRelecture</code> n’a pas de méthode <code>contenu</code> qui lui est définie, donc si on essaye de lire son contenu, on obtient une erreur de compilation, comme avec <code>BrouillonDeBillet</code>. Comme la seule manière d’obtenir une instance de <code>Billet</code> qui a une méthode <code>contenu</code> de définie est d’appeler la méthode<code>approuver</code> sur un <code>BilletEnRelecture</code>, et que la seule manière d’obtenir un <code>BilletEnRelecture</code> est d’appeler la méthode <code>demander_relecture</code> sur un <code>BrouillonDeBillet</code>, nous avons désormais intégré le processus de publication des billets de blog avec le système de type.</p>
-<p>But we also have to make some small changes to <code>main</code>. The <code>request_review</code> and <code>approve</code> methods return new instances rather than modifying the struct they’re called on, so we need to add more <code>let post =</code> shadowing assignments to save the returned instances. We also can’t have the assertions about the draft and pending review posts’ contents be empty strings, nor do we need them: We can’t compile code that tries to use the content of posts in those states any longer. The updated code in <code>main</code> is shown in Listing 18-21.</p>
+<p>Mais nous devons aussi faire quelques petits changements dans le <code>main</code>. Les méthodes <code>demander_relecture</code> et <code>approuver</code> retournent des nouvelles instances au lieu de modifier la structure sur laquelle elles ont été appelées, donc nous devons ajouter des assignations de masquage <code>let billet =</code> pour stocker les nouvelles instances retournées. Nous ne pouvons pas non plus vérifier que le contenu des brouillons de billets et de ceux en cours de relecture sont bien vides, donc nous n’avons plus besoin des vérifications associées : en effet, nous ne pouvons plus compiler du code qui essaye d’utiliser le contenu d’un billet dans ces états. Le code du <code>main</code> mis à jour est présenté dans l’encart 18-21.</p>
 <figure class="listing" id="listing-18-21">
 <span class="file-name">Filename: src/main.rs</span>
-<pre><code class="language-rust ignore">use blog::Post;
+<pre><code class="language-rust ignore">use blog::Billet;
 
 fn main() {
-    let mut post = Post::new();
+    let mut billet = Billet::new();
 
-    post.add_text("I ate a salad for lunch today");
+    billet.ajouter_texte("J'ai mangé une salade au déjeuner aujourd'hui");
 
     let post = post.request_review();
 
     let post = post.approve();
 
-    assert_eq!("I ate a salad for lunch today", post.content());
+    assert_eq!("J'ai mangé une salade au déjeuner aujourd'hui", billet.contenu());
 }</code></pre>
 <figcaption><a href="#listing-18-21">Listing 18-21</a>: Modifications to <code>main</code> to use the new implementation of the blog post workflow</figcaption>
 </figure>
-<p>The changes we needed to make to <code>main</code> to reassign <code>post</code> mean that this implementation doesn’t quite follow the object-oriented state pattern anymore: The transformations between the states are no longer encapsulated entirely within the <code>Post</code> implementation. However, our gain is that invalid states are now impossible because of the type system and the type checking that happens at compile time! This ensures that certain bugs, such as display of the content of an unpublished post, will be discovered before they make it to production.</p>
-<p>Try the tasks suggested at the start of this section on the <code>blog</code> crate as it is after Listing 18-21 to see what you think about the design of this version of the code. Note that some of the tasks might be completed already in this design.</p>
+<p>Les modifications que nous avons eu besoin de faire à <code>main</code> pour réassigner <code>billet</code> impliquent que cette implémentation ne suit plus exactement le patron état orienté-objet : les changements d’états ne sont plus totalement intégrés dans l’implémentation de <code>Billet</code>. Cependant, nous avons obtenu que les états invalides sont désormais impossibles grâce au système de types et à la vérification de type qui s’effectue à la compilation ! Cela garantit que certains bogues, comme l’affichage du contenu d’un billet non publié, seront détectés avant d’arriver en production.</p>
+<p>Essayez d’implémenter les exigences fonctionnelles supplémentaires suggérées dans la liste présente au début de cette section sur la crate <code>blog</code> dans l’état où elle était après l’encart 18-20, afin de vous faire une idée sur cette façon de concevoir le code. Notez aussi que certaines de ces exigences pourraient déjà être implémentées implicitement du fait de cette conception.</p>
 <p>Nous avons vu que même si Rust est capable d’implémenter des patrons de conception orientés-objet, d’autres patrons, tel qu’intégrer l’état dans le système de type, sont également possibles en Rust. Ces patrons présentent différents avantages et inconvénients. Bien que vous puissiez être très familier avec les patrons orientés-objet, vous gagnerez à repenser les choses pour tirer avantage des fonctionnalités de Rust, telles que la détection de certains bogues à la compilation. Les patrons orientés-objet ne sont pas toujours la meilleure solution en Rust à cause de certaines de ses fonctionnalités, comme la possession, que les langages orientés-objet n’ont pas.</p>
 <h2 id="résumé"><a class="header" href="#résumé">Résumé</a></h2>
-<p>Regardless of whether you think Rust is an object-oriented language after reading this chapter, you now know that you can use trait objects to get some object-oriented features in Rust. Dynamic dispatch can give your code some flexibility in exchange for a bit of runtime performance. You can use this flexibility to implement object-oriented patterns that can help your code’s maintainability. Rust also has other features, like ownership, that object-oriented languages don’t have. An object-oriented pattern won’t always be the best way to take advantage of Rust’s strengths, but it is an available option.</p>
+<p>Que vous pensiez ou non que Rust est un langage orienté-objet après avoir lu ce chapitre, vous savez maintenant que vous pouvez utiliser les objets trait pour pouvoir obtenir certaines fonctionnalités orienté-objet en Rust. La répartition dynamique peut offrir de la flexibilité à votre code en échange d’une perte de performances à l’exécution. Vous pouvez utiliser cette flexibilité pour implémenter des patrons orientés-objet qui facilitent la maintenance de votre code. Rust offre d’autres fonctionnalités, comme la possession, que les langages orientés-objet n’ont pas. L’utilisation d’un patron orienté-objet n’est pas toujours la meilleure manière de tirer parti des avantages de Rust, mais cela reste une option disponible.</p>
 <p>Dans le chapitre suivant, nous allons étudier les motifs, qui constituent une autre des fonctionnalités de Rust et apportent beaucoup de flexibilité. Nous les avons abordés brièvement dans le livre, mais nous n’avons pas encore vu tout leur potentiel. C’est parti !</p>
 
                     </main>

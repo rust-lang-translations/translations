@@ -96,10 +96,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d2248916.js";
+            window.path_to_searchindex_js = "searchindex-e705db65.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e6f954e3.js"></script>
+        <script src="toc-cf7f76ff.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -240,263 +240,263 @@
                     <main>
                         <!-- Old headings. Do not remove or links may break. -->
 <p><a id="yielding"></a></p>
-<h3 id="yielding-control-to-the-runtime"><a class="header" href="#yielding-control-to-the-runtime">Yielding Control to the Runtime</a></h3>
-<p>Recall from the <a href="ch17-01-futures-and-syntax.html#our-first-async-program">“Our First Async Program”</a><!-- ignore --> section that at each await point, Rust gives a runtime a chance to pause the task and switch to another one if the future being awaited isn’t ready. The inverse is also true: Rust <em>only</em> pauses async blocks and hands control back to a runtime at an await point. Everything between await points is synchronous.</p>
-<p>That means if you do a bunch of work in an async block without an await point, that future will block any other futures from making progress. You may sometimes hear this referred to as one future <em>starving</em> other futures. In some cases, that may not be a big deal. However, if you are doing some kind of expensive setup or long-running work, or if you have a future that will keep doing some particular task indefinitely, you’ll need to think about when and where to hand control back to the runtime.</p>
-<p>Let’s simulate a long-running operation to illustrate the starvation problem, then explore how to solve it. Listing 17-14 introduces a <code>slow</code> function.</p>
+<h3 id="cession-du-contrôle-au-moteur-dexécution"><a class="header" href="#cession-du-contrôle-au-moteur-dexécution">Cession du contrôle au moteur d’exécution</a></h3>
+<p>Rappelez-vous de la section <a href="ch17-01-futures-and-syntax.html#notre-premier-programme-asynchrone">“Notre premier programme asynchrone”</a><!-- ignore -->, qu’à chaque point d’attente, Rust donne au moteur d’exécution l’occasion de suspendre la tâche en cours et de pouvoir basculer vers une autre tâche si la future attendue n’est pas prête. La réciproque est également vraie : Rust met <em>uniquement</em> en pause les blocs asynchrones et rend la main au moteur d’exécution à chaque point d’attente. Tout ce qui se trouve entre les points d’attente est synchrone.</p>
+<p>Ceci implique que si vous faites toute une série d’opérations dans un bloc asynchrone sans aucun point d’attente, cette future va empêcher toutes les autres futures de pouvoir avancer. On parle parfois de ce phénomène comme d’une future qui <em>affame</em> les autres futures. Dans certains cas, cela n’a guère d’importance. Toutefois, si vous faites quelque chose comme une configuration complexe ou bien un travail de longue haleine, ou encore si vous avez une future qui va continuer à effectuer une tâche particulière indéfiniment, vous devrez réfléchir à l’endroit et au moment où rendre le contrôle au moteur d’exécution.</p>
+<p>Simulons une opération de longue haleine pour illustrer ce problème de famine, puis voyons comment le résoudre. L’encart 17-14 montre une fonction <code>lente</code>.</p>
 <figure class="listing" id="listing-17-14">
 <span class="file-name">Filename: src/main.rs</span>
-<pre class="playground"><code class="language-rust edition2024"><span class="boring">extern crate trpl; // required for mdbook test
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">extern crate trpl; // requis par test mdbook
 </span><span class="boring">
 </span><span class="boring">use std::{thread, time::Duration};
 </span><span class="boring">
 </span><span class="boring">fn main() {
 </span><span class="boring">    trpl::block_on(async {
-</span><span class="boring">        // We will call `slow` here later
+</span><span class="boring">        // Plus tard, nous appellerons `lente` ici
 </span><span class="boring">    });
 </span><span class="boring">}
 </span><span class="boring">
-</span>fn slow(name: &amp;str, ms: u64) {
+</span>fn lente(nom: &amp;str, ms: u64) {
     thread::sleep(Duration::from_millis(ms));
-    println!("'{name}' ran for {ms}ms");
+    println!("'{nom}' s'est exécuté durant {ms}ms");
 }</code></pre>
 <figcaption><a href="#listing-17-14">Listing 17-14</a>: Using <code>thread::sleep</code> to simulate slow operations</figcaption>
 </figure>
-<p>This code uses <code>std::thread::sleep</code> instead of <code>trpl::sleep</code> so that calling <code>slow</code> will block the current thread for some number of milliseconds. We can use <code>slow</code> to stand in for real-world operations that are both long-running and blocking.</p>
-<p>In Listing 17-15, we use <code>slow</code> to emulate doing this kind of CPU-bound work in a pair of futures.</p>
+<p>Ce code utilise <code>std::thread::sleep</code> à la place de <code>trpl::sleep</code>, de manière à ce que l’appel à <code>slow</code> bloquer la tâche courante pour un nombre défini de millisecondes. Nous pouvons utiliser <code>lente</code> pour simuler des opérations réelles qui sont à la fois longues et bloquantes.</p>
+<p>Dans l’encart 17-15, nous utilisons <code>lente</code> pour simuler l’exécution de ce type de tâche gourmande en ressources CPE dans quelques futures.</p>
 <figure class="listing" id="listing-17-15">
 <span class="file-name">Filename: src/main.rs</span>
-<pre class="playground"><code class="language-rust edition2024"><span class="boring">extern crate trpl; // required for mdbook test
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">extern crate trpl; // requis par test mdbook
 </span><span class="boring">
 </span><span class="boring">use std::{thread, time::Duration};
 </span><span class="boring">
 </span><span class="boring">fn main() {
 </span><span class="boring">    trpl::block_on(async {
 </span>        let a = async {
-            println!("'a' started.");
-            slow("a", 30);
-            slow("a", 10);
-            slow("a", 20);
+            println!("'a' a démarré.");
+            lente("a", 30);
+            lente("a", 10);
+            lente("a", 20);
             trpl::sleep(Duration::from_millis(50)).await;
-            println!("'a' finished.");
+            println!("'a' a terminé.");
         };
 
         let b = async {
-            println!("'b' started.");
-            slow("b", 75);
-            slow("b", 10);
-            slow("b", 15);
-            slow("b", 350);
+            println!("'b' a démarré.");
+            lente("b", 75);
+            lente("b", 10);
+            lente("b", 15);
+            lente("b", 350);
             trpl::sleep(Duration::from_millis(50)).await;
-            println!("'b' finished.");
+            println!("'b' a terminé.");
         };
 
         trpl::select(a, b).await;
 <span class="boring">    });
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">fn slow(name: &amp;str, ms: u64) {
+</span><span class="boring">fn lente(nom: &amp;str, ms: u64) {
 </span><span class="boring">    thread::sleep(Duration::from_millis(ms));
-</span><span class="boring">    println!("'{name}' ran for {ms}ms");
+</span><span class="boring">    println!("'{nom}' s'est exécuté durant {ms}ms");
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-17-15">Listing 17-15</a>: Calling the <code>slow</code> function to simulate slow operations</figcaption>
 </figure>
-<p>Each future hands control back to the runtime only <em>after</em> carrying out a bunch of slow operations. If you run this code, you will see this output:</p>
+<p>Chaque future ne rend le contrôle au moteur d’exécution qu’<em>après</em> avoir effectué tout un tas d’opérations lentes. Si vous exécutez ce code, vous obtiendrez la sortie suivante :</p>
 <!-- manual-regeneration
 cd listings/ch17-async-await/listing-17-15/
 cargo run
 copy just the output
 -->
-<pre><code class="language-text">'a' started.
-'a' ran for 30ms
-'a' ran for 10ms
-'a' ran for 20ms
-'b' started.
-'b' ran for 75ms
-'b' ran for 10ms
-'b' ran for 15ms
-'b' ran for 350ms
-'a' finished.
+<pre><code class="language-text">'a' a démarré.
+'a' s'est exécuté durant 30ms
+'a' s'est exécuté durant 10ms
+'a' s'est exécuté durant 20ms
+'b' a démarré.
+'b' s'est exécuté durant 75ms
+'b' s'est exécuté durant 10ms
+'b' s'est exécuté durant 15ms
+'b' s'est exécuté durant 350ms
+'a' a terminé.
 </code></pre>
-<p>As with Listing 17-5 where we used <code>trpl::select</code> to race futures fetching two URLs, <code>select</code> still finishes as soon as <code>a</code> is done. There’s no interleaving between the calls to <code>slow</code> in the two futures, though. The <code>a</code> future does all of its work until the <code>trpl::sleep</code> call is awaited, then the <code>b</code> future does all of its work until its own <code>trpl::sleep</code> call is awaited, and finally the <code>a</code> future completes. To allow both futures to make progress between their slow tasks, we need await points so we can hand control back to the runtime. That means we need something we can await!</p>
-<p>We can already see this kind of handoff happening in Listing 17-15: if we removed the <code>trpl::sleep</code> at the end of the <code>a</code> future, it would complete without the <code>b</code> future running <em>at all</em>. Let’s try using the <code>trpl::sleep</code> function as a starting point for letting operations switch off making progress, as shown in Listing 17-16.</p>
+<p>Comme pour l’encart 17-5 où nous avions utilisé <code>trpl::select</code> pour faire concourir des futures récupérant deux URLs, <code>select</code> se termine toujours dès que <code>a</code> a terminé. Il n’y a toutefois pas d’entrelacement entre les appels à <code>lente</code> dans les deux futures. La future <code>a</code> effectue l’entièreté de son travail jusqu’à ce que l’appel à <code>trpl::sleep</code> soit attendu, puis la future <code>b</code> effectue tout son travail jusqu’à ce que son propre appel à <code>trpl::sleep</code> soit attendu, et enfin la future <code>a</code> se termine. Afin de permettre à toutes les deux futures de progresser entre leurs tâches lentes, nous avons besoin de points d’attente afin de pouvoir rendre le contrôle au moteur d’exécution. Cela significant que nous avons besoin de quelque chose que nous pouvons attendre !</p>
+<p>Nous pouvons déjà voir ce type de passation dans l’encart 17-15 : si nous supprimions le <code>trpl::sleep</code> à la fin de la future <code>a</code>, cette dernière se terminerait sans que la future <code>b</code> ne s’exécute <em>du tout</em>. Essayons d’utiliser la fonction <code>trpl::sleep</code> comme point de départ pour permettre aux opérations de suspendre leur exécution, comme le montre l’encart 17-16.</p>
 <figure class="listing" id="listing-17-16">
 <span class="file-name">Filename: src/main.rs</span>
-<pre class="playground"><code class="language-rust edition2024"><span class="boring">extern crate trpl; // required for mdbook test
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">extern crate trpl; // requis par test mdbook
 </span><span class="boring">
 </span><span class="boring">use std::{thread, time::Duration};
 </span><span class="boring">
 </span><span class="boring">fn main() {
 </span><span class="boring">    trpl::block_on(async {
-</span>        let one_ms = Duration::from_millis(1);
+</span>        let une_ms = Duration::from_millis(1);
 
         let a = async {
-            println!("'a' started.");
-            slow("a", 30);
-            trpl::sleep(one_ms).await;
-            slow("a", 10);
-            trpl::sleep(one_ms).await;
-            slow("a", 20);
-            trpl::sleep(one_ms).await;
-            println!("'a' finished.");
+            println!("'a' a démarré.");
+            lente("a", 30);
+            trpl::sleep(une_ms).await;
+            lente("a", 10);
+            trpl::sleep(une_ms).await;
+            lente("a", 20);
+            trpl::sleep(une_ms).await;
+            println!("'a' a terminé.");
         };
 
         let b = async {
-            println!("'b' started.");
-            slow("b", 75);
-            trpl::sleep(one_ms).await;
-            slow("b", 10);
-            trpl::sleep(one_ms).await;
-            slow("b", 15);
-            trpl::sleep(one_ms).await;
-            slow("b", 350);
-            trpl::sleep(one_ms).await;
-            println!("'b' finished.");
+            println!("'b' a démarré.");
+            lente("b", 75);
+            trpl::sleep(une_ms).await;
+            lente("b", 10);
+            trpl::sleep(une_ms).await;
+            lente("b", 15);
+            trpl::sleep(une_ms).await;
+            lente("b", 350);
+            trpl::sleep(une_ms).await;
+            println!("'b' a terminé.");
         };
 <span class="boring">
 </span><span class="boring">        trpl::select(a, b).await;
 </span><span class="boring">    });
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">fn slow(name: &amp;str, ms: u64) {
+</span><span class="boring">fn lente(nom: &amp;str, ms: u64) {
 </span><span class="boring">    thread::sleep(Duration::from_millis(ms));
-</span><span class="boring">    println!("'{name}' ran for {ms}ms");
+</span><span class="boring">    println!("'{nom}' s'est exécuté durant {ms}ms");
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-17-16">Listing 17-16</a>: Using <code>trpl::sleep</code> to let operations switch off making progress</figcaption>
 </figure>
-<p>We’ve added <code>trpl::sleep</code> calls with await points between each call to <code>slow</code>. Now the two futures’ work is interleaved:</p>
+<p>Nous avons ajouté des appels à <code>trpl::sleep</code> avec des points d’attente avant chaque appel à <code>lente</code>. Le travail des deux futures est maintenant entrelacé.</p>
 <!-- manual-regeneration
 cd listings/ch17-async-await/listing-17-16
 cargo run
 copy just the output
 -->
-<pre><code class="language-text">'a' started.
-'a' ran for 30ms
-'b' started.
-'b' ran for 75ms
-'a' ran for 10ms
-'b' ran for 10ms
-'a' ran for 20ms
-'b' ran for 15ms
-'a' finished.
+<pre><code class="language-text">'a' a démarré.
+'a' s'est exécuté durant 30ms
+'b' a démarré.
+'b' s'est exécuté durant 75ms
+'a' s'est exécuté durant 10ms
+'b' s'est exécuté durant 10ms
+'a' s'est exécuté durant 20ms
+'b' s'est exécuté durant 15ms
+'a' a terminé.
 </code></pre>
-<p>The <code>a</code> future still runs for a bit before handing off control to <code>b</code>, because it calls <code>slow</code> before ever calling <code>trpl::sleep</code>, but after that the futures swap back and forth each time one of them hits an await point. In this case, we have done that after every call to <code>slow</code>, but we could break up the work in whatever way makes the most sense to us.</p>
-<p>We don’t really want to <em>sleep</em> here, though: we want to make progress as fast as we can. We just need to hand back control to the runtime. We can do that directly, using the <code>trpl::yield_now</code> function. In Listing 17-17, we replace all those <code>trpl::sleep</code> calls with <code>trpl::yield_now</code>.</p>
+<p>La future <code>a</code> continuer à s’exécuter un peu de temps avant de rendre le contrôle à <code>b</code>, car elle appelle <code>lente</code> avant même d’appeler <code>trpl::sleep</code>, mais après cela, les futures s’échangent la place à chaque fois que l’une d’elles atteint un point d’attente. Dans ce cas, nous avons procédé ainsi après chaque appel à <code>lente</code>, mais nous pourrions diviser le travail de n’importe quelle manière qui nous semble la plus appropriée.</p>
+<p>Toutefois, nous ne voulons pas vraiment <em>dormir</em> (NDT : <em>sleep</em>) ici : nous voulons continuer à avancer le plus vite possible. Nous voulons simplement rendre le contrôle au moteur d’exécution. Nous pouvons faire cela directement, en utilisant la fonction <code>trpl::yield_now</code>. Dans l’encart 17-17, nous remplaçons tous ces appels à <code>trpl::sleep</code> par <code>trpl::yield_now</code>.</p>
 <figure class="listing" id="listing-17-17">
 <span class="file-name">Filename: src/main.rs</span>
-<pre class="playground"><code class="language-rust edition2024"><span class="boring">extern crate trpl; // required for mdbook test
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">extern crate trpl; // requis par test mdbook
 </span><span class="boring">
 </span><span class="boring">use std::{thread, time::Duration};
 </span><span class="boring">
 </span><span class="boring">fn main() {
 </span><span class="boring">    trpl::block_on(async {
 </span>        let a = async {
-            println!("'a' started.");
-            slow("a", 30);
+            println!("'a' a démarré.");
+            lente("a", 30);
             trpl::yield_now().await;
-            slow("a", 10);
+            lente("a", 10);
             trpl::yield_now().await;
-            slow("a", 20);
+            lente("a", 20);
             trpl::yield_now().await;
-            println!("'a' finished.");
+            println!("'a' a terminé.");
         };
 
         let b = async {
-            println!("'b' started.");
-            slow("b", 75);
+            println!("'b' a démarré.");
+            lente("b", 75);
             trpl::yield_now().await;
-            slow("b", 10);
+            lente("b", 10);
             trpl::yield_now().await;
-            slow("b", 15);
+            lente("b", 15);
             trpl::yield_now().await;
-            slow("b", 350);
+            lente("b", 350);
             trpl::yield_now().await;
-            println!("'b' finished.");
+            println!("'b' a terminé.");
         };
 <span class="boring">
 </span><span class="boring">        trpl::select(a, b).await;
 </span><span class="boring">    });
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">fn slow(name: &amp;str, ms: u64) {
+</span><span class="boring">fn lente(nom: &amp;str, ms: u64) {
 </span><span class="boring">    thread::sleep(Duration::from_millis(ms));
-</span><span class="boring">    println!("'{name}' ran for {ms}ms");
+</span><span class="boring">    println!("'{nom}' s'est exécuté durant {ms}ms");
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-17-17">Listing 17-17</a>: Using <code>yield_now</code> to let operations switch off making progress</figcaption>
 </figure>
-<p>This code is both clearer about the actual intent and can be significantly faster than using <code>sleep</code>, because timers such as the one used by <code>sleep</code> often have limits on how granular they can be. The version of <code>sleep</code> we are using, for example, will always sleep for at least a millisecond, even if we pass it a <code>Duration</code> of one nanosecond. Again, modern computers are <em>fast</em>: they can do a lot in one millisecond!</p>
-<p>This means that async can be useful even for compute-bound tasks, depending on what else your program is doing, because it provides a useful tool for structuring the relationships between different parts of the program (but at a cost of the overhead of the async state machine). This is a form of <em>cooperative multitasking</em>, where each future has the power to determine when it hands over control via await points. Each future therefore also has the responsibility to avoid blocking for too long. In some Rust-based embedded operating systems, this is the <em>only</em> kind of multitasking!</p>
-<p>In real-world code, you won’t usually be alternating function calls with await points on every single line, of course. While yielding control in this way is relatively inexpensive, it’s not free. In many cases, trying to break up a compute-bound task might make it significantly slower, so sometimes it’s better for <em>overall</em> performance to let an operation block briefly. Always measure to see what your code’s actual performance bottlenecks are. The underlying dynamic is important to keep in mind, though, if you <em>are</em> seeing a lot of work happening in serial that you expected to happen concurrently!</p>
-<h3 id="building-our-own-async-abstractions"><a class="header" href="#building-our-own-async-abstractions">Building Our Own Async Abstractions</a></h3>
-<p>We can also compose futures together to create new patterns. For example, we can build a <code>timeout</code> function with async building blocks we already have. When we’re done, the result will be another building block we could use to create still more async abstractions.</p>
-<p>Listing 17-18 shows how we would expect this <code>timeout</code> to work with a slow future.</p>
+<p>Ce code est à la fois plus clair en ce qui concerne l’intention réelle et il peut s’avérer significativement plus rapide que l’utilisation de <code>sleep</code>, car les temporisateurs comme celui utilisé par <code>sleep</code> ont souvent des limites quant à leur granularité. La version de <code>sleep</code> que nous utilisons, par exemple, attendra toujours au moins une milliseconde, même si nous lui passons une <code>Duration</code> d’une nanoseconde. Une fois de plus, les ordinateurs modernes sont <em>rapides</em> : ils peuvent accomplir beaucoup de choses en une seule milliseconde !</p>
+<p>Ceci implique que la programmation asynchrone peut être utile, y compris pour des tâches se limitant à du calcul, selon ce que fait le reste du programme, car elle offre un outil pratique pour structurer les relations entre différentes parties du programme (mais avec le coût de la surcharge de la machine à états asynchrone). C’est là un genre de <em>multitâches coopératif</em>, où chaque future à le pouvoir de déterminer quand elle rend la main via des points d’attente. Chaque futurea donc aussi la responsabilité d’éviter de bloquer l’exécution pendant trop de temps. Dans certains systèmes d’exploitation embarqués basés sur Rust, il s’agit du <em>seul</em> mode de multitâches !</p>
+<p>Dans du code du monde réel, vous ne basculerez généralement pas entre des appels de fonctions avec des points d’attente à chaque ligne, bien entendu. Bien que céder le contrôle de cette manière est relativement peu coûteux, ça n’est pas non plus totalement gratuit. Dans de nombreuses situations, tenter de morceler une tâche qui n’effectue que des calculs pourrait la rendre nettement plus lente ; donc il est parfois préférable, pour l’efficacité <em>globale</em>, de laisser une opération bloquer brièvement. Il vous faut toujours mesurer vos performances pour identifier les véritables goulots d’étranglement de votre code. Il est toutefois important de garder à l’esprit la dynamique sous-jacente, si vous <em>constatez</em> que beaucoup de travail se déroule en série alors que vous vous attendiez à ce qu’il se fasse en parallèle !</p>
+<h3 id="construction-de-nos-propres-abstractions-asynchrones"><a class="header" href="#construction-de-nos-propres-abstractions-asynchrones">Construction de nos propres abstractions asynchrones</a></h3>
+<p>Nous pouvons également combiner ensemble des futures pour créer de nouveaux motifs. Par exemple, nous pouvons construire une fonction <code>expiration_delai_attente</code> avec des éléments asynchrones que nous avons déjà. Une fois cela terminé, le résultat constituera un autre élément que nous pourrons utiliser pour créer encore davantage d’abstractions asynchrones.</p>
+<p>L’encart 17-18 montre comment nous pourrions envisager le travail de cette fonction <code>expiration_delai_attente</code> avec une future <code>lente</code>.</p>
 <figure class="listing" id="listing-17-18">
 <span class="file-name">Filename: src/main.rs</span>
-<pre><code class="language-rust ignore does_not_compile"><span class="boring">extern crate trpl; // required for mdbook test
+<pre><code class="language-rust ignore does_not_compile"><span class="boring">extern crate trpl; // requis par test mdbook
 </span><span class="boring">
 </span><span class="boring">use std::time::Duration;
 </span><span class="boring">
 </span><span class="boring">fn main() {
 </span><span class="boring">    trpl::block_on(async {
-</span>        let slow = async {
+</span>        let lente = async {
             trpl::sleep(Duration::from_secs(5)).await;
-            "Finally finished"
+            "Finalement terminé"
         };
 
-        match timeout(slow, Duration::from_secs(2)).await {
-            Ok(message) =&gt; println!("Succeeded with '{message}'"),
-            Err(duration) =&gt; {
-                println!("Failed after {} seconds", duration.as_secs())
+        match expiration_delai_attente(lente, Duration::from_secs(2)).await {
+            Ok(message) =&gt; println!("Réussi avec '{message}'"),
+            Err(duree) =&gt; {
+                println!("Échec après {} secondes", duree.as_secs())
             }
         }
 <span class="boring">    });
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-17-18">Listing 17-18</a>: Using our imagined <code>timeout</code> to run a slow operation with a time limit</figcaption>
 </figure>
-<p>Let’s implement this! To begin, let’s think about the API for <code>timeout</code>:</p>
+<p>Implémentons cela ! Pour commencer, réfléchissons à l’API pour <code>expiration_delai_attente</code> :</p>
 <ul>
-<li>It needs to be an async function itself so we can await it.</li>
-<li>Its first parameter should be a future to run. We can make it generic to allow it to work with any future.</li>
-<li>Its second parameter will be the maximum time to wait. If we use a <code>Duration</code>, that will make it easy to pass along to <code>trpl::sleep</code>.</li>
-<li>It should return a <code>Result</code>. If the future completes successfully, the <code>Result</code> will be <code>Ok</code> with the value produced by the future. If the timeout elapses first, the <code>Result</code> will be <code>Err</code> with the duration that the timeout waited for.</li>
+<li>Elle doit être elle-même une fonction asynchrone, de manière à ce que nous puissions l’attendre.</li>
+<li>Son premier paramètre devrait être une future à exécuter. Nous pouvons la rendre générique afin de lui permettre de fonctionner avec n’importe quelle future.</li>
+<li>Son second paramètre sera le laps de temps maximal à attendre. Si nous utilisons une <code>Duration</code>, cela rendra aisé le passage à <code>trpl::sleep</code>.</li>
+<li>Elle doit renvoyer un <code>Result</code>. Si la future se termine correctement, le <code>Result</code> sera un <code>Ok</code> avec la valeur produite par la future. Si le délai arrive à terme en premier, le <code>Result</code> sera <code>Err</code> avec la durée qui a été attendue.</li>
 </ul>
-<p>Listing 17-19 shows this declaration.</p>
+<p>L’encart 17-19 montre cette déclaration.</p>
 <!-- This is not tested because it intentionally does not compile. -->
 <figure class="listing" id="listing-17-19">
 <span class="file-name">Filename: src/main.rs</span>
-<pre><code class="language-rust ignore does_not_compile"><span class="boring">extern crate trpl; // required for mdbook test
+<pre><code class="language-rust ignore does_not_compile"><span class="boring">extern crate trpl; // requis par test mdbook
 </span><span class="boring">
 </span><span class="boring">use std::time::Duration;
 </span><span class="boring">
 </span><span class="boring">fn main() {
 </span><span class="boring">    trpl::block_on(async {
-</span><span class="boring">        let slow = async {
+</span><span class="boring">        let lente = async {
 </span><span class="boring">            trpl::sleep(Duration::from_secs(5)).await;
-</span><span class="boring">            "Finally finished"
+</span><span class="boring">            "Finalement terminé"
 </span><span class="boring">        };
 </span><span class="boring">
-</span><span class="boring">        match timeout(slow, Duration::from_secs(2)).await {
-</span><span class="boring">            Ok(message) =&gt; println!("Succeeded with '{message}'"),
-</span><span class="boring">            Err(duration) =&gt; {
-</span><span class="boring">                println!("Failed after {} seconds", duration.as_secs())
+</span><span class="boring">        match expiration_delai_attente(lente, Duration::from_secs(2)).await {
+</span><span class="boring">            Ok(message) =&gt; println!("Réussi avec '{message}'"),
+</span><span class="boring">            Err(duree) =&gt; {
+</span><span class="boring">                println!("Échec après {} secondes", duree.as_secs())
 </span><span class="boring">            }
 </span><span class="boring">        }
 </span><span class="boring">    });
 </span><span class="boring">}
 </span><span class="boring">
-</span>async fn timeout&lt;F: Future&gt;(
-    future_to_try: F,
-    max_time: Duration,
+</span>async fn expiration_delai_attente&lt;F: Future&gt;(
+    future_a_essayer: F,
+    delai_maxi: Duration,
 ) -&gt; Result&lt;F::Output, Duration&gt; {
-    // Here is where our implementation will go!
+    // Notre implémentation viendra ici !
 }</code></pre>
 <figcaption><a href="#listing-17-19">Listing 17-19</a>: Defining the signature of <code>timeout</code></figcaption>
 </figure>
-<p>That satisfies our goals for the types. Now let’s think about the <em>behavior</em> we need: we want to race the future passed in against the duration. We can use <code>trpl::sleep</code> to make a timer future from the duration, and use <code>trpl::select</code> to run that timer with the future the caller passes in.</p>
-<p>In Listing 17-20, we implement <code>timeout</code> by matching on the result of awaiting <code>trpl::select</code>.</p>
+<p>Voilà qui satisfait nos objectifs en ce qui concerne les types. Réfléchissons maintenant au <em>comportement</em> dont nous avons besoin : nous voulons faire concourir la future passée en argument contre la durée. Nous pouvons utiliser <code>trpl::sleep</code> pour faire une minuterie future à partir de la durée, et utiliser <code>trpl::sleep</code> avec la future que l’appelant a transmise.</p>
+<p>Dans l’encart 17-20, nous implémentons <code>expiration_delai_attente</code> en faisant une comparaison avec le résultat de l’attente de <code>trpl::select</code>.</p>
 <figure class="listing" id="listing-17-20">
 <span class="file-name">Filename: src/main.rs</span>
-<pre class="playground"><code class="language-rust edition2024"><span class="boring">extern crate trpl; // required for mdbook test
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">extern crate trpl; // requis par test mdbook
 </span><span class="boring">
 </span><span class="boring">use std::time::Duration;
 </span><span class="boring">
@@ -506,39 +506,39 @@ copy just the output
 
 <span class="boring">fn main() {
 </span><span class="boring">    trpl::block_on(async {
-</span><span class="boring">        let slow = async {
+</span><span class="boring">        let lente = async {
 </span><span class="boring">            trpl::sleep(Duration::from_secs(5)).await;
-</span><span class="boring">            "Finally finished"
+</span><span class="boring">            "Finalement terminé"
 </span><span class="boring">        };
 </span><span class="boring">
-</span><span class="boring">        match timeout(slow, Duration::from_secs(2)).await {
-</span><span class="boring">            Ok(message) =&gt; println!("Succeeded with '{message}'"),
-</span><span class="boring">            Err(duration) =&gt; {
-</span><span class="boring">                println!("Failed after {} seconds", duration.as_secs())
+</span><span class="boring">        match expiration_delai_attente(lente, Duration::from_secs(2)).await {
+</span><span class="boring">            Ok(message) =&gt; println!("Réussi avec '{message}'"),
+</span><span class="boring">            Err(duree) =&gt; {
+</span><span class="boring">                println!("Échec après {} secondes", duree.as_secs())
 </span><span class="boring">            }
 </span><span class="boring">        }
 </span><span class="boring">    });
 </span><span class="boring">}
 </span><span class="boring">
-</span>async fn timeout&lt;F: Future&gt;(
-    future_to_try: F,
-    max_time: Duration,
+</span>async fn expiration_delai_attente&lt;F: Future&gt;(
+    future_a_essayer: F,
+    delai_maxi: Duration,
 ) -&gt; Result&lt;F::Output, Duration&gt; {
-    match trpl::select(future_to_try, trpl::sleep(max_time)).await {
-        Either::Left(output) =&gt; Ok(output),
-        Either::Right(_) =&gt; Err(max_time),
+    match trpl::select(future_a_essayer, trpl::sleep(delai_maxi)).await {
+        Either::Left(sortie) =&gt; Ok(sortie),
+        Either::Right(_) =&gt; Err(delai_maxi),
     }
 }</code></pre>
 <figcaption><a href="#listing-17-20">Listing 17-20</a>: Defining <code>timeout</code> with <code>select</code> and <code>sleep</code></figcaption>
 </figure>
-<p>The implementation of <code>trpl::select</code> is not fair: it always polls arguments in the order in which they are passed (other <code>select</code> implementations will randomly choose which argument to poll first). Thus, we pass <code>future_to_try</code> to <code>select</code> first so it gets a chance to complete even if <code>max_time</code> is a very short duration. If <code>future_to_try</code> finishes first, <code>select</code> will return <code>Left</code> with the output from <code>future_to_try</code>. If <code>timer</code> finishes first, <code>select</code> will return <code>Right</code> with the timer’s output of <code>()</code>.</p>
-<p>If the <code>future_to_try</code> succeeds and we get a <code>Left(output)</code>, we return <code>Ok(output)</code>. If the sleep timer elapses instead and we get a <code>Right(())</code>, we ignore the <code>()</code> with <code>_</code> and return <code>Err(max_time)</code> instead.</p>
-<p>With that, we have a working <code>timeout</code> built out of two other async helpers. If we run our code, it will print the failure mode after the timeout:</p>
-<pre><code class="language-text">Failed after 2 seconds
+<p>L’implémentation de <code>trpl::select</code> n’est pas équitable : elle interroge toujours les arguments dans l’ordre où ils sont passés (d’autres implementations de <code>select</code> choisissent au hasard quel argument est à interroger en premier). De ce fait, nous passons <code>future_a_essayer</code> à <code>select</code> en premier de façon à ce qu’elle puisse avoir une chance de se terminer quand bien même <code>delai_maxi</code> serait court. Si <code>future_a_essayer</code> se termine en premier, <code>select</code> va renvoyer <code>Left</code> avec la sortie de <code>future_a_essayer</code>. Si <code>expiration_delai_attente</code> finit en premier, alors <code>select</code> va renvoyer <code>Right</code> avec la sortie de la minuterie de <code>()</code>.</p>
+<p>Si <code>future_a_essayer</code> réussit et que nous obtenons <code>Left(sortie)</code>, nous renvoyons <code>Ok(sortie)</code>. Si, au contraire, le délai d’expiration est atteint et que nous obtenons un <code>Right(())</code>, nous ignorons le <code>()</code> et renvoyons <code>Err(delai_maxi)</code> à la place.</p>
+<p>Avec tout ça, nous avons un <code>expiration_delai_attente</code> opérationnel, construit à partir de deux autres fonctions d’aide asynchrones. Si nous exécutons notre code, il affichera le message d’erreur après expiration du délai.</p>
+<pre><code class="language-text">Échec après 2 secondes
 </code></pre>
-<p>Because futures compose with other futures, you can build really powerful tools using smaller async building blocks. For example, you can use this same approach to combine timeouts with retries, and in turn use those with operations such as network calls (such as those in Listing 17-5).</p>
-<p>In practice, you’ll usually work directly with <code>async</code> and <code>await</code>, and secondarily with functions such as <code>select</code> and macros such as the <code>join!</code> macro to control how the outermost futures are executed.</p>
-<p>We’ve now seen a number of ways to work with multiple futures at the same time. Up next, we’ll look at how we can work with multiple futures in a sequence over time with <em>streams</em>.</p>
+<p>Comme les futures s’assemblent avec d’autres futures, vous pouvez créer des outils très puissants à partir de petites briques asynchrones. Par exemple, vous pouvez utiliser cette même approche pour combiner des délais d’expiration avec des tentatives de réessai, puis les utiliser à leur tour dans des opérations telles que des appels réseau (comme ceux de l’encart 17-5).</p>
+<p>En pratique, vous travaillerez généralement avec <code>async</code> et <code>await</code>, puis accessoirement avec des fonctions telles que <code>select</code> et des macros comme <code>join!</code> pour contrôler la manière dont les futures les plus externes sont exécutées.</p>
+<p>Nous avons vu jusqu’ici plusieurs manières de travailler avec plusieurs futures en même temps. Nous allons maintenant voir comment nous pouvons travailler avec plusieurs futures de manière séquentielle dans le temps à  l’aide des <em>flux</em> (NDT : <em>streams</em>).</p>
 
                     </main>
 

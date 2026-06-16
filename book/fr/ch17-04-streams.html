@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Futures en séquence - The Rust Programming Language</title>
+        <title>Les flux : futures en séquence - The Rust Programming Language</title>
 
 
         <!-- Custom HTML head -->
@@ -96,10 +96,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d2248916.js";
+            window.path_to_searchindex_js = "searchindex-e705db65.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e6f954e3.js"></script>
+        <script src="toc-cf7f76ff.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -240,30 +240,29 @@
                     <main>
                         <!-- Old headings. Do not remove or links may break. -->
 <p><a id="streams"></a></p>
-<h2 id="futures-en-séquence"><a class="header" href="#futures-en-séquence">Futures en séquence</a></h2>
-<p>Recall how we used the receiver for our async channel earlier in this chapter in the <a href="ch17-02-concurrency-with-async.html#message-passing">“Message Passing”</a><!-- ignore --> section. The async <code>recv</code> method produces a sequence of items over time. This is an instance of a much more general pattern known as a <em>stream</em>. Many concepts are naturally represented as streams: items becoming available in a queue, chunks of data being pulled incrementally from the filesystem when the full data set is too large for the computer’s memory, or data arriving over the network over time. Because streams are futures, we can use them with any other kind of future and combine them in interesting ways. For example, we can batch up events to avoid triggering too many network calls, set timeouts on sequences of long-running operations, or throttle user interface events to avoid doing needless work.</p>
-<p>We saw a sequence of items back in Chapter 13, when we looked at the Iterator trait in <a href="ch13-02-iterators.html#the-iterator-trait-and-the-next-method">“The Iterator Trait and the <code>next</code> Method”</a><!--
-ignore --> section, but there are two differences between iterators and the async channel receiver. The first difference is time: iterators are synchronous, while the channel receiver is asynchronous. The second difference is the API. When working directly with <code>Iterator</code>, we call its synchronous <code>next</code> method. With the <code>trpl::Receiver</code> stream in particular, we called an asynchronous <code>recv</code> method instead. Otherwise, these APIs feel very similar, and that similarity isn’t a coincidence. A stream is like an asynchronous form of iteration. Whereas the <code>trpl::Receiver</code> specifically waits to receive messages, though, the general-purpose stream API is much broader: it provides the next item the way <code>Iterator</code> does, but asynchronously.</p>
-<p>The similarity between iterators and streams in Rust means we can actually create a stream from any iterator. As with an iterator, we can work with a stream by calling its <code>next</code> method and then awaiting the output, as in Listing 17-21, which won’t compile yet.</p>
+<h2 id="les-flux--futures-en-séquence"><a class="header" href="#les-flux--futures-en-séquence">Les flux : futures en séquence</a></h2>
+<p>Rappelez-vous comment, plus tôt dans ce chapitre, dans la section <a href="ch17-02-concurrency-with-async.html#%C3%A9change-de-donn%C3%A9es-entre-deux-t%C3%A2ches-en-utilisant-le-passage-de-messages">“passage de messages”</a><!-- ignore -->, nous avons utilisé le récepteur pour notre canal de communication asynchrone. La méthode asynchrone <code>recv</code> génère une séquence d’éléments au fil du temps. Il s’agit là d’un exemple d’un modèle bien plus général connu sous le nom de <em>flux</em> (NDT : <em>stream</em>). De nombreux concepts sont naturellement représentés sous forme de flux : des éléments devenant disponibles dans une file d’attente, des morceaux de données extraits progressivement du système de fichiers lorsque l’ensemble du jeu de données est trop grange pour rentrer dans la mémoire vive de l’ordinateur, ou encore des données arrivant sur le réseau au fil du temps. Du fait que les flux soient des futures, nous pouvons les utiliser comme n’importe quelle autre sorte de future et les combiner de manière intéressante. Par exemple, nous pouvons regrouper des évènements pour éviter de déclencher trop d’appels sur le réseau, définir des délais d’expiration pour des séquences d’opérations de longue durée, ou limiter les évènements de l’interface utilisateur pour éviter d’effectuer du travail inutile.</p>
+<p>Nous avons vu une séquence d’éléments dans le chapitre 13, lorsque nous avions regardé le trait Iterator dans la section <a href="ch13-02-iterators.html#le-trait-iterator-et-la-m%C3%A9thode-next">“Le trait Iterator et la méthode next”</a><!-- ignore -->, mais il existe deux différences entre les itérateurs et le récepteur de canal asynchrone. La première différence concerne le temps : les itérateurs sont synchrones alors que le récepteur de canal est asynchrone. La seconde différence concerne l’API. Quand on travaille directement avec <code>Iterator</code>, on appelle sa méthode synchrone <code>next</code>. Avec le flux <code>trpl::receiver</code> en particulier, on a appelé à la place une méthode asynchrone <code>recv</code>. À part ça, ces APIs se ressemblent beaucoup, et cette similarité n’est pas qu’une coïncidence ; un flux est comme une forme asynchrone d’itération. Cependant, alors que <code>trpl::Receiver</code> attend spécifiquement de recevoir des messages, l’API de flux polyvalente est bien plus large : elle fournit l’élément suivant de la même manière que <code>Iterator</code>, mais de manière asynchrone.</p>
+<p>La similarité entre les itérateurs et les flux en Rust implique que nous pouvons créer un flux à partir de n’importe quel itérateur. Comme pour un itérateur, nous pouvons travailler avec un flux en appelant sa méthode <code>next</code> et ensuite attendre la sortie, comme dans le code de l’encart 17-21, qui ne se compile pas encore.</p>
 <figure class="listing" id="listing-17-21">
 <span class="file-name">Filename: src/main.rs</span>
-<pre><code class="language-rust ignore does_not_compile"><span class="boring">extern crate trpl; // required for mdbook test
+<pre><code class="language-rust ignore does_not_compile"><span class="boring">extern crate trpl; // requis par test mdbook
 </span><span class="boring">
 </span><span class="boring">fn main() {
 </span><span class="boring">    trpl::block_on(async {
-</span>        let values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-        let iter = values.iter().map(|n| n * 2);
-        let mut stream = trpl::stream_from_iter(iter);
+</span>        let valeurs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        let iter = valeurs.iter().map(|n| n * 2);
+        let mut flux = trpl::stream_from_iter(iter);
 
-        while let Some(value) = stream.next().await {
-            println!("The value was: {value}");
+        while let Some(valeur) = flux.next().await {
+            println!("La valeur était : {valeur}");
         }
 <span class="boring">    });
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-17-21">Listing 17-21</a>: Creating a stream from an iterator and printing its values</figcaption>
 </figure>
-<p>We start with an array of numbers, which we convert to an iterator and then call <code>map</code> on to double all the values. Then we convert the iterator into a stream using the <code>trpl::stream_from_iter</code> function. Next, we loop over the items in the stream as they arrive with the <code>while let</code> loop.</p>
-<p>Unfortunately, when we try to run the code, it doesn’t compile but instead reports that there’s no <code>next</code> method available:</p>
+<p>Nous commençons par un tableau de nombres, que nous convertissons en un itérateur, sur lequel nous appelons ensuite <code>map</code> pour doubler toutes ses valeurs. Puis nous convertissons l’itérateur en un flux en utilisant la fonction <code>trpl::stream_from_iter</code>. Ensuite, nous bouclons sur les éléments dans le flux au fur et à mesure de leurs arrivées avec la boucle <code>while let</code>.</p>
+<p>Malheureusement, quand nous tentons d’exécuter ce code, il ne se compile pas mais, à la place, rapporte le fait qu’il n’y a pas de méthode <code>next</code> de disponible :</p>
 <!-- manual-regeneration
 cd listings/ch17-async-await/listing-17-21
 cargo build
@@ -272,8 +271,8 @@ copy only the error output
 <pre><code class="language-text">error[E0599]: no method named `next` found for struct `tokio_stream::iter::Iter` in the current scope
   --&gt; src/main.rs:10:40
    |
-10 |         while let Some(value) = stream.next().await {
-   |                                        ^^^^
+10 |         while let Some(valeur) = flux.next().await {
+   |                                       ^^^^
    |
    = help: items from traits can only be used if the trait is in scope
 help: the following traits which provide `next` are implemented but not in scope; perhaps you want to import one of them
@@ -288,33 +287,33 @@ help: the following traits which provide `next` are implemented but not in scope
    |
 help: there is a method `try_next` with a similar name
    |
-10 |         while let Some(value) = stream.try_next().await {
-   |                                        ~~~~~~~~
+10 |         while let Some(valeur) = flux.try_next().await {
+   |                                       ~~~~~~~~
 </code></pre>
-<p>As this output explains, the reason for the compiler error is that we need the right trait in scope to be able to use the <code>next</code> method. Given our discussion so far, you might reasonably expect that trait to be <code>Stream</code>, but it’s actually <code>StreamExt</code>. Short for <em>extension</em>, <code>Ext</code> is a common pattern in the Rust community for extending one trait with another.</p>
-<p>The <code>Stream</code> trait defines a low-level interface that effectively combines the <code>Iterator</code> and <code>Future</code> traits. <code>StreamExt</code> supplies a higher-level set of APIs on top of <code>Stream</code>, including the <code>next</code> method as well as other utility methods similar to those provided by the <code>Iterator</code> trait. <code>Stream</code> and <code>StreamExt</code> are not yet part of Rust’s standard library, but most ecosystem crates use similar definitions.</p>
-<p>The fix to the compiler error is to add a <code>use</code> statement for <code>trpl::StreamExt</code>, as in Listing 17-22.</p>
+<p>Comme cette sortie l’explique, la raison de l’erreur de compilation est que nous avons besoin du bon trait dans la portée afin de pouvoir utiliser la méthode <code>next</code>. Compte tenu de la présente discussion jusqu’ici, on pourrait raisonnablement s’attendre à ce que ce trait soit <code>Stream</code>, mais c’est en fait <code>StreamExt</code>. Abréviation de <em>extension</em>, l’utilisation de <code>Ext</code> est courante dans la communauté Rust pour étendre un trait à l’aide d’un autre.</p>
+<p>Le trait <code>Stream</code> concerne une interface de plus bas niveau qui combine les traits <code>Iterator</code> et <code>Future</code>. <code>StreamExt</code> fournit un ensemble d’APIs de plus haut niveau venant par-dessus <code>Stream</code>, y compris la méthode <code>next</code> et d’autres méthodes utilitaires similaires à celles fournies par le trait <code>Iterator</code>. <code>Stream</code> et <code>StreamExt</code> ne font pas encore partie de la bibliothèque standard de Rust, mais la plupart des crates de l’écosystème utilisent des définitions similaires.</p>
+<p>La résolution de l’erreur compilation consiste à ajouter une instruction <code>use</code> pour <code>trpl::StreamExt</code>, comme dans l’encart 17-22.</p>
 <figure class="listing" id="listing-17-22">
 <span class="file-name">Filename: src/main.rs</span>
-<pre class="playground"><code class="language-rust edition2024"><span class="boring">extern crate trpl; // required for mdbook test
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">extern crate trpl; // requis par test mdbook
 </span><span class="boring">
 </span>use trpl::StreamExt;
 
 fn main() {
     trpl::block_on(async {
-        let values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        let valeurs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
         // -- partie masquée ici --
-<span class="boring">        let iter = values.iter().map(|n| n * 2);
-</span><span class="boring">        let mut stream = trpl::stream_from_iter(iter);
+<span class="boring">        let iter = valeurs.iter().map(|n| n * 2);
+</span><span class="boring">        let mut flux = trpl::stream_from_iter(iter);
 </span><span class="boring">
-</span><span class="boring">        while let Some(value) = stream.next().await {
-</span><span class="boring">            println!("The value was: {value}");
+</span><span class="boring">        while let Some(valeur) = flux.next().await {
+</span><span class="boring">            println!("La valeur était : {valeur}");
 </span><span class="boring">        }
 </span><span class="boring">    });
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-17-22">Listing 17-22</a>: Successfully using an iterator as the basis for a stream</figcaption>
 </figure>
-<p>With all those pieces put together, this code works the way we want! What’s more, now that we have <code>StreamExt</code> in scope, we can use all of its utility methods, just as with iterators.</p>
+<p>Avec tous ces éléments qui s’assemblent, ce code fonctionne comme nous le souhaitons ! De plus, maintenant que nous avons <code>StreamExt</code> dans la portée, nous pouvons utiliser toutes ses méthodes utilitaires, exactement comme pour les itérateurs.</p>
 
                     </main>
 
