@@ -97,7 +97,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9143e04b.js";
+            window.path_to_searchindex_js = "../searchindex-f3b3829e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-d4808052.js"></script>
@@ -316,6 +316,7 @@ build-std = ["core", "alloc"]
 <li><a href="#update-breaking">update-breaking</a> — Allows upgrading to breaking versions with <code>update --breaking</code></li>
 <li><a href="#feature-unification">feature-unification</a> — Enable new feature unification modes in workspaces</li>
 <li><a href="#lockfile-publish-time">lockfile-publish-time</a> — Limit resolver to packages older than the specified time</li>
+<li><a href="#min-publish-age">min-publish-age</a> — Filters out dependency versions published more recently than a configured minimum age.</li>
 </ul>
 </li>
 <li>Output behavior
@@ -1601,7 +1602,7 @@ Paths to all other source files will not be affected.</p>
 <h4 id="environment-variable"><a class="header" href="#environment-variable">Environment variable</a></h4>
 <p><em>as a new entry of <a href="./environment-variables.html#environment-variables-cargo-sets-for-crates">“Environment variables Cargo sets for build scripts”</a></em></p>
 <ul>
-<li><code>CARGO_TRIM_PATHS</code> — The value of <code>trim-paths</code> profile option.
+<li><code>CARGO_TRIM_PATHS_SCOPE</code> — The value of <code>trim-paths</code> profile option.
 <code>false</code>, <code>"none"</code>, and empty arrays would be converted to <code>none</code>.
 <code>true</code> and <code>"all"</code> become <code>all</code>.
 Values in a non-empty array would be joined into a comma-separated list.
@@ -1609,6 +1610,12 @@ If the build script introduces absolute paths to built artifacts (such as by inv
 the user may request them to be sanitized in different types of artifacts.
 Common paths requiring sanitization include <code>OUT_DIR</code>, <code>CARGO_MANIFEST_DIR</code> and <code>CARGO_MANIFEST_PATH</code>,
 plus any other introduced by the build script, such as include directories.</li>
+<li><code>CARGO_TRIM_PATHS_REMAP</code> — The <code>&lt;from&gt;=&lt;to&gt;</code> path remap pairs Cargo passes to the compiler,
+joined by the platform path separator.
+Only set when <code>trim-paths</code> profile is active.
+Build scripts can forward these mappings to C/C++ compilers and other tools,
+for example via <code>cc</code>’s <code>-ffile-prefix-map</code>,
+to sanitize paths consistently with the rest of the build.</li>
 </ul>
 <h2 id="gc"><a class="header" href="#gc">gc</a></h2>
 <ul>
@@ -1976,6 +1983,104 @@ and run <code>rustdoc</code> in parallel.</p>
 <pre><code class="language-console">cargo +nightly build --target my-target.json -Z json-target-spec
 </code></pre>
 <p>This usually must be combined with <a href="#build-std">build-std</a>.</p>
+<h2 id="min-publish-age"><a class="header" href="#min-publish-age">min-publish-age</a></h2>
+<ul>
+<li>Tracking Issue: <a href="https://github.com/rust-lang/cargo/issues/17009">#17009</a></li>
+<li>RFC: <a href="https://github.com/rust-lang/rfcs/pull/3923">#3923</a></li>
+</ul>
+<p>The <code>-Zmin-publish-age</code> feature allows users to specify a minimum age for
+dependency versions. When specified, Cargo won’t use a version of a registry
+crate that is newer than the minimum age, with a way to override for exceptions
+like urgent security fixes.</p>
+<p>For example, in your <code>&lt;repo&gt;/.cargo/config.toml</code>:</p>
+<pre><code class="language-toml">[registry]
+global-min-publish-age = "14 days"
+</code></pre>
+<h3 id="added-to-configuration"><a class="header" href="#added-to-configuration">Added to Configuration</a></h3>
+<p>The following will be added to Cargo’s configuration format:</p>
+<pre><code class="language-toml">[resolver]
+incompatible-publish-age = "deny" # Specifies how resolver reacts to these
+
+[registries.&lt;name&gt;]
+min-publish-age = "..."  # Override `registry.global-min-publish-age` for this registry
+
+[registry]
+min-publish-age = "..."  # Override `registry.global-min-publish-age` for crates.io
+global-min-publish-age = "0"  # Minimum time span allowed for packages from this registry
+</code></pre>
+<h4 id="resolverincompatible-publish-age"><a class="header" href="#resolverincompatible-publish-age"><code>resolver.incompatible-publish-age</code></a></h4>
+<ul>
+<li>Type: String</li>
+<li>Default: <code>"deny"</code></li>
+<li>Environment: <code>CARGO_RESOLVER_INCOMPATIBLE_PUBLISH_AGE</code></li>
+</ul>
+<p>When resolving the version of a dependency,
+specify the behavior for versions with a <code>pubtime</code> (if present)
+that is incompatible with <code>registry.min-publish-age</code>.
+Values include:</p>
+<ul>
+<li><code>allow</code>: treat pubtime-incompatible versions like any other version</li>
+<li><code>deny</code>: ignore pubtime-incompatible versions unless they already exist in the lock file</li>
+</ul>
+<h4 id="registriesnamemin-publish-age"><a class="header" href="#registriesnamemin-publish-age"><code>registries.&lt;name&gt;.min-publish-age</code></a></h4>
+<ul>
+<li>Type: String</li>
+<li>Default: none</li>
+<li>Environment: <code>CARGO_REGISTRIES_&lt;name&gt;_MIN_PUBLISH_AGE</code></li>
+</ul>
+<p>Specifies the minimum timespan since a version’s <code>pubtime</code> that it may be
+considered for <code>resolver.incompatible-publish-age</code> for packages from this
+registry. If not set, <code>registry.global-min-publish-age</code> will be used.</p>
+<p>Will be ignored if the registry does not support this.</p>
+<p>It supports the following values:</p>
+<ul>
+<li>An integer followed by “seconds”, “minutes”, “hours”, “days”, “weeks”, or “months”</li>
+<li><code>"0"</code> to allow all packages</li>
+</ul>
+<h4 id="registrymin-publish-age"><a class="header" href="#registrymin-publish-age"><code>registry.min-publish-age</code></a></h4>
+<ul>
+<li>Type: String</li>
+<li>Default: none</li>
+<li>Environment: <code>CARGO_REGISTRY_MIN_PUBLISH_AGE</code></li>
+</ul>
+<p>Specifies the minimum timespan since a version’s <code>pubtime</code> that it may be
+considered for <code>resolver.incompatible-publish-age</code> for packages from crates.io.
+If not set, <code>registry.global-min-publish-age</code> will be used.</p>
+<p>It supports the following values:</p>
+<ul>
+<li>An integer followed by “seconds”, “minutes”, “hours”, “days”, “weeks”, or “months”</li>
+<li><code>"0"</code> to allow all packages</li>
+</ul>
+<p>Generally, <code>"0"</code>, <code>"N days"</code>, and <code>"N weeks"</code> will be used.</p>
+<h4 id="registryglobal-min-publish-age"><a class="header" href="#registryglobal-min-publish-age"><code>registry.global-min-publish-age</code></a></h4>
+<ul>
+<li>Type: String</li>
+<li>Default: <code>"0"</code></li>
+<li>Environment: <code>CARGO_REGISTRY_GLOBAL_MIN_PUBLISH_AGE</code></li>
+</ul>
+<p>Specifies the global minimum timespan since a version’s <code>pubtime</code> that it may
+be considered for <code>resolver.incompatible-publish-age</code> for packages.
+If <code>min-publish-age</code> is not set for a specific registry using
+<code>registries.&lt;name&gt;.min-publish-age</code>, Cargo will use this minimum publish age.</p>
+<p>It supports the following values:</p>
+<ul>
+<li>An integer followed by “seconds”, “minutes”, “hours”, “days”, “weeks”, or “months”</li>
+<li><code>"0"</code> to allow all packages</li>
+</ul>
+<h3 id="added-to-resolver"><a class="header" href="#added-to-resolver">Added to Resolver</a></h3>
+<p>The following will be added to the <a href="../reference/resolver.html">resolver chapter</a> as a sibling section to
+“Yanked versions”:</p>
+<blockquote>
+<p>“Pubtime-incompatible versions”</p>
+<p>Versions with a publish time newer than the configured <code>min-publish-age</code>
+are considered pubtime-incompatible.
+When <code>resolver.incompatible-publish-age</code> is set to <code>deny</code>,
+the resolver will ignore these versions
+unless they already exist in the <code>Cargo.lock</code> file.
+Setting the config to <code>allow</code> would disable the check,
+which if combined with <code>cargo update --precise</code>,
+cargo would pull in a specific version and its transitive dependencies.</p>
+</blockquote>
 <h1 id="stabilized-and-removed-features"><a class="header" href="#stabilized-and-removed-features">Stabilized and removed features</a></h1>
 <h2 id="compile-progress"><a class="header" href="#compile-progress">Compile progress</a></h2>
 <p>The compile-progress feature has been stabilized in the 1.30 release.
