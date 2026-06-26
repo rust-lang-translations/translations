@@ -96,7 +96,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3952f75e.js";
+            window.path_to_searchindex_js = "searchindex-a91f184d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1a54300e.js"></script>
@@ -239,11 +239,11 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h2 id="arrêt-propre-et-nettoyage"><a class="header" href="#arrêt-propre-et-nettoyage">Arrêt propre et nettoyage</a></h2>
-<p>The code in Listing 21-20 is responding to requests asynchronously through the use of a thread pool, as we intended. We get some warnings about the <code>workers</code>, <code>id</code>, and <code>thread</code> fields that we’re not using in a direct way that reminds us we’re not cleaning up anything. When we use the less elegant <kbd>ctrl</kbd>-<kbd>C</kbd> method to halt the main thread, all other threads are stopped immediately as well, even if they’re in the middle of serving a request.</p>
-<p>Next, then, we’ll implement the <code>Drop</code> trait to call <code>join</code> on each of the threads in the pool so that they can finish the requests they’re working on before closing. Then, we’ll implement a way to tell the threads they should stop accepting new requests and shut down. To see this code in action, we’ll modify our server to accept only two requests before gracefully shutting down its thread pool.</p>
-<p>One thing to notice as we go: None of this affects the parts of the code that handle executing the closures, so everything here would be the same if we were using a thread pool for an async runtime.</p>
-<h3 id="implementing-the-drop-trait-on-threadpool"><a class="header" href="#implementing-the-drop-trait-on-threadpool">Implementing the <code>Drop</code> Trait on <code>ThreadPool</code></a></h3>
-<p>Let’s start with implementing <code>Drop</code> on our thread pool. When the pool is dropped, our threads should all join to make sure they finish their work. Listing 21-22 shows a first attempt at a <code>Drop</code> implementation; this code won’t quite work yet.</p>
+<p>Le code de l’encart 21-20 répond aux requêtes de manière asynchrone grâce à l’utilisation du groupe de fils d’exécution, comme nous l’espérions. Nous avons quelques avertissements sur les champs <code>operateurs</code>, <code>id</code> et <code>tache</code> que nous n’utilisons pas directement et qui nous rappellent que nous ne nettoyons rien. Lorsque nous arrêtons brutalement la tâche principale en appuyant sur <kbd>ctrl</kbd>-<kbd>C</kbd>, tous les autres fils d’exécution sont également immédiatement stoppées, même si ils sont en train de servir une requête.</p>
+<p>Après cela, nous allons donc implémenter le trait <code>Drop</code> afin d’appeler <code>join</code> sur chacun des fils d’exécution du groupe afin qu’ils puissent finir les requêtes qu’ils sont en train de traiter avant de s’arrêter. Ensuite, nous allons implémenter un moyen de demander aux fils d’exécution d’arrêter d’accepter de nouvelles requêtes et de s’arrêter. Pour voir ce code en action, nous allons modifier notre serveur pour n’accepter que deux requêtes avant d’arrêter proprement son groupe de fils d’exécution.</p>
+<p>Une remarque au passage : rien de ceci n’affecte les portions du code qui se charge d’exécuter les fermetures, donc tout serait ici identique si nous utilisions un groupe de fils pour un moteur d’exécution asynchrone.</p>
+<h3 id="implémentation-du-trait-drop-sur-groupetaches"><a class="header" href="#implémentation-du-trait-drop-sur-groupetaches">Implémentation du trait <code>Drop</code> sur <code>GroupeTaches</code></a></h3>
+<p>Commençons par implémenter <code>Drop</code> sur notre groupe de tâches. Lorsque le groupe est nettoyé, nos tâches doivent toutes faire appel à <code>join</code> pour s’assurer qu’elles finissent leur travail. L’encart 21-22 montre une première tentative d’implémentation de <code>Drop</code> ; ce code ne fonctionne pas encore tout à fait.</p>
 <figure class="listing" id="listing-21-22">
 <span class="file-name">Filename: src/lib.rs</span>
 <pre><code class="language-rust ignore does_not_compile"><span class="boring">use std::{
@@ -251,101 +251,101 @@
 </span><span class="boring">    thread,
 </span><span class="boring">};
 </span><span class="boring">
-</span><span class="boring">pub struct ThreadPool {
-</span><span class="boring">    workers: Vec&lt;Worker&gt;,
-</span><span class="boring">    sender: mpsc::Sender&lt;Job&gt;,
+</span><span class="boring">pub struct GroupeTaches {
+</span><span class="boring">    operateurs: Vec&lt;Operateur&gt;,
+</span><span class="boring">    envoi: mpsc::Sender&lt;Mission&gt;,
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">type Job = Box&lt;dyn FnOnce() + Send + 'static&gt;;
+</span><span class="boring">type Mission = Box&lt;dyn FnOnce() + Send + 'static&gt;;
 </span><span class="boring">
-</span><span class="boring">impl ThreadPool {
-</span><span class="boring">    /// Create a new ThreadPool.
+</span><span class="boring">impl GroupeTaches {
+</span><span class="boring">    /// Crée un nouveau GroupeTaches.
 </span><span class="boring">    ///
-</span><span class="boring">    /// The size is the number of threads in the pool.
+</span><span class="boring">    /// La taille est le nombre de tâches présentes dans le groupe.
 </span><span class="boring">    ///
 </span><span class="boring">    /// # Panics
 </span><span class="boring">    ///
-</span><span class="boring">    /// The `new` function will panic if the size is zero.
-</span><span class="boring">    pub fn new(size: usize) -&gt; ThreadPool {
-</span><span class="boring">        assert!(size &gt; 0);
+</span><span class="boring">    /// La fonction `new` devrait paniquer si la taille vaut zéro.
+</span><span class="boring">    pub fn new(taille: usize) -&gt; GroupeTaches {
+</span><span class="boring">        assert!(taille &gt; 0);
 </span><span class="boring">
-</span><span class="boring">        let (sender, receiver) = mpsc::channel();
+</span><span class="boring">        let (envoi, reception) = mpsc::channel();
 </span><span class="boring">
-</span><span class="boring">        let receiver = Arc::new(Mutex::new(receiver));
+</span><span class="boring">        let reception = Arc::new(Mutex::new(reception));
 </span><span class="boring">
-</span><span class="boring">        let mut workers = Vec::with_capacity(size);
+</span><span class="boring">        let mut operateurs = Vec::with_capacity(taille);
 </span><span class="boring">
-</span><span class="boring">        for id in 0..size {
-</span><span class="boring">            workers.push(Worker::new(id, Arc::clone(&amp;receiver)));
+</span><span class="boring">        for id in 0..taille {
+</span><span class="boring">            operateurs.push(Operateur::new(id, Arc::clone(&amp;reception)));
 </span><span class="boring">        }
 </span><span class="boring">
-</span><span class="boring">        ThreadPool { workers, sender }
+</span><span class="boring">        GroupeTaches { operateurs, envoi }
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    pub fn execute&lt;F&gt;(&amp;self, f: F)
+</span><span class="boring">    pub fn executer&lt;F&gt;(&amp;self, f: F)
 </span><span class="boring">    where
 </span><span class="boring">        F: FnOnce() + Send + 'static,
 </span><span class="boring">    {
-</span><span class="boring">        let job = Box::new(f);
+</span><span class="boring">        let mission = Box::new(f);
 </span><span class="boring">
-</span><span class="boring">        self.sender.send(job).unwrap();
+</span><span class="boring">        self.envoi.send(mission).unwrap();
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
-</span>impl Drop for ThreadPool {
+</span>impl Drop for GroupeTaches {
     fn drop(&amp;mut self) {
-        for worker in &amp;mut self.workers {
-            println!("Shutting down worker {}", worker.id);
+        for operateur in &amp;mut self.operateurs {
+            println!("Arrêt de l'opérateur {}", operateur.id);
 
-            worker.thread.join().unwrap();
+            operateur.tache.join().unwrap();
         }
     }
 }
 <span class="boring">
-</span><span class="boring">struct Worker {
+</span><span class="boring">struct Operateur {
 </span><span class="boring">    id: usize,
-</span><span class="boring">    thread: thread::JoinHandle&lt;()&gt;,
+</span><span class="boring">    tache: thread::JoinHandle&lt;()&gt;,
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">impl Worker {
-</span><span class="boring">    fn new(id: usize, receiver: Arc&lt;Mutex&lt;mpsc::Receiver&lt;Job&gt;&gt;&gt;) -&gt; Worker {
-</span><span class="boring">        let thread = thread::spawn(move || {
+</span><span class="boring">impl Operateur {
+</span><span class="boring">    fn new(id: usize, reception: Arc&lt;Mutex&lt;mpsc::Receiver&lt;Mission&gt;&gt;&gt;) -&gt; Operateur {
+</span><span class="boring">        let tache = thread::spawn(move || {
 </span><span class="boring">            loop {
-</span><span class="boring">                let job = receiver.lock().unwrap().recv().unwrap();
+</span><span class="boring">                let mission = reception.lock().unwrap().recv().unwrap();
 </span><span class="boring">
-</span><span class="boring">                println!("Worker {id} got a job; executing.");
+</span><span class="boring">                println!("L'opérateur {id} a reçu une mission ; il l'exécute.");
 </span><span class="boring">
-</span><span class="boring">                job();
+</span><span class="boring">                mission();
 </span><span class="boring">            }
 </span><span class="boring">        });
 </span><span class="boring">
-</span><span class="boring">        Worker { id, thread }
+</span><span class="boring">        Operateur { id, tache }
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-21-22">Listing 21-22</a>: Joining each thread when the thread pool goes out of scope</figcaption>
 </figure>
-<p>First, we loop through each of the thread pool <code>workers</code>. We use <code>&amp;mut</code> for this because <code>self</code> is a mutable reference, and we also need to be able to mutate <code>worker</code>. For each <code>worker</code>, we print a message saying that this particular <code>Worker</code> instance is shutting down, and then we call <code>join</code> on that <code>Worker</code> instance’s thread. If the call to <code>join</code> fails, we use <code>unwrap</code> to make Rust panic and go into an ungraceful shutdown.</p>
-<p>Here is the error we get when we compile this code:</p>
+<p>D’abord, nous faisons une boucle sur tous les <code>operateurs</code> du groupe de fils d’exécution. Pour ce faire, nous utilisons <code>&amp;mut</code> car <code>self</code> n’est qu’une référence mutable du groupe de fils d’exécution, et nous aurons également besoin de pouvoir modifier <code>operateur</code>. Pour chaque <code>operateur</code>, nous affichons un message qui indique que cette instance de <code>operateur</code> est en train de s’arrêter, puis nous faisons appel à <code>join</code> sur le fil d’exécution de cette instance de <code>operateur</code>. Si l’appel à <code>join</code> échoue, nous utilisons <code>unwrap</code> pour faire paniquer Rust et ainsi procéder à un arrêt brutal.</p>
+<p>Voici l’erreur que nous obtenons lorsque nous compilons ce code :</p>
 <pre><code class="language-console">$ cargo check
-    Checking hello v0.1.0 (file:///projects/hello)
-error[E0507]: cannot move out of `worker.thread` which is behind a mutable reference
+    Checking salutations v0.1.0 (file:///projects/salutations)
+error[E0507]: cannot move out of `operateur.tache` which is behind a mutable reference
   --&gt; src/lib.rs:52:13
    |
-52 |             worker.thread.join().unwrap();
-   |             ^^^^^^^^^^^^^ ------ `worker.thread` moved due to this method call
+52 |             operateur.tache.join().unwrap();
+   |             ^^^^^^^^^^^^^^^ ------ `operateur.tache` moved due to this method call
    |             |
-   |             move occurs because `worker.thread` has type `JoinHandle&lt;()&gt;`, which does not implement the `Copy` trait
+   |             move occurs because `operateur.tache` has type `JoinHandle&lt;()&gt;`, which does not implement the `Copy` trait
    |
-note: `JoinHandle::&lt;T&gt;::join` takes ownership of the receiver `self`, which moves `worker.thread`
+note: `JoinHandle::&lt;T&gt;::join` takes ownership of the receiver `self`, which moves `operateur.tache`
   --&gt; /rustc/1159e78c4747b02ef996e55082b704c09b970588/library/std/src/thread/mod.rs:1921:17
 
 For more information about this error, try `rustc --explain E0507`.
-error: could not compile `hello` (lib) due to 1 previous error
+error: could not compile `salutations` (lib) due to 1 previous error
 </code></pre>
-<p>The error tells us we can’t call <code>join</code> because we only have a mutable borrow of each <code>worker</code> and <code>join</code> takes ownership of its argument. To solve this issue, we need to move the thread out of the <code>Worker</code> instance that owns <code>thread</code> so that <code>join</code> can consume the thread. One way to do this is to take the same approach we took in Listing 18-15. If <code>Worker</code> held an <code>Option&lt;thread::JoinHandle&lt;()&gt;&gt;</code>, we could call the <code>take</code> method on the <code>Option</code> to move the value out of the <code>Some</code> variant and leave a <code>None</code> variant in its place. In other words, a <code>Worker</code> that is running would have a <code>Some</code> variant in <code>thread</code>, and when we wanted to clean up a <code>Worker</code>, we’d replace <code>Some</code> with <code>None</code> so that the <code>Worker</code> wouldn’t have a thread to run.</p>
-<p>However, the <em>only</em> time this would come up would be when dropping the <code>Worker</code>. In exchange, we’d have to deal with an <code>Option&lt;thread::JoinHandle&lt;()&gt;&gt;</code> anywhere we accessed <code>worker.thread</code>. Idiomatic Rust uses <code>Option</code> quite a bit, but when you find yourself wrapping something you know will always be present in an <code>Option</code> as a workaround like this, it’s a good idea to look for alternative approaches to make your code cleaner and less error-prone.</p>
-<p>In this case, a better alternative exists: the <code>Vec::drain</code> method. It accepts a range parameter to specify which items to remove from the vector and returns an iterator of those items. Passing the <code>..</code> range syntax will remove <em>every</em> value from the vector.</p>
-<p>So, we need to update the <code>ThreadPool</code> <code>drop</code> implementation like this:</p>
+<p>L’erreur nous informe que nous ne pouvons pas faire appel à <code>join</code> car nous avons seulement fait un emprunt mutable pour chacun des <code>operateur</code> alors que <code>join</code> prend possession de son argument. Pour résoudre ce problème, nous devons sortir la <code>tache</code> de l’instance de <code>Operateur</code> qui la possède afin que <code>join</code> puisse la consommer. Une manière de faire ceci est d’avoir la même approche que dans l’encart 18-15. Si <code>Operateur</code> contenait un <code>Option&lt;thread::JoinHandle&lt;()&gt;&gt;</code>, nous pourrions utiliser la méthode <code>take</code> sur <code>Option</code> pour sortir la valeur de la variante <code>Some</code> et y mettre à la place une variante <code>None</code>. Autrement dit, un <code>Operateur</code> qui est en cours d’exécution aurait une variante <code>Some</code> dans <code>tache</code>, et lorsque nous souhaiterions nettoyer un <code>Operateur</code>, nous remplacerions <code>Some</code> par <code>None</code> afin que <code>Operateur</code> n’ait pas de tâche à exécuter.</p>
+<p>Toutefois, la <em>seule</em> fois où ce cas se présenterait serait lors de la suppression de <code>Operateur</code>. En contrepartie, nous devrions gérer un <code>Option&lt;thread::JoinHandle&lt;()&gt;&gt;</code> à chaque endroit où nous accèderions à <code>operateur.tache</code>. La manière classique de coder en Rust utilise beaucoup <code>Option</code>, mais quand vous vous retrouvez à encapsuler dans une <code>Option</code> quelque chose dont vous savez pertinemment qu’il sera toujours présent, il est judicieux de rechercher d’autres approches afin de rendre votre code plus propre et moins sujet aux erreurs.</p>
+<p>Dans notre cas, il existe une meilleure solution : la méthode <code>Vec::drain</code>. Elle accepte un paramètre de plage permettant de préciser quels éléments sont à enlever du vecteur et renvoie un itérateur sur ces éléments. En passant la syntaxe de plage <code>..</code>, <em>chacune des</em> valeurs du vecteur seront supprimées.</p>
+<p>Il nous faut donc mettre à jour l’implémentation de <code>drop</code> de <code>GroupeTaches</code> de la manière suivante :</p>
 <figure class="listing">
 <span class="file-name">Filename: src/lib.rs</span>
 <pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
@@ -355,84 +355,84 @@ error: could not compile `hello` (lib) due to 1 previous error
 </span><span class="boring">    thread,
 </span><span class="boring">};
 </span><span class="boring">
-</span><span class="boring">pub struct ThreadPool {
-</span><span class="boring">    workers: Vec&lt;Worker&gt;,
-</span><span class="boring">    sender: mpsc::Sender&lt;Job&gt;,
+</span><span class="boring">pub struct GroupeTaches {
+</span><span class="boring">    operateurs: Vec&lt;Operateur&gt;,
+</span><span class="boring">    envoi: mpsc::Sender&lt;Mission&gt;,
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">type Job = Box&lt;dyn FnOnce() + Send + 'static&gt;;
+</span><span class="boring">type Mission = Box&lt;dyn FnOnce() + Send + 'static&gt;;
 </span><span class="boring">
-</span><span class="boring">impl ThreadPool {
-</span><span class="boring">    /// Create a new ThreadPool.
+</span><span class="boring">impl GroupeTaches {
+</span><span class="boring">    /// Crée un nouveau GroupeTaches.
 </span><span class="boring">    ///
-</span><span class="boring">    /// The size is the number of threads in the pool.
+</span><span class="boring">    /// La taille est le nombre de tâches présentes dans le groupe.
 </span><span class="boring">    ///
 </span><span class="boring">    /// # Panics
 </span><span class="boring">    ///
-</span><span class="boring">    /// The `new` function will panic if the size is zero.
-</span><span class="boring">    pub fn new(size: usize) -&gt; ThreadPool {
-</span><span class="boring">        assert!(size &gt; 0);
+</span><span class="boring">    /// La fonction `new` devrait paniquer si la taille vaut zéro.
+</span><span class="boring">    pub fn new(taille: usize) -&gt; GroupeTaches {
+</span><span class="boring">        assert!(taille &gt; 0);
 </span><span class="boring">
-</span><span class="boring">        let (sender, receiver) = mpsc::channel();
+</span><span class="boring">        let (envoi, reception) = mpsc::channel();
 </span><span class="boring">
-</span><span class="boring">        let receiver = Arc::new(Mutex::new(receiver));
+</span><span class="boring">        let reception = Arc::new(Mutex::new(reception));
 </span><span class="boring">
-</span><span class="boring">        let mut workers = Vec::with_capacity(size);
+</span><span class="boring">        let mut operateurs = Vec::with_capacity(taille);
 </span><span class="boring">
-</span><span class="boring">        for id in 0..size {
-</span><span class="boring">            workers.push(Worker::new(id, Arc::clone(&amp;receiver)));
+</span><span class="boring">        for id in 0..taille {
+</span><span class="boring">            operateurs.push(Operateur::new(id, Arc::clone(&amp;reception)));
 </span><span class="boring">        }
 </span><span class="boring">
-</span><span class="boring">        ThreadPool { workers, sender }
+</span><span class="boring">        GroupeTaches { operateurs, envoi }
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    pub fn execute&lt;F&gt;(&amp;self, f: F)
+</span><span class="boring">    pub fn executer&lt;F&gt;(&amp;self, f: F)
 </span><span class="boring">    where
 </span><span class="boring">        F: FnOnce() + Send + 'static,
 </span><span class="boring">    {
-</span><span class="boring">        let job = Box::new(f);
+</span><span class="boring">        let mission = Box::new(f);
 </span><span class="boring">
-</span><span class="boring">        self.sender.send(job).unwrap();
+</span><span class="boring">        self.envoi.send(mission).unwrap();
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
-</span>impl Drop for ThreadPool {
+</span>impl Drop for GroupeTaches {
     fn drop(&amp;mut self) {
-        for worker in self.workers.drain(..) {
-            println!("Shutting down worker {}", worker.id);
+        for operateur in self.operateurs.drain(..) {
+            println!("Arrêt de l'opérateur {}", operateur.id);
 
-            worker.thread.join().unwrap();
+            operateur.tache.join().unwrap();
         }
     }
 }
 <span class="boring">
-</span><span class="boring">struct Worker {
+</span><span class="boring">struct Operateur {
 </span><span class="boring">    id: usize,
-</span><span class="boring">    thread: thread::JoinHandle&lt;()&gt;,
+</span><span class="boring">    tache: thread::JoinHandle&lt;()&gt;,
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">impl Worker {
-</span><span class="boring">    fn new(id: usize, receiver: Arc&lt;Mutex&lt;mpsc::Receiver&lt;Job&gt;&gt;&gt;) -&gt; Worker {
-</span><span class="boring">        let thread = thread::spawn(move || {
+</span><span class="boring">impl Operateur {
+</span><span class="boring">    fn new(id: usize, reception: Arc&lt;Mutex&lt;mpsc::Receiver&lt;Mission&gt;&gt;&gt;) -&gt; Operateur {
+</span><span class="boring">        let tache = thread::spawn(move || {
 </span><span class="boring">            loop {
-</span><span class="boring">                let job = receiver.lock().unwrap().recv().unwrap();
+</span><span class="boring">                let mission = reception.lock().unwrap().recv().unwrap();
 </span><span class="boring">
-</span><span class="boring">                println!("Worker {id} got a job; executing.");
+</span><span class="boring">                println!("L'opérateur {id} a reçu une mission ; il l'exécute.");
 </span><span class="boring">
-</span><span class="boring">                job();
+</span><span class="boring">                mission();
 </span><span class="boring">            }
 </span><span class="boring">        });
 </span><span class="boring">
-</span><span class="boring">        Worker { id, thread }
+</span><span class="boring">        Operateur { id, tache }
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">}</span></code></pre>
 </figure>
-<p>This resolves the compiler error and does not require any other changes to our code. Note that, because drop can be called when panicking, the unwrap could also panic and cause a double panic, which immediately crashes the program and ends any cleanup in progress. This is fine for an example program, but it isn’t recommended for production code.</p>
-<h3 id="signaling-to-the-threads-to-stop-listening-for-jobs"><a class="header" href="#signaling-to-the-threads-to-stop-listening-for-jobs">Signaling to the Threads to Stop Listening for Jobs</a></h3>
-<p>With all the changes we’ve made, our code compiles without any warnings. However, the bad news is that this code doesn’t function the way we want it to yet. The key is the logic in the closures run by the threads of the <code>Worker</code> instances: At the moment, we call <code>join</code>, but that won’t shut down the threads, because they <code>loop</code> forever looking for jobs. If we try to drop our <code>ThreadPool</code> with our current implementation of <code>drop</code>, the main thread will block forever, waiting for the first thread to finish.</p>
-<p>To fix this problem, we’ll need a change in the <code>ThreadPool</code> <code>drop</code> implementation and then a change in the <code>Worker</code> loop.</p>
-<p>First, we’ll change the <code>ThreadPool</code> <code>drop</code> implementation to explicitly drop the <code>sender</code> before waiting for the threads to finish. Listing 21-23 shows the changes to <code>ThreadPool</code> to explicitly drop <code>sender</code>. Unlike with the thread, here we <em>do</em> need to use an <code>Option</code> to be able to move <code>sender</code> out of <code>ThreadPool</code> with <code>Option::take</code>.</p>
+<p>Cela résout l’erreur de compilation et ne nécessite pas d’autres changements dans notre code. Notez bien que, dans la mesure où <code>drop</code> peut être appelé lors d’une panique, <code>unwrap</code> pourrait paniquer à son tour et provoquer ainsi une double panique ; ceci ferait immédiatement planter le programme et mettrait fin à tout processus de nettoyage en cours. Cela est convenable pour un programme d’exemple, mais ce n’est pas recommandé pour du code de production.</p>
+<h3 id="demander-aux-fils-dexécution-darrêter-dattendre-des-missions"><a class="header" href="#demander-aux-fils-dexécution-darrêter-dattendre-des-missions">Demander aux fils d’exécution d’arrêter d’attendre des missions</a></h3>
+<p>Avec tous ces changements, notre code se compile désormais sans aucun avertissement. Toutefois, la mauvaise nouvelle est que, pour l’instant, ce code ne fonctionne toujours pas comme nous le souhaitons. La cause se situe dans la logique des fermetures qui sont exécutées par les fils d’exécution des instances de <code>Operateur</code> : pour le moment, nous faisons appel à <code>join</code>, mais cela ne va pas arrêter les fils d’exécution car ils font une boucle infinie avec <code>loop</code> pour attendre des missions. Si nous essayons de nettoyer notre <code>GroupeTaches</code> avec l’implémentation actuelle de <code>drop</code>, la tâche principale va se bloquer pour toujours en attendant en vain que la première tâche se termine.</p>
+<p>Pour résoudre ce problème, nous devons modifier l’implémentation de <code>drop</code> de <code>GroupeTaches</code> et ensuite modifier la boucle dans <code>Operateur</code>.</p>
+<p>Tout d’abord, nous allons changer l’implémentation <code>drop</code> de <code>GroupeTaches</code> pour supprimer de manière explicite <code>envoi</code> avant d’attendre que tous les fils se soient terminés. L’encart 21-23 montre les changements à <code>GroupeTaches</code> pour supprimer <code>envoi</code> de manière explicite. Au contraire du fil d’exécution, nous <em>devons</em> ici utiliser une <code>Option</code> pour pouvoir déplacer <code>envoi</code> hors de <code>GroupeTaches</code> avec <code>Option::take</code>.</p>
 <figure class="listing" id="listing-21-23">
 <span class="file-name">Filename: src/lib.rs</span>
 <pre><code class="language-rust noplayground not_desired_behavior"><span class="boring">use std::{
@@ -440,88 +440,88 @@ error: could not compile `hello` (lib) due to 1 previous error
 </span><span class="boring">    thread,
 </span><span class="boring">};
 </span><span class="boring">
-</span>pub struct ThreadPool {
-    workers: Vec&lt;Worker&gt;,
-    sender: Option&lt;mpsc::Sender&lt;Job&gt;&gt;,
+</span>pub struct GroupeTaches {
+    operateurs: Vec&lt;Operateur&gt;,
+    envoi: Option&lt;mpsc::Sender&lt;Mission&gt;&gt;,
 }
 // -- partie masquée ici --
 <span class="boring">
-</span><span class="boring">type Job = Box&lt;dyn FnOnce() + Send + 'static&gt;;
+</span><span class="boring">type Mission = Box&lt;dyn FnOnce() + Send + 'static&gt;;
 </span><span class="boring">
-</span>impl ThreadPool {
-<span class="boring">    /// Create a new ThreadPool.
+</span>impl GroupeTaches {
+<span class="boring">    /// Crée un nouveau GroupeTaches.
 </span><span class="boring">    ///
-</span><span class="boring">    /// The size is the number of threads in the pool.
+</span><span class="boring">    /// La taille est le nombre de tâches présentes dans le groupe.
 </span><span class="boring">    ///
 </span><span class="boring">    /// # Panics
 </span><span class="boring">    ///
-</span><span class="boring">    /// The `new` function will panic if the size is zero.
-</span>    pub fn new(size: usize) -&gt; ThreadPool {
+</span><span class="boring">    /// La fonction `new` devrait paniquer si la taille vaut zéro.
+</span>    pub fn new(taille: usize) -&gt; GroupeTaches {
         // -- partie masquée ici --
 
-<span class="boring">        assert!(size &gt; 0);
+<span class="boring">        assert!(taille &gt; 0);
 </span><span class="boring">
-</span><span class="boring">        let (sender, receiver) = mpsc::channel();
+</span><span class="boring">        let (envoi, reception) = mpsc::channel();
 </span><span class="boring">
-</span><span class="boring">        let receiver = Arc::new(Mutex::new(receiver));
+</span><span class="boring">        let reception = Arc::new(Mutex::new(reception));
 </span><span class="boring">
-</span><span class="boring">        let mut workers = Vec::with_capacity(size);
+</span><span class="boring">        let mut operateurs = Vec::with_capacity(taille);
 </span><span class="boring">
-</span><span class="boring">        for id in 0..size {
-</span><span class="boring">            workers.push(Worker::new(id, Arc::clone(&amp;receiver)));
+</span><span class="boring">        for id in 0..taille {
+</span><span class="boring">            operateurs.push(Operateur::new(id, Arc::clone(&amp;reception)));
 </span><span class="boring">        }
 </span><span class="boring">
-</span>        ThreadPool {
-            workers,
-            sender: Some(sender),
+</span>        GroupeTaches {
+            operateurs,
+            envoi: Some(envoi),
         }
     }
 
-    pub fn execute&lt;F&gt;(&amp;self, f: F)
+    pub fn executer&lt;F&gt;(&amp;self, f: F)
     where
         F: FnOnce() + Send + 'static,
     {
-        let job = Box::new(f);
+        let mission = Box::new(f);
 
-        self.sender.as_ref().unwrap().send(job).unwrap();
+        self.envoi.as_ref().unwrap().send(mission).unwrap();
     }
 }
 
-impl Drop for ThreadPool {
+impl Drop for GroupeTaches {
     fn drop(&amp;mut self) {
-        drop(self.sender.take());
+        drop(self.envoi.take());
 
-        for worker in self.workers.drain(..) {
-            println!("Shutting down worker {}", worker.id);
+        for operateur in self.operateurs.drain(..) {
+            println!("Arrêt de l'opérateur {}", operateur.id);
 
-            worker.thread.join().unwrap();
+            operateur.tache.join().unwrap();
         }
     }
 }
 <span class="boring">
-</span><span class="boring">struct Worker {
+</span><span class="boring">struct Operateur {
 </span><span class="boring">    id: usize,
-</span><span class="boring">    thread: thread::JoinHandle&lt;()&gt;,
+</span><span class="boring">    tache: thread::JoinHandle&lt;()&gt;,
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">impl Worker {
-</span><span class="boring">    fn new(id: usize, receiver: Arc&lt;Mutex&lt;mpsc::Receiver&lt;Job&gt;&gt;&gt;) -&gt; Worker {
-</span><span class="boring">        let thread = thread::spawn(move || {
+</span><span class="boring">impl Operateur {
+</span><span class="boring">    fn new(id: usize, reception: Arc&lt;Mutex&lt;mpsc::Receiver&lt;Mission&gt;&gt;&gt;) -&gt; Operateur {
+</span><span class="boring">        let tache = thread::spawn(move || {
 </span><span class="boring">            loop {
-</span><span class="boring">                let job = receiver.lock().unwrap().recv().unwrap();
+</span><span class="boring">                let mission = reception.lock().unwrap().recv().unwrap();
 </span><span class="boring">
-</span><span class="boring">                println!("Worker {id} got a job; executing.");
+</span><span class="boring">                println!("L'opérateur {id} a reçu une mission ; il l'exécute.");
 </span><span class="boring">
-</span><span class="boring">                job();
+</span><span class="boring">                mission();
 </span><span class="boring">            }
 </span><span class="boring">        });
 </span><span class="boring">
-</span><span class="boring">        Worker { id, thread }
+</span><span class="boring">        Operateur { id, tache }
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-21-23">Listing 21-23</a>: Explicitly dropping <code>sender</code> before joining the <code>Worker</code> threads</figcaption>
 </figure>
-<p>Dropping <code>sender</code> closes the channel, which indicates no more messages will be sent. When that happens, all the calls to <code>recv</code> that the <code>Worker</code> instances do in the infinite loop will return an error. In Listing 21-24, we change the <code>Worker</code> loop to gracefully exit the loop in that case, which means the threads will finish when the <code>ThreadPool</code> <code>drop</code> implementation calls <code>join</code> on them.</p>
+<p>La suppression de <code>envoi</code> referme le canal, ce qui indique que plus aucun message ne sera envoyé. Quand ceci survient, tous les appels à <code>recv</code> que les instances d’<code>Operateur</code> font dans la boucle infinie vont renvoyer une erreur. Dans l’encart 21-24, nous modifions la boucle de <code>Operateur</code> afin de quitter la boucle proprement dans ce cas, ce qui implique que les fils d’exécution vont se terminer quand l’implémentation <code>drop</code> de <code>GroupeTaches</code> appelle <code>join</code> sur eux.</p>
 <figure class="listing" id="listing-21-24">
 <span class="file-name">Filename: src/lib.rs</span>
 <pre><code class="language-rust noplayground"><span class="boring">use std::{
@@ -529,96 +529,96 @@ impl Drop for ThreadPool {
 </span><span class="boring">    thread,
 </span><span class="boring">};
 </span><span class="boring">
-</span><span class="boring">pub struct ThreadPool {
-</span><span class="boring">    workers: Vec&lt;Worker&gt;,
-</span><span class="boring">    sender: Option&lt;mpsc::Sender&lt;Job&gt;&gt;,
+</span><span class="boring">pub struct GroupeTaches {
+</span><span class="boring">    operateurs: Vec&lt;Operateur&gt;,
+</span><span class="boring">    envoi: Option&lt;mpsc::Sender&lt;Mission&gt;&gt;,
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">type Job = Box&lt;dyn FnOnce() + Send + 'static&gt;;
+</span><span class="boring">type Mission = Box&lt;dyn FnOnce() + Send + 'static&gt;;
 </span><span class="boring">
-</span><span class="boring">impl ThreadPool {
-</span><span class="boring">    /// Create a new ThreadPool.
+</span><span class="boring">impl GroupeTaches {
+</span><span class="boring">    /// Crée un nouveau GroupeTaches.
 </span><span class="boring">    ///
-</span><span class="boring">    /// The size is the number of threads in the pool.
+</span><span class="boring">    /// La taille est le nombre de tâches présentes dans le groupe.
 </span><span class="boring">    ///
 </span><span class="boring">    /// # Panics
 </span><span class="boring">    ///
-</span><span class="boring">    /// The `new` function will panic if the size is zero.
-</span><span class="boring">    pub fn new(size: usize) -&gt; ThreadPool {
-</span><span class="boring">        assert!(size &gt; 0);
+</span><span class="boring">    /// La fonction `new` devrait paniquer si la taille vaut zéro.
+</span><span class="boring">    pub fn new(taille: usize) -&gt; GroupeTaches {
+</span><span class="boring">        assert!(taille &gt; 0);
 </span><span class="boring">
-</span><span class="boring">        let (sender, receiver) = mpsc::channel();
+</span><span class="boring">        let (envoi, reception) = mpsc::channel();
 </span><span class="boring">
-</span><span class="boring">        let receiver = Arc::new(Mutex::new(receiver));
+</span><span class="boring">        let reception = Arc::new(Mutex::new(reception));
 </span><span class="boring">
-</span><span class="boring">        let mut workers = Vec::with_capacity(size);
+</span><span class="boring">        let mut operateurs = Vec::with_capacity(taille);
 </span><span class="boring">
-</span><span class="boring">        for id in 0..size {
-</span><span class="boring">            workers.push(Worker::new(id, Arc::clone(&amp;receiver)));
+</span><span class="boring">        for id in 0..taille {
+</span><span class="boring">            operateurs.push(Operateur::new(id, Arc::clone(&amp;reception)));
 </span><span class="boring">        }
 </span><span class="boring">
-</span><span class="boring">        ThreadPool {
-</span><span class="boring">            workers,
-</span><span class="boring">            sender: Some(sender),
+</span><span class="boring">        GroupeTaches {
+</span><span class="boring">            operateurs,
+</span><span class="boring">            envoi: Some(envoi),
 </span><span class="boring">        }
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    pub fn execute&lt;F&gt;(&amp;self, f: F)
+</span><span class="boring">    pub fn executer&lt;F&gt;(&amp;self, f: F)
 </span><span class="boring">    where
 </span><span class="boring">        F: FnOnce() + Send + 'static,
 </span><span class="boring">    {
-</span><span class="boring">        let job = Box::new(f);
+</span><span class="boring">        let mission = Box::new(f);
 </span><span class="boring">
-</span><span class="boring">        self.sender.as_ref().unwrap().send(job).unwrap();
+</span><span class="boring">        self.envoi.as_ref().unwrap().send(mission).unwrap();
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">impl Drop for ThreadPool {
+</span><span class="boring">impl Drop for GroupeTaches {
 </span><span class="boring">    fn drop(&amp;mut self) {
-</span><span class="boring">        drop(self.sender.take());
+</span><span class="boring">        drop(self.envoi.take());
 </span><span class="boring">
-</span><span class="boring">        for worker in self.workers.drain(..) {
-</span><span class="boring">            println!("Shutting down worker {}", worker.id);
+</span><span class="boring">        for operateur in self.operateurs.drain(..) {
+</span><span class="boring">            println!("Arrêt de l'opérateur {}", operateur.id);
 </span><span class="boring">
-</span><span class="boring">            worker.thread.join().unwrap();
+</span><span class="boring">            operateur.tache.join().unwrap();
 </span><span class="boring">        }
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">struct Worker {
+</span><span class="boring">struct Operateur {
 </span><span class="boring">    id: usize,
-</span><span class="boring">    thread: thread::JoinHandle&lt;()&gt;,
+</span><span class="boring">    tache: thread::JoinHandle&lt;()&gt;,
 </span><span class="boring">}
 </span><span class="boring">
-</span>impl Worker {
-    fn new(id: usize, receiver: Arc&lt;Mutex&lt;mpsc::Receiver&lt;Job&gt;&gt;&gt;) -&gt; Worker {
-        let thread = thread::spawn(move || {
+</span>impl Operateur {
+    fn new(id: usize, reception: Arc&lt;Mutex&lt;mpsc::Receiver&lt;Mission&gt;&gt;&gt;) -&gt; Operateur {
+        let tache = thread::spawn(move || {
             loop {
-                let message = receiver.lock().unwrap().recv();
+                let message = reception.lock().unwrap().recv();
 
                 match message {
-                    Ok(job) =&gt; {
-                        println!("Worker {id} got a job; executing.");
+                    Ok(mission) =&gt; {
+                        println!("L'opérateur {id} a reçu une mission ; il l'exécute.");
 
-                        job();
+                        mission();
                     }
                     Err(_) =&gt; {
-                        println!("Worker {id} disconnected; shutting down.");
+                        println!("L'opérateur {id} a reçu l'instruction d'arrêt.");
                         break;
                     }
                 }
             }
         });
 
-        Worker { id, thread }
+        Operateur { id, tache }
     }
 }</code></pre>
 <figcaption><a href="#listing-21-24">Listing 21-24</a>: Explicitly breaking out of the loop when <code>recv</code> returns an error</figcaption>
 </figure>
-<p>To see this code in action, let’s modify <code>main</code> to accept only two requests before gracefully shutting down the server, as shown in Listing 21-25.</p>
+<p>Pour observer ce code en action, modifions notre <code>main</code> pour accepter uniquement deux requêtes avant d’arrêter proprement le serveur, comme dans l’encart 21-25.</p>
 <figure class="listing" id="listing-21-25">
 <span class="file-name">Filename: src/main.rs</span>
-<pre><code class="language-rust ignore"><span class="boring">use hello::ThreadPool;
+<pre><code class="language-rust ignore"><span class="boring">use salutations::GroupeTaches;
 </span><span class="boring">use std::{
 </span><span class="boring">    fs,
 </span><span class="boring">    io::{BufReader, prelude::*},
@@ -628,46 +628,46 @@ impl Drop for ThreadPool {
 </span><span class="boring">};
 </span><span class="boring">
 </span>fn main() {
-    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
-    let pool = ThreadPool::new(4);
+    let ecouteur = TcpListener::bind("127.0.0.1:7878").unwrap();
+    let groupe = GroupeTaches::new(4);
 
-    for stream in listener.incoming().take(2) {
-        let stream = stream.unwrap();
+    for flux in ecouteur.incoming().take(2) {
+        let flux = flux.unwrap();
 
-        pool.execute(|| {
-            handle_connection(stream);
+        groupe.executer(|| {
+            gestion_connexion(flux);
         });
     }
 
-    println!("Shutting down.");
+    println!("Arrêt complet.");
 }
 <span class="boring">
-</span><span class="boring">fn handle_connection(mut stream: TcpStream) {
-</span><span class="boring">    let buf_reader = BufReader::new(&amp;stream);
-</span><span class="boring">    let request_line = buf_reader.lines().next().unwrap().unwrap();
+</span><span class="boring">fn gestion_connexion(mut flux: TcpStream) {
+</span><span class="boring">    let tampon = BufReader::new(&amp;flux);
+</span><span class="boring">    let ligne_requete = tampon.lines().next().unwrap().unwrap();
 </span><span class="boring">
-</span><span class="boring">    let (status_line, filename) = match &amp;request_line[..] {
+</span><span class="boring">    let (ligne_statut, nom_fichier) = match &amp;ligne_requete[..] {
 </span><span class="boring">        "GET / HTTP/1.1" =&gt; ("HTTP/1.1 200 OK", "hello.html"),
 </span><span class="boring">        "GET /sleep HTTP/1.1" =&gt; {
 </span><span class="boring">            thread::sleep(Duration::from_secs(5));
 </span><span class="boring">            ("HTTP/1.1 200 OK", "hello.html")
 </span><span class="boring">        }
-</span><span class="boring">        _ =&gt; ("HTTP/1.1 404 NOT FOUND", "404.html"),
+</span><span class="boring">        _ =&gt; ("HTTP/1.1 404 NON TROUVÉ", "404.html"),
 </span><span class="boring">    };
 </span><span class="boring">
-</span><span class="boring">    let contents = fs::read_to_string(filename).unwrap();
-</span><span class="boring">    let length = contents.len();
+</span><span class="boring">    let contenu = fs::read_to_string(nom_fichier).unwrap();
+</span><span class="boring">    let longueur = contenu.len();
 </span><span class="boring">
-</span><span class="boring">    let response =
-</span><span class="boring">        format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
+</span><span class="boring">    let reponse = 
+</span><span class="boring">        format!("{ligne_statut}\r\nContent-Length: {longueur}\r\n\r\n{contenu}");
 </span><span class="boring">
-</span><span class="boring">    stream.write_all(response.as_bytes()).unwrap();
+</span><span class="boring">    flux.write_all(reponse.as_bytes()).unwrap();
 </span><span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-21-25">Listing 21-25</a>: Shutting down the server after serving two requests by exiting the loop</figcaption>
 </figure>
-<p>Dans la réalité on ne voudrait pas qu’un serveur web s’arrête après avoir servi seulement deux requêtes. Ce code sert uniquement à montrer que l’arrêt et le nettoyage s’effectuent bien proprement.</p>
+<p>Dans la réalité, on ne voudrait pas qu’un serveur web s’arrête après avoir servi seulement deux requêtes. Ce code sert uniquement à montrer que l’arrêt et le nettoyage s’effectuent bien proprement.</p>
 <p>La méthode <code>take</code> est définie dans le trait <code>Iterator</code> et limite l’itération aux deux premiers éléments au maximum. Le <code>GroupeTaches</code> va sortir de la portée à la fin du <code>main</code> et l’implémentation de <code>drop</code> va s’exécuter.</p>
-<p>Start the server with <code>cargo run</code> and make three requests. The third request should error, and in your terminal, you should see output similar to this:</p>
+<p>Démarrez le serveur avec <code>cargo run</code> et faites trois requêtes. La troisième requête devrait renvoyer une erreur tandis que dans votre terminal vous devriez avoir une sortie similaire à ceci :</p>
 <!-- manual-regeneration
 cd listings/ch21-web-server/listing-21-25
 cargo run
@@ -679,28 +679,28 @@ copy output below
 Can't automate because the output depends on making requests
 -->
 <pre><code class="language-console">$ cargo run
-   Compiling hello v0.1.0 (file:///projects/hello)
+   Compiling salutations v0.1.0 (file:///projects/salutations)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.41s
-     Running `target/debug/hello`
-Worker 0 got a job; executing.
-Shutting down.
-Shutting down worker 0
-Worker 3 got a job; executing.
-Worker 1 disconnected; shutting down.
-Worker 2 disconnected; shutting down.
-Worker 3 disconnected; shutting down.
-Worker 0 disconnected; shutting down.
-Shutting down worker 1
-Shutting down worker 2
-Shutting down worker 3
+     Running `target/debug/salutations`
+L'opérateur 0 a reçu une mission ; il l'exécute.
+Arrêt complet.
+Arrêt de l'opérateur 0
+L'opérateur 3 a reçu une mission ; il l'exécute.
+L'opérateur 1 a reçu l'instruction d'arrêt.
+L'opérateur 2 a reçu l'instruction d'arrêt.
+L'opérateur 3 a reçu l'instruction d'arrêt.
+L'opérateur 0 a reçu l'instruction d'arrêt.
+Arrêt de l'opérateur 1
+Arrêt de l'opérateur 2
+Arrêt de l'opérateur 3
 </code></pre>
-<p>You might see a different ordering of <code>Worker</code> IDs and messages printed. We can see how this code works from the messages: <code>Worker</code> instances 0 and 3 got the first two requests. The server stopped accepting connections after the second connection, and the <code>Drop</code> implementation on <code>ThreadPool</code> starts executing before <code>Worker 3</code> even starts its job. Dropping the <code>sender</code> disconnects all the <code>Worker</code> instances and tells them to shut down. The <code>Worker</code> instances each print a message when they disconnect, and then the thread pool calls <code>join</code> to wait for each <code>Worker</code> thread to finish.</p>
-<p>Notice one interesting aspect of this particular execution: The <code>ThreadPool</code> dropped the <code>sender</code>, and before any <code>Worker</code> received an error, we tried to join <code>Worker 0</code>. <code>Worker 0</code> had not yet gotten an error from <code>recv</code>, so the main thread blocked, waiting for <code>Worker 0</code> to finish. In the meantime, <code>Worker 3</code> received a job and then all threads received an error. When <code>Worker 0</code> finished, the main thread waited for the rest of the <code>Worker</code> instances to finish. At that point, they had all exited their loops and stopped.</p>
+<p>Vous pourriez avoir un ordre différent entre les identifiants d’<code>Operateur</code> et les messages affichés. Nous pouvons constater la façon dont ce code fonctionne grâce aux messages : les instances d’<code>Operateur</code> 0 et 3 ont reçu les deux premières requêtes. Le serveur a arrêté d’accepter des connexions après la deuxième connexion, et l’implémentation de <code>Drop</code> sur <code>GroupeTaches</code> commence à s’exécuter avant même qu’<code>Operateur 3</code> ne commence son travail. La suppression de <code>envoi</code> entraîne la déconnexion de toutes les instances d’<code>Operateur</code> et leur demande de s’arrêter. Les instances d’<code>Operateur</code> affichent chacune un message lors de leur déconnexion, puis le groupe de fils d’exécution appelle <code>join</code> pour attendre la fin de chaque fil d’exécution <code>Operateur</code>.</p>
+<p>Remarquez un aspect intéressant spécifique à cette exécution : le <code>GroupeTaches</code> a supprimé le <code>envoi</code> et, avant qu’aucun <code>Operateur</code> n’aie reçu d’erreur, nous avons essayé de joindre l’<code>Operateur 0</code>. Cet <code>Operateur 0</code> n’avait alors pas encore reçu d’erreur de <code>recv</code>, donc la tâche principale s’est bloquée dans l’attente de la fin de <code>Operateur 0</code>. Pendant ce temps, <code>Operateur 3</code> a reçu une mission, et ensuite tous les fils d’exécution ont reçu une erreur. Quand <code>Operateur 0</code> a terminé, le fil d’exécution principal a attendu que le reste des instances d’<code>Operateur</code> se terminent. À ce stade, elles étaient toutes sorties de leurs boucles et s’étaient arrêtées.</p>
 <p>Félicitations ! Nous avons maintenant terminé notre projet ; nous avons un serveur web basique qui utilise un groupe de tâches pour répondre de manière asynchrone. Nous pouvons demander un arrêt propre du serveur qui va nettoyer toutes les tâches du groupe.</p>
-<p>Here’s the full code for reference:</p>
+<p>Voici le code complet afin que vous puissiez vous y référer :</p>
 <figure class="listing">
 <span class="file-name">Filename: src/main.rs</span>
-<pre><code class="language-rust ignore">use hello::ThreadPool;
+<pre><code class="language-rust ignore">use salutations::GroupeTaches;
 use std::{
     fs,
     io::{BufReader, prelude::*},
@@ -710,40 +710,40 @@ use std::{
 };
 
 fn main() {
-    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
-    let pool = ThreadPool::new(4);
+    let ecouteur = TcpListener::bind("127.0.0.1:7878").unwrap();
+    let groupe = GroupeTaches::new(4);
 
-    for stream in listener.incoming().take(2) {
-        let stream = stream.unwrap();
+    for flux in ecouteur.incoming().take(2) {
+        let flux = flux.unwrap();
 
-        pool.execute(|| {
-            handle_connection(stream);
+        groupe.executer(|| {
+            gestion_connexion(flux);
         });
     }
 
-    println!("Shutting down.");
+    println!("Arrêt complet.");
 }
 
-fn handle_connection(mut stream: TcpStream) {
-    let buf_reader = BufReader::new(&amp;stream);
-    let request_line = buf_reader.lines().next().unwrap().unwrap();
+fn gestion_connexion(mut flux: TcpStream) {
+    let tampon = BufReader::new(&amp;flux);
+    let ligne_requete = tampon.lines().next().unwrap().unwrap();
 
-    let (status_line, filename) = match &amp;request_line[..] {
+    let (ligne_statut, nom_fichier) = match &amp;ligne_requete[..] {
         "GET / HTTP/1.1" =&gt; ("HTTP/1.1 200 OK", "hello.html"),
         "GET /sleep HTTP/1.1" =&gt; {
             thread::sleep(Duration::from_secs(5));
             ("HTTP/1.1 200 OK", "hello.html")
         }
-        _ =&gt; ("HTTP/1.1 404 NOT FOUND", "404.html"),
+        _ =&gt; ("HTTP/1.1 404 NON TROUVÉ", "404.html"),
     };
 
-    let contents = fs::read_to_string(filename).unwrap();
-    let length = contents.len();
+    let contenu = fs::read_to_string(nom_fichier).unwrap();
+    let longueur = contenu.len();
 
-    let response =
-        format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
+    let reponse = 
+        format!("{ligne_statut}\r\nContent-Length: {longueur}\r\n\r\n{contenu}");
 
-    stream.write_all(response.as_bytes()).unwrap();
+    flux.write_all(reponse.as_bytes()).unwrap();
 }</code></pre>
 </figure>
 <figure class="listing">
@@ -753,106 +753,106 @@ fn handle_connection(mut stream: TcpStream) {
     thread,
 };
 
-pub struct ThreadPool {
-    workers: Vec&lt;Worker&gt;,
-    sender: Option&lt;mpsc::Sender&lt;Job&gt;&gt;,
+pub struct GroupeTaches {
+    operateurs: Vec&lt;Operateur&gt;,
+    envoi: Option&lt;mpsc::Sender&lt;Mission&gt;&gt;,
 }
 
-type Job = Box&lt;dyn FnOnce() + Send + 'static&gt;;
+type Mission = Box&lt;dyn FnOnce() + Send + 'static&gt;;
 
-impl ThreadPool {
-    /// Create a new ThreadPool.
+impl GroupeTaches {
+    /// Crée un nouveau GroupeTaches.
     ///
-    /// The size is the number of threads in the pool.
+    /// La taille est le nombre de tâches présentes dans le groupe.
     ///
     /// # Panics
     ///
-    /// The `new` function will panic if the size is zero.
-    pub fn new(size: usize) -&gt; ThreadPool {
-        assert!(size &gt; 0);
+    /// La fonction `new` devrait paniquer si la taille vaut zéro.
+    pub fn new(taille: usize) -&gt; GroupeTaches {
+        assert!(taille &gt; 0);
 
-        let (sender, receiver) = mpsc::channel();
+        let (envoi, reception) = mpsc::channel();
 
-        let receiver = Arc::new(Mutex::new(receiver));
+        let reception = Arc::new(Mutex::new(reception));
 
-        let mut workers = Vec::with_capacity(size);
+        let mut operateurs = Vec::with_capacity(taille);
 
-        for id in 0..size {
-            workers.push(Worker::new(id, Arc::clone(&amp;receiver)));
+        for id in 0..taille {
+            operateurs.push(Operateur::new(id, Arc::clone(&amp;reception)));
         }
 
-        ThreadPool {
-            workers,
-            sender: Some(sender),
+        GroupeTaches {
+            operateurs,
+            envoi: Some(envoi),
         }
     }
 
-    pub fn execute&lt;F&gt;(&amp;self, f: F)
+    pub fn executer&lt;F&gt;(&amp;self, f: F)
     where
         F: FnOnce() + Send + 'static,
     {
-        let job = Box::new(f);
+        let mission = Box::new(f);
 
-        self.sender.as_ref().unwrap().send(job).unwrap();
+        self.envoi.as_ref().unwrap().send(mission).unwrap();
     }
 }
 
-impl Drop for ThreadPool {
+impl Drop for GroupeTaches {
     fn drop(&amp;mut self) {
-        drop(self.sender.take());
+        drop(self.envoi.take());
 
-        for worker in &amp;mut self.workers {
-            println!("Shutting down worker {}", worker.id);
+        for operateur in &amp;mut self.operateurs {
+            println!("Arrêt de l'opérateur {}", operateur.id);
 
-            if let Some(thread) = worker.thread.take() {
-                thread.join().unwrap();
+            if let Some(tache) = operateur.tache.take() {
+                tache.join().unwrap();
             }
         }
     }
 }
 
-struct Worker {
+struct Operateur {
     id: usize,
-    thread: Option&lt;thread::JoinHandle&lt;()&gt;&gt;,
+    tache: Option&lt;thread::JoinHandle&lt;()&gt;&gt;,
 }
 
-impl Worker {
-    fn new(id: usize, receiver: Arc&lt;Mutex&lt;mpsc::Receiver&lt;Job&gt;&gt;&gt;) -&gt; Worker {
-        let thread = thread::spawn(move || {
+impl Operateur {
+    fn new(id: usize, reception: Arc&lt;Mutex&lt;mpsc::Receiver&lt;Mission&gt;&gt;&gt;) -&gt; Operateur {
+        let tache = thread::spawn(move || {
             loop {
-                let message = receiver.lock().unwrap().recv();
+                let message = reception.lock().unwrap().recv();
 
                 match message {
-                    Ok(job) =&gt; {
-                        println!("Worker {id} got a job; executing.");
+                    Ok(mission) =&gt; {
+                        println!("L'opérateur {id} a reçu une mission ; il l'exécute.");
 
-                        job();
+                        mission();
                     }
                     Err(_) =&gt; {
-                        println!("Worker {id} disconnected; shutting down.");
+                        println!("L'opérateur {id} a reçu l'instruction d'arrêt.");
                         break;
                     }
                 }
             }
         });
 
-        Worker {
+        Operateur {
             id,
-            thread: Some(thread),
+            tache: Some(tache),
         }
     }
 }</code></pre>
 </figure>
 <p>Nous aurions pu faire bien plus ! Si vous souhaitez continuer à améliorer ce projet, voici quelques idées :</p>
 <ul>
-<li>Add more documentation to <code>ThreadPool</code> and its public methods.</li>
-<li>Add tests of the library’s functionality.</li>
-<li>Change calls to <code>unwrap</code> to more robust error handling.</li>
-<li>Use <code>ThreadPool</code> to perform some task other than serving web requests.</li>
-<li>Find a thread pool crate on <a href="https://crates.io/">crates.io</a> and implement a similar web server using the crate instead. Then, compare its API and robustness to the thread pool we implemented.</li>
+<li>ajouter de la documentation à <code>GroupeTaches</code> et aux méthodes publiques ;</li>
+<li>ajouter des tests sur les fonctionnalités de la bibliothèque ;</li>
+<li>remplacer les appels à <code>unwrap</code> pour fournir une meilleure gestion des erreurs ;</li>
+<li>utiliser <code>GroupeTaches</code> pour exécuter d’autres tâches que de répondre à des requêtes web ;</li>
+<li>trouver une crate de groupe de fils d’exécution (<em>NdT : thread pool</em>) sur <a href="https://crates.io/">crates.io</a> et implémenter un serveur web similaire en l’utilisant. Comparer ensuite son API et sa robustesse au groupe de fils d’exécution que nous avons implémenté.</li>
 </ul>
 <h2 id="résumé"><a class="header" href="#résumé">Résumé</a></h2>
-<p>Well done! You’ve made it to the end of the book! We want to thank you for joining us on this tour of Rust. You’re now ready to implement your own Rust projects and help with other people’s projects. Keep in mind that there is a welcoming community of other Rustaceans who would love to help you with any challenges you encounter on your Rust journey.</p>
+<p>Bravo ! Vous êtes arrivé à la fin du livre ! Nous tenons à vous remercier chaleureusement de nous avoir accompagné pendant cette présentation de Rust. Vous êtes maintenant fin prêt(e) à créer vos propres projets Rust et aider les projets des autres développeurs. Rappelez-vous qu’il existe une communauté accueillante de Rustacés qui adorerait vous aider à relever tous les défis que vous rencontrerez dans votre aventure avec Rust.</p>
 
                     </main>
 

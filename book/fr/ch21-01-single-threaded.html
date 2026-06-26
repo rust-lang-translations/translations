@@ -96,7 +96,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3952f75e.js";
+            window.path_to_searchindex_js = "searchindex-a91f184d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1a54300e.js"></script>
@@ -240,48 +240,48 @@
                     <main>
                         <h2 id="développer-un-serveur-web-monotâche"><a class="header" href="#développer-un-serveur-web-monotâche">Développer un serveur web monotâche</a></h2>
 <p>Nous allons commencer par faire fonctionner un serveur web monotâche. Avant de commencer, faisons un survol rapide des protocoles utilisés dans les serveurs web. Les détails de ces protocoles ne sont pas le sujet de ce livre, mais un rapide aperçu vous donnera les informations dont vous avez besoin.</p>
-<p>The two main protocols involved in web servers are <em>Hypertext Transfer Protocol</em> <em>(HTTP)</em> and <em>Transmission Control Protocol</em> <em>(TCP)</em>. Both protocols are <em>request-response</em> protocols, meaning a <em>client</em> initiates requests and a <em>server</em> listens to the requests and provides a response to the client. The contents of those requests and responses are defined by the protocols.</p>
+<p>Les deux principaux protocoles utilisés dans les serveurs web sont le <em>Hypertext Transfer Protocol</em> (<em>HTTP</em>) et le <em>Transmission Control Protocol</em> (<em>TCP</em>). Ces deux protocoles sont des protocoles de type <em>requête-réponse</em>, ce qui signifie qu’un <em>client</em> initie des requêtes tandis que le <em>serveur</em> écoute les requêtes et fournit une réponse au client. Le contenu de ces requêtes et de ces réponses est défini par les protocoles.</p>
 <p>TCP est le protocole le plus bas-niveau qui décrit les détails de comment une information passe d’un serveur à un autre mais ne précise pas ce qu’est cette information. HTTP est construit sur TCP en définissant le contenu des requêtes et des réponses. Il est techniquement possible d’utiliser HTTP avec d’autres protocoles, mais dans la grande majorité des cas, HTTP envoie ses données via TCP. Nous allons travailler avec les octets bruts des requêtes et des réponses de TCP et HTTP.</p>
-<h3 id="listening-to-the-tcp-connection"><a class="header" href="#listening-to-the-tcp-connection">Listening to the TCP Connection</a></h3>
+<h3 id="ecouter-les-connexions-tcp"><a class="header" href="#ecouter-les-connexions-tcp">Ecouter les connexions TCP</a></h3>
 <p>Notre serveur web a besoin d’écouter les connexions TCP, donc cela sera la première partie sur laquelle nous travaillerons. La bibliothèque standard offre un module <code>std::net</code> qui nous permet de faire ceci. Créons un nouveau projet de manière habituelle :</p>
-<pre><code class="language-console">$ cargo new hello
-     Created binary (application) `hello` project
-$ cd hello
+<pre><code class="language-console">$ cargo new salutations
+     Created binary (application) `salutations` project
+$ cd salutations
 </code></pre>
-<p>Now enter the code in Listing 21-1 in <em>src/main.rs</em> to start. This code will listen at the local address <code>127.0.0.1:7878</code> for incoming TCP streams. When it gets an incoming stream, it will print <code>Connection established!</code>.</p>
+<p>Maintenant, saisissez le code de l’encart 21-1 dans <em>src/main.rs</em> pour commencer. Ce code va écouter les flux TCP entrants à l’adresse locale <code>127.0.0.1:7878</code>. Lorsqu’il obtiendra un flux entrant, il va afficher <code>Connexion établie !</code>.</p>
 <figure class="listing" id="listing-21-1">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust no_run edition2024">use std::net::TcpListener;
 
 fn main() {
-    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+    let ecouteur = TcpListener::bind("127.0.0.1:7878").unwrap();
 
-    for stream in listener.incoming() {
-        let stream = stream.unwrap();
+    for flux in ecouteur.incoming() {
+        let flux = flux.unwrap();
 
-        println!("Connection established!");
+        println!("Connexion établie !");
     }
 }</code></pre>
 <figcaption><a href="#listing-21-1">Listing 21-1</a>: Listening for incoming streams and printing a message when we receive a stream</figcaption>
 </figure>
-<p>Using <code>TcpListener</code>, we can listen for TCP connections at the address <code>127.0.0.1:7878</code>. In the address, the section before the colon is an IP address representing your computer (this is the same on every computer and doesn’t represent the authors’ computer specifically), and <code>7878</code> is the port. We’ve chosen this port for two reasons: HTTP isn’t normally accepted on this port, so our server is unlikely to conflict with any other web server you might have running on your machine, and 7878 is <em>rust</em> typed on a telephone.</p>
-<p>The <code>bind</code> function in this scenario works like the <code>new</code> function in that it will return a new <code>TcpListener</code> instance. The function is called <code>bind</code> because, in networking, connecting to a port to listen to is known as “binding to a port.”</p>
-<p>The <code>bind</code> function returns a <code>Result&lt;T, E&gt;</code>, which indicates that it’s possible for binding to fail, for example, if we ran two instances of our program and so had two programs listening to the same port. Because we’re writing a basic server just for learning purposes, we won’t worry about handling these kinds of errors; instead, we use <code>unwrap</code> to stop the program if errors happen.</p>
-<p>The <code>incoming</code> method on <code>TcpListener</code> returns an iterator that gives us a sequence of streams (more specifically, streams of type <code>TcpStream</code>). A single <em>stream</em> represents an open connection between the client and the server. <em>Connection</em> is the name for the full request and response process in which a client connects to the server, the server generates a response, and the server closes the connection. As such, we will read from the <code>TcpStream</code> to see what the client sent and then write our response to the stream to send data back to the client. Overall, this <code>for</code> loop will process each connection in turn and produce a series of streams for us to handle.</p>
-<p>For now, our handling of the stream consists of calling <code>unwrap</code> to terminate our program if the stream has any errors; if there aren’t any errors, the program prints a message. We’ll add more functionality for the success case in the next listing. The reason we might receive errors from the <code>incoming</code> method when a client connects to the server is that we’re not actually iterating over connections. Instead, we’re iterating over <em>connection attempts</em>. The connection might not be successful for a number of reasons, many of them operating system specific. For example, many operating systems have a limit to the number of simultaneous open connections they can support; new connection attempts beyond that number will produce an error until some of the open connections are closed.</p>
-<p>Let’s try running this code! Invoke <code>cargo run</code> in the terminal and then load <em>127.0.0.1:7878</em> in a web browser. The browser should show an error message like “Connection reset” because the server isn’t currently sending back any data. But when you look at your terminal, you should see several messages that were printed when the browser connected to the server!</p>
-<pre><code class="language-text">     Running `target/debug/hello`
-Connection established!
-Connection established!
-Connection established!
+<p>En utilisant <code>TcpListener</code>, nous pouvons écouter les connexions TCP à l’adresse <code>127.0.0.1:7878</code>. Dans cette adresse, la partie avant les double-points est une adresse IP qui représente votre ordinateur (c’est la même sur chaque ordinateur et ne représente pas spécifiquement l’ordinateur de l’auteur), et <code>7878</code> est le port. Nous avons choisi ce port pour deux raisons : HTTP n’est pas habituellement accepté sur ce port, donc notre serveur aura moins de risques d’entrer en conflit avec tout autre serveur web qui pourrait tourner sur votre machine, et 7878 correspond aux touches utilisées sur un clavier de téléphone pour écrire <em>Rust</em>.</p>
+<p>La fonction <code>bind</code> dans ce scénario fonctionne comme la fonction <code>new</code> dans le sens où elle retourne une nouvelle instance de <code>TcpListener</code>. La fonction s’appelle <code>bind</code> (<em>NdT : signifie “lier”</em>) parce que, dans le domaine des réseaux, se connecter à un port se dit se “lier à un port”.</p>
+<p>La fonction <code>bind</code> retourne un <code>Result&lt;T, E&gt;</code>, ce qui signifie qu’il est possible que la création de lien échoue. Par exemple, si nous exécutons deux instances de notre programme, nous aurons deux programmes qui écouteront sur le même port. Comme nous écrivons un serveur basique uniquement à but pédagogique, nous n’avons pas à nous soucier de la gestion de ce genre d’erreur ; c’est pourquoi nous utilisons <code>unwrap</code> pour arrêter l’exécution du programme si des erreurs surviennent.</p>
+<p>La méthode <code>incoming</code> d’un <code>TcpListener</code> retourne l’itérateur qui nous donne une séquence de flux (plus précisément, des flux de type <code>TcpStream</code>). Un seul <em>flux</em> représente une connexion entre le client et le serveur. Une <em>connexion</em> est le nom qui désigne le processus complet de requête et de réponse, durant lequel le client se connecte au serveur, le serveur génère une réponse puis le serveur ferme la connexion. Ainsi, nous allons lire à partir du <code>TcpStream</code> pour voir ce que le client a envoyé, et ensuite écrire notre réponse dans le flux pour renvoyer des données vers le client. D’une manière générale, cette boucle <code>for</code> traitera l’une après l’autre chaque connexion dans l’ordre et produira une série de flux que nous devrons gérer.</p>
+<p>Pour l’instant, notre gestion des flux consiste à appeler <code>unwrap</code> pour arrêter notre programme si le flux rencontre une erreur ; s’il n’y a pas d’erreurs, le programme affiche un message. Nous ajouterons davantage de fonctionnalités en cas de succès dans le prochain encart. La raison pour laquelle nous pourrions recevoir des erreurs de la méthode <code>incoming</code> lorsqu’un client se connecte au serveur est qu’en réalité nous n’itérons pas sur les connexions. En effet, nous itérons sur des <em>tentatives de connexion</em>. La connexion peut échouer pour de nombreuses raisons, beaucoup d’entre elles sont spécifiques au système d’exploitation. Par exemple, de nombreux systèmes d’exploitation ont une limite sur le nombre de connexions ouvertes simultanément qu’ils peuvent supporter ; les tentatives de nouvelles connexions une fois ce nombre dépassé produiront une erreur jusqu’à ce que certaines des connexions soient fermées.</p>
+<p>Essayons d’exécuter ce code ! Saisissez <code>cargo run</code> dans le terminal et ensuite ouvrez <em>127.0.0.1:7878</em> dans un navigateur web. Le navigateur devrait afficher un message d’erreur tel que “La connexion a été réinitialisée”, car le serveur ne renvoie pas de données pour le moment. Mais si vous regardez le terminal, vous devriez voir quelques messages qui se sont affichés lorsque le navigateur s’est connecté au serveur !</p>
+<pre><code class="language-text">     Running `target/debug/salutations`
+Connexion établie !
+Connexion établie !
+Connexion établie !
 </code></pre>
-<p>Sometimes you’ll see multiple messages printed for one browser request; the reason might be that the browser is making a request for the page as well as a request for other resources, like the <em>favicon.ico</em> icon that appears in the browser tab.</p>
-<p>It could also be that the browser is trying to connect to the server multiple times because the server isn’t responding with any data. When <code>stream</code> goes out of scope and is dropped at the end of the loop, the connection is closed as part of the <code>drop</code> implementation. Browsers sometimes deal with closed connections by retrying, because the problem might be temporary.</p>
-<p>Browsers also sometimes open multiple connections to the server without sending any requests so that if they <em>do</em> later send requests, those requests can happen more quickly. When this occurs, our server will see each connection, regardless of whether there are any requests over that connection. Many versions of Chrome-based browsers do this, for example; you can disable that optimization by using private browsing mode or using a different browser.</p>
-<p>The important factor is that we’ve successfully gotten a handle to a TCP connection!</p>
-<p>Remember to stop the program by pressing <kbd>ctrl</kbd>-<kbd>C</kbd> when you’re done running a particular version of the code. Then, restart the program by invoking the <code>cargo run</code> command after you’ve made each set of code changes to make sure you’re running the newest code.</p>
-<h3 id="reading-the-request"><a class="header" href="#reading-the-request">Reading the Request</a></h3>
-<p>Let’s implement the functionality to read the request from the browser! To separate the concerns of first getting a connection and then taking some action with the connection, we’ll start a new function for processing connections. In this new <code>handle_connection</code> function, we’ll read data from the TCP stream and print it so that we can see the data being sent from the browser. Change the code to look like Listing 21-2.</p>
+<p>Des fois, vous pourriez voir plusieurs messages s’afficher pour une seule requête du navigateur ; la raison à cela est peut-être que le navigateur fait une requête pour la page ainsi que des requêtes pour d’autres ressources, comme l’icone <em>favicon.ico</em> qui s’affiche dans l’onglet du navigateur.</p>
+<p>Peut-être que le navigateur essaie aussi de se connecter plusieurs fois au serveur car le serveur ne renvoie aucune donnée dans sa réponse. Lorsque <code>flux</code> sort de la portée et est nettoyé à la fin de la boucle, la connexion est fermée car cela est implémenté dans le <code>drop</code>. Les navigateurs réagissent à ces connexions fermées en ré-essayant, car le problème peut être temporaire.</p>
+<p>Les navigateurs ouvrent parfois plusieurs connexions vers le serveur sans pour autant envoyer de requêtes, de manière à ce que, s’ils envoient <em>réellement</em> des requêtes par la suite, ces dernières seront traitées plus rapidement. Quand cela se produit, notre serveur verra chaque connexion, qu’il y ait ou non des requêtes sur cette connexion. De nombreuses versions de navigateurs basés sur Chrome procèdent ainsi, par exemple ; vous pouvez désactiver cette optimisation en utilisant le mode de navigation privée ou en utilisant un autre navigateur.</p>
+<p>Le plus important est que nous ayons obtenu avec succès un manipulateur de connexion TCP !</p>
+<p>Pensez à arrêter le programme en appuyant sur <kbd>ctrl</kbd>-<kbd>C</kbd> lorsque vous avez fini d’exécuter une version donnée du code. Ensuite, relancez le programme en exécutant la commande <code>cargo run</code> après avoir appliqué chaque série de modifications du code afin d’être sûr que vous exécutez bien la toute dernière version du code.</p>
+<h3 id="lire-la-requête"><a class="header" href="#lire-la-requête">Lire la requête</a></h3>
+<p>Commençons à implémenter la fonctionnalité permettant de lire la requête du navigateur ! Pour séparer les parties où nous obtenons une connexion de celle où nous agissons avec la connexion, nous allons créer une nouvelle fonction pour traiter les connexions. Dans cette nouvelle fonction <code>gestion_connexion</code>, nous allons lire des données provenant du flux TCP et les afficher afin que nous puissions voir les données envoyées par le navigateur. Changez le code pour qu’il ressemble à l’encart 21-2.</p>
 <figure class="listing" id="listing-21-2">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust no_run edition2024">use std::{
@@ -290,32 +290,32 @@ Connection established!
 };
 
 fn main() {
-    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+    let ecouteur = TcpListener::bind("127.0.0.1:7878").unwrap();
 
-    for stream in listener.incoming() {
-        let stream = stream.unwrap();
+    for flux in ecouteur.incoming() {
+        let flux = flux.unwrap();
 
-        handle_connection(stream);
+        gestion_connexion(flux);
     }
 }
 
-fn handle_connection(mut stream: TcpStream) {
-    let buf_reader = BufReader::new(&amp;stream);
-    let http_request: Vec&lt;_&gt; = buf_reader
+fn gestion_connexion(mut flux: TcpStream) {
+    let tampon = BufReader::new(&amp;flux);
+    let requete_http: Vec&lt;_&gt; = tampon
         .lines()
-        .map(|result| result.unwrap())
-        .take_while(|line| !line.is_empty())
+        .map(|resultat| resultat.unwrap())
+        .take_while(|ligne| !ligne.is_empty())
         .collect();
 
-    println!("Request: {http_request:#?}");
+    println!("Requête : {requete_http:#?}");
 }</code></pre>
 <figcaption><a href="#listing-21-2">Listing 21-2</a>: Reading from the <code>TcpStream</code> and printing the data</figcaption>
 </figure>
-<p>We bring <code>std::io::BufReader</code> and <code>std::io::prelude</code> into scope to get access to traits and types that let us read from and write to the stream. In the <code>for</code> loop in the <code>main</code> function, instead of printing a message that says we made a connection, we now call the new <code>handle_connection</code> function and pass the <code>stream</code> to it.</p>
-<p>In the <code>handle_connection</code> function, we create a new <code>BufReader</code> instance that wraps a reference to the <code>stream</code>. The <code>BufReader</code> adds buffering by managing calls to the <code>std::io::Read</code> trait methods for us.</p>
-<p>We create a variable named <code>http_request</code> to collect the lines of the request the browser sends to our server. We indicate that we want to collect these lines in a vector by adding the <code>Vec&lt;_&gt;</code> type annotation.</p>
-<p><code>BufReader</code> implements the <code>std::io::BufRead</code> trait, which provides the <code>lines</code> method. The <code>lines</code> method returns an iterator of <code>Result&lt;String, std::io::Error&gt;</code> by splitting the stream of data whenever it sees a newline byte. To get each <code>String</code>, we <code>map</code> and <code>unwrap</code> each <code>Result</code>. The <code>Result</code> might be an error if the data isn’t valid UTF-8 or if there was a problem reading from the stream. Again, a production program should handle these errors more gracefully, but we’re choosing to stop the program in the error case for simplicity.</p>
-<p>The browser signals the end of an HTTP request by sending two newline characters in a row, so to get one request from the stream, we take lines until we get a line that is the empty string. Once we’ve collected the lines into the vector, we’re printing them out using pretty debug formatting so that we can take a look at the instructions the web browser is sending to our server.</p>
+<p>Nous avons importé <code>std::io::BufReader</code> et <code>std::io::prelude</code> dans la portée pour accéder à certains traits et types qui nous permettent de lire et d’écrire dans le flux. Dans la boucle <code>for</code> de la fonction <code>main</code>, au lieu d’afficher un message qui dit que nous avons établi une connexion, nous faisons maintenant appel à <code>gestion_connexion</code> et nous lui passons le <code>flux</code>.</p>
+<p>Dans la fonction <code>gestion_connexion</code>, nous créons une nouvelle instance de <code>BufReader</code> qui enveloppe une référence vers le <code>stream</code>. Le <code>BufReader</code> ajoute une mise en mémoire tampon gn gérant à notre place les appels aux méthodes du trait <code>std::io::Read</code>.</p>
+<p>Nous créons une variable <code>requete_http</code> pour recueillir les lignes de la requête que le navigateur envoie à notre serveur. Nous indiquons que nous voulons collecter ces lignes dans un vecteur en ajoutant l’annotation de type <code>Vec&lt;_&gt;</code> type annotation.</p>
+<p><code>BufReader</code> implémente le trait <code>std::io::BufRead</code>, lequel fournit la méthode <code>lines</code>. Cette dernière renvoie un itérons de <code>Result&lt;String, std::io::Error&gt;</code> en tronçonnant le flux de données à chaque endroit où elle détecte un octet de saut de ligne. Pour récupérer chaque <code>String</code>, nous appliquons <code>map</code> et <code>unwrap</code> à chaque <code>Result</code>. Le <code>Result</code> pourrait être une erreur si les données ne sont pas en UTF-8 valide ou s’il y a eu un problème lors de la lecture du flux. Là encore, un programme destiné à la production se doit de gérer ces erreurs d’une manière plus élégante mais, par souci de simplicité, nous avons fait le choix d’arrêter le programme en cas d’erreur.</p>
+<p>Le navigateur signale la fin d’une requête HTTP en envoyant deux caractères de fin de lignes successives, de manière à ce que, pour récupérer une requête depuis le flux, nous prenons les lignes jusqu’à ce que nous obtenions une ligne qui soit une chaîne de caractères vide. Une fois que nous avons collecté les lignes dans le vecteur, nous les affichons en utilisant le formatage de débogage lisible, afin de pouvoir les instructions que le navigateur web envoie à notre serveur.</p>
 <p>Essayons ce code ! Démarrez le programme et faites à nouveau une requête dans un navigateur web. Notez que nous obtenons toujours une page d’erreur dans le navigateur web, mais que la sortie de notre programme dans le terminal devrait ressembler à ceci :</p>
 <!-- manual-regeneration
 cd listings/ch21-web-server/listing-21-02
@@ -324,9 +324,9 @@ make a request to 127.0.0.1:7878
 Can't automate because the output depends on making requests
 -->
 <pre><code class="language-console">$ cargo run
-   Compiling hello v0.1.0 (file:///projects/hello)
+   Compiling salutations v0.1.0 (file:///projects/salutations)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.42s
-     Running `target/debug/hello`
+     Running `target/debug/salutations`
 Request: [
     "GET / HTTP/1.1",
     "Host: 127.0.0.1:7878",
@@ -344,34 +344,34 @@ Request: [
     "Cache-Control: max-age=0",
 ]
 </code></pre>
-<p>Depending on your browser, you might get slightly different output. Now that we’re printing the request data, we can see why we get multiple connections from one browser request by looking at the path after <code>GET</code> in the first line of the request. If the repeated connections are all requesting <em>/</em>, we know the browser is trying to fetch <em>/</em> repeatedly because it’s not getting a response from our program.</p>
+<p>En fonction de votre navigateur, vous pourriez voir une sortie légèrement différente. Maintenant que nous affichons les données des requêtes, nous pouvons constater pourquoi nous obtenons plusieurs connexions pour un seul chargement de page dans le navigateur web en analysant le chemin après le <code>GET</code> dans la première ligne de la requête. Si les connexions répétées sont toutes vers <em>/</em>, nous pouvons constater que le navigateur essaye d’obtenir <em>/</em> à répétition car il n’obtient pas de réponse de la part de notre programme.</p>
 <p>Décomposons les données de cette requête pour comprendre ce que le navigateur demande à notre programme.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="a-closer-look-at-an-http-request"></a> <a id="looking-closer-at-an-http-request"></a></p>
-<h3 id="looking-more-closely-at-an-http-request"><a class="header" href="#looking-more-closely-at-an-http-request">Looking More Closely at an HTTP Request</a></h3>
-<p>HTTP is a text-based protocol, and a request takes this format:</p>
-<pre><code class="language-text">Method Request-URI HTTP-Version CRLF
-headers CRLF
-message-body
+<h3 id="une-analyse-plus-poussée-dune-requête-http"><a class="header" href="#une-analyse-plus-poussée-dune-requête-http">Une analyse plus poussée d’une requête HTTP</a></h3>
+<p>HTTP est un protocole basé sur du texte, et une requête doit suivre cette forme :</p>
+<pre><code class="language-text">Méthode URI-Demandée Version-HTTP CRLF
+entêtes CRLF
+corps-du-message
 </code></pre>
-<p>The first line is the <em>request line</em> that holds information about what the client is requesting. The first part of the request line indicates the method being used, such as <code>GET</code> or <code>POST</code>, which describes how the client is making this request. Our client used a <code>GET</code> request, which means it is asking for information.</p>
-<p>The next part of the request line is <em>/</em>, which indicates the <em>uniform resource identifier</em> <em>(URI)</em> the client is requesting: A URI is almost, but not quite, the same as a <em>uniform resource locator</em> <em>(URL)</em>. The difference between URIs and URLs isn’t important for our purposes in this chapter, but the HTTP spec uses the term <em>URI</em>, so we can just mentally substitute <em>URL</em> for <em>URI</em> here.</p>
-<p>The last part is the HTTP version the client uses, and then the request line ends in a CRLF sequence. (<em>CRLF</em> stands for <em>carriage return</em> and <em>line feed</em>, which are terms from the typewriter days!) The CRLF sequence can also be written as <code>\r\n</code>, where <code>\r</code> is a carriage return and <code>\n</code> is a line feed. The <em>CRLF sequence</em> separates the request line from the rest of the request data. Note that when the CRLF is printed, we see a new line start rather than <code>\r\n</code>.</p>
-<p>Looking at the request line data we received from running our program so far, we see that <code>GET</code> is the method, <em>/</em> is the request URI, and <code>HTTP/1.1</code> is the version.</p>
+<p>La première ligne est la <em>ligne de requête</em> qui contient les informations sur ce que demande le client. La première partie de la ligne de requête indique la <em>méthode</em> utilisée, comme <code>GET</code> ou <code>POST</code>, qui décrit comment le client fait sa requête. Notre client a utilisé une requête <code>GET</code>, ce qui signifie qu’il demande de l’information.</p>
+<p>La partie suivante de la ligne de requête est <em>/</em>, qui indique l’<em>URI</em> (<em>Uniform Resource Identifier</em>) que demande le client : une URI est presque, mais pas complètement, la même chose qu’une <em>URL</em> (<em>Uniform Resource Locator</em>). La différence entre les URI et les URL n’est pas très importante pour nous dans ce chapitre, mais la spécification de HTTP utilise le terme URI, donc, ici, nous pouvons simplement lire URL là où URI est écrit.</p>
+<p>La dernière partie est la version HTTP que le client utilise, puis la ligne de requête termine avec une <em>séquence CRLF</em> (CRLF signifie <em>Carriage Return, retour chariot</em>, et <em>Line Feed, saut de ligne</em> qui sont des termes qui remontent à l’époque des machines à écrire !). La séquence CRLF peut aussi être écrite <code>\r\n</code>, dans laquelle <code>\r</code> est un retour chariot et <code>\n</code> est un saut de ligne. La séquence CRLF sépare la ligne de requête du reste des données de la requête. Notez toutefois que lorsqu’un CRLF est affiché, nous voyons une nouvelle ligne plutôt qu’un <code>\r\n</code>.</p>
+<p>D’après la ligne de requête que nous avons reçue après avoir exécuté notre programme précédemment, nous constatons que la méthode est <code>GET</code>, <em>/</em> est l’URI demandée et <code>HTTP/1.1</code> est la version.</p>
 <p>Après la ligne de requête, les lignes suivant celle où nous avons <code>Host:</code> sont des entêtes. Les requêtes <code>GET</code> n’ont pas de corps.</p>
-<p>Try making a request from a different browser or asking for a different address, such as <em>127.0.0.1:7878/test</em>, to see how the request data changes.</p>
-<p>Now that we know what the browser is asking for, let’s send back some data!</p>
-<h3 id="writing-a-response"><a class="header" href="#writing-a-response">Writing a Response</a></h3>
-<p>We’re going to implement sending data in response to a client request. Responses have the following format:</p>
-<pre><code class="language-text">HTTP-Version Status-Code Reason-Phrase CRLF
-headers CRLF
-message-body
+<p>Essayez de faire une requête dans un navigateur différent ou de demander une adresse différente, telle que <em>127.0.0.1:7878/test</em>, afin d’observer comment les données de requête changent.</p>
+<p>Maintenant que nous savons ce que demande le navigateur, envoyons-lui quelques données !</p>
+<h3 id="écrire-une-réponse"><a class="header" href="#écrire-une-réponse">Écrire une réponse</a></h3>
+<p>Maintenant, nous allons implémenter l’envoi d’une réponse à une requête client. Les réponses suivent le format suivant :</p>
+<pre><code class="language-text">Version-HTTP Code-Statut Phrase-De-Raison CRLF
+entêtes CRLF
+corps-du-message
 </code></pre>
-<p>The first line is a <em>status line</em> that contains the HTTP version used in the response, a numeric status code that summarizes the result of the request, and a reason phrase that provides a text description of the status code. After the CRLF sequence are any headers, another CRLF sequence, and the body of the response.</p>
-<p>Here is an example response that uses HTTP version 1.1 and has a status code of 200, an OK reason phrase, no headers, and no body:</p>
+<p>La première ligne est une <em>ligne de statut</em> qui contient la version HTTP utilisée dans la réponse, un code numérique de statut qui résume le résultat de la requête et une phrase de raison qui fournit une description textuelle du code de statut. Après la séquence CRLF viennent tous les entêtes, une autre séquence CRLF et enfin le corps de la réponse.</p>
+<p>Voici un exemple de réponse qui utilise HTTP version 1.1 et a un code de statut de 200, une phrase de raison à OK, pas d’entêtes, et pas de corps :</p>
 <pre><code class="language-text">HTTP/1.1 200 OK\r\n\r\n
 </code></pre>
-<p>The status code 200 is the standard success response. The text is a tiny successful HTTP response. Let’s write this to the stream as our response to a successful request! From the <code>handle_connection</code> function, remove the <code>println!</code> that was printing the request data and replace it with the code in Listing 21-3.</p>
+<p>Le code de statut 200 est la réponse standard de succès. Le texte est une toute petite réponse HTTP de succès. Ecrivons ceci dans le flux de notre réponse à une requête avec succès ! Dans la fonction <code>gestion_connexion</code>, enlevez le <code>println!</code> qui affiche les données de requête et remplacez-le par le code de l’encart 21-3.</p>
 <figure class="listing" id="listing-21-3">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">use std::{
@@ -380,50 +380,50 @@ message-body
 </span><span class="boring">};
 </span><span class="boring">
 </span><span class="boring">fn main() {
-</span><span class="boring">    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+</span><span class="boring">    let ecouteur = TcpListener::bind("127.0.0.1:7878").unwrap();
 </span><span class="boring">
-</span><span class="boring">    for stream in listener.incoming() {
-</span><span class="boring">        let stream = stream.unwrap();
+</span><span class="boring">    for flux in ecouteur.incoming() {
+</span><span class="boring">        let flux = flux.unwrap();
 </span><span class="boring">
-</span><span class="boring">        handle_connection(stream);
+</span><span class="boring">        gestion_connexion(flux);
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
-</span>fn handle_connection(mut stream: TcpStream) {
-    let buf_reader = BufReader::new(&amp;stream);
-    let http_request: Vec&lt;_&gt; = buf_reader
+</span>fn gestion_connexion(mut flux: TcpStream) {
+    let tampon = BufReader::new(&amp;flux);
+    let requete_http: Vec&lt;_&gt; = tampon
         .lines()
-        .map(|result| result.unwrap())
-        .take_while(|line| !line.is_empty())
+        .map(|resultat| resultat.unwrap())
+        .take_while(|ligne| !ligne.is_empty())
         .collect();
 
-    let response = "HTTP/1.1 200 OK\r\n\r\n";
+    let reponse = "HTTP/1.1 200 OK\r\n\r\n";
 
-    stream.write_all(response.as_bytes()).unwrap();
+    flux.write_all(reponse.as_bytes()).unwrap();
 }</code></pre>
 <figcaption><a href="#listing-21-3">Listing 21-3</a>: Writing a tiny successful HTTP response to the stream</figcaption>
 </figure>
-<p>The first new line defines the <code>response</code> variable that holds the success message’s data. Then, we call <code>as_bytes</code> on our <code>response</code> to convert the string data to bytes. The <code>write_all</code> method on <code>stream</code> takes a <code>&amp;[u8]</code> and sends those bytes directly down the connection. Because the <code>write_all</code> operation could fail, we use <code>unwrap</code> on any error result as before. Again, in a real application, you would add error handling here.</p>
-<p>With these changes, let’s run our code and make a request. We’re no longer printing any data to the terminal, so we won’t see any output other than the output from Cargo. When you load <em>127.0.0.1:7878</em> in a web browser, you should get a blank page instead of an error. You’ve just handcoded receiving an HTTP request and sending a response!</p>
-<h3 id="returning-real-html"><a class="header" href="#returning-real-html">Returning Real HTML</a></h3>
-<p>Let’s implement the functionality for returning more than a blank page. Create the new file <em>hello.html</em> in the root of your project directory, not in the <em>src</em> directory. You can input any HTML you want; Listing 21-4 shows one possibility.</p>
+<p>La première ligne définit la variable <code>reponse</code> qui contient les données du message de réussite. Ensuite, nous faisons appel à <code>as_bytes</code> sur notre <code>reponse</code> pour convertir la chaîne de caractères en octets. La méthode <code>write_all</code> sur le <code>flux</code> prend en argument un <code>&amp;[u8]</code> et envoie ces octets directement dans la connexion. Comme l’opération <code>write_all</code> peut échouer, nous utilisons <code>unwrap</code> sur chaque résultat en erreur, comme précédemment. De nouveau, dans une application réelle, vous devez ajouter la gestion d’erreurs à cet endroit.</p>
+<p>Avec ces modifications, exécutons à nouveau notre code et lançons une requête dans le navigateur. Nous n’affichons plus les données dans le terminal, donc nous ne voyons plus aucune sortie autre que celle de Cargo. Lorsque vous chargez <em>127.0.0.1:7878</em> dans un navigateur web, vous devriez obtenir une page blanche plutôt qu’une erreur. Vous venez de coder en dur la réception d’une requête HTTP et l’envoi d’une réponse !</p>
+<h3 id="retourner-du-vrai-html"><a class="header" href="#retourner-du-vrai-html">Retourner du vrai HTML</a></h3>
+<p>Implémentons la fonctionnalité permettant de retourner plus qu’une simple page blanche. Créez le nouveau fichier, <em>hello.html</em>, à la racine de votre répertoire de projet, et pas dans le répertoire <em>src</em>. Vous pouvez ajouter le HTML que vous souhaitez ; l’encart 21-4 vous montre une possibilité.</p>
 <figure class="listing" id="listing-21-4">
 <span class="file-name">Filename: hello.html</span>
 <pre><code class="language-html">&lt;!DOCTYPE html&gt;
-&lt;html lang="en"&gt;
+&lt;html lang="fr"&gt;
   &lt;head&gt;
     &lt;meta charset="utf-8"&gt;
-    &lt;title&gt;Hello!&lt;/title&gt;
+    &lt;title&gt;Salutations !&lt;/title&gt;
   &lt;/head&gt;
   &lt;body&gt;
-    &lt;h1&gt;Hello!&lt;/h1&gt;
-    &lt;p&gt;Hi from Rust&lt;/p&gt;
+    &lt;h1&gt;Salut !&lt;/h1&gt;
+    &lt;p&gt;Bonjour de la part de Rust&lt;/p&gt;
   &lt;/body&gt;
 &lt;/html&gt;
 </code></pre>
 <figcaption><a href="#listing-21-4">Listing 21-4</a>: A sample HTML file to return in a response</figcaption>
 </figure>
-<p>This is a minimal HTML5 document with a heading and some text. To return this from the server when a request is received, we’ll modify <code>handle_connection</code> as shown in Listing 21-5 to read the HTML file, add it to the response as a body, and send it.</p>
+<p>Ceci est un document HTML5 minimal avec des entêtes et un peu de texte. Pour retourner ceci à partir d’un serveur lorsqu’une requête est reçue, nous allons modifier <code>gestion_connexion</code> comme proposé dans l’encart 21-5 pour lire le fichier HTML, l’ajouter dans la réponse comme faisant partie de son corps, et l’envoyer.</p>
 <figure class="listing" id="listing-21-5">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust no_run edition2024">use std::{
@@ -434,40 +434,40 @@ message-body
 // -- partie masquée ici --
 
 <span class="boring">fn main() {
-</span><span class="boring">    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+</span><span class="boring">    let ecouteur = TcpListener::bind("127.0.0.1:7878").unwrap();
 </span><span class="boring">
-</span><span class="boring">    for stream in listener.incoming() {
-</span><span class="boring">        let stream = stream.unwrap();
+</span><span class="boring">    for flux in ecouteur.incoming() {
+</span><span class="boring">        let flux = flux.unwrap();
 </span><span class="boring">
-</span><span class="boring">        handle_connection(stream);
+</span><span class="boring">        gestion_connexion(flux);
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
-</span>fn handle_connection(mut stream: TcpStream) {
-    let buf_reader = BufReader::new(&amp;stream);
-    let http_request: Vec&lt;_&gt; = buf_reader
+</span>fn gestion_connexion(mut flux: TcpStream) {
+    let tampon = BufReader::new(&amp;flux);
+    let requete_http: Vec&lt;_&gt; = tampon
         .lines()
-        .map(|result| result.unwrap())
-        .take_while(|line| !line.is_empty())
+        .map(|resultat| resultat.unwrap())
+        .take_while(|ligne| !ligne.is_empty())
         .collect();
 
-    let status_line = "HTTP/1.1 200 OK";
-    let contents = fs::read_to_string("hello.html").unwrap();
-    let length = contents.len();
+    let ligne_statut = "HTTP/1.1 200 OK";
+    let contenu = fs::read_to_string("hello.html").unwrap();
+    let longueur = contenu.len();
 
-    let response =
-        format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
+    let reponse = 
+        format!("{ligne_statut}\r\nContent-Length: {longueur}\r\n\r\n{contenu}");
 
-    stream.write_all(response.as_bytes()).unwrap();
+    flux.write_all(reponse.as_bytes()).unwrap();
 }</code></pre>
 <figcaption><a href="#listing-21-5">Listing 21-5</a>: Sending the contents of <em>hello.html</em> as the body of the response</figcaption>
 </figure>
-<p>We’ve added <code>fs</code> to the <code>use</code> statement to bring the standard library’s filesystem module into scope. The code for reading the contents of a file to a string should look familiar; we used it when we read the contents of a file for our I/O project in Listing 12-4.</p>
-<p>Next, we use <code>format!</code> to add the file’s contents as the body of the success response. To ensure a valid HTTP response, we add the <code>Content-Length</code> header, which is set to the size of our response body—in this case, the size of <code>hello.html</code>.</p>
-<p>Run this code with <code>cargo run</code> and load <em>127.0.0.1:7878</em> in your browser; you should see your HTML rendered!</p>
-<p>Currently, we’re ignoring the request data in <code>http_request</code> and just sending back the contents of the HTML file unconditionally. That means if you try requesting <em>127.0.0.1:7878/something-else</em> in your browser, you’ll still get back this same HTML response. At the moment, our server is very limited and does not do what most web servers do. We want to customize our responses depending on the request and only send back the HTML file for a well-formed request to <em>/</em>.</p>
-<h3 id="validating-the-request-and-selectively-responding"><a class="header" href="#validating-the-request-and-selectively-responding">Validating the Request and Selectively Responding</a></h3>
-<p>Right now, our web server will return the HTML in the file no matter what the client requested. Let’s add functionality to check that the browser is requesting <em>/</em> before returning the HTML file and to return an error if the browser requests anything else. For this we need to modify <code>handle_connection</code>, as shown in Listing 21-6. This new code checks the content of the request received against what we know a request for <em>/</em> looks like and adds <code>if</code> and <code>else</code> blocks to treat requests differently.</p>
+<p>Nous avons ajouté <code>fs</code> à l’instruction <code>use</code> pour amener dans la portée le module de système de fichiers de la bibliothèque standard. Le code pour lire le contenu d’un fichier dans une chaîne de caractères devrait vous être familier ; nous l’avons utilisé dans le chapitre 12 lorsque nous lisions le contenu d’un fichier pour notre projet d’entrée/sortie, dans l’encart 12-4.</p>
+<p>Ensuite, nous avons utilisé <code>format!</code> pour ajouter le contenu du fichier comme étant le corps de la réponse avec succès. Pour garantir que ce soit une réponse HTTP valide, nous avons ajouté l’entête <code>Content-Length</code> qui définit la taille du corps de notre réponse, qui dans ce cas est la taille de <code>hello.html</code>.</p>
+<p>Exécutez ce code avec <code>cargo run</code> et ouvrez <em>127.0.0.1:7878</em> dans votre navigateur web ; vous devriez voir le résultat de votre HTML !</p>
+<p>Pour le moment, nous ignorons les données de la requête présentes dans <code>requete_http</code> et nous renvoyons sans conditions le contenu du fichier HTML. Cela signifie que si vous essayez de demander <em>127.0.0.1:7878/autre-chose</em> dans votre navigateur web, vous obtiendrez la même réponse HTML. Pour l’instant, notre serveur est très limité, et ne fait pas ce que font la plupart des serveurs web. Nous souhaitons désormais personnaliser nos réponses en fonction de la requête et ne renvoyer le fichier HTML que pour une requête bien formatée faite à <em>/</em>.</p>
+<h3 id="valider-la-requête-et-répondre-de-manière-sélective"><a class="header" href="#valider-la-requête-et-répondre-de-manière-sélective">Valider la requête et répondre de manière sélective</a></h3>
+<p>Jusqu’à présent, notre serveur web retourne le HTML du fichier peu importe ce que demande le client. Ajoutons une fonctionnalité pour vérifier que le navigateur demande bien <em>/</em> avant de retourner le fichier HTML et pour retourner une erreur si le navigateur demande autre chose. Pour cela, nous devons modifier <code>gestion_connexion</code> comme dans l’encart 21-6. Ce nouveau code compare le contenu de la requête que nous recevons à la requête que nous attendrions pour <em>/</em> et ajoute des blocs <code>if</code> et <code>else</code> pour traiter les requêtes de manière différenciée.</p>
 <figure class="listing" id="listing-21-6">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">use std::{
@@ -477,41 +477,41 @@ message-body
 </span><span class="boring">};
 </span><span class="boring">
 </span><span class="boring">fn main() {
-</span><span class="boring">    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+</span><span class="boring">    let ecouteur = TcpListener::bind("127.0.0.1:7878").unwrap();
 </span><span class="boring">
-</span><span class="boring">    for stream in listener.incoming() {
-</span><span class="boring">        let stream = stream.unwrap();
+</span><span class="boring">    for flux in ecouteur.incoming() {
+</span><span class="boring">        let flux = flux.unwrap();
 </span><span class="boring">
-</span><span class="boring">        handle_connection(stream);
+</span><span class="boring">        gestion_connexion(flux);
 </span><span class="boring">    }
 </span><span class="boring">}
 </span>// -- partie masquée ici --
 
-fn handle_connection(mut stream: TcpStream) {
-    let buf_reader = BufReader::new(&amp;stream);
-    let request_line = buf_reader.lines().next().unwrap().unwrap();
+fn gestion_connexion(mut flux: TcpStream) {
+    let tampon = BufReader::new(&amp;flux);
+    let ligne_requete = tampon.lines().next().unwrap().unwrap();
 
-    if request_line == "GET / HTTP/1.1" {
-        let status_line = "HTTP/1.1 200 OK";
-        let contents = fs::read_to_string("hello.html").unwrap();
-        let length = contents.len();
+    if ligne_requete == "GET / HTTP/1.1" {
+        let ligne_statut = "HTTP/1.1 200 OK";
+        let contenu = fs::read_to_string("hello.html").unwrap();
+        let longueur = contenu.len();
 
-        let response = format!(
-            "{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}"
+        let reponse = format!(
+            "{ligne_statut}\r\nContent-Length: {longueur}\r\n\r\n{contenu}"
         );
 
-        stream.write_all(response.as_bytes()).unwrap();
+        flux.write_all(reponse.as_bytes()).unwrap();
     } else {
-        // some other request
+        // autres requêtes
     }
 }</code></pre>
 <figcaption><a href="#listing-21-6">Listing 21-6</a>: Handling requests to <em>/</em> differently from other requests</figcaption>
 </figure>
-<p>We’re only going to be looking at the first line of the HTTP request, so rather than reading the entire request into a vector, we’re calling <code>next</code> to get the first item from the iterator. The first <code>unwrap</code> takes care of the <code>Option</code> and stops the program if the iterator has no items. The second <code>unwrap</code> handles the <code>Result</code> and has the same effect as the <code>unwrap</code> that was in the <code>map</code> added in Listing 21-2.</p>
-<p>Next, we check the <code>request_line</code> to see if it equals the request line of a GET request to the <em>/</em> path. If it does, the <code>if</code> block returns the contents of our HTML file.</p>
-<p>If the <code>request_line</code> does <em>not</em> equal the GET request to the <em>/</em> path, it means we’ve received some other request. We’ll add code to the <code>else</code> block in a moment to respond to all other requests.</p>
-<p>Run this code now and request <em>127.0.0.1:7878</em>; you should get the HTML in <em>hello.html</em>. If you make any other request, such as <em>127.0.0.1:7878/something-else</em>, you’ll get a connection error like those you saw when running the code in Listing 21-1 and Listing 21-2.</p>
-<p>Now let’s add the code in Listing 21-7 to the <code>else</code> block to return a response with the status code 404, which signals that the content for the request was not found. We’ll also return some HTML for a page to render in the browser indicating the response to the end user.</p>
+<p>Nous n’allons faire que regarder la première ligne de la requête HTTP, donc au lieu de lire l’entièreté de la requête dans un vecteur, nous appelons <code>next</code> pour obtenir le premier élément de l’itérateur. Le premier <code>unwrap</code> s’occupe de <code>Option</code> et arrête le programme si l’itérateur n’a aucun élément. Le second <code>unwrap</code> s’occupe du <code>Result</code> et a le même effet que le <code>unwrap</code> qui était dans le <code>map</code> ajouté dans l’encart 21-2.</p>
+<p>Ensuite, nous vérifions si <code>request_line</code> est égale à la ligne de requête d’une requête GET vers le chemin <em>/</em>. Si c’est le cas, le bloc <code>if</code> renvoie le contenu de notre fichier HTML.</p>
+<p>Si la <code>ligne_requete</code> n’est <em>pas</em> égale à la requête GET vers le chemin <em>/</em>, cela signifie que nous avons reçu une autre requête. Nous allons bientôt ajouter du code au bloc <code>else</code> pour répondre à toutes ces autres requêtes.</p>
+<p>Exécutez ce code maintenant et demandez <em>127.0.0.1:7878</em> ; vous devriez obtenir le HTML de <em>hello.html</em>. Si vous faites n’importe quelle autre requête, comme <em>127.0.0.1:7878/autre-chose</em>, vous allez obtenir une erreur de connexion comme celle que vous avez vue lorsque vous exécutiez le code de l’encart 21-1 et de l’encart 21-2.</p>
+<p>Maintenant ajoutons le code de l’encart 21-7 au bloc <code>else</code> pour retourner une réponse avec le code de statut 404, qui signale que le contenu demandé par cette requête n’a pas été trouvé. Nous allons aussi retourner du HTML pour qu’une page s’affiche dans le navigateur, indiquant la réponse à l’utilisateur final.</p>
 <figure class="listing" id="listing-21-7">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">use std::{
@@ -521,66 +521,66 @@ fn handle_connection(mut stream: TcpStream) {
 </span><span class="boring">};
 </span><span class="boring">
 </span><span class="boring">fn main() {
-</span><span class="boring">    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+</span><span class="boring">    let ecouteur = TcpListener::bind("127.0.0.1:7878").unwrap();
 </span><span class="boring">
-</span><span class="boring">    for stream in listener.incoming() {
-</span><span class="boring">        let stream = stream.unwrap();
+</span><span class="boring">    for flux in ecouteur.incoming() {
+</span><span class="boring">        let flux = flux.unwrap();
 </span><span class="boring">
-</span><span class="boring">        handle_connection(stream);
+</span><span class="boring">        gestion_connexion(flux);
 </span><span class="boring">    }
 </span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">fn handle_connection(mut stream: TcpStream) {
-</span><span class="boring">    let buf_reader = BufReader::new(&amp;stream);
-</span><span class="boring">    let request_line = buf_reader.lines().next().unwrap().unwrap();
+</span><span class="boring">fn gestion_connexion(mut flux: TcpStream) {
+</span><span class="boring">    let tampon = BufReader::new(&amp;flux);
+</span><span class="boring">    let ligne_requete = tampon.lines().next().unwrap().unwrap();
 </span><span class="boring">
-</span><span class="boring">    if request_line == "GET / HTTP/1.1" {
-</span><span class="boring">        let status_line = "HTTP/1.1 200 OK";
-</span><span class="boring">        let contents = fs::read_to_string("hello.html").unwrap();
-</span><span class="boring">        let length = contents.len();
+</span><span class="boring">    if ligne_requete == "GET / HTTP/1.1" {
+</span><span class="boring">        let ligne_statut = "HTTP/1.1 200 OK";
+</span><span class="boring">        let contenu = fs::read_to_string("hello.html").unwrap();
+</span><span class="boring">        let longueur = contenu.len();
 </span><span class="boring">
-</span><span class="boring">        let response = format!(
-</span><span class="boring">            "{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}"
+</span><span class="boring">        let reponse = format!(
+</span><span class="boring">            "{ligne_statut}\r\nContent-Length: {longueur}\r\n\r\n{contenu}"
 </span><span class="boring">        );
 </span><span class="boring">
-</span><span class="boring">        stream.write_all(response.as_bytes()).unwrap();
+</span><span class="boring">        flux.write_all(reponse.as_bytes()).unwrap();
 </span>    // -- partie masquée ici --
     } else {
-        let status_line = "HTTP/1.1 404 NOT FOUND";
-        let contents = fs::read_to_string("404.html").unwrap();
-        let length = contents.len();
+        let ligne_statut = "HTTP/1.1 404 NON TROUVÉ";
+        let contenu = fs::read_to_string("404.html").unwrap();
+        let longueur = contenu.len();
 
-        let response = format!(
-            "{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}"
+        let reponse = format!(
+            "{ligne_statut}\r\nContent-Length: {longueur}\r\n\r\n{contenu}"
         );
 
-        stream.write_all(response.as_bytes()).unwrap();
+        flux.write_all(reponse.as_bytes()).unwrap();
     }
 <span class="boring">}</span></code></pre>
 <figcaption><a href="#listing-21-7">Listing 21-7</a>: Responding with status code 404 and an error page if anything other than <em>/</em> was requested</figcaption>
 </figure>
-<p>Here, our response has a status line with status code 404 and the reason phrase <code>NOT FOUND</code>. The body of the response will be the HTML in the file <em>404.html</em>. You’ll need to create a <em>404.html</em> file next to <em>hello.html</em> for the error page; again, feel free to use any HTML you want, or use the example HTML in Listing 21-8.</p>
+<p>Ici notre réponse possède une ligne de statut avec le code de statut 404 et la phrase de raison <code>NON TROUVÉ</code>. Le corps de la réponse sera le HTML présent dans le fichier <em>404.html</em>. Nous aurons besoin de créer un fichier <code>404.html</code> au même endroit que <em>hello.html</em> pour la page d’erreur; de nouveau, n’hésitez pas à utiliser le HTML que vous souhaitez ou, à défaut, utilisez le HTML d’exemple présent dans l’encart 21-8.</p>
 <figure class="listing" id="listing-21-8">
 <span class="file-name">Filename: 404.html</span>
 <pre><code class="language-html">&lt;!DOCTYPE html&gt;
-&lt;html lang="en"&gt;
+&lt;html lang="fr"&gt;
   &lt;head&gt;
     &lt;meta charset="utf-8"&gt;
-    &lt;title&gt;Hello!&lt;/title&gt;
+    &lt;title&gt;Salutations !&lt;/title&gt;
   &lt;/head&gt;
   &lt;body&gt;
-    &lt;h1&gt;Oops!&lt;/h1&gt;
-    &lt;p&gt;Sorry, I don't know what you're asking for.&lt;/p&gt;
+    &lt;h1&gt;Oups !&lt;/h1&gt;
+    &lt;p&gt;Désolé, je ne connais pas ce que vous demandez.&lt;/p&gt;
   &lt;/body&gt;
 &lt;/html&gt;
 </code></pre>
 <figcaption><a href="#listing-21-8">Listing 21-8</a>: Sample content for the page to send back with any 404 response</figcaption>
 </figure>
-<p>With these changes, run your server again. Requesting <em>127.0.0.1:7878</em> should return the contents of <em>hello.html</em>, and any other request, like <em>127.0.0.1:7878/foo</em>, should return the error HTML from <em>404.html</em>.</p>
+<p>Une fois ces modifications appliquées, exécutez à nouveau votre serveur. Les requêtes vers <em>127.0.0.1:7878</em> devraient retourner le contenu de <em>hello.html</em> et toutes les autres requêtes, telle que <em>127.0.0.1:7878/autre-chose</em>, devraient retourner le HTML d’erreur présent dans <em>404.html</em>.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="a-touch-of-refactoring"></a></p>
-<h3 id="refactoring"><a class="header" href="#refactoring">Refactoring</a></h3>
-<p>At the moment, the <code>if</code> and <code>else</code> blocks have a lot of repetition: They’re both reading files and writing the contents of the files to the stream. The only differences are the status line and the filename. Let’s make the code more concise by pulling out those differences into separate <code>if</code> and <code>else</code> lines that will assign the values of the status line and the filename to variables; we can then use those variables unconditionally in the code to read the file and write the response. Listing 21-9 shows the resultant code after replacing the large <code>if</code> and <code>else</code> blocks.</p>
+<h3 id="remaniement-de-code"><a class="header" href="#remaniement-de-code">Remaniement de code</a></h3>
+<p>Pour l’instant, les blocs <code>if</code> et <code>else</code> contiennent beaucoup de code répété : ils lisent tous les deux des fichiers et écrivent le contenu de ces fichiers dans le flux. La seule différence entre eux sont la ligne de statut et le nom du fichier. Rendons le code plus concis en isolant ces différences dans des lignes <code>if</code> et <code>else</code> qui vont assigner les valeurs de la ligne de statut et du nom de fichier à des variables ; nous pourrons ensuite utiliser ces variables sans avoir à nous préoccuper du contexte dans le code qui va lire le fichier et écrire la réponse. L’encart 21-9 montre le code résultant après remplacement des gros blocs <code>if</code> et <code>else</code>.</p>
 <figure class="listing" id="listing-21-9">
 <span class="file-name">Filename: src/main.rs</span>
 <pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">use std::{
@@ -590,20 +590,20 @@ fn handle_connection(mut stream: TcpStream) {
 </span><span class="boring">};
 </span><span class="boring">
 </span><span class="boring">fn main() {
-</span><span class="boring">    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+</span><span class="boring">    let ecouteur = TcpListener::bind("127.0.0.1:7878").unwrap();
 </span><span class="boring">
-</span><span class="boring">    for stream in listener.incoming() {
-</span><span class="boring">        let stream = stream.unwrap();
+</span><span class="boring">    for flux in ecouteur.incoming() {
+</span><span class="boring">        let flux = flux.unwrap();
 </span><span class="boring">
-</span><span class="boring">        handle_connection(stream);
+</span><span class="boring">        gestion_connexion(flux);
 </span><span class="boring">    }
 </span><span class="boring">}
 </span>// -- partie masquée ici --
 
-fn handle_connection(mut stream: TcpStream) {
+fn gestion_connexion(mut flux: TcpStream) {
     // -- partie masquée ici --
-<span class="boring">    let buf_reader = BufReader::new(&amp;stream);
-</span><span class="boring">    let request_line = buf_reader.lines().next().unwrap().unwrap();
+<span class="boring">    let tampon = BufReader::new(&amp;flux);
+</span><span class="boring">    let ligne_requete = tampon.lines().next().unwrap().unwrap();
 </span>
     let (status_line, filename) = if request_line == "GET / HTTP/1.1" {
         ("HTTP/1.1 200 OK", "hello.html")
@@ -611,20 +611,20 @@ fn handle_connection(mut stream: TcpStream) {
         ("HTTP/1.1 404 NOT FOUND", "404.html")
     };
 
-    let contents = fs::read_to_string(filename).unwrap();
-    let length = contents.len();
+    let contenu = fs::read_to_string(nom_fichier).unwrap();
+    let longueur = contenu.len();
 
-    let response =
-        format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
+    let reponse = 
+        format!("{ligne_statut}\r\nContent-Length: {longueur}\r\n\r\n{contenu}");
 
-    stream.write_all(response.as_bytes()).unwrap();
+    flux.write_all(reponse.as_bytes()).unwrap();
 }</code></pre>
 <figcaption><a href="#listing-21-9">Listing 21-9</a>: Refactoring the <code>if</code> and <code>else</code> blocks to contain only the code that differs between the two cases</figcaption>
 </figure>
-<p>Now the <code>if</code> and <code>else</code> blocks only return the appropriate values for the status line and filename in a tuple; we then use destructuring to assign these two values to <code>status_line</code> and <code>filename</code> using a pattern in the <code>let</code> statement, as discussed in Chapter 19.</p>
-<p>The previously duplicated code is now outside the <code>if</code> and <code>else</code> blocks and uses the <code>status_line</code> and <code>filename</code> variables. This makes it easier to see the difference between the two cases, and it means we have only one place to update the code if we want to change how the file reading and response writing work. The behavior of the code in Listing 21-9 will be the same as that in Listing 21-7.</p>
+<p>Maintenant que les blocs <code>if</code> et <code>else</code> retournent uniquement les valeurs correctes pour la ligne de statut et le nom du fichier dans un tuple, nous pouvons utiliser la déstructuration pour assigner ces deux valeurs à <code>ligne_statut</code> et <code>chemin_fichier</code> en utilisant un motif dans l’instruction <code>let</code>, comme nous l’avons vu dans le chapitre 19.</p>
+<p>Le code précédent qui était en double se trouve maintenant à l’extérieur des blocs <code>if</code> et <code>else</code> et utilise les variables <code>ligne_statut</code> et <code>chemin_fichier</code>. Cela permet de mettre en évidence plus facilement les différences entre les deux cas, et cela signifie que nous n’avons qu’un seul endroit du code à modifier si nous souhaitons changer le fonctionnement de lecture du fichier et d’écriture de la réponse. Le comportement du code de l’encart 21-9 devrait être identique à celui de l’encart 21-7.</p>
 <p>Super ! Nous avons maintenant un serveur web simple qui tient dans environ 40 lignes de code, qui répond à une requête précise par une page de contenu et répond à toutes les autres avec une réponse 404.</p>
-<p>Currently, our server runs in a single thread, meaning it can only serve one request at a time. Let’s examine how that can be a problem by simulating some slow requests. Then, we’ll fix it so that our server can handle multiple requests at once.</p>
+<p>Actuellement, notre serveur fonctionne dans une seule tâche, ce qui signifie qu’il ne peut répondre qu’à une seule requête à la fois. Examinons maintenant à quel point cela peut être un problème en simulant des réponses lentes à des requêtes. Ensuite, nous corrigerons notre serveur pour qu’il puisse gérer plusieurs requêtes à la fois.</p>
 
                     </main>
 
