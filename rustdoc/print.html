@@ -93,7 +93,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c622d499.js";
+            window.path_to_searchindex_js = "searchindex-af691803.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-818727da.js"></script>
@@ -3622,22 +3622,44 @@ pub mod futures {
     // `futures` and all its descendants won't display "unix" in their cfgs.
 }</code></pre>
 <p>Then, the <code>unix</code> cfg will never be displayed into the documentation.</p>
-<p>Rustdoc currently hides <code>doc</code> and <code>doctest</code> attributes by default and reserves the right to change the list of “hidden by default” attributes.</p>
-<p>The attribute accepts only a list of identifiers or key/value items. So you can write:</p>
-<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg(hide(unix, doctest, feature = "something")))]
+<p>The syntax of <code>hide</code> is as follows: you can list as many <code>cfg</code> name as you want:</p>
+<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg(hide(feature, target_os)))]</code></pre>
+<p>With the above example, it means that <code>#[cfg(feature)]</code> and <code>#[cfg(target_os)]</code> won’t be displayed in the docs. However, <code>#[cfg(target_os = "linux)]</code> or <code>#[cfg(feature = "something")]</code> will be displayed because only the key without values was marked as hidden. if you want to hide some values, you can do:</p>
+<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg(hide(feature, target_os, values("something", "linux"))))]</code></pre>
+<p>In this case, <code>#[cfg(feature = "linux")]</code>, <code>#[cfg(feature = "something")]</code>, <code>#[cfg(target_os = "something")]</code> and <code>#[cfg(target_os = "linux")]</code> will be hidden. All listed keys will be impacted by <code>values(...)</code>. You can split them by having two <code>hide</code>:</p>
+<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg(
+    hide(feature, values("something")),
+    hide(target_os, values("linux")),
+))]</code></pre>
+<p>Now, only <code>#[cfg(feature = "something")]</code> and <code>#[cfg(target_os = "linux")]</code> will be hidden. If you want to hide a key and all its values, you can use <code>any()</code>:</p>
+<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg(
+    hide(feature, values(any())),
+))]</code></pre>
+<p>If you want to hide only when there is no value you can use <code>none()</code>:</p>
+<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg(
+    hide(feature, values("something", none())),
+))]</code></pre>
+<p>So now, if you want to forbid all values for a key, but allow the key itself, you can do:</p>
+<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg(
+    hide(feature, values(any())), // We completely hide "feature".
+    show(feature), // We show again "feature" (but not any value).
+))]</code></pre>
+<p>If the previous example, both <code>#[cfg(feature)]</code> and <code>#[cfg(feature = "something")]</code> will be hidden.</p>
+<p>Rustdoc currently hides <code>test</code>, <code>doc</code> and <code>doctest</code> attributes by default and reserves the right to change the list of “hidden by default” attributes.</p>
+<p>The attribute accepts only a list of identifiers and <code>values()</code>. So you can write:</p>
+<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg(
+    hide(unix, doctest),
+    hide(feature, values("something")),
+))]
 #[doc(auto_cfg(hide()))]</code></pre>
 <p>But you cannot write:</p>
 <pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg(hide(not(unix))))]</code></pre>
-<p>So if we use <code>doc(auto_cfg(hide(unix)))</code>, it means it will hide all mentions of <code>unix</code>:</p>
+<p>So if we use <code>doc(auto_cfg(hide(unix)))</code>, it means it will hide all mentions of <code>unix</code> without a value:</p>
 <pre><code class="language-rust ignore (nightly)">#[cfg(unix)] // nothing displayed
 #[cfg(any(unix))] // nothing displayed
 #[cfg(any(unix, windows))] // only `windows` displayed</code></pre>
 <p>However, it only impacts the <code>unix</code> cfg, not the feature:</p>
 <pre><code class="language-rust ignore (nightly)">#[cfg(feature = "unix")] // `feature = "unix"` is displayed</code></pre>
-<p>If <code>cfg_auto(show(...))</code> and <code>cfg_auto(hide(...))</code> are used to show/hide a same <code>cfg</code> on a same item, it’ll emit an error. Example:</p>
-<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg(hide(unix)))]
-#[doc(auto_cfg(show(unix)))] // Error!
-pub fn foo() {}</code></pre>
 <p>Using this attribute will re-enable <code>auto_cfg</code> if it was disabled at this location:</p>
 <pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg = false)] // Disabling `auto_cfg`
 pub fn foo() {}</code></pre>
@@ -3647,14 +3669,11 @@ pub mod module {
     #[doc(auto_cfg(hide(unix)))] // `auto_cfg` is re-enabled.
     pub fn foo() {}
 }</code></pre>
-<p>However, using <code>doc(auto_cfg = ...)</code> and <code>doc(auto_cfg(...))</code> on the same item will emit an error:</p>
-<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg = false)]
-#[doc(auto_cfg(hide(unix)))] // error
-pub fn foo() {}</code></pre>
 <p>The reason behind this is that <code>doc(auto_cfg = ...)</code> enables or disables the feature, whereas <code>doc(auto_cfg(...))</code> enables it unconditionally, making the first attribute to appear useless as it will be overidden by the next <code>doc(auto_cfg)</code> attribute.</p>
 <h3 id="docauto_cfgshow"><a class="header" href="#docauto_cfgshow"><code>#[doc(auto_cfg(show(...)))]</code></a></h3>
 <p>This attribute does the opposite of <code>#[doc(auto_cfg(hide(...)))]</code>: if you used <code>#[doc(auto_cfg(hide(...)))]</code> and want to revert its effect on an item and its descendants, you can use <code>#[doc(auto_cfg(show(...)))]</code>.
 It only applies to <code>#[doc(auto_cfg = true)]</code>, not to <code>#[doc(cfg(...))]</code>.</p>
+<p>It follows the same syntax rules as for <code>#[doc(auto_cfg(hide(...)))]</code>.</p>
 <p>For example:</p>
 <pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg(hide(unix)))]
 #[cfg(any(unix, feature = "futures-io"))]
@@ -3666,7 +3685,10 @@ pub mod futures {
     }
 }</code></pre>
 <p>The attribute accepts only a list of identifiers or key/value items. So you can write:</p>
-<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg(show(unix, doctest, feature = "something")))]
+<pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg(
+    show(unix, doctest),
+    show(feature, values("something")),
+))]
 #[doc(auto_cfg(show()))]</code></pre>
 <p>But you cannot write:</p>
 <pre><code class="language-rust ignore (nightly)">#[doc(auto_cfg(show(not(unix))))]</code></pre>
