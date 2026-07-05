@@ -93,7 +93,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6617b985.js";
+            window.path_to_searchindex_js = "searchindex-fc88f912.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-01ec0cab.js"></script>
@@ -397,7 +397,7 @@
 <div class="rule" id="r-undefined.dangling.dynamic-size"><a class="rule-link" href="#r-undefined.dangling.dynamic-size" title="undefined.dangling.dynamic-size"><span>[undefined<wbr>.dangling<wbr>.dynamic-size]</span></a>
 </div>
 
-<p>Note that dynamically sized types (such as slices and strings) point to their entire range, so it is important that the length metadata is never too large.</p>
+<p>Note that dynamically sized types (such as slices and strings) point to their entire range, so it is important that the length <a href="dynamically-sized-types.html#r-dynamic-sized.pointer-types">metadata</a> is never too large.</p>
 <div class="rule" id="r-undefined.dangling.alloc-limit"><a class="rule-link" href="#r-undefined.dangling.alloc-limit" title="undefined.dangling.alloc-limit"><span>[undefined<wbr>.dangling<wbr>.alloc-limit]</span></a>
 </div>
 
@@ -469,17 +469,27 @@
 </div>
 
 <ul>
-<li>A reference or <a href="../alloc/boxed/struct.Box.html"><code>Box&lt;T&gt;</code></a> must be aligned and non-null, it cannot be <a href="#dangling-pointers">dangling</a>, and it must point to a valid value (in case of dynamically sized types, using the actual dynamic type of the pointee as determined by the metadata). Note that the last point (about pointing to a valid value) remains a subject of some debate.</li>
+<li>A reference or <a href="../alloc/boxed/struct.Box.html"><code>Box&lt;T&gt;</code></a> must be aligned and non-null, it cannot be <a href="#dangling-pointers">dangling</a>, and it must point to a valid value (in case of dynamically sized types, using the actual dynamic type of the pointee as determined by the <a href="dynamically-sized-types.html#r-dynamic-sized.pointer-types">metadata</a>). Note that the last point (about pointing to a valid value) remains a subject of some debate.</li>
 </ul>
 <div class="rule" id="r-undefined.validity.wide"><a class="rule-link" href="#r-undefined.validity.wide" title="undefined.validity.wide"><span>[undefined<wbr>.validity<wbr>.wide]</span></a>
 </div>
 
 <ul>
-<li>The metadata of a wide reference, <a href="../alloc/boxed/struct.Box.html"><code>Box&lt;T&gt;</code></a>, or raw pointer must match the type of the unsized tail:
+<li>
+<p>The <a href="dynamically-sized-types.html#r-dynamic-sized.pointer-types">metadata</a> of a wide reference, <a href="../alloc/boxed/struct.Box.html"><code>Box&lt;T&gt;</code></a>, or raw pointer must match the type of the <a href="dynamically-sized-types.html#r-dynamic-sized.tail">unsized tail</a>:</p>
 <ul>
 <li><code>dyn Trait</code> metadata must be a pointer to a compiler-generated vtable for <code>Trait</code>. (For raw pointers, this requirement remains a subject of some debate.)</li>
-<li>Slice (<code>[T]</code>) metadata must be a valid <code>usize</code>. Furthermore, for wide references and <a href="../alloc/boxed/struct.Box.html"><code>Box&lt;T&gt;</code></a>, slice metadata is invalid if it makes the total size of the pointed-to value bigger than <code>isize::MAX</code>.</li>
+<li>Slice (<code>[T]</code>) and <code>str</code> metadata must be a valid <code>usize</code>.</li>
 </ul>
+<p>In addition, for a wide reference or <a href="../alloc/boxed/struct.Box.html"><code>Box&lt;T&gt;</code></a>, the metadata is invalid if it makes the total size of the pointed-to value (as determined by <code>size_of_val</code>) bigger than <code>isize::MAX</code>.</p>
+<div class="alert alert-note">
+<blockquote>
+<p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+
+<p>This bound is on the size of the entire pointed-to value, not just its unsized tail, and it constrains <code>dyn Trait</code> metadata just as it does a slice or <code>str</code> length. A valid vtable describes an erased type no larger than <code>isize::MAX</code>, but a sized prefix can still carry the total past the limit.</p>
+</blockquote>
+</div>
+
 </li>
 </ul>
 <div class="rule" id="r-undefined.validity.valid-range"><a class="rule-link" href="#r-undefined.validity.valid-range" title="undefined.validity.valid-range"><span>[undefined<wbr>.validity<wbr>.valid-range]</span></a>
@@ -503,7 +513,7 @@
 
 <ul>
 <li>
-<p><strong>In <a href="const_eval.html#r-const-eval.const-context">const contexts</a></strong>: In addition to what is described above, further provenance-related requirements apply during const evaluation. Any value that holds pure integer data (the <code>i*</code>/<code>u*</code>/<code>f*</code> types as well as <code>bool</code> and <code>char</code>, enum discriminants, and slice metadata) must not carry any provenance. Any value that holds pointer data (references, raw pointers, function pointers, and <code>dyn Trait</code> metadata) must either carry no provenance, or all bytes must be fragments of the same original pointer value in the correct order.</p>
+<p><strong>In <a href="const_eval.html#r-const-eval.const-context">const contexts</a></strong>: In addition to what is described above, further provenance-related requirements apply during const evaluation. Any value that holds pure integer data (the <code>i*</code>/<code>u*</code>/<code>f*</code> types as well as <code>bool</code> and <code>char</code>, enum discriminants, and slice <a href="dynamically-sized-types.html#r-dynamic-sized.pointer-types">metadata</a>) must not carry any provenance. Any value that holds pointer data (references, raw pointers, function pointers, and <code>dyn Trait</code> metadata) must either carry no provenance, or all bytes must be fragments of the same original pointer value in the correct order.</p>
 <p>This implies that transmuting or otherwise reinterpreting a pointer (reference, raw pointer, or function pointer) into a non-pointer type (such as integers) is undefined behavior if the pointer had provenance.</p>
 <div class="alert alert-example">
 <blockquote>

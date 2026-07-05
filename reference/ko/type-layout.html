@@ -93,7 +93,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-262c1a47.js";
+            window.path_to_searchindex_js = "searchindex-20ac6370.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-20da6b24.js"></script>
@@ -507,42 +507,110 @@ struct AlignedStruct {
 <p>현재 오프셋 0바이트로 시작합니다.</p>
 <p>구조체의 선언 순서대로 각 필드에 대해, 먼저 필드의 크기와 정렬을 결정합니다. 현재 오프셋이 필드의 정렬의 배수가 아니라면, 필드 정렬의 배수가 될 때까지 현재 오프셋에 패딩 바이트를 추가합니다. 해당 필드의 오프셋은 현재 오프셋 값이 됩니다. 그런 다음 현재 오프셋을 필드의 크기만큼 증가시킵니다.</p>
 <p>마지막으로, 구조체의 크기는 현재 오프셋을 구조체의 정렬의 가장 가까운 배수로 올림한 값입니다.</p>
-<p>다음은 의사코드로 설명된 이 알고리즘입니다.</p>
-<!-- ignore: pseudocode -->
-<pre><code class="language-rust ignore">/// 다음 주소가 `alignment` 에 맞춰 정렬되도록 하기 위해
-/// `offset` 뒤에 필요한 패딩의 양을 반환합니다.
-fn padding_needed_for(offset: usize, alignment: usize) -&gt; usize {
-    let misalignment = offset % alignment;
-    if misalignment &gt; 0 {
-        // `alignment` 의 다음 배수로 올림
-        alignment - misalignment
-    } else {
-        // 이미 `alignment` 의 배수임
-        0
+<p>Here is the algorithm:</p>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">/// A field of a struct.
+</span><span class="boring">#[derive(Debug)]
+</span>struct Field {
+    alignment: usize,
+    size: usize,
+}
+<span class="boring">/// Layout of user-defined structs.
+</span><span class="boring">#[derive(Debug)]
+</span>struct MockLayout {
+<span class="boring">    /// Fields stored in declaration order.
+</span>    fields: Vec&lt;Field&gt;,
+<span class="boring">    /// Offset of each field from the start of the struct.
+</span>    field_offsets: Vec&lt;usize&gt;,
+<span class="boring">    /// Overall alignment.
+</span>    alignment: usize,
+<span class="boring">    /// Overall size.
+</span>    size: usize,
+}
+   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
+impl MockLayout {
+    /// Returns the amount of padding needed after `offset` to ensure that the
+    /// following address will be aligned to `alignment`.
+    fn padding_needed_for(offset: usize, alignment: usize) -&gt; usize {
+        let misalignment = offset % alignment;
+        if misalignment &gt; 0 {
+            // Round up to next multiple of `alignment`.
+            alignment - misalignment
+        } else {
+            // Already a multiple of `alignment`.
+            0
+        }
+    }
+   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
+    /// Fields must be in declaration order. By this point, they have already
+    /// had their alignments and sizes calculated.
+    pub fn from_fields(fields: Vec&lt;Field&gt;) -&gt; Self {
+        // "The alignment of the struct is the alignment of the most-aligned
+        // field in it, or one if there are no fields."
+        let alignment = fields
+            .iter()
+            .map(|field| field.alignment)
+            .max()
+            .unwrap_or(1);
+   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
+        // "Start with a current offset of 0 bytes."
+        let mut current_offset = 0;
+   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
+        let mut field_offsets = vec![];
+        for field in &amp;fields {
+            // "If the current offset is not a multiple of the field's
+            // alignment, then add padding bytes to the current offset until it
+            // is a multiple of the field's alignment."
+            current_offset += Self::padding_needed_for(
+                current_offset,
+                field.alignment
+            );
+   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
+            // "The offset for the field is what the current offset is now."
+            field_offsets.push(current_offset);
+   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
+            // "Then increase the current offset by the size of the field."
+            current_offset += field.size;
+        }
+   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
+        // "Finally, the size of the struct is the current offset rounded up to
+        // the nearest multiple of the struct's alignment."
+        let size = current_offset + Self::padding_needed_for(
+            current_offset,
+            alignment
+        );
+   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
+        MockLayout { fields, field_offsets, alignment, size }
     }
 }
-   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
-struct.alignment = struct.fields().map(|field| field.alignment).max();
-   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
-let current_offset = 0;
-   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
-for field in struct.fields_in_declaration_order() {
-    // 현재 오프셋을 증가시켜 이 필드의 정렬의 배수가 되도록 합니다.
-    // 첫 번째 필드의 경우, 이는 항상 0이 됩니다.
-    // 건너뛴 바이트를 패딩 바이트라고 합니다.
-    current_offset += padding_needed_for(current_offset, field.alignment);
-   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
-    struct[field].offset = current_offset;
-   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
-    current_offset += field.size;
-}
-   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
-struct.size = current_offset + padding_needed_for(current_offset, struct.alignment);</code></pre>
+<span class="boring">
+</span><span class="boring">#[repr(C)]
+</span><span class="boring">struct Demo {
+</span><span class="boring">    first: u8,
+</span><span class="boring">    second: u32,
+</span><span class="boring">    third: u64,
+</span><span class="boring">}
+</span><span class="boring">macro_rules! fields {
+</span><span class="boring">    ( $( $t:ty ),+ ) =&gt; {
+</span><span class="boring">        vec![
+</span><span class="boring">            $( Field {
+</span><span class="boring">                alignment: std::mem::align_of::&lt;$t&gt;(),
+</span><span class="boring">                size: std::mem::size_of::&lt;$t&gt;(),
+</span><span class="boring">            }),+
+</span><span class="boring">        ]
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">let fields = fields![u8, u32, u64];
+</span><span class="boring">let demo_layout = MockLayout::from_fields(fields);
+</span><span class="boring">assert_eq!(std::mem::align_of::&lt;Demo&gt;(), demo_layout.alignment);
+</span><span class="boring">assert_eq!(std::mem::size_of::&lt;Demo&gt;(), demo_layout.size);
+</span><span class="boring">}</span></code></pre>
 <div class="alert alert-warning">
 <blockquote>
 <p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
 
-<p>This pseudocode uses a naive algorithm that ignores overflow issues for the sake of clarity. To perform memory layout computations in actual code, use <a href="../core/alloc/layout/struct.Layout.html"><code>Layout</code></a>.</p>
+<p>This mock implementation uses a naive algorithm that ignores overflow issues for the sake of clarity. To perform memory layout computations in actual code, use <a href="../core/alloc/layout/struct.Layout.html"><code>Layout</code></a>.</p>
 </blockquote>
 </div>
 

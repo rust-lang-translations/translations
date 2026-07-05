@@ -93,7 +93,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6617b985.js";
+            window.path_to_searchindex_js = "searchindex-fc88f912.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-01ec0cab.js"></script>
@@ -507,42 +507,110 @@ struct AlignedStruct {
 <p>Start with a current offset of 0 bytes.</p>
 <p>For each field in declaration order in the struct, first determine the size and alignment of the field. If the current offset is not a multiple of the field’s alignment, then add padding bytes to the current offset until it is a multiple of the field’s alignment. The offset for the field is what the current offset is now. Then increase the current offset by the size of the field.</p>
 <p>Finally, the size of the struct is the current offset rounded up to the nearest multiple of the struct’s alignment.</p>
-<p>Here is this algorithm described in pseudocode.</p>
-<!-- ignore: pseudocode -->
-<pre><code class="language-rust ignore">/// Returns the amount of padding needed after `offset` to ensure that the
-/// following address will be aligned to `alignment`.
-fn padding_needed_for(offset: usize, alignment: usize) -&gt; usize {
-    let misalignment = offset % alignment;
-    if misalignment &gt; 0 {
-        // round up to next multiple of `alignment`
-        alignment - misalignment
-    } else {
-        // already a multiple of `alignment`
-        0
+<p>Here is the algorithm:</p>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">/// A field of a struct.
+</span><span class="boring">#[derive(Debug)]
+</span>struct Field {
+    alignment: usize,
+    size: usize,
+}
+<span class="boring">/// Layout of user-defined structs.
+</span><span class="boring">#[derive(Debug)]
+</span>struct MockLayout {
+<span class="boring">    /// Fields stored in declaration order.
+</span>    fields: Vec&lt;Field&gt;,
+<span class="boring">    /// Offset of each field from the start of the struct.
+</span>    field_offsets: Vec&lt;usize&gt;,
+<span class="boring">    /// Overall alignment.
+</span>    alignment: usize,
+<span class="boring">    /// Overall size.
+</span>    size: usize,
+}
+
+impl MockLayout {
+    /// Returns the amount of padding needed after `offset` to ensure that the
+    /// following address will be aligned to `alignment`.
+    fn padding_needed_for(offset: usize, alignment: usize) -&gt; usize {
+        let misalignment = offset % alignment;
+        if misalignment &gt; 0 {
+            // Round up to next multiple of `alignment`.
+            alignment - misalignment
+        } else {
+            // Already a multiple of `alignment`.
+            0
+        }
+    }
+
+    /// Fields must be in declaration order. By this point, they have already
+    /// had their alignments and sizes calculated.
+    pub fn from_fields(fields: Vec&lt;Field&gt;) -&gt; Self {
+        // "The alignment of the struct is the alignment of the most-aligned
+        // field in it, or one if there are no fields."
+        let alignment = fields
+            .iter()
+            .map(|field| field.alignment)
+            .max()
+            .unwrap_or(1);
+
+        // "Start with a current offset of 0 bytes."
+        let mut current_offset = 0;
+
+        let mut field_offsets = vec![];
+        for field in &amp;fields {
+            // "If the current offset is not a multiple of the field's
+            // alignment, then add padding bytes to the current offset until it
+            // is a multiple of the field's alignment."
+            current_offset += Self::padding_needed_for(
+                current_offset,
+                field.alignment
+            );
+
+            // "The offset for the field is what the current offset is now."
+            field_offsets.push(current_offset);
+
+            // "Then increase the current offset by the size of the field."
+            current_offset += field.size;
+        }
+
+        // "Finally, the size of the struct is the current offset rounded up to
+        // the nearest multiple of the struct's alignment."
+        let size = current_offset + Self::padding_needed_for(
+            current_offset,
+            alignment
+        );
+
+        MockLayout { fields, field_offsets, alignment, size }
     }
 }
-
-struct.alignment = struct.fields().map(|field| field.alignment).max();
-
-let current_offset = 0;
-
-for field in struct.fields_in_declaration_order() {
-    // Increase the current offset so that it's a multiple of the alignment
-    // of this field. For the first field, this will always be zero.
-    // The skipped bytes are called padding bytes.
-    current_offset += padding_needed_for(current_offset, field.alignment);
-
-    struct[field].offset = current_offset;
-
-    current_offset += field.size;
-}
-
-struct.size = current_offset + padding_needed_for(current_offset, struct.alignment);</code></pre>
+<span class="boring">
+</span><span class="boring">#[repr(C)]
+</span><span class="boring">struct Demo {
+</span><span class="boring">    first: u8,
+</span><span class="boring">    second: u32,
+</span><span class="boring">    third: u64,
+</span><span class="boring">}
+</span><span class="boring">macro_rules! fields {
+</span><span class="boring">    ( $( $t:ty ),+ ) =&gt; {
+</span><span class="boring">        vec![
+</span><span class="boring">            $( Field {
+</span><span class="boring">                alignment: std::mem::align_of::&lt;$t&gt;(),
+</span><span class="boring">                size: std::mem::size_of::&lt;$t&gt;(),
+</span><span class="boring">            }),+
+</span><span class="boring">        ]
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">let fields = fields![u8, u32, u64];
+</span><span class="boring">let demo_layout = MockLayout::from_fields(fields);
+</span><span class="boring">assert_eq!(std::mem::align_of::&lt;Demo&gt;(), demo_layout.alignment);
+</span><span class="boring">assert_eq!(std::mem::size_of::&lt;Demo&gt;(), demo_layout.size);
+</span><span class="boring">}</span></code></pre>
 <div class="alert alert-warning">
 <blockquote>
 <p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
 
-<p>This pseudocode uses a naive algorithm that ignores overflow issues for the sake of clarity. To perform memory layout computations in actual code, use <a href="../core/alloc/layout/struct.Layout.html"><code>Layout</code></a>.</p>
+<p>This mock implementation uses a naive algorithm that ignores overflow issues for the sake of clarity. To perform memory layout computations in actual code, use <a href="../core/alloc/layout/struct.Layout.html"><code>Layout</code></a>.</p>
 </blockquote>
 </div>
 

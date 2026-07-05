@@ -93,7 +93,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cb6ead0a.js";
+            window.path_to_searchindex_js = "searchindex-abef3581.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1af1b443.js"></script>
@@ -257,14 +257,15 @@
 </ul>
 <p>러스트 표준 라이브러리의 많은 부분도 내부적으로 안전하지 않은 러스트를 사용합니다. 이러한 구현은 일반적으로 엄격하게 수동으로 검사되었으므로, 이러한 구현 위에 구축된 안전한 러스트 인터페이스는 안전하다고 가정할 수 있습니다.</p>
 <p>The need for all of this separation boils down to a single fundamental property of Safe Rust, the <em>soundness property</em>:</p>
-<p><strong>어떤 경우에도 안전한 러스트는 정의되지 않은 동작을 유발할 수 없습니다.</strong></p>
-<p>안전/비안전 분리의 설계는 안전한 러스트와 안전하지 않은 러스트 사이에 비대칭적인 신뢰 관계가 있음을 의미합니다. 안전한 러스트는 자신이 접하는 모든 안전하지 않은 러스트가 올바르게 작성되었다고 본질적으로 신뢰해야 합니다. 반면에 안전하지 않은 러스트는 주의 없이는 안전한 러스트를 신뢰할 수 없습니다.</p>
+<p><strong>No matter what, Safe Rust clients can’t cause Undefined Behavior.</strong></p>
+<p>The design of the safe/unsafe split means that there is an asymmetric trust relationship between Safe and Unsafe Rust. Safe Rust inherently has to trust that any Unsafe Rust it touches has been written correctly. On the other hand, Unsafe Rust cannot trust Safe Rust without care. It can trust Safe Rust it is a client of, but it cannot trust Safe Rust chosen or supplied by its clients.</p>
 <p>예를 들어, 러스트에는 <a href="../std/cmp/trait.PartialOrd.html"><code>PartialOrd</code></a> 및 <a href="../std/cmp/trait.Ord.html"><code>Ord</code></a> 트레잇이 있어 단순히 비교할 수 있는 타입과 “전체” 순서(기본적으로 비교가 합리적으로 작동함을 의미)를 제공하는 타입을 구분합니다.</p>
 <p><a href="../std/collections/struct.BTreeMap.html"><code>BTreeMap</code></a><code>은 부분적으로 정렬된 타입에는 적합하지 않으므로, 키가</code>Ord<code>를 구현하도록 요구합니다. 그러나</code>BTreeMap<code>은 구현 내부에 안전하지 않은 러스트 코드를 가지고 있습니다. 허술한</code>Ord<code>구현(안전하게 작성할 수 있음)이 정의되지 않은 동작을 유발하는 것은 용납할 수 없으므로,</code>BTreeMap<code>의 안전하지 않은 코드는</code>Ord<code>를 요구하는 전체적인 목적에도 불구하고 실제로는 완전하지 않은</code>Ord` 구현에 대해 견고하도록 작성되어야 합니다.</p>
 <p>안전하지 않은 러스트 코드는 안전한 러스트 코드가 올바르게 작성되었다고 신뢰할 수 없습니다. 그렇다고 해도, <code>BTreeMap</code> 은 전체 순서가 없는 값을 입력하면 여전히 완전히 불규칙하게 작동할 것입니다. 단지 정의되지 않은 동작을 유발하지는 않을 것입니다.</p>
 <p><code>BTreeMap</code> 이 <code>Ord</code> 가 안전하다는 이유로 신뢰할 수 없다면, 왜 <em>어떤</em> 안전한 코드도 신뢰할 수 있는지 궁금할 수 있습니다. 예를 들어 <code>BTreeMap</code> 은 정수와 슬라이스가 올바르게 구현되었다고 가정합니다. 그것들도 안전하겠죠?</p>
 <p>차이점은 범위에 있습니다. <code>BTreeMap</code> 이 정수와 슬라이스에 의존할 때, 이는 매우 특정한 구현에 의존하는 것입니다. 이는 이점에 대비하여 측정할 수 있는 위험입니다. 이 경우 위험은 기본적으로 0입니다. 정수와 슬라이스가 고장 나면 <em>모든 사람</em> 이 고장 납니다. 또한, <code>BTreeMap</code> 을 유지 관리하는 동일한 사람들이 유지 관리하므로, 이들을 쉽게 추적할 수 있습니다.</p>
-<p>On the other hand, <code>BTreeMap</code>’s key type is generic. Trusting its <code>Ord</code> implementation means trusting every <code>Ord</code> implementation in the past, present, and future. Here the risk is high: someone somewhere is going to make a mistake and mess up their <code>Ord</code> implementation, or even just straight up lie about providing a total ordering because “it seems to work”. When that happens, <code>BTreeMap</code> needs to be prepared.</p>
+<p>The same can be true across crate boundaries. Say crate <code>foo</code> depends on crate <code>bar</code>, then Unsafe Rust in crate <code>foo</code> may trust Safe Rust in crate <code>bar</code>. This is because crate <code>foo</code> chose to depend on crate <code>bar</code>, and by doing so trusted crate <code>bar</code> to be implemented correctly.</p>
+<p>On the other hand, <code>BTreeMap</code>’s key type is generic. Trusting its <code>Ord</code> implementation means trusting the <code>Ord</code> implementation of arbitrary clients. Here the risk is high: someone somewhere is going to make a mistake and mess up their <code>Ord</code> implementation, or even just straight up lie about providing a total ordering because “it seems to work”. When that happens, <code>BTreeMap</code> needs to be prepared.</p>
 <p>동일한 논리가 올바르게 작동하도록 전달된 클로저를 신뢰하는 데에도 적용됩니다.</p>
 <p>이러한 무한한 일반 신뢰 문제는 <code>unsafe</code> 트레잇이 해결하기 위해 존재하는 문제입니다. <code>BTreeMap</code> 타입은 이론적으로 <code>Ord</code> 대신 <code>UnsafeOrd</code> 라는 새로운 트레잇을 키가 구현하도록 요구할 수 있으며, 이는 다음과 같을 수 있습니다:</p>
 <pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]

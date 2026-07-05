@@ -93,7 +93,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2380c0a6.js";
+            window.path_to_searchindex_js = "searchindex-2732d9f9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-ebf7fde9.js"></script>
@@ -286,11 +286,13 @@ implementations have generally been rigorously manually checked, so the Safe Rus
 interfaces built on top of these implementations can be assumed to be safe.</p>
 <p>The need for all of this separation boils down to a single fundamental property
 of Safe Rust, the <em>soundness property</em>:</p>
-<p><strong>No matter what, Safe Rust can’t cause Undefined Behavior.</strong></p>
+<p><strong>No matter what, Safe Rust clients can’t cause Undefined Behavior.</strong></p>
 <p>The design of the safe/unsafe split means that there is an asymmetric trust
 relationship between Safe and Unsafe Rust. Safe Rust inherently has to
 trust that any Unsafe Rust it touches has been written correctly.
-On the other hand, Unsafe Rust cannot trust Safe Rust without care.</p>
+On the other hand, Unsafe Rust cannot trust Safe Rust without care. It can
+trust Safe Rust it is a client of, but it cannot trust Safe Rust chosen or
+supplied by its clients.</p>
 <p>As an example, Rust has the <a href="../std/cmp/trait.PartialOrd.html"><code>PartialOrd</code></a> and <a href="../std/cmp/trait.Ord.html"><code>Ord</code></a> traits to differentiate
 between types which can “just” be compared, and those that provide a “total”
 ordering (which basically means that comparison behaves reasonably).</p>
@@ -312,8 +314,12 @@ it’s relying on one very specific implementation. This is a measured risk that
 can be weighed against the benefit. In this case there’s basically zero risk;
 if integers and slices are broken, <em>everyone</em> is broken. Also, they’re maintained
 by the same people who maintain <code>BTreeMap</code>, so it’s easy to keep tabs on them.</p>
-<p>On the other hand, <code>BTreeMap</code>’s key type is generic. Trusting its <code>Ord</code> implementation
-means trusting every <code>Ord</code> implementation in the past, present, and future.
+<p>The same can be true across crate boundaries. Say crate <code>foo</code> depends on crate
+<code>bar</code>, then Unsafe Rust in crate <code>foo</code> may trust Safe Rust in crate <code>bar</code>. This
+is because crate <code>foo</code> chose to depend on crate <code>bar</code>, and by doing so trusted
+crate <code>bar</code> to be implemented correctly.</p>
+<p>On the other hand, <code>BTreeMap</code>’s key type is generic. Trusting its <code>Ord</code>
+implementation means trusting the <code>Ord</code> implementation of arbitrary clients.
 Here the risk is high: someone somewhere is going to make a mistake and mess up
 their <code>Ord</code> implementation, or even just straight up lie about providing a total
 ordering because “it seems to work”. When that happens, <code>BTreeMap</code> needs to be
