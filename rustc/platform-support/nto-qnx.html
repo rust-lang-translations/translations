@@ -92,7 +92,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8c9d8219.js";
+            window.path_to_searchindex_js = "../searchindex-7a2ea94e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-ebcc1dd0.js"></script>
@@ -239,7 +239,7 @@
                     <main>
                         <h1 id="qnx"><a class="header" href="#qnx">QNX</a></h1>
 <p><strong>Tier: 3</strong></p>
-<p>Support for the [QNX®][qnx.com] <a href="https://qnx.software/en/software/products-and-solutions/qnx-software-development-platform">QNX Software Development Platform (SDP)</a>, version 7.0, 7.1 and 8.0.</p>
+<p>Support for the <a href="https://qnx.com">QNX®</a> <a href="https://qnx.software/en/software/products-and-solutions/qnx-software-development-platform">QNX Software Development Platform (SDP)</a>, version 7.0, 7.1 and 8.0.</p>
 <p>The <a href="https://qnx.software/en/software/products-and-solutions/qnx-software-development-platform">QNX Software Development Platform (SDP)</a> is a development environment that
 you download and install on a host computer. It includes a C toolchain for your
 host, an IDE, and various board support packages for different target platforms.
@@ -313,53 +313,20 @@ the standard library.</p>
 <p>Example content:</p>
 <pre><code class="language-toml">profile = "compiler"
 change-id = 999999
+
+[build]
+host = ["x86_64-unknown-linux-gnu"]
+target = ["x86_64-unknown-linux-gnu", "aarch64-unknown-nto-qnx710"]
 </code></pre>
 </li>
 <li>
-<p>Compile the Rust toolchain for an <code>x86_64-unknown-linux-gnu</code> host</p>
-<p>Compiling the Rust toolchain requires the same environment variables used for compiling C binaries.
-Refer to the <a href="https://www.qnx.com/developers/docs/7.1/#com.qnx.doc.neutrino.prog/topic/devel_OS_version.html">QNX developer manual</a>.</p>
-<p>To compile for QNX, environment variables must be set to use the correct tools and compiler switches:</p>
-<ul>
-<li><code>CC_&lt;target&gt;=qcc</code></li>
-<li><code>CFLAGS_&lt;target&gt;=&lt;nto_cflag&gt;</code></li>
-<li><code>CXX_&lt;target&gt;=qcc</code></li>
-<li><code>AR_&lt;target&gt;=&lt;nto_ar&gt;</code></li>
-</ul>
-<p>With:</p>
-<ul>
-<li>
-<p><code>&lt;target&gt;</code> target triplet using underscores instead of hyphens, e.g. <code>aarch64_unknown_nto_qnx710</code></p>
-</li>
-<li>
-<p><code>&lt;nto_cflag&gt;</code></p>
-<ul>
-<li><code>-Vgcc_ntox86_cxx</code> for x86 (32 bit)</li>
-<li><code>-Vgcc_ntox86_64_cxx</code> for x86_64 (64 bit)</li>
-<li><code>-Vgcc_ntoaarch64le_cxx</code> for Aarch64 (64 bit)</li>
-</ul>
-</li>
-<li>
-<p><code>&lt;nto_ar&gt;</code></p>
-<ul>
-<li><code>ntox86-ar</code> for x86 (32 bit)</li>
-<li><code>ntox86_64-ar</code> for x86_64 (64 bit)</li>
-<li><code>ntoaarch64-ar</code> for Aarch64 (64 bit)</li>
-</ul>
-</li>
-</ul>
-<p>Example to build the Rust toolchain including a standard library for x86_64-linux-gnu and Aarch64-QNX-7.1:</p>
-<pre><code class="language-bash">export build_env='
-    CC_aarch64_unknown_nto_qnx710=qcc
-    CFLAGS_aarch64_unknown_nto_qnx710=-Vgcc_ntoaarch64le_cxx
-    CXX_aarch64_unknown_nto_qnx710=qcc
-    AR_aarch64_unknown_nto_qnx710=ntoaarch64-ar
-    '
-
-env $build_env \
-    ./x.py build \
-        --target x86_64-unknown-linux-gnu,aarch64-unknown-nto-qnx710 \
-        rustc library/core library/alloc library/std
+<p>Compile the Rust toolchain with the QNX SDP environment loaded</p>
+<p>As noted above, we need the right environment variables for QNX SDP to work,
+and for <code>qcc</code> to be in your system PATH. Typically this is done by sourcing
+the <code>qnxsdp-env.sh</code> file (or equivalent for your host platform).</p>
+<p>To build on Linux, you would run:</p>
+<pre><code class="language-bash">source ~/qnx710/qnxsdp-env.sh
+./x.py build rustc library/core library/alloc library/std
 </code></pre>
 </li>
 </ol>
@@ -377,15 +344,15 @@ change calling conventions or memory layout.</p>
 <h2 id="running-the-rust-test-suite"><a class="header" href="#running-the-rust-test-suite">Running the Rust test suite</a></h2>
 <p>The test suites of the Rust compiler and standard library can be executed much
 like other Rust targets. The environment for testing should match the one used
-during compiler compilation (refer to <code>build_env</code> and <code>qcc</code>/<code>PATH</code> above) with
+during compiler compilation (refer to notes on <code>qnxsdp-env.sh</code> above) with
 the addition of the <code>TEST_DEVICE_ADDR</code> environment variable. The
 <code>TEST_DEVICE_ADDR</code> variable controls the remote runner and should point to a
 target running the <code>remote-test-server</code> executable.</p>
 <p>Note that some tests are failing which is why they are currently excluded by the
 target maintainers which can be seen in the following example.</p>
 <p>To run all tests on a x86_64 QNX Neutrino 7.1 target:</p>
-<pre><code class="language-bash">export TEST_DEVICE_ADDR="1.2.3.4:12345" # must address the test target, can be a SSH tunnel
-export build_env=&lt;see above&gt;
+<pre><code class="language-bash">source ~/qnx710/qnxsdp-env.sh
+export TEST_DEVICE_ADDR="1.2.3.4:12345" # must address the test target, can be a SSH tunnel
 
 # Disable tests that only work on the host or don't make sense for this target.
 # See also:
@@ -400,11 +367,10 @@ export exclude_tests='
     --exclude rustc
     --exclude rustdoc'
 
-env $build_env \
-    ./x.py test \
-        $exclude_tests \
-        --stage 1 \
-        --target x86_64-pc-nto-qnx710
+./x.py test \
+    $exclude_tests \
+    --stage 1 \
+    --target x86_64-pc-nto-qnx710
 </code></pre>
 <h3 id="rust-std-library-test-suite"><a class="header" href="#rust-std-library-test-suite">Rust std library test suite</a></h3>
 <p>The target needs sufficient resources to execute all tests. The commands below assume that a QEMU image
