@@ -1,6 +1,6 @@
 use crate::serve::LIVE_RELOAD_ENDPOINT;
 use crate::translations::Book;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use log::info;
 use mdbook_driver::MDBook;
 use mdbook_i18n_helpers::preprocessors::Gettext;
@@ -14,7 +14,12 @@ use crate::code_translator::CodeTranslator;
 /// (currently only the removed `output.html.curly-quotes` key).
 fn sanitize_book_toml(src_path: &Path) -> Result<()> {
     let toml_path = src_path.join("book.toml");
-    let content = std::fs::read_to_string(&toml_path)?;
+    let content = std::fs::read_to_string(&toml_path).with_context(|| {
+        format!(
+            "failed to read {}; the `path` in translations.toml may be stale",
+            toml_path.to_string_lossy()
+        )
+    })?;
     let mut value: toml::Value = toml::from_str(&content)?;
 
     let mut changed = false;
