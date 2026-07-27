@@ -92,7 +92,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-af691803.js";
+            window.path_to_searchindex_js = "searchindex-9abb5823.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-818727da.js"></script>
@@ -375,13 +375,21 @@ limiting the use of <code>fundamental</code> to when documentation is built.</p>
 themselves marked as unstable. To use any of these options, pass <code>-Z unstable-options</code> as well as
 the flag in question to Rustdoc on the command-line. To do this from Cargo, you can either use the
 <code>RUSTDOCFLAGS</code> environment variable or the <code>cargo rustdoc</code> command.</p>
-<h3 id="--merge---parts-out-dir-and---include-parts-dir"><a class="header" href="#--merge---parts-out-dir-and---include-parts-dir"><code>--merge</code>, <code>--parts-out-dir</code>, and <code>--include-parts-dir</code></a></h3>
+<h3 id="--write-doc-meta-dir-and---read-doc-meta-dir"><a class="header" href="#--write-doc-meta-dir-and---read-doc-meta-dir"><code>--write-doc-meta-dir</code>, and <code>--read-doc-meta-dir</code></a></h3>
 <p>These options control how rustdoc handles files that combine data from multiple crates.</p>
-<p>By default, they act like <code>--merge=shared</code> is set, and <code>--parts-out-dir</code> and <code>--include-parts-dir</code>
-are turned off. The <code>--merge=shared</code> mode causes rustdoc to load the existing data in the out-dir,
-combine the new crate data into it, and write the result. This is very easy to use in scripts that
-manually invoke rustdoc, but it’s also slow, because it performs O(crates) work on
-every crate, meaning it performs O(crates<sup>2</sup>) work.</p>
+<p>By default, rustdoc will read the doc meta from the doc output dir itself and merge them together.
+This is very easy to use in scripts that manually invoke rustdoc, but it’s also slow, because it
+performs O(crates) work on every crate, meaning it performs O(crates<sup>2</sup>) work. When
+<code>--write-doc-meta-dir</code> and/or <code>--read-doc-meta-dir</code> are supplied, this is turned off.</p>
+<p>When <code>--write-doc-meta-dir</code> is supplied, rustdoc will write the crate’s metadata to that directory.
+If this parameter is supplied but <code>--read-doc-meta-dir</code> isn’t, it runs in <em>intermediate mode</em>:
+some pages may be written to the output dir, but there is a lot of functionality that won’t work
+until rustdoc is run in <em>finalize mode</em>.</p>
+<p>When <code>--read-doc-meta-dir</code> is supplied, rustdoc runs in <em>finalize mode</em>. It will read the data from
+the supplied directory, and will write it to the doc output directory in the form that the web
+frontend will use.</p>
+<p>If both <code>--write-doc-meta-dir</code> and <code>--read-doc-meta-dir</code> are specified, the crate metadata will be
+written to both the HTML <code>--out-dir</code> and to the supplied <code>--write-doc-meta-dir</code>.</p>
 <pre><code class="language-console">$ rustdoc crate1.rs --out-dir=doc
 $ cat doc/search.index/crateNames/*
 rd_("fcrate1")
@@ -390,11 +398,11 @@ $ cat doc/search.index/crateNames/*
 rd_("fcrate1fcrate2")
 </code></pre>
 <p>To delay shared-data merging until the end of a build, so that you only have to perform O(crates)
-work, use <code>--merge=none</code> on every crate except the last one, which will use <code>--merge=finalize</code>.</p>
-<pre><code class="language-console">$ rustdoc +nightly crate1.rs --merge=none --parts-out-dir=crate1.d -Zunstable-options
+work, use <code>--write-doc-meta-dir</code> on every crate, and the last will use <code>--read-doc-meta-dir</code>.</p>
+<pre><code class="language-console">$ rustdoc +nightly crate1.rs --write-doc-meta=crate1.d -Zunstable-options
 $ cat doc/search.index/crateNames/*
 cat: 'doc/search.index/crateNames/*': No such file or directory
-$ rustdoc +nightly crate2.rs --merge=finalize --include-parts-dir=crate1.d -Zunstable-options
+$ rustdoc +nightly crate2.rs --read-doc-meta=crate1.d -Zunstable-options
 $ cat doc/search.index/crateNames/*
 rd_("fcrate1fcrate2")
 </code></pre>

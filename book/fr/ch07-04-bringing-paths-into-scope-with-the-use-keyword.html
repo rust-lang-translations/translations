@@ -96,7 +96,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f5487a43.js";
+            window.path_to_searchindex_js = "searchindex-b63ae99a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1a54300e.js"></script>
@@ -278,7 +278,7 @@ mod client {
 <p>L’erreur du compilateur montre que le raccourci ne s’applique plus à l’intérieur du module <code>client</code> :</p>
 <pre><code class="language-console">$ cargo build
    Compiling restaurant v0.1.0 (file:///projects/restaurant)
-error[E0433]: failed to resolve: use of unresolved module or unlinked crate `accueil`
+error[E0433]: cannot find module or crate `hosting` in this scope
   --&gt; src/lib.rs:11:9
    |
 11 |         accueil::ajouter_a_la_liste_attente();
@@ -296,7 +296,7 @@ warning: unused import: `crate::salle_a_manger::accueil`
 7 | use crate::salle_a_manger::accueil;
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
-  = note: `#[warn(unused_imports)]` on by default
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 
 For more information about this error, try `rustc --explain E0433`.
 warning: `restaurant` (lib) generated 1 warning
@@ -394,24 +394,26 @@ pub fn manger_au_restaurant() {
 <p>Dans le chapitre 2, nous avions développé un projet de jeu du plus ou du moins qui utilisait le paquet externe <code>rand</code> afin d’obtenir des nombres aléatoires. Pour pouvoir utiliser <code>rand</code> dans notre projet, nous avions ajouté cette ligne dans <em>Cargo.toml</em> :</p>
 <!-- When updating the version of `rand` used, also update the version of
 `rand` used in these files so they all match:
+
+* ch01-01-installation.md
 * ch02-00-guessing-game-tutorial.md
 * ch14-03-cargo-workspaces.md
 -->
 <figure class="listing">
 <span class="file-name">Filename: Cargo.toml</span>
-<pre><code class="language-toml">rand = "0.8.5"
+<pre><code class="language-toml">rand = "0.10.1"
 </code></pre>
 </figure>
 <p>L’ajout de <code>rand</code> comme dépendance dans <em>Cargo.toml</em> demande à Cargo de télécharger le paquet <code>rand</code> et toutes ses dépendances à partir de <a href="https://crates.io/">crates.io</a> et rend disponible <code>rand</code> pour notre projet.</p>
-<p>Ensuite, pour importer les définitions de <code>rand</code> dans la portée de notre paquet, nous avions ajouté une ligne <code>use</code> qui commence avec le nom de la crate, <code>rand</code>, et nous avions listé les éléments que nous voulions importer dans notre portée. Dans la section <a href="ch02-00-guessing-game-tutorial.html#generating-a-random-number">“Générer le nombre secret”</a><!-- ignore --> du chapitre 2, nous avions importé le trait <code>Rng</code> dans la portée, puis nous avions appelé la fonction <code>rand::thread_rng</code> :</p>
+<p>Then, to bring <code>rand</code> definitions into the scope of our package, we added a <code>use</code> line starting with the name of the crate, <code>rand</code>, and listed the items we wanted to bring into scope. Recall that in <a href="ch02-00-guessing-game-tutorial.html#generating-a-random-number">“Generating a Random Number”</a><!-- ignore --> in Chapter 2, we brought items in the <code>rand::prelude</code> module into scope and called the <code>rand::rng</code> function:</p>
 <pre><code class="language-rust ignore"><span class="boring">use std::io;
 </span><span class="boring">
-</span>use rand::Rng;
+</span>use rand::prelude::*;
 
 fn main() {
 <span class="boring">    println!("Devinez le nombre !");
 </span><span class="boring">
-</span>    let nombre_secret = rand::thread_rng().gen_range(1..=100);
+</span>    let secret_number = rand::rng().random_range(1..=100);
 <span class="boring">
 </span><span class="boring">    println!("Le nombre secret est : {nombre_secret}");
 </span><span class="boring">
@@ -438,16 +440,17 @@ fn main() {
 <p>Si vous utilisez de nombreux éléments définis dans une même crate ou dans un même module, lister chaque élément sur sa propre ligne prendra beaucoup d’espace vertical dans vos fichiers. Par exemple, ces deux instructions <code>use</code>, que nous avions dans le jeu du plus ou du moins dans l’encart 2-4, importaient des éléments de <code>std</code> dans la portée :</p>
 <figure class="listing">
 <span class="file-name">Filename: src/main.rs</span>
-<pre><code class="language-rust ignore"><span class="boring">use rand::Rng;
-</span>// -- partie masquée ici --
+<pre><code class="language-rust ignore">// -- partie masquée ici --
 use std::cmp::Ordering;
 use std::io;
 // -- partie masquée ici --
 <span class="boring">
+</span><span class="boring">use rand::prelude::*;
+</span><span class="boring">
 </span><span class="boring">fn main() {
 </span><span class="boring">    println!("Devinez le nombre !");
 </span><span class="boring">
-</span><span class="boring">    let nombre_secret = rand::thread_rng().gen_range(1..=100);
+</span><span class="boring">    let secret_number = rand::rng().random_range(1..=100);
 </span><span class="boring">
 </span><span class="boring">    println!("Le nombre secret est : {nombre_secret}");
 </span><span class="boring">
@@ -471,7 +474,7 @@ use std::io;
 <p>À la place, nous pouvons utiliser des chemins imbriqués afin d’importer ces mêmes éléments dans la portée en une seule ligne. Nous pouvons faire cela en indiquant la partie commune du chemin, suivi d’un double deux-points, puis d’accolades autour d’une liste des éléments qui diffèrent entre les chemins, comme dans l’encart 7-18.</p>
 <figure class="listing" id="listing-7-18">
 <span class="file-name">Filename: src/main.rs</span>
-<pre><code class="language-rust ignore"><span class="boring">use rand::Rng;
+<pre><code class="language-rust ignore"><span class="boring">use rand::prelude::*;
 </span>// -- partie masquée ici --
 use std::{cmp::Ordering, io};
 // -- partie masquée ici --
@@ -479,7 +482,7 @@ use std::{cmp::Ordering, io};
 </span><span class="boring">fn main() {
 </span><span class="boring">    println!("Devinez le nombre !");
 </span><span class="boring">
-</span><span class="boring">    let nombre_secret = rand::thread_rng().gen_range(1..=100);
+</span><span class="boring">    let secret_number = rand::rng().random_range(1..=100);
 </span><span class="boring">
 </span><span class="boring">    println!("Le nombre secret est : {nombre_secret}");
 </span><span class="boring">

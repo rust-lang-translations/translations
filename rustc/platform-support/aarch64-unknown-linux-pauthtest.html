@@ -92,7 +92,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-7a2ea94e.js";
+            window.path_to_searchindex_js = "../searchindex-6df1beb6.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-ebcc1dd0.js"></script>
@@ -545,6 +545,71 @@ linker = "&lt;path_to&gt;/aarch64-unknown-linux-pauthtest-clang"
 </ul>
 <p>Without it Cargo falls back to the system C toolchain (cc) and the compilation
 fails.</p>
+<h2 id="controlling-pointer-authentication-features"><a class="header" href="#controlling-pointer-authentication-features">Controlling pointer authentication features</a></h2>
+<p>Pointer authentication behavior for this target can be configured using the
+<code>-Zpointer-authentication</code> compiler option. The option accepts a comma-separated
+list of values, each of the form <code>+&lt;name&gt;</code> - to enable, or <code>-&lt;name&gt;</code> - to
+disable a feature, where <code>&lt;name&gt;</code> is one of:</p>
+<ul>
+<li><code>aarch64-jump-table-hardening</code> - enable hardened lowering for jump-table
+dispatch</li>
+<li><code>auth-traps</code> - trap immediately on pointer authentication failure</li>
+<li><code>calls</code> - enable signing and authentication of indirect calls</li>
+<li><code>elf-got</code> - enable authentication of pointers loaded from the ELF GOT</li>
+<li><code>function-pointer-type-discrimination</code> - enable type discrimination for C
+function pointers</li>
+<li><code>indirect-gotos</code> - enable signing and authentication of indirect goto targets</li>
+<li><code>init-fini</code> - enable signing of function pointers stored in init/fini arrays</li>
+<li><code>init-fini-address-discrimination</code> - enable address discrimination for
+init/fini array entries</li>
+<li><code>intrinsics</code> - enable pointer authentication intrinsics</li>
+<li><code>return-addresses</code> - enable signing and authentication of return addresses</li>
+<li><code>typeinfo-vt-ptr-discrimination</code> - enable type/address discrimination for
+authenticated <code>std::type_info</code> virtual table pointers</li>
+<li><code>vt-ptr-addr-discrimination</code> - enable address discrimination for authenticated
+virtual table pointers</li>
+<li><code>vt-ptr-type-discrimination</code> - enable type discrimination for authenticated
+virtual table pointers
+For example:
+<code>-Zpointer-authentication=+calls,+return-addresses,-init-fini</code>.</li>
+</ul>
+<p>Not all options are currently meaningful for Rust code itself. In particular,
+the virtual table related ones: <code>typeinfo-vt-ptr-discrimination</code>,
+<code>vt-ptr-addr-discrimination</code>, <code>vt-ptr-type-discrimination</code> exist primarily for
+interoperability with C++ code and compatibility with the AArch64 Pointer
+Authentication ELF ABI. Rust does not implement C++ virtual dispatch semantics,
+authenticated C++ member function pointers, or authenticated virtual table
+pointers.</p>
+<p>Similarly, <code>function-pointer-type-discrimination</code> is recognized for ABI
+compatibility purposes, but full support is not yet implemented in Rust.</p>
+<p>Even when these features do not directly affect generated Rust code, they still
+contribute to the emitted PAuth ABI metadata through the LLVM module flags:
+<code>aarch64-elf-pauthabi-platform</code>, <code>aarch64-elf-pauthabi-version</code>. These flags are
+emitted to communicate pointer authentication ABI requirements to the linker and
+other toolchain components. The ABI version value is computed from the enabled
+pointer authentication features according to the AArch64 ELF PAuth ABI
+specification. The bit layout matches LLVM/Clang definitions.</p>
+<h3 id="option-semantics-and-compatibility"><a class="header" href="#option-semantics-and-compatibility">Option semantics and compatibility</a></h3>
+<p>The <code>-Zpointer-authentication</code> option is a <a href="https://rust-lang.github.io/rfcs/3716-target-modifiers.html">target
+modifier</a>. Target
+modifiers are compiler options that affect the ABI, making it unsafe to link
+together Rust crates built with different values. The selected pointer
+authentication configuration becomes part of a crate’s compilation
+configuration, and <code>rustc</code> verifies that all crates in the dependency graph
+agree on its value. If an incompatibility is detected, compilation is rejected
+with an ABI mismatch error before invoking the linker, providing a clear
+diagnostic. See <code>tests/ui/target_modifiers/incompatible_pauth.rs</code> for a sample
+use case.</p>
+<p>The order of options is not significant. The compiler canonicalizes the
+specified feature set before recording it, so the following are equivalent:</p>
+<pre><code class="language-text">-Zpointer-authentication=+calls,+init-fini
+-Zpointer-authentication=+init-fini,+calls
+</code></pre>
+<p>If the same option is specified multiple times, the last occurrence takes
+precedence, matching Clang’s behavior. For example, the following would leave
+<code>init-fini</code> disable:</p>
+<pre><code class="language-text">-Zpointer-authentication=+init-fini,-init-fini
+</code></pre>
 <h2 id="cross-compilation-toolchains-and-c-code"><a class="header" href="#cross-compilation-toolchains-and-c-code">Cross-compilation toolchains and C code</a></h2>
 <p>This target supports interoperability with C code. A
 pointer-authentication-enabled sysroot, built as described in the toolchain
@@ -585,10 +650,14 @@ The following categories are supported (all present in tree):</p>
 <li>C-driven quicksort (pauth-quicksort-c-driver)</li>
 </ul>
 </li>
-<li>UI error/warning reporting (the target does not support static linking)
+<li>UI error/warning reporting
 <ul>
 <li>crt-static-pauthtest.rs</li>
 <li>pauth-static-link-warning</li>
+<li>enable_pointer_authentication_validation.rs</li>
+<li>invalid_target_pointer_authentication.rs</li>
+<li>type_discrimination_not_supported_pointer_authentication.rs</li>
+<li>incompatible_pauth.rs</li>
 </ul>
 </li>
 </ul>
@@ -601,6 +670,7 @@ named for convenience):</p>
   codegen-llvm codegen-units coverage crashes incremental library mir-opt \
   run-make ui ui-fulldeps \
   tests/assembly-llvm/pauth-basic.rs \
+  tests/codegen-llvm/pauth/pauth-attr-cli-flags.rs \
   tests/codegen-llvm/pauth/pauth-attr-special-funcs.rs \
   tests/codegen-llvm/pauth/pauth-extern-c.rs \
   tests/codegen-llvm/pauth/pauth-extern-c-direct-indirect-call.rs \
@@ -609,7 +679,11 @@ named for convenience):</p>
   tests/run-make/pauth-quicksort-rust-driver \
   tests/run-make/pauth-quicksort-c-driver \
   tests/run-make/pauth-static-link-warning \
-  tests/ui/statics/crt-static-pauthtest.rs
+  tests/ui/statics/crt-static-pauthtest.rs \
+  tests/ui/pointer_authentication/enable_pointer_authentication_validation.rs \
+  tests/ui/pointer_authentication/invalid_target_pointer_authentication.rs \
+  tests/ui/pointer_authentication/type_discrimination_not_supported_pointer_authentication.rs \
+  tests/ui/target_modifiers/incompatible_pauth.rs
 </code></pre>
 <h2 id="limitations"><a class="header" href="#limitations">Limitations</a></h2>
 <p>Operand bundles should only be attached to indirect function calls. However,

@@ -93,7 +93,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-20ac6370.js";
+            window.path_to_searchindex_js = "searchindex-2be49500.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-20da6b24.js"></script>
@@ -367,8 +367,10 @@ let vec = [1, 2, 3].iter().map(|n| n * 2).collect::&lt;Vec&lt;_&gt;&gt;();
 <li><a href="types/function-item.html#r-type.fn-item">Function items</a> (see <a href="types/function-item.html#r-type.fn-item.intro">type.fn-item.intro</a>).</li>
 <li>The constructors of <a href="items/structs.html#r-items.struct.tuple">tuple-like structs</a> (see <a href="types/function-item.html#r-type.fn-item.intro">type.fn-item.intro</a>).</li>
 <li>The constructors of <a href="items/enumerations.html#r-items.enum.constructor-namespace">tuple-like enum variants</a> (see <a href="types/function-item.html#r-type.fn-item.intro">type.fn-item.intro</a>).</li>
+<li><code>repr(Rust)</code> <a href="items/structs.html">structs</a> with no fields or where all fields are zero sized (see <a href="type-layout.html#r-layout.repr.rust.struct-zst">layout.repr.rust.struct-zst</a>).</li>
 <li><code>repr(C)</code> <a href="items/structs.html">structs</a> with no fields or where all fields are zero-sized (see <a href="type-layout.html#r-layout.repr.c.struct.size-field-offset">layout.repr.c.struct.size-field-offset</a>).</li>
 <li><code>repr(transparent)</code> <a href="items/structs.html">structs</a> with no fields or where all fields are zero-sized (see <a href="type-layout.html#r-layout.repr.transparent.layout-abi">layout.repr.transparent.layout-abi</a>).</li>
+<li><code>repr(Rust)</code> <a href="items/enumerations.html">enums</a> (without a <a href="type-layout.html#r-layout.repr.primitive">primitive representation</a> specified) with a single <a href="items/enumerations.html#grammar-EnumVariantStruct">field-struct-like variant</a>, a single <a href="items/enumerations.html#grammar-EnumVariant">unit-struct-like variant</a>, or a single <a href="items/enumerations.html#grammar-EnumVariantTuple">tuple-struct-like variant</a> and where the struct-like thing has no fields or where all of the fields are zero sized (see <a href="type-layout.html#r-layout.repr.rust.enum-struct-like-zst">layout.repr.rust.enum-struct-like-zst</a>).</li>
 <li><a href="types/array.html#r-type.array">Arrays</a> of zero-sized types (see <a href="type-layout.html#r-layout.array">layout.array</a>).</li>
 <li><a href="types/array.html#r-type.array">Arrays</a> of length zero (see <a href="type-layout.html#r-layout.array">layout.array</a>).</li>
 <li><a href="items/unions.html">Unions</a> of zero-sized types (see <a href="items/unions.html#r-items.union.common-storage">items.union.common-storage</a>).</li>
@@ -379,6 +381,13 @@ let vec = [1, 2, 3].iter().map(|n| n * 2).collect::&lt;Vec&lt;_&gt;&gt;();
 </span>fn f() {}
 struct S(u8);
 enum E { V(u8) }
+struct UnitLike;
+struct NoFields {}
+struct OnlyZST {
+    f1: (),
+    f2: [(); 10],
+    f3: [u8; 0],
+}
 #[repr(C)]
 struct C1 {}
 #[repr(C)]
@@ -401,10 +410,36 @@ union U {
     f2: [(); 10],
     f3: [u8; 0],
 }
+<span class="boring">/// An enum with a single field-struct-like variant with all fields
+</span><span class="boring">/// being ZSTs.
+</span>enum E2 {
+    V1 { f1: (), f2: [(); 10] },
+}
+<span class="boring">/// An enum with a single field-struct-like variant with no fields.
+</span>enum E3 {
+    V1 {},
+}
+<span class="boring">/// An enum with a single unit-struct-like variant.
+</span>enum E4 {
+    V1,
+}
+<span class="boring">/// An enum with a single tuple-struct-like variant with all fields
+</span><span class="boring">/// being ZSTs.
+</span>enum E5 {
+    V1 ((), [(); 10]),
+}
+<span class="boring">/// An enum with a single tuple-struct-like variant with no fields.
+</span>enum E6 {
+    V1 (),
+}
+   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
 assert_eq!(0, size_of::&lt;()&gt;());
 assert_eq!(0, size_of_val(&amp;f));
 assert_eq!(0, size_of_val(&amp;S));
 assert_eq!(0, size_of_val(&amp;E::V));
+assert_eq!(0, size_of::&lt;UnitLike&gt;());
+assert_eq!(0, size_of::&lt;NoFields&gt;());
+assert_eq!(0, size_of::&lt;OnlyZST&gt;());
 assert_eq!(0, size_of::&lt;C1&gt;());
 assert_eq!(0, size_of::&lt;C2&gt;());
 assert_eq!(0, size_of::&lt;T1&gt;());
@@ -412,6 +447,11 @@ assert_eq!(0, size_of::&lt;T2&gt;());
 assert_eq!(0, size_of::&lt;[(); 10]&gt;());
 assert_eq!(0, size_of::&lt;[u8; 0]&gt;());
 assert_eq!(0, size_of::&lt;U&gt;());
+assert_eq!(0, size_of::&lt;E2&gt;());
+assert_eq!(0, size_of::&lt;E3&gt;());
+assert_eq!(0, size_of::&lt;E4&gt;());
+assert_eq!(0, size_of::&lt;E5&gt;());
+assert_eq!(0, size_of::&lt;E6&gt;());
 <span class="boring">}</span></code></pre>
 
                     </main>

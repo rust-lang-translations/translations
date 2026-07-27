@@ -93,7 +93,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7a2ea94e.js";
+            window.path_to_searchindex_js = "searchindex-6df1beb6.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-ebcc1dd0.js"></script>
@@ -1394,6 +1394,7 @@ The default is <code>None</code>, which LLVM translates as the <code>target-cpu<
 effective only for x86 targets.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="jobserver"><a class="header" href="#jobserver">Jobserver</a></h1>
+<!-- ignore-tidy-file-tab -->
 <p>Internally, <code>rustc</code> may take advantage of parallelism. <code>rustc</code> will coordinate
 with the build system calling it if a <a href="https://www.gnu.org/software/make/manual/html_node/POSIX-Jobserver.html">GNU Make jobserver</a> is passed in the
 <code>MAKEFLAGS</code> environment variable. Other flags may have an effect as well, such
@@ -1414,7 +1415,6 @@ with build systems so that the jobserver is handled appropriately.</p>
 invocations are marked as recursive in the <code>Makefile</code> (by prefixing the command
 line with the <code>+</code> indicator), so that GNU Make enables the jobserver for them.
 For instance:</p>
-<!-- ignore-tidy-tab -->
 <pre><code class="language-make">x:
 	+@echo 'fn main() {}' | rustc -
 </code></pre>
@@ -4001,9 +4001,10 @@ The encoded names are used by the linker to associate the name with the thing it
 <p>The <a href="../reference/abi.html#the-export_name-attribute"><code>#[export_name]</code>attribute</a> can be used to specify the exact name that will be used for a function or static.</p>
 <p>Items listed in an <a href="../reference/items/external-blocks.html"><code>extern</code> block</a> use the identifier of the item without mangling to refer to the item.
 The <a href="../reference/items/external-blocks.html#the-link_name-attribute"><code>#[link_name]</code> attribute</a> can be used to change that name.</p>
-<!--
-FIXME: This is incomplete for wasm, per https://github.com/rust-lang/rust/blob/d4c364347ce65cf083d4419195b8232440928d4d/compiler/rustc_symbol_mangling/src/lib.rs#L191-L210
--->
+<h3 id="webassembly-import-modules"><a class="header" href="#webassembly-import-modules">WebAssembly import modules</a></h3>
+<p>On WebAssembly targets, foreign items in <code>extern</code> blocks can use the same import name without
+conflicting when they use different <a href="../reference/items/external-blocks.html#the-link-attribute"><code>#[link(wasm_import_module = "...")]</code></a>
+values.</p>
 <h2 id="decoding"><a class="header" href="#decoding">Decoding</a></h2>
 <p>The encoded names may need to be decoded in some situations.
 For example, debuggers and other tooling may need to demangle the name so that it is more readable to the user.
@@ -4591,7 +4592,7 @@ Its symbol is:</p>
 </blockquote>
 <h2 id="type"><a class="header" href="#type">Type</a></h2>
 <blockquote>
-<p>type → <br>      <em><a href="#basic-type">basic-type</a></em> <br>   | <em><a href="#array-type">array-type</a></em> <br>   | <em><a href="#slice-type">slice-type</a></em> <br>   | <em><a href="#tuple-type">tuple-type</a></em> <br>   | <em><a href="#ref-type">ref-type</a></em> <br>   | <em><a href="#mut-ref-type">mut-ref-type</a></em> <br>   | <em><a href="#const-ptr-type">const-ptr-type</a></em> <br>   | <em><a href="#mut-ptr-type">mut-ptr-type</a></em> <br>   | <em><a href="#fn-type">fn-type</a></em> <br>   | <em><a href="#dyn-trait-type">dyn-trait-type</a></em> <br>   | <em><a href="#pattern-type">pattern-type</a></em> <br>   | <em><a href="#symbol-path">path</a></em> <br>   | <em><a href="#backref">backref</a></em></p>
+<p>type → <br>      <em><a href="#basic-type">basic-type</a></em> <br>   | <em><a href="#array-type">array-type</a></em> <br>   | <em><a href="#slice-type">slice-type</a></em> <br>   | <em><a href="#tuple-type">tuple-type</a></em> <br>   | <em><a href="#splatted-type">splatted-type</a></em> <br>   | <em><a href="#ref-type">ref-type</a></em> <br>   | <em><a href="#mut-ref-type">mut-ref-type</a></em> <br>   | <em><a href="#const-ptr-type">const-ptr-type</a></em> <br>   | <em><a href="#mut-ptr-type">mut-ptr-type</a></em> <br>   | <em><a href="#fn-type">fn-type</a></em> <br>   | <em><a href="#dyn-trait-type">dyn-trait-type</a></em> <br>   | <em><a href="#pattern-type">pattern-type</a></em> <br>   | <em><a href="#symbol-path">path</a></em> <br>   | <em><a href="#backref">backref</a></em></p>
 </blockquote>
 <p>A <em>type</em> represents a Rust <a href="../reference/types.html">type</a>.
 The initial character can be used to distinguish which type is encoded.
@@ -4648,6 +4649,14 @@ The type encodings based on the initial tag character are:</p>
 <p>Note that a zero-length tuple (unit) is encoded with the <code>u</code> <em><a href="#basic-type">basic-type</a></em>.</p>
 </li>
 <li>
+<p><code>w</code> — A <a href="https://github.com/rust-lang/rust/issues/153629">splatted type</a> <code>#[splat] T</code>.</p>
+<blockquote>
+<p><span id="splatted-type">splatted-type</span> → <code>w</code> {<em><a href="#type">type</a></em>}</p>
+</blockquote>
+<p>The tag <code>w</code> is followed by the <em><a href="#type">type</a></em> being splatted.</p>
+<p>Note that the splat feature is unstable and subject to change or removal.</p>
+</li>
+<li>
 <p><code>R</code> — A <a href="../reference/types/pointer.html#shared-references-">reference</a> <code>&amp;T</code>.</p>
 <blockquote>
 <p><span id="ref-type">ref-type</span> →  <code>R</code> <em><a href="#lifetime">lifetime</a></em><sub>opt</sub> <em><a href="#type">type</a></em></p>
@@ -4698,7 +4707,7 @@ Otherwise it is an <em><a href="#identifier">undisambiguated-identifier</a></em>
 </ul>
 <ul>
 <li>
-<p><code>W</code> — A [pattern-type][pattern-tpye] <code>u32 is 0..100</code>.</p>
+<p><code>W</code> — A <a href="#pattern-type">pattern-type</a> <code>u32 is 0..100</code>.</p>
 <blockquote>
 <p><span id="pattern-type">pattern-type</span> → <code>W</code> <em>[pattern-kind]</em></p>
 <p><span id="pattern-kind">pattern-kind</span> → <br>      <em>[range-pattern-kind]</em> <br>   <em>[or-pattern-kind]</em></p>
@@ -5073,6 +5082,7 @@ so Rustup may install the documentation for a similar tier 1 target instead.</p>
 <tr><td><a href="#powerpc64le-unknown-linux-gnu"><code>powerpc64le-unknown-linux-gnu</code></a></td><td>PPC64LE Linux (kernel 3.10+, glibc 2.17)</td></tr>
 <tr><td><a href="#powerpc64le-unknown-linux-musl"><code>powerpc64le-unknown-linux-musl</code></a></td><td>PPC64LE Linux (kernel 4.19+, musl 1.2.5)</td></tr>
 <tr><td><a href="#riscv64gc-unknown-linux-gnu"><code>riscv64gc-unknown-linux-gnu</code></a></td><td>RISC-V Linux (kernel 4.20+, glibc 2.29)</td></tr>
+<tr><td><a href="#riscv64gc-unknown-linux-musl"><code>riscv64gc-unknown-linux-musl</code></a></td><td>RISC-V Linux (kernel 4.20+, musl 1.2.5)</td></tr>
 <tr><td><a href="#s390x-unknown-linux-gnu"><code>s390x-unknown-linux-gnu</code></a></td><td>S390x Linux (kernel 3.2+, glibc 2.17)</td></tr>
 <tr><td><a href="#-apple-darwin"><code>x86_64-apple-darwin</code></a></td><td>64-bit macOS (10.12+, Sierra+)</td></tr>
 <tr><td><a href="#-windows-gnullvm"><code>x86_64-pc-windows-gnullvm</code></a></td><td>64-bit x86 MinGW (Windows 10+), LLVM ABI</td></tr>
@@ -5164,7 +5174,6 @@ so Rustup may install the documentation for a similar tier 1 target instead.</p>
 <tr><td><a href="#riscv32iimimaimcimfcimacimafc-unknown-none-elf"><code>riscv32imafc-unknown-none-elf</code></a></td><td style="text-align: center">*</td><td>Bare RISC-V (RV32IMAFC ISA)</td></tr>
 <tr><td><a href="#riscv32iimimaimcimfcimacimafc-unknown-none-elf"><code>riscv32imc-unknown-none-elf</code></a></td><td style="text-align: center">*</td><td>Bare RISC-V (RV32IMC ISA)</td></tr>
 <tr><td><a href="#riscv64a23-unknown-linux-gnu"><code>riscv64a23-unknown-linux-gnu</code></a></td><td style="text-align: center">✓</td><td>RISC-V Linux (kernel 6.8.0+, glibc 2.39)</td></tr>
-<tr><td><a href="#riscv64gc-unknown-linux-musl"><code>riscv64gc-unknown-linux-musl</code></a></td><td style="text-align: center">✓</td><td>RISC-V Linux (kernel 4.20+, musl 1.2.5)</td></tr>
 <tr><td><code>riscv64gc-unknown-none-elf</code></td><td style="text-align: center">*</td><td>Bare RISC-V (RV64IMAFDC ISA)</td></tr>
 <tr><td><a href="#riscv64im-unknown-none-elf"><code>riscv64im-unknown-none-elf</code></a></td><td style="text-align: center">*</td><td>Bare RISC-V (RV64IM ISA)</td></tr>
 <tr><td><code>riscv64imac-unknown-none-elf</code></td><td style="text-align: center">*</td><td>Bare RISC-V (RV64IMAC ISA)</td></tr>
@@ -7128,6 +7137,71 @@ linker = "&lt;path_to&gt;/aarch64-unknown-linux-pauthtest-clang"
 </ul>
 <p>Without it Cargo falls back to the system C toolchain (cc) and the compilation
 fails.</p>
+<h2 id="controlling-pointer-authentication-features"><a class="header" href="#controlling-pointer-authentication-features">Controlling pointer authentication features</a></h2>
+<p>Pointer authentication behavior for this target can be configured using the
+<code>-Zpointer-authentication</code> compiler option. The option accepts a comma-separated
+list of values, each of the form <code>+&lt;name&gt;</code> - to enable, or <code>-&lt;name&gt;</code> - to
+disable a feature, where <code>&lt;name&gt;</code> is one of:</p>
+<ul>
+<li><code>aarch64-jump-table-hardening</code> - enable hardened lowering for jump-table
+dispatch</li>
+<li><code>auth-traps</code> - trap immediately on pointer authentication failure</li>
+<li><code>calls</code> - enable signing and authentication of indirect calls</li>
+<li><code>elf-got</code> - enable authentication of pointers loaded from the ELF GOT</li>
+<li><code>function-pointer-type-discrimination</code> - enable type discrimination for C
+function pointers</li>
+<li><code>indirect-gotos</code> - enable signing and authentication of indirect goto targets</li>
+<li><code>init-fini</code> - enable signing of function pointers stored in init/fini arrays</li>
+<li><code>init-fini-address-discrimination</code> - enable address discrimination for
+init/fini array entries</li>
+<li><code>intrinsics</code> - enable pointer authentication intrinsics</li>
+<li><code>return-addresses</code> - enable signing and authentication of return addresses</li>
+<li><code>typeinfo-vt-ptr-discrimination</code> - enable type/address discrimination for
+authenticated <code>std::type_info</code> virtual table pointers</li>
+<li><code>vt-ptr-addr-discrimination</code> - enable address discrimination for authenticated
+virtual table pointers</li>
+<li><code>vt-ptr-type-discrimination</code> - enable type discrimination for authenticated
+virtual table pointers
+For example:
+<code>-Zpointer-authentication=+calls,+return-addresses,-init-fini</code>.</li>
+</ul>
+<p>Not all options are currently meaningful for Rust code itself. In particular,
+the virtual table related ones: <code>typeinfo-vt-ptr-discrimination</code>,
+<code>vt-ptr-addr-discrimination</code>, <code>vt-ptr-type-discrimination</code> exist primarily for
+interoperability with C++ code and compatibility with the AArch64 Pointer
+Authentication ELF ABI. Rust does not implement C++ virtual dispatch semantics,
+authenticated C++ member function pointers, or authenticated virtual table
+pointers.</p>
+<p>Similarly, <code>function-pointer-type-discrimination</code> is recognized for ABI
+compatibility purposes, but full support is not yet implemented in Rust.</p>
+<p>Even when these features do not directly affect generated Rust code, they still
+contribute to the emitted PAuth ABI metadata through the LLVM module flags:
+<code>aarch64-elf-pauthabi-platform</code>, <code>aarch64-elf-pauthabi-version</code>. These flags are
+emitted to communicate pointer authentication ABI requirements to the linker and
+other toolchain components. The ABI version value is computed from the enabled
+pointer authentication features according to the AArch64 ELF PAuth ABI
+specification. The bit layout matches LLVM/Clang definitions.</p>
+<h3 id="option-semantics-and-compatibility"><a class="header" href="#option-semantics-and-compatibility">Option semantics and compatibility</a></h3>
+<p>The <code>-Zpointer-authentication</code> option is a <a href="https://rust-lang.github.io/rfcs/3716-target-modifiers.html">target
+modifier</a>. Target
+modifiers are compiler options that affect the ABI, making it unsafe to link
+together Rust crates built with different values. The selected pointer
+authentication configuration becomes part of a crate’s compilation
+configuration, and <code>rustc</code> verifies that all crates in the dependency graph
+agree on its value. If an incompatibility is detected, compilation is rejected
+with an ABI mismatch error before invoking the linker, providing a clear
+diagnostic. See <code>tests/ui/target_modifiers/incompatible_pauth.rs</code> for a sample
+use case.</p>
+<p>The order of options is not significant. The compiler canonicalizes the
+specified feature set before recording it, so the following are equivalent:</p>
+<pre><code class="language-text">-Zpointer-authentication=+calls,+init-fini
+-Zpointer-authentication=+init-fini,+calls
+</code></pre>
+<p>If the same option is specified multiple times, the last occurrence takes
+precedence, matching Clang’s behavior. For example, the following would leave
+<code>init-fini</code> disable:</p>
+<pre><code class="language-text">-Zpointer-authentication=+init-fini,-init-fini
+</code></pre>
 <h2 id="cross-compilation-toolchains-and-c-code-8"><a class="header" href="#cross-compilation-toolchains-and-c-code-8">Cross-compilation toolchains and C code</a></h2>
 <p>This target supports interoperability with C code. A
 pointer-authentication-enabled sysroot, built as described in the toolchain
@@ -7168,10 +7242,14 @@ The following categories are supported (all present in tree):</p>
 <li>C-driven quicksort (pauth-quicksort-c-driver)</li>
 </ul>
 </li>
-<li>UI error/warning reporting (the target does not support static linking)
+<li>UI error/warning reporting
 <ul>
 <li>crt-static-pauthtest.rs</li>
 <li>pauth-static-link-warning</li>
+<li>enable_pointer_authentication_validation.rs</li>
+<li>invalid_target_pointer_authentication.rs</li>
+<li>type_discrimination_not_supported_pointer_authentication.rs</li>
+<li>incompatible_pauth.rs</li>
 </ul>
 </li>
 </ul>
@@ -7184,6 +7262,7 @@ named for convenience):</p>
   codegen-llvm codegen-units coverage crashes incremental library mir-opt \
   run-make ui ui-fulldeps \
   tests/assembly-llvm/pauth-basic.rs \
+  tests/codegen-llvm/pauth/pauth-attr-cli-flags.rs \
   tests/codegen-llvm/pauth/pauth-attr-special-funcs.rs \
   tests/codegen-llvm/pauth/pauth-extern-c.rs \
   tests/codegen-llvm/pauth/pauth-extern-c-direct-indirect-call.rs \
@@ -7192,7 +7271,11 @@ named for convenience):</p>
   tests/run-make/pauth-quicksort-rust-driver \
   tests/run-make/pauth-quicksort-c-driver \
   tests/run-make/pauth-static-link-warning \
-  tests/ui/statics/crt-static-pauthtest.rs
+  tests/ui/statics/crt-static-pauthtest.rs \
+  tests/ui/pointer_authentication/enable_pointer_authentication_validation.rs \
+  tests/ui/pointer_authentication/invalid_target_pointer_authentication.rs \
+  tests/ui/pointer_authentication/type_discrimination_not_supported_pointer_authentication.rs \
+  tests/ui/target_modifiers/incompatible_pauth.rs
 </code></pre>
 <h2 id="limitations"><a class="header" href="#limitations">Limitations</a></h2>
 <p>Operand bundles should only be attached to indirect function calls. However,
@@ -7457,7 +7540,7 @@ pub extern "gpu-kernel" fn kernel(/* Arguments */) {
 [lib]
 crate-type = ["cdylib"]
 </code></pre>
-<p>The target-cpu must be from the list <a href="https://llvm.org/docs/AMDGPUUsage.html#processors">supported by LLVM</a> (or printed with <code>rustc --target amdgcn-amd-amdhsa --print target-cpus</code>).
+<p>The target-cpu<sup class="footnote-reference" id="fr-1-1"><a href="#footnote-1">1</a></sup> must be from the list <a href="https://llvm.org/docs/AMDGPUUsage.html#processors">supported by LLVM</a> (or printed with <code>rustc --target amdgcn-amd-amdhsa --print target-cpus</code>).
 The GPU version on the current system can be found e.g. with <a href="https://github.com/ROCm/rocminfo"><code>rocminfo</code></a>.
 For a GPU series that has xnack support but the target GPU has not, the <code>-xnack-support</code> target-feature needs to be enabled.
 I.e. if the ISA info as printed with <a href="https://github.com/ROCm/rocminfo"><code>rocminfo</code></a> says something about <code>xnack-</code>, e.g. <code>gfx1010:xnack-</code>, add <code>-Ctarget-feature=-xnack-support</code> to the rustflags.</p>
@@ -7487,6 +7570,16 @@ hardware? Does the target support running the Rust testsuite?
 -->
 <h2 id="additional-information"><a class="header" href="#additional-information">Additional information</a></h2>
 <p>More information can be found on the <a href="https://llvm.org/docs/AMDGPUUsage.html">LLVM page for amdgpu</a>.</p>
+<hr>
+<ol class="footnote-definition">
+<li id="footnote-1">
+<p>For this target, crates with different values of <code>-C target-cpu</code> are not link-compatible.
+Because of this, the compiler ensures that all crates that are linked together
+were compiled with the same <code>target-cpu</code>. This must be considered when
+using <code>rustc</code> commands for building. It is less relevant for Cargo, since Cargo
+generally uses the same <code>target-cpu</code> for all crates in a build. <a href="#fr-1-1">↩</a></p>
+</li>
+</ol>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="armthumb-none-eabihf"><a class="header" href="#armthumb-none-eabihf"><code>{arm,thumb}*-none-eabi(hf)?</code></a></h1>
 <h2 id="common-target-details"><a class="header" href="#common-target-details">Common Target Details</a></h2>
@@ -7741,7 +7834,7 @@ code generation. The most common processor family using the Armv6 architecture
 is the ARM11, which includes the ARM1176JZF-S used in the original Raspberry Pi
 and in the Raspberry Pi Zero.</p>
 <p>This target assumes your processor has the Armv6K extensions, as basically all
-Armv6 processors do<sup class="footnote-reference" id="fr-1-1"><a href="#footnote-1">1</a></sup>. The Armv6K extension adds the <code>LDREXB</code> and <code>STREXB</code>
+Armv6 processors do<sup class="footnote-reference" id="fr-1-1-1"><a href="#footnote-1-1">1</a></sup>. The Armv6K extension adds the <code>LDREXB</code> and <code>STREXB</code>
 instructions required to efficiently implement CAS on the <a href="https://docs.rust-lang.org/stable/core/sync/atomic/struct.AtomicU8.html"><code>AtomicU8</code></a> and
 <a href="https://docs.rust-lang.org/stable/core/sync/atomic/struct.AtomicI8.html"><code>AtomicI8</code></a> types.</p>
 <p>The <code>thumbv6-none-eabi</code> target is the same as this one, but the instruction set
@@ -7758,10 +7851,10 @@ mode so there is no <code>thumbv6-none-eabihf</code> target.</p>
 <p><a href="https://github.com/thejpster">@thejpster</a></p>
 <hr>
 <ol class="footnote-definition">
-<li id="footnote-1">
+<li id="footnote-1-1">
 <p>The only ARMv6 processor without the Armv6k extensions is the first (r0)
 revision of the ARM1136 - in the unlikely event you have a chip with one of
-these processors, use the ARMv5TE target instead. <a href="#fr-1-1">↩</a></p>
+these processors, use the ARMv5TE target instead. <a href="#fr-1-1-1">↩</a></p>
 </li>
 </ol>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -9133,9 +9226,9 @@ set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
 from the <a href="https://source.android.com/docs/setup/build/downloading">source tree</a> or using the Android NDK.</p>
 <p>Android targets support std. Generated binaries use the ELF file format.</p>
 <h2 id="ndkapi-update-policy"><a class="header" href="#ndkapi-update-policy">NDK/API Update Policy</a></h2>
-<p>Rust will support the most recent Long Term Support (LTS) Android Native
-Development Kit (NDK).  By default Rust will support all API levels supported
-by the NDK, but a higher minimum API level may be required if deemed necessary.</p>
+<p>Rust will support the most recent Long Term Support (LTS) <a href="https://github.com/android/ndk/wiki">Android Native
+Development Kit (NDK)</a>.  By default Rust will support all <a href="https://github.com/android/ndk/wiki/Compatibility">API levels supported
+by the NDK</a>, but a higher minimum API level may be required if deemed necessary.</p>
 <h2 id="building-the-target-26"><a class="header" href="#building-the-target-26">Building the target</a></h2>
 <p>To build Rust binaries for Android you’ll need a copy of the most recent LTS
 edition of the <a href="https://developer.android.com/ndk/downloads">Android NDK</a>.  Supported Android targets are:</p>
@@ -9460,7 +9553,7 @@ build-std = ["core"]
 <code>./target/avr-none/release/your-project.elf</code>.</p>
 <p>Note that since AVRs have rather small amounts of registers, ROM and RAM, it’s
 recommended to always use <code>--release</code> to avoid running out of space.</p>
-<p>Also, please note that specifying <code>-C target-cpu</code> is required - here’s a list of
+<p>Also, please note that specifying <code>-C target-cpu</code><sup class="footnote-reference" id="fr-1-1-2"><a href="#footnote-1-2">1</a></sup> is required - here’s a list of
 the possible variants:</p>
 <p>https://github.com/llvm/llvm-project/blob/093d4db2f3c874d4683fb01194b00dbb20e5c713/clang/lib/Basic/Targets/AVR.cpp#L32</p>
 <p>Note that devices that have no SRAM are not supported, same as when compiling C/C++ programs with avr-gcc or Clang.</p>
@@ -9471,6 +9564,16 @@ resulting firmware on your machine:</p>
 </code></pre>
 <p>Alternatively, if you want to write a couple of actual <code>#[test]</code>s, you can use
 <a href="https://github.com/Patryk27/avr-tester"><code>avr-tester</code></a>.</p>
+<hr>
+<ol class="footnote-definition">
+<li id="footnote-1-2">
+<p>For this target, crates with different values of <code>-C target-cpu</code> are not link-compatible.
+Because of this, the compiler ensures that all crates that are linked together
+were compiled with the same <code>target-cpu</code>. This must be considered when
+using <code>rustc</code> commands for building. It is less relevant for Cargo, since Cargo
+generally uses the same <code>target-cpu</code> for all crates in a build. <a href="#fr-1-1-2">↩</a></p>
+</li>
+</ol>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="-espidf"><a class="header" href="#-espidf"><code>*-espidf</code></a></h1>
 <p><strong>Tier: 3</strong></p>
@@ -11528,7 +11631,8 @@ The necessary components for this workflow are:</p>
 <p>It is often beneficial to specify the target SM architecture, such as <code>-C target-cpu=sm_89</code>, because the default prioritizes broad compatibility rather than performance. Doing so also selects the PTX version as the <em>maximum</em> of (a) the oldest PTX version that supports the chosen target processor (see <a href="https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#release-notes-ptx-release-history">this table</a>) and (b) the oldest PTX version supported by the Rust toolchain, which maximizes driver compatibility.
 One can use <code>-C target-feature=+ptx80</code> to choose a later PTX version without changing the target SM architecture (the default in this case, <code>ptx78</code>, requires CUDA driver version 11.8, while <code>ptx80</code> would require driver version 12.0).
 Later PTX versions may allow more efficient code generation.</p>
-<p>Although Rust follows LLVM in representing <code>ptx*</code> and <code>sm_*</code> as target features, they should be thought of as having crate granularity, set via (either via <code>-Ctarget-cpu</code> and optionally <code>-Ctarget-feature</code>).
+<p>For this target, the compiler enforces that all crates built into a binary use the same value for <code>-C target-cpu</code>. Therefore, if specifying a value different from the current default (<code>sm_70</code>), it is necessary to also build <code>core</code> manually with this value. This is possible by invoking cargo with <code>-Z build-std=core</code> using a nightly toolchain.
+Although Rust follows LLVM in representing <code>ptx*</code> and <code>sm_*</code> as target features, they should also be thought of as having binary granularity. However, this is not enforced by the compiler. When building crates together, the same value for all crates should be set via <code>-C target-feature</code>.
 While the compiler accepts <code>#[target_feature(enable = "ptx80", enable = "sm_89")]</code>, it is not supported, may not behave as intended, and may become erroneous in the future.</p>
 <h2 id="minimum-sm-and-ptx-support-by-rust-version"><a class="header" href="#minimum-sm-and-ptx-support-by-rust-version">Minimum SM and PTX support by Rust version</a></h2>
 <p>Support for old hardware architectures and PTX ISA versions is periodically dropped. This table shows the minimum supported versions per Rust version.</p>
@@ -12009,7 +12113,8 @@ target = ["riscv64im-unknown-none-elf"]
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="riscv64gc-unknown-linux-gnu"><a class="header" href="#riscv64gc-unknown-linux-gnu"><code>riscv64gc-unknown-linux-gnu</code></a></h1>
 <p><strong>Tier: 2 (with Host Tools)</strong></p>
-<p>RISC-V targets using the <em>RV64I</em> base instruction set with the <em>G</em> collection of extensions, as well as the <em>C</em> extension.</p>
+<p>Linux GNU libc RISC-V target using the <em>RV64I</em> base instruction set with the
+<em>G</em> collection of extensions, as well as the <em>C</em> extension.</p>
 <h2 id="target-maintainers-81"><a class="header" href="#target-maintainers-81">Target maintainers</a></h2>
 <p><a href="https://github.com/kito-cheng">@kito-cheng</a>
 <a href="https://github.com/michaelmaitland">@michaelmaitland</a>
@@ -12022,24 +12127,24 @@ target = ["riscv64im-unknown-none-elf"]
 <li>glibc 2.17 or later</li>
 </ul>
 <h2 id="building-the-target-51"><a class="header" href="#building-the-target-51">Building the target</a></h2>
-<p>These targets are distributed through <code>rustup</code>, and otherwise require no
+<p>This target is distributed through <code>rustup</code>, and otherwise requires no
 special configuration.</p>
-<p>If you need to build your own Rust for some reason though, the targets can be
+<p>If you need to build your own Rust for some reason though, the target can be
 enabled in <code>bootstrap.toml</code>. For example:</p>
 <pre><code class="language-toml">[build]
 target = ["riscv64gc-unknown-linux-gnu"]
 </code></pre>
 <h2 id="building-rust-programs-56"><a class="header" href="#building-rust-programs-56">Building Rust programs</a></h2>
-<p>On a RISC-V host, the <code>riscv64gc-unknown-linux-gnu</code> target should be automatically
-installed and used by default.</p>
-<p>On a non-RISC-V host, add the target:</p>
+<p>On a riscv64gc-unknown-linux-gnu host, the <code>riscv64gc-unknown-linux-gnu</code>
+target should be automatically installed and used by default.</p>
+<p>On all other hosts, add the target:</p>
 <pre><code class="language-bash">rustup target add riscv64gc-unknown-linux-gnu
 </code></pre>
 <p>Then cross compile crates with:</p>
 <pre><code class="language-bash">cargo build --target riscv64gc-unknown-linux-gnu
 </code></pre>
 <h2 id="testing-58"><a class="header" href="#testing-58">Testing</a></h2>
-<p>There are no special requirements for testing and running the targets.
+<p>There are no special requirements for testing and running the target.
 For testing cross builds on the host, please refer to the “Cross-compilation
 toolchains and C code”
 section below.</p>
@@ -12089,32 +12194,37 @@ to build or run <code>riscv64gc-unknown-linux-gnu</code> binaries.</p>
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="riscv64gc-unknown-linux-musl"><a class="header" href="#riscv64gc-unknown-linux-musl">riscv64gc-unknown-linux-musl</a></h1>
-<p><strong>Tier: 2</strong></p>
-<p>Target for RISC-V Linux programs using musl libc.</p>
+<p><strong>Tier: 2 (with Host Tools)</strong></p>
+<p>Linux musl libc RISC-V target using the <em>RV64I</em> base instruction set with the
+<em>G</em> collection of extensions, as well as the <em>C</em> extension.</p>
 <h2 id="target-maintainers-82"><a class="header" href="#target-maintainers-82">Target maintainers</a></h2>
 <p><a href="https://github.com/Amanieu">@Amanieu</a>
 <a href="https://github.com/kraj">@kraj</a></p>
 <h2 id="requirements-74"><a class="header" href="#requirements-74">Requirements</a></h2>
-<p>Building the target itself requires a RISC-V compiler that is supported by <code>cc-rs</code>.</p>
+<p>This target requires:</p>
+<ul>
+<li>Linux Kernel version 4.20 or later</li>
+<li>musl libc 1.2.5 or later</li>
+</ul>
 <h2 id="building-the-target-52"><a class="header" href="#building-the-target-52">Building the target</a></h2>
-<p>The target can be built by enabling it for a <code>rustc</code> build.</p>
+<p>This target is distributed through <code>rustup</code>, and otherwise requires no
+special configuration.</p>
+<p>If you need to build your own Rust then the targets can be enabled in
+<code>bootstrap.toml</code>. For example:</p>
 <pre><code class="language-toml">[build]
 target = ["riscv64gc-unknown-linux-musl"]
 </code></pre>
-<p>Make sure your C compiler is included in <code>$PATH</code>, then add it to the <code>bootstrap.toml</code>:</p>
-<pre><code class="language-toml">[target.riscv64gc-unknown-linux-musl]
-cc = "riscv64-linux-gnu-gcc"
-cxx = "riscv64-linux-gnu-g++"
-ar = "riscv64-linux-gnu-ar"
-linker = "riscv64-linux-gnu-gcc"
-</code></pre>
 <h2 id="building-rust-programs-57"><a class="header" href="#building-rust-programs-57">Building Rust programs</a></h2>
-<p>This target are distributed through <code>rustup</code>, and otherwise require no
-special configuration.</p>
-<h2 id="cross-compilation-19"><a class="header" href="#cross-compilation-19">Cross-compilation</a></h2>
-<p>This target can be cross-compiled from any host.</p>
+<p>On a riscv64gc-unknown-linux-musl host, the <code>riscv64gc-unknown-linux-musl</code>
+target should be automatically installed and used by default.</p>
+<p>On all other hosts, add the target:</p>
+<pre><code class="language-bash">rustup target add riscv64gc-unknown-linux-musl
+</code></pre>
+<p>Then cross compile crates with:</p>
+<pre><code class="language-bash">cargo build --target riscv64gc-unknown-linux-musl
+</code></pre>
 <h2 id="testing-59"><a class="header" href="#testing-59">Testing</a></h2>
-<p>This target can be tested as normal with <code>x.py</code> on a RISC-V host or via QEMU
+<p>The target can be tested as normal with <code>x.py</code> on a RISC-V host or via QEMU
 emulation.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="riscv64a23-unknown-linux-gnu"><a class="header" href="#riscv64a23-unknown-linux-gnu"><code>riscv64a23-unknown-linux-gnu</code></a></h1>
@@ -13038,7 +13148,7 @@ and the targets are initially cross-compiled, but many if not most
 of them are also built natively as part of testing.</p>
 <h2 id="building-11"><a class="header" href="#building-11">Building</a></h2>
 <p>The default build mode for the packages is a native build.</p>
-<h2 id="cross-compilation-20"><a class="header" href="#cross-compilation-20">Cross-compilation</a></h2>
+<h2 id="cross-compilation-19"><a class="header" href="#cross-compilation-19">Cross-compilation</a></h2>
 <p>These targets can be cross-compiled, and we do that via the pkgsrc
 package(s).</p>
 <p>Cross-compilation typically requires the “tools” and “dest” trees
@@ -13113,7 +13223,7 @@ target = ["$ARCH-unknown-openbsd"]
 [target.$ARCH-unknown-openbsd]
 cc = "$ARCH-openbsd-cc"
 </code></pre>
-<h2 id="cross-compilation-21"><a class="header" href="#cross-compilation-21">Cross-compilation</a></h2>
+<h2 id="cross-compilation-20"><a class="header" href="#cross-compilation-20">Cross-compilation</a></h2>
 <p>These targets can be cross-compiled, but LLVM might not build out-of-box.</p>
 <h2 id="testing-72"><a class="header" href="#testing-72">Testing</a></h2>
 <p>The Rust testsuite could be run natively.</p>
@@ -13650,7 +13760,7 @@ use <a href="https://github.com/WebAssembly/wasi-sdk"><code>wasi-sdk</code></a>.
 time as it’s updated in Rust and Rust relies on newer features that <a href="https://github.com/WebAssembly/wasi-sdk"><code>wasi-sdk</code></a>
 has. See the documentation above about building the target in rustc for the
 minimum known working version.</p>
-<h2 id="cross-compilation-22"><a class="header" href="#cross-compilation-22">Cross-compilation</a></h2>
+<h2 id="cross-compilation-21"><a class="header" href="#cross-compilation-21">Cross-compilation</a></h2>
 <p>This target can be cross-compiled from any hosts.</p>
 <h2 id="testing-76"><a class="header" href="#testing-76">Testing</a></h2>
 <p>This target is tested in rust-lang/rust CI on all merges. A subset of tests are
@@ -13776,7 +13886,7 @@ wasi-root = ".../wasi-libc/sysroot"
 <p>Rust programs can be built for that target:</p>
 <pre><code class="language-text">rustc --target wasm32-wasip1-threads your-code.rs
 </code></pre>
-<h2 id="cross-compilation-23"><a class="header" href="#cross-compilation-23">Cross-compilation</a></h2>
+<h2 id="cross-compilation-22"><a class="header" href="#cross-compilation-22">Cross-compilation</a></h2>
 <p>This target can be cross-compiled from any hosts.</p>
 <h2 id="testing-77"><a class="header" href="#testing-77">Testing</a></h2>
 <p>Currently testing is not well supported for <code>wasm32-wasip1-threads</code> and the
@@ -14048,7 +14158,7 @@ target = ["wasm32-unknown-emscripten"]
 <pre><code class="language-sh">$ rustc foo.rs --target wasm32-unknown-emscripten
 $ file foo.wasm
 </code></pre>
-<h2 id="cross-compilation-24"><a class="header" href="#cross-compilation-24">Cross-compilation</a></h2>
+<h2 id="cross-compilation-23"><a class="header" href="#cross-compilation-23">Cross-compilation</a></h2>
 <p>This target can be cross-compiled from any host.</p>
 <h2 id="emscripten-abi-compatibility"><a class="header" href="#emscripten-abi-compatibility">Emscripten ABI Compatibility</a></h2>
 <p>The Emscripten compiler toolchain does not follow a semantic versioning scheme
@@ -14166,7 +14276,7 @@ to build this target on any platform.</p>
 <pre><code class="language-sh">$ rustc foo.rs --target wasm32-unknown-unknown
 $ file foo.wasm
 </code></pre>
-<h2 id="cross-compilation-25"><a class="header" href="#cross-compilation-25">Cross-compilation</a></h2>
+<h2 id="cross-compilation-24"><a class="header" href="#cross-compilation-24">Cross-compilation</a></h2>
 <p>This target can be cross-compiled from any host.</p>
 <h2 id="testing-82"><a class="header" href="#testing-82">Testing</a></h2>
 <p>This target is not tested in CI for the rust-lang/rust repository. Many tests
