@@ -92,7 +92,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6df1beb6.js";
+            window.path_to_searchindex_js = "searchindex-2dfc1595.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-ebcc1dd0.js"></script>
@@ -597,6 +597,50 @@ crate contains any code that may fail to compile in the future.</p>
 <a href="#option-color"><code>--color</code></a> argument, and it is required to combine <code>--json</code>
 with <code>--error-format=json</code>.</p>
 <p>See <a href="json.html">the JSON chapter</a> for more detail.</p>
+<p><a id="option-jobs"></a></p>
+<h2 id="-j--jobs---jobs-frontend---jobs-backend---jobs-linker-limit-parallelism"><a class="header" href="#-j--jobs---jobs-frontend---jobs-backend---jobs-linker-limit-parallelism"><code>-j</code>/<code>--jobs</code>, <code>--jobs-frontend</code>, <code>--jobs-backend</code>, <code>--jobs-linker</code>: limit parallelism</a></h2>
+<p>These flags specify the maximum number of parallel jobs used by the compiler, or its specific parts.</p>
+<p>All the options accept a number from 0 to 255, or <code>sync</code>.</p>
+<ul>
+<li><code>0</code> is equivalent to the number of available logical CPUs.</li>
+<li><code>sync</code> is equivalent to <code>1</code>, but with synchronization overhead enabled (for benchmarking).</li>
+</ul>
+<p><code>jobs</code> is the common upper limit on everything,
+more specific <code>jobs-*</code> options cannot specify larger values.</p>
+<h3 id="frontend-parallelism"><a class="header" href="#frontend-parallelism">Frontend parallelism</a></h3>
+<p>Parallelism used by compilation stages from lexing to generation of backend IR (e.g. LLVM IR).</p>
+<ul>
+<li>If <code>jobs-frontend</code> is passed, then it is used as the limit,</li>
+<li>otherwise if <code>jobs</code> is passed, then it is used as the limit,</li>
+<li>otherwise <code>1</code> is used as the limit (parallelism is disabled), this default may change.</li>
+</ul>
+<p>In any case the parallelism here may be additionally limited dynamically by jobserver
+passed from a higher level build system like cargo.</p>
+<h3 id="backend-parallelism"><a class="header" href="#backend-parallelism">Backend parallelism</a></h3>
+<p>Parallelism used by compilation stages converting backend IR to object files.</p>
+<ul>
+<li>If <code>jobs-backend</code> is passed, then it is used as the limit,</li>
+<li>otherwise if <code>jobs</code> is passed, then it is used as the limit,</li>
+<li>otherwise <code>32</code> is used as the limit or there’s no limit in case of an inherited jobserver,
+this default may change.</li>
+</ul>
+<p>In any case the parallelism here may be additionally limited dynamically by jobserver
+passed from a higher level build system like cargo.</p>
+<p>Note: the backend parallelism limit may currently work incorrectly if <code>jobs-frontend</code> or <code>jobs</code>
+have larger value than <code>jobs-backend</code>, or if the inherited jobserver can give a larger number
+of tokens.</p>
+<h3 id="linker-parallelism"><a class="header" href="#linker-parallelism">Linker parallelism</a></h3>
+<p>Parallelism used by linker when combining object files into a final binary.</p>
+<ul>
+<li>If <code>jobs-linker</code> is passed, then it is used as the limit,</li>
+<li>otherwise if <code>jobs</code> is passed, then it is used as the limit,</li>
+<li>otherwise no options are passed to the linker and its default behavior is used,
+this default may change.</li>
+</ul>
+<p>Note: this option is best effort, if the linker doesn’t support parallelism,
+we cannot enable it, and if the linker uses parallelism by default and doesn’t allow limiting it,
+then we cannot limit it.</p>
+<p>Currently only LLD supports controlling parallelism.</p>
 <p><a id="at-path"></a></p>
 <h2 id="path-load-command-line-flags-from-a-path"><a class="header" href="#path-load-command-line-flags-from-a-path"><code>@path</code>: load command-line flags from a path</a></h2>
 <p>If you specify <code>@path</code> on the command-line, then it will open <code>path</code> and read

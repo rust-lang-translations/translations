@@ -98,7 +98,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5f6f6177.js";
+            window.path_to_searchindex_js = "searchindex-a493a2b7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6b0c3669.js"></script>
@@ -1915,6 +1915,7 @@ exclude = ["crates/foo", "path/to/other"]
 </code></pre>
 <p>워크스페이스 디렉토리에 있는 모든 <a href="#specifying-path-dependencies"><code>경로(path)</code> 의존성</a> 은 자동으로 구성원이 됩니다. 추가 구성원은 <code>members</code> 키를 사용하여 나열할 수 있으며, 이는 <code>Cargo.toml</code> 파일이 있는 디렉토리를 포함하는 문자열 배열이어야 합니다.</p>
 <p><code>members</code> 목록은 <code>*</code> 및 <code>?</code> 와 같은 일반적인 파일 이름 글로브 패턴을 사용하여 여러 경로를 일치시키는 <a href="https://docs.rs/glob/0.3.0/glob/struct.Pattern.html">글로브(globs)</a> 를 지원합니다.</p>
+<p><strong>Recommendation:</strong> Keep all member packages in a flat directory (commonly <code>crates/</code>) and use a glob pattern for the <code>members</code> field, e.g. <code>members = ["crates/*"]</code>. This minimizes churn in maintaining the <code>members</code> list.</p>
 <p><code>exclude</code> 키는 경로가 워크스페이스에 포함되는 것을 방지하는 데 사용할 수 있습니다. 이는 일부 경로 의존성이 워크스페이스에 포함되는 것을 전혀 원하지 않거나, 글로브 패턴을 사용 중인데 특정 디렉토리를 제거하고 싶을 때 유용할 수 있습니다.</p>
 <p>워크스페이스 내의 하위 디렉토리에 있을 때, Cargo는 사용할 워크스페이스를 결정하기 위해 상위 디렉토리에서 <code>[workspace]</code> 정의가 있는 <code>Cargo.toml</code> 파일을 자동으로 검색합니다. 구성원 크레이트의 <a href="#the-workspace-field"><code>package.workspace</code></a> 매니페스트 키를 사용하여 워크스페이스 루트를 가리킴으로써 이 자동 검색을 무시할 수 있습니다. 수동 설정은 구성원이 워크스페이스 루트의 하위 디렉토리에 있지 않은 경우 유용할 수 있습니다.</p>
 <h3 id="패키지-선택"><a class="header" href="#패키지-선택">패키지 선택</a></h3>
@@ -8351,7 +8352,6 @@ frequency = "always"
 <h2 id="allowed-by-default"><a class="header" href="#allowed-by-default">Allowed-by-default</a></h2>
 <p>These lints are all set to the ‘allow’ level by default.</p>
 <ul>
-<li><a href="#implicit_minimum_version_req"><code>implicit_minimum_version_req</code></a></li>
 <li><a href="#non_kebab_case_features"><code>non_kebab_case_features</code></a></li>
 <li><a href="#non_kebab_case_packages"><code>non_kebab_case_packages</code></a></li>
 <li><a href="#non_snake_case_features"><code>non_snake_case_features</code></a></li>
@@ -8394,44 +8394,18 @@ hint-mostly-unused = true
 <pre><code class="language-toml">[profile.dev.package.huge-mostly-unused-dependency]
 hint-mostly-unused = true
 </code></pre>
-<h2 id="implicit_minimum_version_req"><a class="header" href="#implicit_minimum_version_req"><code>implicit_minimum_version_req</code></a></h2>
-<ul>
-<li>Group: <code>pedantic</code></li>
-<li>Level: <code>allow</code></li>
-</ul>
-<h3 id="동작-방식-1"><a class="header" href="#동작-방식-1">동작 방식</a></h3>
-<p>Checks for dependency version requirements that do not explicitly specify a full <code>major.minor.patch</code> version requirement, such as <code>serde = "1"</code> or <code>serde = "1.0"</code>.</p>
-<p>This lint currently only applies to caret requirements (the <a href="#default-requirements">default requirements</a>).</p>
-<h3 id="why-is-this-bad-1"><a class="header" href="#why-is-this-bad-1">Why is this bad?</a></h3>
-<p>Version requirements without an explicit full version can be misleading about the actual minimum supported version. For example, <code>serde = "1"</code> has an implicit minimum bound of <code>1.0.0</code>. If your code actually requires features from <code>1.0.219</code>, the implicit minimum bound of <code>1.0.0</code> gives a false impression about compatibility.</p>
-<p>Specifying the full version helps with:</p>
-<ul>
-<li>Accurate minimum version documentation</li>
-<li>Better compatibility with <code>-Z minimal-versions</code></li>
-<li>Clearer dependency constraints for consumers</li>
-</ul>
-<h3 id="drawbacks"><a class="header" href="#drawbacks">Drawbacks</a></h3>
-<p>Even with a fully specified version, the minimum bound might still be incorrect if untested. This lint helps make the minimum version requirement explicit but doesn’t guarantee correctness.</p>
-<h3 id="예제-1-1"><a class="header" href="#예제-1-1">예제</a></h3>
-<pre><code class="language-toml">[dependencies]
-serde = "1"
-</code></pre>
-<p>Should be written as a full specific version:</p>
-<pre><code class="language-toml">[dependencies]
-serde = "1.0.219"
-</code></pre>
 <h2 id="missing_lints_inheritance"><a class="header" href="#missing_lints_inheritance"><code>missing_lints_inheritance</code></a></h2>
 <ul>
 <li>Group: <code>suspicious</code></li>
 <li>Level: <code>warn</code></li>
 <li>Minimal <a href="#rust-버전"><code>package.rust-version</code></a>: <code>1.79.0</code></li>
 </ul>
-<h3 id="동작-방식-2"><a class="header" href="#동작-방식-2">동작 방식</a></h3>
+<h3 id="동작-방식-1"><a class="header" href="#동작-방식-1">동작 방식</a></h3>
 <p>Checks for packages without a <code>lints</code> table while <code>workspace.lints</code> is present.</p>
-<h3 id="why-is-this-bad-2"><a class="header" href="#why-is-this-bad-2">Why is this bad?</a></h3>
+<h3 id="why-is-this-bad-1"><a class="header" href="#why-is-this-bad-1">Why is this bad?</a></h3>
 <p>Many people mistakenly think that <code>workspace.lints</code> is implicitly inherited when it is not.</p>
-<h3 id="drawbacks-1"><a class="header" href="#drawbacks-1">Drawbacks</a></h3>
-<h3 id="예제-2"><a class="header" href="#예제-2">예제</a></h3>
+<h3 id="drawbacks"><a class="header" href="#drawbacks">Drawbacks</a></h3>
+<h3 id="예제-1-1"><a class="header" href="#예제-1-1">예제</a></h3>
 <pre><code class="language-toml">[workspace.lints.cargo]
 </code></pre>
 <p>Should be written as:</p>
@@ -8451,15 +8425,15 @@ workspace = true
 <li>Level: <code>warn</code></li>
 <li>Minimal <a href="#rust-버전"><code>package.rust-version</code></a>: <code>1.79.0</code></li>
 </ul>
-<h3 id="동작-방식-3"><a class="header" href="#동작-방식-3">동작 방식</a></h3>
+<h3 id="동작-방식-2"><a class="header" href="#동작-방식-2">동작 방식</a></h3>
 <p>Detect binary names, explicit and implicit, that are not kebab-case</p>
-<h3 id="why-is-this-bad-3"><a class="header" href="#why-is-this-bad-3">Why is this bad?</a></h3>
+<h3 id="why-is-this-bad-2"><a class="header" href="#why-is-this-bad-2">Why is this bad?</a></h3>
 <p>Kebab-case binary names is a common convention among command line tools.</p>
-<h3 id="drawbacks-2"><a class="header" href="#drawbacks-2">Drawbacks</a></h3>
+<h3 id="drawbacks-1"><a class="header" href="#drawbacks-1">Drawbacks</a></h3>
 <p>It would be disruptive to existing users to change the binary name.</p>
 <p>A binary may need to conform to externally controlled conventions which can include a different naming convention.</p>
 <p>GUI applications may wish to choose a more user focused naming convention, like “Title Case” or “Sentence case”.</p>
-<h3 id="예제-3"><a class="header" href="#예제-3">예제</a></h3>
+<h3 id="예제-2"><a class="header" href="#예제-2">예제</a></h3>
 <pre><code class="language-toml">[[bin]]
 name = "foo_bar"
 </code></pre>
@@ -8472,13 +8446,13 @@ name = "foo-bar"
 <li>Group: <code>restriction</code></li>
 <li>Level: <code>allow</code></li>
 </ul>
-<h3 id="동작-방식-4"><a class="header" href="#동작-방식-4">동작 방식</a></h3>
+<h3 id="동작-방식-3"><a class="header" href="#동작-방식-3">동작 방식</a></h3>
 <p>Detect feature names that are not kebab-case.</p>
 <h3 id="why-restrict-this"><a class="header" href="#why-restrict-this">Why restrict this?</a></h3>
 <p>Having multiple naming styles within a workspace can be confusing.</p>
-<h3 id="drawbacks-3"><a class="header" href="#drawbacks-3">Drawbacks</a></h3>
+<h3 id="drawbacks-2"><a class="header" href="#drawbacks-2">Drawbacks</a></h3>
 <p>Users would expect that a feature tightly coupled to a dependency would match the dependency’s name.</p>
-<h3 id="예제-4"><a class="header" href="#예제-4">예제</a></h3>
+<h3 id="예제-3"><a class="header" href="#예제-3">예제</a></h3>
 <pre><code class="language-toml">[features]
 foo_bar = []
 </code></pre>
@@ -8491,13 +8465,13 @@ foo-bar = []
 <li>Group: <code>restriction</code></li>
 <li>Level: <code>allow</code></li>
 </ul>
-<h3 id="동작-방식-5"><a class="header" href="#동작-방식-5">동작 방식</a></h3>
+<h3 id="동작-방식-4"><a class="header" href="#동작-방식-4">동작 방식</a></h3>
 <p>Detect package names that are not kebab-case.</p>
 <h3 id="why-restrict-this-1"><a class="header" href="#why-restrict-this-1">Why restrict this?</a></h3>
 <p>Having multiple naming styles within a workspace can be confusing.</p>
-<h3 id="drawbacks-4"><a class="header" href="#drawbacks-4">Drawbacks</a></h3>
+<h3 id="drawbacks-3"><a class="header" href="#drawbacks-3">Drawbacks</a></h3>
 <p>Users have to mentally translate package names to namespaces in Rust.</p>
-<h3 id="예제-5"><a class="header" href="#예제-5">예제</a></h3>
+<h3 id="예제-4"><a class="header" href="#예제-4">예제</a></h3>
 <pre><code class="language-toml">[package]
 name = "foo_bar"
 </code></pre>
@@ -8510,13 +8484,13 @@ name = "foo-bar"
 <li>Group: <code>restriction</code></li>
 <li>Level: <code>allow</code></li>
 </ul>
-<h3 id="동작-방식-6"><a class="header" href="#동작-방식-6">동작 방식</a></h3>
+<h3 id="동작-방식-5"><a class="header" href="#동작-방식-5">동작 방식</a></h3>
 <p>Detect feature names that are not snake-case.</p>
 <h3 id="why-restrict-this-2"><a class="header" href="#why-restrict-this-2">Why restrict this?</a></h3>
 <p>Having multiple naming styles within a workspace can be confusing.</p>
-<h3 id="drawbacks-5"><a class="header" href="#drawbacks-5">Drawbacks</a></h3>
+<h3 id="drawbacks-4"><a class="header" href="#drawbacks-4">Drawbacks</a></h3>
 <p>Users would expect that a feature tightly coupled to a dependency would match the dependency’s name.</p>
-<h3 id="예제-6"><a class="header" href="#예제-6">예제</a></h3>
+<h3 id="예제-5"><a class="header" href="#예제-5">예제</a></h3>
 <pre><code class="language-toml">[features]
 foo-bar = []
 </code></pre>
@@ -8529,13 +8503,13 @@ foo_bar = []
 <li>Group: <code>restriction</code></li>
 <li>Level: <code>allow</code></li>
 </ul>
-<h3 id="동작-방식-7"><a class="header" href="#동작-방식-7">동작 방식</a></h3>
+<h3 id="동작-방식-6"><a class="header" href="#동작-방식-6">동작 방식</a></h3>
 <p>Detect package names that are not snake-case.</p>
 <h3 id="why-restrict-this-3"><a class="header" href="#why-restrict-this-3">Why restrict this?</a></h3>
 <p>Having multiple naming styles within a workspace can be confusing.</p>
-<h3 id="drawbacks-6"><a class="header" href="#drawbacks-6">Drawbacks</a></h3>
+<h3 id="drawbacks-5"><a class="header" href="#drawbacks-5">Drawbacks</a></h3>
 <p>Users have to mentally translate package names to namespaces in Rust.</p>
-<h3 id="예제-7"><a class="header" href="#예제-7">예제</a></h3>
+<h3 id="예제-6"><a class="header" href="#예제-6">예제</a></h3>
 <pre><code class="language-toml">[package]
 name = "foo_bar"
 </code></pre>
@@ -8549,13 +8523,13 @@ name = "foo-bar"
 <li>Level: <code>warn</code></li>
 <li>Minimal <a href="#rust-버전"><code>package.rust-version</code></a>: <code>1.79.0</code></li>
 </ul>
-<h3 id="동작-방식-8"><a class="header" href="#동작-방식-8">동작 방식</a></h3>
+<h3 id="동작-방식-7"><a class="header" href="#동작-방식-7">동작 방식</a></h3>
 <p>Checks if the value of <code>package.homepage</code> is already covered by another field.</p>
 <p>See also <a href="#the-homepage-field"><code>package.homepage</code> reference documentation</a>.</p>
-<h3 id="why-is-this-bad-4"><a class="header" href="#why-is-this-bad-4">Why is this bad?</a></h3>
+<h3 id="why-is-this-bad-3"><a class="header" href="#why-is-this-bad-3">Why is this bad?</a></h3>
 <p>When package browsers render each link, a redundant link adds visual noise.</p>
-<h3 id="drawbacks-7"><a class="header" href="#drawbacks-7">Drawbacks</a></h3>
-<h3 id="예제-8"><a class="header" href="#예제-8">예제</a></h3>
+<h3 id="drawbacks-6"><a class="header" href="#drawbacks-6">Drawbacks</a></h3>
+<h3 id="예제-7"><a class="header" href="#예제-7">예제</a></h3>
 <pre><code class="language-toml">[package]
 name = "foo"
 homepage = "https://github.com/rust-lang/cargo/"
@@ -8572,14 +8546,14 @@ repository = "https://github.com/rust-lang/cargo/"
 <li>Level: <code>warn</code></li>
 <li>Minimal <a href="#rust-버전"><code>package.rust-version</code></a>: <code>1.79.0</code></li>
 </ul>
-<h3 id="동작-방식-9"><a class="header" href="#동작-방식-9">동작 방식</a></h3>
+<h3 id="동작-방식-8"><a class="header" href="#동작-방식-8">동작 방식</a></h3>
 <p>Checks for <code>package.readme</code> fields that can be inferred.</p>
 <p>See also <a href="#the-readme-field"><code>package.readme</code> reference documentation</a>.</p>
-<h3 id="why-is-this-bad-5"><a class="header" href="#why-is-this-bad-5">Why is this bad?</a></h3>
+<h3 id="why-is-this-bad-4"><a class="header" href="#why-is-this-bad-4">Why is this bad?</a></h3>
 <p>Adds boilerplate.</p>
-<h3 id="drawbacks-8"><a class="header" href="#drawbacks-8">Drawbacks</a></h3>
+<h3 id="drawbacks-7"><a class="header" href="#drawbacks-7">Drawbacks</a></h3>
 <p>It might not be obvious if they named their file correctly.</p>
-<h3 id="예제-9"><a class="header" href="#예제-9">예제</a></h3>
+<h3 id="예제-8"><a class="header" href="#예제-8">예제</a></h3>
 <pre><code class="language-toml">[package]
 name = "foo"
 readme = "README.md"
@@ -8594,9 +8568,9 @@ name = "foo"
 <li>Level: <code>deny</code></li>
 <li>Minimal <a href="#rust-버전"><code>package.rust-version</code></a>: <code>1.79.0</code></li>
 </ul>
-<h3 id="동작-방식-10"><a class="header" href="#동작-방식-10">동작 방식</a></h3>
+<h3 id="동작-방식-9"><a class="header" href="#동작-방식-9">동작 방식</a></h3>
 <p>Detects Unicode codepoints in manifest comments that change the visual representation of text on screen in a way that does not correspond to their on memory representation.</p>
-<h3 id="why-is-this-bad-6"><a class="header" href="#why-is-this-bad-6">Why is this bad?</a></h3>
+<h3 id="why-is-this-bad-5"><a class="header" href="#why-is-this-bad-5">Why is this bad?</a></h3>
 <p>Unicode allows changing the visual flow of text on screen in order to support scripts that are written right-to-left, but a specially crafted comment can make code that will be compiled appear to be part of a comment, depending on the software used to read the code. To avoid potential problems or confusion, such as in CVE-2021-42574, by default we deny their use.</p>
 <h2 id="text_direction_codepoint_in_literal"><a class="header" href="#text_direction_codepoint_in_literal"><code>text_direction_codepoint_in_literal</code></a></h2>
 <ul>
@@ -8604,9 +8578,9 @@ name = "foo"
 <li>Level: <code>deny</code></li>
 <li>Minimal <a href="#rust-버전"><code>package.rust-version</code></a>: <code>1.79.0</code></li>
 </ul>
-<h3 id="동작-방식-11"><a class="header" href="#동작-방식-11">동작 방식</a></h3>
+<h3 id="동작-방식-10"><a class="header" href="#동작-방식-10">동작 방식</a></h3>
 <p>Detects Unicode codepoints in literals in manifests that change the visual representation of text on screen in a way that does not correspond to their on memory representation.</p>
-<h3 id="why-is-this-bad-7"><a class="header" href="#why-is-this-bad-7">Why is this bad?</a></h3>
+<h3 id="why-is-this-bad-6"><a class="header" href="#why-is-this-bad-6">Why is this bad?</a></h3>
 <p>Unicode allows changing the visual flow of text on screen in order to support scripts that are written right-to-left, but a specially crafted literal can make code that will be compiled appear to be part of a literal, depending on the software used to read the code. To avoid potential problems or confusion, such as in CVE-2021-42574, by default we deny their use.</p>
 <h2 id="unknown_lints"><a class="header" href="#unknown_lints"><code>unknown_lints</code></a></h2>
 <ul>
@@ -8614,14 +8588,14 @@ name = "foo"
 <li>Level: <code>warn</code></li>
 <li>Minimal <a href="#rust-버전"><code>package.rust-version</code></a>: <code>1.79.0</code></li>
 </ul>
-<h3 id="동작-방식-12"><a class="header" href="#동작-방식-12">동작 방식</a></h3>
+<h3 id="동작-방식-11"><a class="header" href="#동작-방식-11">동작 방식</a></h3>
 <p><code>[lints.cargo]</code> 테이블에서 알 수 없는 린트를 확인합니다</p>
-<h3 id="why-is-this-bad-8"><a class="header" href="#why-is-this-bad-8">Why is this bad?</a></h3>
+<h3 id="why-is-this-bad-7"><a class="header" href="#why-is-this-bad-7">Why is this bad?</a></h3>
 <ul>
 <li>린트 이름의 철자가 틀려서 예상대로 작동하지 않는 이유에 대한 혼란을 초래할 수 있습니다</li>
 <li><code>cargo</code> 가 나중에 같은 이름의 린트를 만들기로 결정하면 알 수 없는 린트가 오류를 일으킬 수 있습니다</li>
 </ul>
-<h3 id="예제-10"><a class="header" href="#예제-10">예제</a></h3>
+<h3 id="예제-9"><a class="header" href="#예제-9">예제</a></h3>
 <pre><code class="language-toml">[lints.cargo]
 this-lint-does-not-exist = "warn"
 </code></pre>
@@ -8631,11 +8605,11 @@ this-lint-does-not-exist = "warn"
 <li>Level: <code>warn</code></li>
 <li>Minimal <a href="#rust-버전"><code>package.rust-version</code></a>: <code>1.79.0</code></li>
 </ul>
-<h3 id="동작-방식-13"><a class="header" href="#동작-방식-13">동작 방식</a></h3>
+<h3 id="동작-방식-12"><a class="header" href="#동작-방식-12">동작 방식</a></h3>
 <p>Checks for dependencies that are not used by any of the cargo targets.</p>
-<h3 id="why-is-this-bad-9"><a class="header" href="#why-is-this-bad-9">Why is this bad?</a></h3>
+<h3 id="why-is-this-bad-8"><a class="header" href="#why-is-this-bad-8">Why is this bad?</a></h3>
 <p>Slows down compilation time.</p>
-<h3 id="drawbacks-9"><a class="header" href="#drawbacks-9">Drawbacks</a></h3>
+<h3 id="drawbacks-8"><a class="header" href="#drawbacks-8">Drawbacks</a></h3>
 <p>The lint is only emitted in specific circumstances as multiple cargo targets exist for the different dependencies tables and they must all be built to know if a dependency is unused. Currently, only the selected packages are checked and not all <code>path</code> dependencies like most lints. The cargo target selection flags, independent of which packages are selected, determine which dependencies tables are checked. As there is no way to select all cargo targets that use <code>[dev-dependencies]</code>, they are unchecked.</p>
 <p>예시:</p>
 <ul>
@@ -8646,7 +8620,7 @@ this-lint-does-not-exist = "warn"
 </ul>
 <p>There can be false positives when depending on a transitive dependency to activate a feature.</p>
 <p>For false positives from pinning the version of a transitive dependency in <code>Cargo.toml</code>, move the dependency to the <code>target."cfg(false)".dependencies</code> table.</p>
-<h3 id="예제-11"><a class="header" href="#예제-11">예제</a></h3>
+<h3 id="예제-10"><a class="header" href="#예제-10">예제</a></h3>
 <pre><code class="language-toml">[package]
 name = "foo"
 `git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
@@ -8663,11 +8637,11 @@ name = "foo"
 <li>Level: <code>warn</code></li>
 <li>Minimal <a href="#rust-버전"><code>package.rust-version</code></a>: <code>1.79.0</code></li>
 </ul>
-<h3 id="동작-방식-14"><a class="header" href="#동작-방식-14">동작 방식</a></h3>
+<h3 id="동작-방식-13"><a class="header" href="#동작-방식-13">동작 방식</a></h3>
 <p>Checks for any entry in <code>[workspace.dependencies]</code> that has not been inherited</p>
-<h3 id="why-is-this-bad-10"><a class="header" href="#why-is-this-bad-10">Why is this bad?</a></h3>
+<h3 id="why-is-this-bad-9"><a class="header" href="#why-is-this-bad-9">Why is this bad?</a></h3>
 <p>They can give the false impression that these dependencies are used</p>
-<h3 id="예제-12"><a class="header" href="#예제-12">예제</a></h3>
+<h3 id="예제-11"><a class="header" href="#예제-11">예제</a></h3>
 <pre><code class="language-toml">[workspace.dependencies]
 regex = "1"
 `git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
@@ -8679,11 +8653,11 @@ regex = "1"
 <li>Level: <code>warn</code></li>
 <li>Minimal <a href="#rust-버전"><code>package.rust-version</code></a>: <code>1.79.0</code></li>
 </ul>
-<h3 id="동작-방식-15"><a class="header" href="#동작-방식-15">동작 방식</a></h3>
+<h3 id="동작-방식-14"><a class="header" href="#동작-방식-14">동작 방식</a></h3>
 <p>Checks for any fields in <code>[workspace.package]</code> that has not been inherited</p>
-<h3 id="why-is-this-bad-11"><a class="header" href="#why-is-this-bad-11">Why is this bad?</a></h3>
+<h3 id="why-is-this-bad-10"><a class="header" href="#why-is-this-bad-10">Why is this bad?</a></h3>
 <p>They can give the false impression that these fields are used</p>
-<h3 id="예제-13"><a class="header" href="#예제-13">예제</a></h3>
+<h3 id="예제-12"><a class="header" href="#예제-12">예제</a></h3>
 <pre><code class="language-toml">[workspace.package]
 edition = "2024"
 `git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
@@ -10533,7 +10507,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <p><code>$CARGO_HOME/registry/</code><br>    이 디렉토리에는 레지스트리 인덱스의 캐시된 다운로드와 다운로드된 의존성들이 포함됩니다.</p>
 <p><code>$CARGO_HOME/git/</code><br>    이 디렉토리에는 Git 의존성의 캐시된 다운로드들이 포함됩니다.</p>
 <p><code>$CARGO_HOME</code> 디렉토리의 내부 구조는 아직 안정적이지 않으며 변경될 수 있음에 유의하십시오.</p>
-<h2 id="예제-14"><a class="header" href="#예제-14">예제</a></h2>
+<h2 id="예제-13"><a class="header" href="#예제-13">예제</a></h2>
 <ol>
 <li>
 <p>로컬 패키지와 그 모든 의존성을 빌드합니다:</p>
@@ -10740,7 +10714,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-15"><a class="header" href="#예제-15">예제</a></h2>
+<h2 id="예제-14"><a class="header" href="#예제-14">예제</a></h2>
 <ol>
 <li>
 <p>명령어에 대한 도움말 가져오기:</p>
@@ -10786,7 +10760,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="예제-16"><a class="header" href="#예제-16">예제</a></h2>
+<h2 id="예제-15"><a class="header" href="#예제-15">예제</a></h2>
 <ol>
 <li>
 <p>버전 표시:</p>
@@ -11342,7 +11316,7 @@ cargo bench --no-fail-fast
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-17"><a class="header" href="#예제-17">예제</a></h2>
+<h2 id="예제-16"><a class="header" href="#예제-16">예제</a></h2>
 <ol>
 <li>
 <p>현재 패키지의 모든 벤치마크를 빌드하고 실행합니다:</p>
@@ -11869,7 +11843,7 @@ produced during execution of this command</p>
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-18"><a class="header" href="#예제-18">예제</a></h2>
+<h2 id="예제-17"><a class="header" href="#예제-17">예제</a></h2>
 <ol>
 <li>
 <p>로컬 패키지와 그 모든 의존성을 빌드합니다:</p>
@@ -12389,7 +12363,7 @@ produced during execution of this command</p>
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-19"><a class="header" href="#예제-19">예제</a></h2>
+<h2 id="예제-18"><a class="header" href="#예제-18">예제</a></h2>
 <ol>
 <li>
 <p>로컬 패키지의 오류를 검사합니다:</p>
@@ -12670,7 +12644,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-20"><a class="header" href="#예제-20">예제</a></h2>
+<h2 id="예제-19"><a class="header" href="#예제-19">예제</a></h2>
 <ol>
 <li>
 <p>전체 타겟 디렉토리 제거:</p>
@@ -13162,7 +13136,7 @@ builds, even if the one run first fails.</p>
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-21"><a class="header" href="#예제-21">예제</a></h2>
+<h2 id="예제-20"><a class="header" href="#예제-20">예제</a></h2>
 <ol>
 <li>
 <p>로컬 패키지 문서 및 그 의존성을 빌드하고 <code>target/doc</code> 에 출력합니다.</p>
@@ -13182,7 +13156,6 @@ builds, even if the one run first fails.</p>
 <p><code>Cargo.lock</code> 파일을 사용할 수 있는 경우, 이 명령어는 모든 git 의존성 및/또는 레지스트리 의존성이 다운로드되어 로컬에서 사용할 수 있도록 보장합니다. <code>cargo fetch</code> 후에는 잠금 파일이 변경되지 않는 한 후속 Cargo 명령어를 오프라인으로 실행할 수 있습니다.</p>
 <p>잠금 파일을 사용할 수 없는 경우, 이 명령어는 의존성을 가져오기 전에 잠금 파일을 생성합니다.</p>
 <p><code>--target</code> 이 지정되지 않은 경우, 모든 타겟 의존성을 가져옵니다.</p>
-<p>인기 있는 크레이트를 다운로드하는 명령어를 추가하는 <a href="https://crates.io/crates/cargo-prefetch">cargo-prefetch</a> 플러그인도 참조하세요. <code>--offline</code> 플래그를 사용하여 네트워크 없이 Cargo를 사용할 계획이라면 유용할 수 있습니다.</p>
 <h2 id="옵션-8"><a class="header" href="#옵션-8">옵션</a></h2>
 <h3 id="fetch-옵션"><a class="header" href="#fetch-옵션">Fetch 옵션</a></h3>
 <dl>
@@ -13376,7 +13349,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-22"><a class="header" href="#예제-22">예제</a></h2>
+<h2 id="예제-21"><a class="header" href="#예제-21">예제</a></h2>
 <ol>
 <li>
 <p>모든 의존성 가져오기:</p>
@@ -13951,7 +13924,7 @@ builds, even if the one run first fails.</p>
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-23"><a class="header" href="#예제-23">예제</a></h2>
+<h2 id="예제-22"><a class="header" href="#예제-22">예제</a></h2>
 <ol>
 <li>
 <p>로컬 패키지에 컴파일러 제안 적용:</p>
@@ -14378,7 +14351,7 @@ builds, even if the one run first fails.</p>
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-24"><a class="header" href="#예제-24">예제</a></h2>
+<h2 id="예제-23"><a class="header" href="#예제-23">예제</a></h2>
 <ol>
 <li>
 <p>로컬 패키지를 빌드하고 메인 타겟을 실행합니다(바이너리가 하나만 있다고 가정):</p>
@@ -14900,7 +14873,7 @@ produced during execution of this command</p>
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-25"><a class="header" href="#예제-25">예제</a></h2>
+<h2 id="예제-24"><a class="header" href="#예제-24">예제</a></h2>
 <ol>
 <li>
 <p>패키지(의존성 제외)가 안전하지 않은 코드를 사용하는지 확인:</p>
@@ -15414,7 +15387,7 @@ and requires the <code>-Z unstable-options</code> flag to enable.</p>
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-26"><a class="header" href="#예제-26">예제</a></h2>
+<h2 id="예제-25"><a class="header" href="#예제-25">예제</a></h2>
 <ol>
 <li>
 <p>주어진 파일에서 포함된 사용자 정의 CSS로 문서 빌드:</p>
@@ -15980,7 +15953,7 @@ cargo test --tests --no-fail-fast
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-27"><a class="header" href="#예제-27">예제</a></h2>
+<h2 id="예제-26"><a class="header" href="#예제-26">예제</a></h2>
 <ol>
 <li>
 <p>현재 패키지의 모든 단위 및 통합 테스트 실행:</p>
@@ -16384,7 +16357,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-28"><a class="header" href="#예제-28">예제</a></h2>
+<h2 id="예제-27"><a class="header" href="#예제-27">예제</a></h2>
 <ol>
 <li>
 <p><code>regex</code> 를 의존성으로 추가</p>
@@ -16614,7 +16587,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-29"><a class="header" href="#예제-29">예제</a></h2>
+<h2 id="예제-28"><a class="header" href="#예제-28">예제</a></h2>
 <ol>
 <li>
 <p>현재 패키지 또는 워크스페이스에 대한 잠금 파일 생성 또는 업데이트:</p>
@@ -16822,7 +16795,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-30"><a class="header" href="#예제-30">예제</a></h2>
+<h2 id="예제-29"><a class="header" href="#예제-29">예제</a></h2>
 <ol>
 <li>
 <p>crates.io에서 <code>serde</code> 패키지 검사:</p>
@@ -16998,7 +16971,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-31"><a class="header" href="#예제-31">예제</a></h2>
+<h2 id="예제-30"><a class="header" href="#예제-30">예제</a></h2>
 <ol>
 <li>
 <p>현재 디렉토리를 기준으로 매니페스트 경로 표시:</p>
@@ -17554,7 +17527,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-32"><a class="header" href="#예제-32">예제</a></h2>
+<h2 id="예제-31"><a class="header" href="#예제-31">예제</a></h2>
 <ol>
 <li>
 <p>현재 패키지에 대한 JSON 출력:</p>
@@ -17770,7 +17743,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-33"><a class="header" href="#예제-33">예제</a></h2>
+<h2 id="예제-32"><a class="header" href="#예제-32">예제</a></h2>
 <ol>
 <li>
 <p><code>foo</code> 패키지의 패키지 지정자 가져오기:</p>
@@ -18020,7 +17993,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-34"><a class="header" href="#예제-34">예제</a></h2>
+<h2 id="예제-33"><a class="header" href="#예제-33">예제</a></h2>
 <ol>
 <li>
 <p>의존성에서 <code>regex</code> 제거:</p>
@@ -18473,7 +18446,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-35"><a class="header" href="#예제-35">예제</a></h2>
+<h2 id="예제-34"><a class="header" href="#예제-34">예제</a></h2>
 <ol>
 <li>
 <p>현재 디렉토리 패키지의 트리를 표시합니다:</p>
@@ -18799,7 +18772,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-36"><a class="header" href="#예제-36">예제</a></h2>
+<h2 id="예제-35"><a class="header" href="#예제-35">예제</a></h2>
 <ol>
 <li>
 <p>잠금 파일의 모든 의존성 업데이트:</p>
@@ -19036,7 +19009,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-37"><a class="header" href="#예제-37">예제</a></h2>
+<h2 id="예제-36"><a class="header" href="#예제-36">예제</a></h2>
 <ol>
 <li>
 <p>모든 의존성을 로컬 “vendor” 폴더로 벤더링합니다</p>
@@ -19249,7 +19222,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-38"><a class="header" href="#예제-38">예제</a></h2>
+<h2 id="예제-37"><a class="header" href="#예제-37">예제</a></h2>
 <ol>
 <li>
 <p>현재 디렉토리에 바이너리 Cargo 패키지 생성:</p>
@@ -19771,7 +19744,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-39"><a class="header" href="#예제-39">예제</a></h2>
+<h2 id="예제-38"><a class="header" href="#예제-38">예제</a></h2>
 <ol>
 <li>
 <p>crates.io에서 패키지를 설치하거나 업그레이드합니다:</p>
@@ -19968,7 +19941,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-40"><a class="header" href="#예제-40">예제</a></h2>
+<h2 id="예제-39"><a class="header" href="#예제-39">예제</a></h2>
 <ol>
 <li>
 <p>지정된 디렉토리에 바이너리 Cargo 패키지 생성:</p>
@@ -20124,7 +20097,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-41"><a class="header" href="#예제-41">예제</a></h2>
+<h2 id="예제-40"><a class="header" href="#예제-40">예제</a></h2>
 <ol>
 <li>
 <p>crates.io에서 패키지 검색:</p>
@@ -20288,7 +20261,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-42"><a class="header" href="#예제-42">예제</a></h2>
+<h2 id="예제-41"><a class="header" href="#예제-41">예제</a></h2>
 <ol>
 <li>
 <p>이전에 설치된 패키지를 제거합니다.</p>
@@ -20446,7 +20419,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-43"><a class="header" href="#예제-43">예제</a></h2>
+<h2 id="예제-42"><a class="header" href="#예제-42">예제</a></h2>
 <ol>
 <li>
 <p>기본 레지스트리의 토큰 저장:</p>
@@ -20597,7 +20570,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-44"><a class="header" href="#예제-44">예제</a></h2>
+<h2 id="예제-43"><a class="header" href="#예제-43">예제</a></h2>
 <ol>
 <li>
 <p>기본 레지스트리 토큰 제거:</p>
@@ -20796,7 +20769,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-45"><a class="header" href="#예제-45">예제</a></h2>
+<h2 id="예제-44"><a class="header" href="#예제-44">예제</a></h2>
 <ol>
 <li>
 <p>패키지 소유자 목록 보기:</p>
@@ -21287,7 +21260,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-46"><a class="header" href="#예제-46">예제</a></h2>
+<h2 id="예제-45"><a class="header" href="#예제-45">예제</a></h2>
 <ol>
 <li>
 <p>현재 패키지의 압축된 <code>.crate</code> 파일 생성:</p>
@@ -21674,7 +21647,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-47"><a class="header" href="#예제-47">예제</a></h2>
+<h2 id="예제-46"><a class="header" href="#예제-46">예제</a></h2>
 <ol>
 <li>
 <p>현재 패키지를 게시합니다:</p>
@@ -21878,7 +21851,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-48"><a class="header" href="#예제-48">예제</a></h2>
+<h2 id="예제-47"><a class="header" href="#예제-47">예제</a></h2>
 <ol>
 <li>
 <p>인덱스에서 크레이트를 제거(yank)합니다:</p>
@@ -22060,7 +22033,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-49"><a class="header" href="#예제-49">예제</a></h2>
+<h2 id="예제-48"><a class="header" href="#예제-48">예제</a></h2>
 <ol>
 <li>
 <p>Display the available kinds of reports:</p>
@@ -22263,7 +22236,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <li><code>0</code>: Cargo가 성공했습니다.</li>
 <li><code>101</code>: Cargo가 완료하지 못했습니다.</li>
 </ul>
-<h2 id="예제-50"><a class="header" href="#예제-50">예제</a></h2>
+<h2 id="예제-49"><a class="header" href="#예제-49">예제</a></h2>
 <ol>
 <li>
 <p>최신 미래 비호환성 보고서 표시:</p>
