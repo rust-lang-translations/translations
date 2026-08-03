@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Le partage d&#x27;état en concurrence - The Rust Programming Language</title>
+        <title>Partage d&#x27;état en concurrence - The Rust Programming Language</title>
 
 
         <!-- Custom HTML head -->
@@ -96,10 +96,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b63ae99a.js";
+            window.path_to_searchindex_js = "searchindex-6439120d.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-1a54300e.js"></script>
+        <script src="toc-f9eeb798.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -238,7 +238,7 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h2 id="le-partage-détat-en-concurrence"><a class="header" href="#le-partage-détat-en-concurrence">Le partage d’état en concurrence</a></h2>
+                        <h2 id="partage-détat-en-concurrence"><a class="header" href="#partage-détat-en-concurrence">Partage d’état en concurrence</a></h2>
 <p>L’envoi de messages est un assez bon moyen de gestion de la concurrence, mais ce n’est pas le seul. Une autre méthode serait, pour plusieurs tâches, d’accéder aux mêmes données partagées. Repensons à cette partie du slogan de la documentation du langage Go : “ne communiquez pas en partageant la mémoire”.</p>
 <p>À quoi ressemble la communication par partage de mémoire ? De plus, pourquoi les partisans de l’envoi de messages déconseillent-ils le partage de mémoire ?</p>
 <p>De manière générale, les canaux dans les langages de programmation ressemblent à la possession exclusive, car une fois que vous avez transféré une valeur dans un canal, vous ne pouvez plus utiliser cette valeur. Le partage de mémoire en concurrence est comme de la possession multiple : plusieurs tâches peuvent accéder au même endroit de la mémoire en même temps. Comme vous l’avez vu au chapitre 15, dans lequel les pointeurs intelligents la rendent possible, la possession multiple peut ajouter de la complexité car ses différents propriétaires ont besoin d’être gérés. Le système de type de Rust et les règles de possession aident beaucoup à les gérer correctement. Par exemple, découvrons les mutex, une des primitives les plus courantes pour partager la mémoire.</p>
@@ -392,7 +392,7 @@ error: could not compile `shared-state` (bin "shared-state") due to 1 previous e
 <p>Ouah, ce message d’erreur est très verbeux ! Voici la partie la plus importante sur laquelle se concentrer : <code>`Rc&lt;Mutex&lt;i32&gt;&gt;` cannot be sent between threads safely</code>. Le compilateur nous indique aussi pour quelle raison : <code>the trait `Send` is not implemented for `Rc&lt;Mutex&lt;i32&gt;&gt;` </code>. Nous allons voir <code>Send</code> dans la prochaine section : c’est l’un des traits qui garantissent que le type que nous utilisons avec les tâches est prévu pour être utilisé dans des situations de concurrence.</p>
 <p>Malheureusement, l’utilisation de <code>Rc&lt;T&gt;</code> n’est pas sûre lorsqu’il est partagé entre plusieurs tâches. Lorsque <code>Rc&lt;T&gt;</code> gère le compteur de références, il incrémente le compteur autant de fois que nous avons fait appel à <code>clone</code> et décrémente le compteur à chaque fois qu’un clone est libéré. Mais il n’utilise pas de primitives de concurrence pour s’assurer que les changements faits au compteur ne peuvent pas être interrompus par une autre tâche. Cela pourrait provoquer des bogues subtils induisant une mauvaise gestion du compteur, ce qui pourrait provoquer des fuites de mémoire ou faire qu’une valeur soit libérée avant que nous ayions fini de l’utiliser. Nous avons besoin d’un type exactement comme <code>Rc&lt;T&gt;</code> mais qui procède aux changements du compteur de références de manière sûre en situation de concurrence.</p>
 <h4 id="compteur-de-référence-atomique-avec-arct"><a class="header" href="#compteur-de-référence-atomique-avec-arct">Compteur de référence atomique avec <code>Arc&lt;T&gt;</code></a></h4>
-<p>Heureusement, <code>Arc&lt;T&gt;</code> <em>est</em> un type comme <code>Rc&lt;T&gt;</code> qui est sûr en situation de concurrence. Le <em>A</em> signifie <em>atomique</em>, ce qui signifie que c’est un type <em>compteur de références atomique</em>. L’atome est une sorte de primitive concurrente que nous n’allons pas aborder en détail ici : rendez-vous dans la documentation de la bibliothèque standard sur <a href="../std/sync/atomic/index.html"><code>std::sync::atomic</code></a><!-- ignore --> pour en savoir plus. Pour le moment, vous avez juste besoin de retenir que les atomes fonctionnent comme les types primitifs mais qui sont sûrs à partager entre plusieurs tâches.</p>
+<p>Heureusement, <code>Arc&lt;T&gt;</code> <em>est</em> un type comme <code>Rc&lt;T&gt;</code> qui est sûr en situation de concurrence. Le <em>A</em> signifie <em>atomique</em>, ce qui signifie que c’est un type <em>compteur de références atomique</em>. L’atome est une sorte de primitive concurrente que nous n’allons pas aborder en détail ici : rendez-vous dans la documentation de la bibliothèque standard sur <a href="https://doc.rust-lang.org/stable/std/sync/atomic/index.html"><code>std::sync::atomic</code></a><!-- ignore --> pour en savoir plus. Pour le moment, vous avez juste besoin de retenir que les atomes fonctionnent comme les types primitifs mais qui sont sûrs à partager entre plusieurs tâches.</p>
 <p>Vous vous demandez pourquoi tous les types primitifs ne sont pas atomiques et pourquoi les types de la bibliothèque standard ne sont pas implémentés en utilisant <code>Arc&lt;T&gt;</code> par défaut. La raison à cela est que la sécurité entre les tâches a un coût sur les performances que vous n’êtes prêt à payer que lorsque vous en avez besoin. Si vous procédez à des opérations sur des valeurs uniquement dans une seule tâche, votre code va s’exécuter plus vite car il n’a pas besoin d’appliquer les garanties fournies par les types atomiques.</p>
 <p>Retournons à notre exemple : <code>Arc&lt;T&gt;</code> et <code>Rc&lt;T&gt;</code> ont la même API, donc corrigeons notre programme en changeant la ligne <code>use</code>, l’appel à <code>new</code> et l’appel à <code>clone</code>. Le code dans l’encart 16-15 va finalement se compiler et s’exécuter.</p>
 <figure class="listing" id="listing-16-15">
@@ -429,7 +429,7 @@ changes in the compiler -->
 <pre><code class="language-text">Result: 10
 </code></pre>
 <p>Nous y sommes arrivés ! Nous avons compté de 0 à 10, ce qui ne semble pas très impressionnant, mais cela nous a appris beaucoup sur <code>Mutex&lt;T&gt;</code> et la sûreté des tâches. Vous pouvez aussi utiliser cette structure de programme pour procéder à des opérations plus complexes que simplement incrémenter un compteur. En utilisant cette stratégie, vous pouvez diviser un calcul en différentes parties, répartir ces parties sur des tâches, et ensuite utiliser un <code>Mutex&lt;T&gt;</code> pour faire en sorte que chaque tâche mette à jour le résultat final avec sa propre partie.</p>
-<p>Notez que si vous faites de simples opérations numériques, il existe des types plus simples que les types <code>Mutex&lt;T&gt;</code> fournis par le module <a href="../std/sync/atomic/index.html"><code>std::sync::atomic</code> de la bibliothèque standard</a><!-- ignore -->. Ces types offrent un accès atomique, concurrent et sécurisé aux types primitifs. Nous avons choisi d’utiliser <code>Mutex&lt;T&gt;</code> avec un type primitif pour cet exemple afin de pouvoir nous concentrer sur le fonctionnement de <code>Mutex&lt;T&gt;</code>.</p>
+<p>Notez que si vous faites de simples opérations numériques, il existe des types plus simples que les types <code>Mutex&lt;T&gt;</code> fournis par le module <a href="https://doc.rust-lang.org/stable/std/sync/atomic/index.html"><code>std::sync::atomic</code> de la bibliothèque standard</a><!-- ignore -->. Ces types offrent un accès atomique, concurrent et sécurisé aux types primitifs. Nous avons choisi d’utiliser <code>Mutex&lt;T&gt;</code> avec un type primitif pour cet exemple afin de pouvoir nous concentrer sur le fonctionnement de <code>Mutex&lt;T&gt;</code>.</p>
 <!-- Old headings. Do not remove or links may break. -->
 <p><a id="similarities-between-refcelltrct-and-mutextarct"></a></p>
 <h3 id="comparaison-de-refcelltrct-et-mutextarct"><a class="header" href="#comparaison-de-refcelltrct-et-mutextarct">Comparaison de <code>RefCell&lt;T&gt;</code>/<code>Rc&lt;T&gt;</code> et <code>Mutex&lt;T&gt;</code>/<code>Arc&lt;T&gt;</code></a></h3>
