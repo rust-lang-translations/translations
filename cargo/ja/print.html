@@ -98,7 +98,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-77fc0e70.js";
+            window.path_to_searchindex_js = "searchindex-8b75d2f7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-eaea3cac.js"></script>
@@ -1982,6 +1982,7 @@ documentation.workspace = true
 <ul>
 <li>Dependencies from this table cannot be declared as <code>optional</code></li>
 <li><a href="#features-1"><code>features</code></a> declared in this table are additive with the <code>features</code> from <code>[dependencies]</code></li>
+<li><code>default-features</code> declared on a package dependency overrides the value set here in Edition 2024 packages (requires Rust 1.99+). Before Rust 1.99, or in earlier editions, package-level <code>default-features = false</code> may be ignored or rejected unless the workspace dependency also disables default features.</li>
 </ul>
 <p>You can then <a href="#inheriting-a-dependency-from-a-workspace">inherit the workspace dependency as a package dependency</a></p>
 <p>Example:</p>
@@ -1993,14 +1994,17 @@ members = ["bar"]
 cc = "1.0.73"
 rand = "0.8.5"
 regex = { version = "1.6.0", default-features = false, features = ["std"] }
+serde = { version = "1.0.190", default-features = true }
 </code></pre>
 <pre><code class="language-toml"># [PROJECT_DIR]/bar/Cargo.toml
 [package]
 name = "bar"
 version = "0.2.0"
+edition = "2024"
 
 [dependencies]
 regex = { workspace = true, features = ["unicode"] }
+serde = { workspace = true, default-features = false }
 
 [build-dependencies]
 cc.workspace = true
@@ -2343,17 +2347,20 @@ log-debug = ['bar/log-debug'] # using 'foo/log-debug' would be an error!
 <p>Dependencies can be inherited from a workspace by specifying the dependency in the workspace’s <a href="#the-dependencies-table"><code>[workspace.dependencies]</code></a> table. After that, add it to the <code>[dependencies]</code> table with <code>workspace = true</code>.</p>
 <p>Along with the <code>workspace</code> key, dependencies can also include these keys:</p>
 <ul>
-<li><a href="#optional-dependencies"><code>optional</code></a>: Note that the<code>[workspace.dependencies]</code> table is not allowed to specify <code>optional</code>.</li>
+<li><a href="#optional-dependencies"><code>optional</code></a>: Note that the <code>[workspace.dependencies]</code> table is not allowed to specify <code>optional</code>.</li>
 <li><a href="#features-1"><code>features</code></a>: These are additive with the features declared in the <code>[workspace.dependencies]</code></li>
+<li><a href="#dependency-features"><code>default-features</code></a> (Edition 2024 packages, requires Rust 1.99+): Overrides the value set in <code>[workspace.dependencies]</code>. If neither the package nor the workspace specifies <code>default-features</code>, it defaults to <code>true</code>. Before Rust 1.99, or in earlier editions, package-level <code>default-features = false</code> may be ignored or rejected unless the workspace dependency also disables default features.</li>
 </ul>
-<p>Other than <code>optional</code> and <code>features</code>, inherited dependencies cannot use any other dependency key (such as <code>version</code> or <code>default-features</code>).</p>
+<p>Other than <code>optional</code>, <code>features</code>, and <code>default-features</code>, inherited dependencies cannot use any other dependency key (such as <code>version</code>).</p>
 <p>Dependencies in the <code>[dependencies]</code>, <code>[dev-dependencies]</code>, <code>[build-dependencies]</code>, and <code>[target."...".dependencies]</code> sections support the ability to reference the <code>[workspace.dependencies]</code> definition of dependencies.</p>
 <pre><code class="language-toml">[package]
 name = "bar"
 version = "0.2.0"
+edition = "2024"
 
 [dependencies]
 regex = { workspace = true, features = ["unicode"] }
+serde = { workspace = true, default-features = false }
 
 [build-dependencies]
 cc.workspace = true
@@ -3315,7 +3322,7 @@ strip = "debuginfo"
 <p>The <code>rpath</code> setting controls the <a href="../rustc/codegen-options/index.html#rpath"><code>-C rpath</code> flag</a> which controls whether or not <a href="https://en.wikipedia.org/wiki/Rpath"><code>rpath</code></a> is enabled.</p>
 <h2 id="default-profiles"><a class="header" href="#default-profiles">Default profiles</a></h2>
 <h3 id="dev"><a class="header" href="#dev">dev</a></h3>
-<p>The <code>dev</code> profile is used for normal development and debugging. It is the default for build commands like <a href="#cargo-build1"><code>cargo build</code></a>, and is used for <code>cargo install --debug</code>.</p>
+<p>The <code>dev</code> profile is used for normal development. It is the default for build commands like <a href="#cargo-build1"><code>cargo build</code></a>, and is used for <code>cargo install --profile dev</code>.</p>
 <p>The default settings for the <code>dev</code> profile are:</p>
 <pre><code class="language-toml">[profile.dev]
 opt-level = 0
@@ -3329,6 +3336,12 @@ panic = 'unwind'
 incremental = true
 codegen-units = 256
 rpath = false
+</code></pre>
+<h3 id="debug-1"><a class="header" href="#debug-1">debug</a></h3>
+<p>The <code>debug</code> profile is used for creating binaries to run with a debugger. It is used with <code>cargo build --profile debug</code> and <code>cargo install --debug</code>.</p>
+<p>The default settings for the <code>debug</code> profile are:</p>
+<pre><code class="language-toml">[profile.debug]
+inherits = "dev"
 </code></pre>
 <h3 id="release"><a class="header" href="#release">release</a></h3>
 <p>The <code>release</code> profile is intended for optimized artifacts used for releases and in production. This profile is used when the <code>--release</code> flag is used, and is the default for <a href="#cargo-install1"><code>cargo install</code></a>.</p>
@@ -8380,7 +8393,13 @@ frequency = "always"
 <p>The last table lists the total time and “codegen” time spent on each unit, as well as the features that were enabled during each unit’s compilation.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="lints"><a class="header" href="#lints">Lints</a></h1>
-<p>Note: <a href="#lintscargo">Cargo’s linting system is unstable</a> and can only be used on nightly toolchains</p>
+<blockquote>
+<p>[!NOTE] This chapter is about lints emitted by <code>cargo</code> itself.</p>
+<p>See <a href="#the-lints-section">the lints section in the Manifest Format chapter</a> to configure lint levels for tools such as <code>rustc</code> or <code>clippy</code>.</p>
+</blockquote>
+<blockquote>
+<p>[!WARNING] <a href="#lintscargo">Cargo’s linting system is unstable</a> and can only be used on nightly toolchains.</p>
+</blockquote>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -8389,11 +8408,8 @@ frequency = "always"
 <tbody>
 <tr><td><code>cargo::default</code></td><td>all lints that are on by default (correctness, suspicious, style, complexity, perf)</td><td>warn/deny</td></tr>
 <tr><td><code>cargo::correctness</code></td><td>code that is outright wrong or useless</td><td>deny</td></tr>
-<tr><td><code>cargo::complexity</code></td><td>code that does something simple but in a complex way</td><td>warn</td></tr>
-<tr><td><code>cargo::perf</code></td><td>code that can be written to run faster</td><td>warn</td></tr>
 <tr><td><code>cargo::style</code></td><td>code that should be written in a more idiomatic way</td><td>warn</td></tr>
 <tr><td><code>cargo::suspicious</code></td><td>code that is most likely wrong or useless</td><td>warn</td></tr>
-<tr><td><code>cargo::nursery</code></td><td>new lints that are still under development</td><td>allow</td></tr>
 <tr><td><code>cargo::pedantic</code></td><td>lints which are rather strict or have occasional false positives</td><td>allow</td></tr>
 <tr><td><code>cargo::restriction</code></td><td>lints which prevent the use of Cargo features</td><td>allow</td></tr>
 </tbody>
@@ -8411,10 +8427,10 @@ frequency = "always"
 <p>These lints are all set to the ‘warn’ level by default.</p>
 <ul>
 <li><a href="#blanket_hint_mostly_unused"><code>blanket_hint_mostly_unused</code></a></li>
+<li><a href="#manual_readme"><code>manual_readme</code></a></li>
 <li><a href="#missing_lints_inheritance"><code>missing_lints_inheritance</code></a></li>
 <li><a href="#non_kebab_case_bins"><code>non_kebab_case_bins</code></a></li>
 <li><a href="#redundant_homepage"><code>redundant_homepage</code></a></li>
-<li><a href="#redundant_readme"><code>redundant_readme</code></a></li>
 <li><a href="#unknown_lints"><code>unknown_lints</code></a></li>
 <li><a href="#unused_dependencies"><code>unused_dependencies</code></a></li>
 <li><a href="#unused_workspace_dependencies"><code>unused_workspace_dependencies</code></a></li>
@@ -8444,18 +8460,40 @@ hint-mostly-unused = true
 <pre><code class="language-toml">[profile.dev.package.huge-mostly-unused-dependency]
 hint-mostly-unused = true
 </code></pre>
+<h2 id="manual_readme"><a class="header" href="#manual_readme"><code>manual_readme</code></a></h2>
+<ul>
+<li>Group: <code>style</code></li>
+<li>Level: <code>warn</code></li>
+<li>Minimal <a href="#rust-version"><code>package.rust-version</code></a>: <code>1.79.0</code></li>
+</ul>
+<h3 id="what-it-does-1"><a class="header" href="#what-it-does-1">What it does</a></h3>
+<p>Checks for <code>package.readme</code> fields that can be inferred.</p>
+<p>See also <a href="#the-readme-field"><code>package.readme</code> reference documentation</a>.</p>
+<h3 id="why-is-this-bad-1"><a class="header" href="#why-is-this-bad-1">Why is this bad?</a></h3>
+<p>Adds boilerplate.</p>
+<h3 id="drawbacks"><a class="header" href="#drawbacks">Drawbacks</a></h3>
+<p>It might not be obvious if they named their file correctly.</p>
+<h3 id="example-1"><a class="header" href="#example-1">Example</a></h3>
+<pre><code class="language-toml">[package]
+name = "foo"
+readme = "README.md"
+</code></pre>
+<p>Should be written as:</p>
+<pre><code class="language-toml">[package]
+name = "foo"
+</code></pre>
 <h2 id="missing_lints_inheritance"><a class="header" href="#missing_lints_inheritance"><code>missing_lints_inheritance</code></a></h2>
 <ul>
 <li>Group: <code>suspicious</code></li>
 <li>Level: <code>warn</code></li>
 <li>Minimal <a href="#rust-version"><code>package.rust-version</code></a>: <code>1.79.0</code></li>
 </ul>
-<h3 id="what-it-does-1"><a class="header" href="#what-it-does-1">What it does</a></h3>
+<h3 id="what-it-does-2"><a class="header" href="#what-it-does-2">What it does</a></h3>
 <p>Checks for packages without a <code>lints</code> table while <code>workspace.lints</code> is present.</p>
-<h3 id="why-is-this-bad-1"><a class="header" href="#why-is-this-bad-1">Why is this bad?</a></h3>
+<h3 id="why-is-this-bad-2"><a class="header" href="#why-is-this-bad-2">Why is this bad?</a></h3>
 <p>Many people mistakenly think that <code>workspace.lints</code> is implicitly inherited when it is not.</p>
-<h3 id="drawbacks"><a class="header" href="#drawbacks">Drawbacks</a></h3>
-<h3 id="example-1"><a class="header" href="#example-1">Example</a></h3>
+<h3 id="drawbacks-1"><a class="header" href="#drawbacks-1">Drawbacks</a></h3>
+<h3 id="example-2"><a class="header" href="#example-2">Example</a></h3>
 <pre><code class="language-toml">[workspace.lints.cargo]
 </code></pre>
 <p>Should be written as:</p>
@@ -8475,15 +8513,15 @@ workspace = true
 <li>Level: <code>warn</code></li>
 <li>Minimal <a href="#rust-version"><code>package.rust-version</code></a>: <code>1.79.0</code></li>
 </ul>
-<h3 id="what-it-does-2"><a class="header" href="#what-it-does-2">What it does</a></h3>
+<h3 id="what-it-does-3"><a class="header" href="#what-it-does-3">What it does</a></h3>
 <p>Detect binary names, explicit and implicit, that are not kebab-case</p>
-<h3 id="why-is-this-bad-2"><a class="header" href="#why-is-this-bad-2">Why is this bad?</a></h3>
+<h3 id="why-is-this-bad-3"><a class="header" href="#why-is-this-bad-3">Why is this bad?</a></h3>
 <p>Kebab-case binary names is a common convention among command line tools.</p>
-<h3 id="drawbacks-1"><a class="header" href="#drawbacks-1">Drawbacks</a></h3>
+<h3 id="drawbacks-2"><a class="header" href="#drawbacks-2">Drawbacks</a></h3>
 <p>It would be disruptive to existing users to change the binary name.</p>
 <p>A binary may need to conform to externally controlled conventions which can include a different naming convention.</p>
 <p>GUI applications may wish to choose a more user focused naming convention, like “Title Case” or “Sentence case”.</p>
-<h3 id="example-2"><a class="header" href="#example-2">Example</a></h3>
+<h3 id="example-3"><a class="header" href="#example-3">Example</a></h3>
 <pre><code class="language-toml">[[bin]]
 name = "foo_bar"
 </code></pre>
@@ -8496,13 +8534,13 @@ name = "foo-bar"
 <li>Group: <code>restriction</code></li>
 <li>Level: <code>allow</code></li>
 </ul>
-<h3 id="what-it-does-3"><a class="header" href="#what-it-does-3">What it does</a></h3>
+<h3 id="what-it-does-4"><a class="header" href="#what-it-does-4">What it does</a></h3>
 <p>Detect feature names that are not kebab-case.</p>
 <h3 id="why-restrict-this"><a class="header" href="#why-restrict-this">Why restrict this?</a></h3>
 <p>Having multiple naming styles within a workspace can be confusing.</p>
-<h3 id="drawbacks-2"><a class="header" href="#drawbacks-2">Drawbacks</a></h3>
+<h3 id="drawbacks-3"><a class="header" href="#drawbacks-3">Drawbacks</a></h3>
 <p>Users would expect that a feature tightly coupled to a dependency would match the dependency’s name.</p>
-<h3 id="example-3"><a class="header" href="#example-3">Example</a></h3>
+<h3 id="example-4"><a class="header" href="#example-4">Example</a></h3>
 <pre><code class="language-toml">[features]
 foo_bar = []
 </code></pre>
@@ -8515,13 +8553,13 @@ foo-bar = []
 <li>Group: <code>restriction</code></li>
 <li>Level: <code>allow</code></li>
 </ul>
-<h3 id="what-it-does-4"><a class="header" href="#what-it-does-4">What it does</a></h3>
+<h3 id="what-it-does-5"><a class="header" href="#what-it-does-5">What it does</a></h3>
 <p>Detect package names that are not kebab-case.</p>
 <h3 id="why-restrict-this-1"><a class="header" href="#why-restrict-this-1">Why restrict this?</a></h3>
 <p>Having multiple naming styles within a workspace can be confusing.</p>
-<h3 id="drawbacks-3"><a class="header" href="#drawbacks-3">Drawbacks</a></h3>
+<h3 id="drawbacks-4"><a class="header" href="#drawbacks-4">Drawbacks</a></h3>
 <p>Users have to mentally translate package names to namespaces in Rust.</p>
-<h3 id="example-4"><a class="header" href="#example-4">Example</a></h3>
+<h3 id="example-5"><a class="header" href="#example-5">Example</a></h3>
 <pre><code class="language-toml">[package]
 name = "foo_bar"
 </code></pre>
@@ -8534,13 +8572,13 @@ name = "foo-bar"
 <li>Group: <code>restriction</code></li>
 <li>Level: <code>allow</code></li>
 </ul>
-<h3 id="what-it-does-5"><a class="header" href="#what-it-does-5">What it does</a></h3>
+<h3 id="what-it-does-6"><a class="header" href="#what-it-does-6">What it does</a></h3>
 <p>Detect feature names that are not snake-case.</p>
 <h3 id="why-restrict-this-2"><a class="header" href="#why-restrict-this-2">Why restrict this?</a></h3>
 <p>Having multiple naming styles within a workspace can be confusing.</p>
-<h3 id="drawbacks-4"><a class="header" href="#drawbacks-4">Drawbacks</a></h3>
+<h3 id="drawbacks-5"><a class="header" href="#drawbacks-5">Drawbacks</a></h3>
 <p>Users would expect that a feature tightly coupled to a dependency would match the dependency’s name.</p>
-<h3 id="example-5"><a class="header" href="#example-5">Example</a></h3>
+<h3 id="example-6"><a class="header" href="#example-6">Example</a></h3>
 <pre><code class="language-toml">[features]
 foo-bar = []
 </code></pre>
@@ -8553,13 +8591,13 @@ foo_bar = []
 <li>Group: <code>restriction</code></li>
 <li>Level: <code>allow</code></li>
 </ul>
-<h3 id="what-it-does-6"><a class="header" href="#what-it-does-6">What it does</a></h3>
+<h3 id="what-it-does-7"><a class="header" href="#what-it-does-7">What it does</a></h3>
 <p>Detect package names that are not snake-case.</p>
 <h3 id="why-restrict-this-3"><a class="header" href="#why-restrict-this-3">Why restrict this?</a></h3>
 <p>Having multiple naming styles within a workspace can be confusing.</p>
-<h3 id="drawbacks-5"><a class="header" href="#drawbacks-5">Drawbacks</a></h3>
+<h3 id="drawbacks-6"><a class="header" href="#drawbacks-6">Drawbacks</a></h3>
 <p>Users have to mentally translate package names to namespaces in Rust.</p>
-<h3 id="example-6"><a class="header" href="#example-6">Example</a></h3>
+<h3 id="example-7"><a class="header" href="#example-7">Example</a></h3>
 <pre><code class="language-toml">[package]
 name = "foo_bar"
 </code></pre>
@@ -8573,13 +8611,13 @@ name = "foo-bar"
 <li>Level: <code>warn</code></li>
 <li>Minimal <a href="#rust-version"><code>package.rust-version</code></a>: <code>1.79.0</code></li>
 </ul>
-<h3 id="what-it-does-7"><a class="header" href="#what-it-does-7">What it does</a></h3>
+<h3 id="what-it-does-8"><a class="header" href="#what-it-does-8">What it does</a></h3>
 <p>Checks if the value of <code>package.homepage</code> is already covered by another field.</p>
 <p>See also <a href="#the-homepage-field"><code>package.homepage</code> reference documentation</a>.</p>
-<h3 id="why-is-this-bad-3"><a class="header" href="#why-is-this-bad-3">Why is this bad?</a></h3>
+<h3 id="why-is-this-bad-4"><a class="header" href="#why-is-this-bad-4">Why is this bad?</a></h3>
 <p>When package browsers render each link, a redundant link adds visual noise.</p>
-<h3 id="drawbacks-6"><a class="header" href="#drawbacks-6">Drawbacks</a></h3>
-<h3 id="example-7"><a class="header" href="#example-7">Example</a></h3>
+<h3 id="drawbacks-7"><a class="header" href="#drawbacks-7">Drawbacks</a></h3>
+<h3 id="example-8"><a class="header" href="#example-8">Example</a></h3>
 <pre><code class="language-toml">[package]
 name = "foo"
 homepage = "https://github.com/rust-lang/cargo/"
@@ -8589,28 +8627,6 @@ repository = "https://github.com/rust-lang/cargo/"
 <pre><code class="language-toml">[package]
 name = "foo"
 repository = "https://github.com/rust-lang/cargo/"
-</code></pre>
-<h2 id="redundant_readme"><a class="header" href="#redundant_readme"><code>redundant_readme</code></a></h2>
-<ul>
-<li>Group: <code>style</code></li>
-<li>Level: <code>warn</code></li>
-<li>Minimal <a href="#rust-version"><code>package.rust-version</code></a>: <code>1.79.0</code></li>
-</ul>
-<h3 id="what-it-does-8"><a class="header" href="#what-it-does-8">What it does</a></h3>
-<p>Checks for <code>package.readme</code> fields that can be inferred.</p>
-<p>See also <a href="#the-readme-field"><code>package.readme</code> reference documentation</a>.</p>
-<h3 id="why-is-this-bad-4"><a class="header" href="#why-is-this-bad-4">Why is this bad?</a></h3>
-<p>Adds boilerplate.</p>
-<h3 id="drawbacks-7"><a class="header" href="#drawbacks-7">Drawbacks</a></h3>
-<p>It might not be obvious if they named their file correctly.</p>
-<h3 id="example-8"><a class="header" href="#example-8">Example</a></h3>
-<pre><code class="language-toml">[package]
-name = "foo"
-readme = "README.md"
-</code></pre>
-<p>Should be written as:</p>
-<pre><code class="language-toml">[package]
-name = "foo"
 </code></pre>
 <h2 id="text_direction_codepoint_in_comment"><a class="header" href="#text_direction_codepoint_in_comment"><code>text_direction_codepoint_in_comment</code></a></h2>
 <ul>
@@ -9786,12 +9802,34 @@ trim-paths = ["object", "diagnostics"]
 <p>The default <code>release</code> profile setting (<code>object</code>) sanitizes only the paths in emitted executable or library files. It always affects paths from macros such as panic messages, and in debug information only if they will be embedded together with the binary (the default on platforms with ELF binaries, such as Linux and windows-gnu), but will not touch them if they are in separate files (the default on Windows MSVC and macOS). But the paths to these separate files are sanitized.</p>
 <p>If <code>trim-paths</code> is not <code>none</code> or <code>false</code>, then the following paths are sanitized if they appear in a selected scope:</p>
 <ol>
-<li>Path to the source files of the standard and core library (sysroot) will begin with <code>/rustc/[rustc commit hash]</code>, e.g. <code>/home/username/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs</code> -&gt; <code>/rustc/fe72845f7bb6a77b9e671e6a4f32fe714962cec4/library/core/src/result.rs</code></li>
-<li>Path to the current package will be stripped, relatively to the current workspace root, e.g. <code>/home/username/crate/src/lib.rs</code> -&gt; <code>src/lib.rs</code>.</li>
-<li>Path to dependency packages will be replaced with <code>[package name]-[version]</code>. E.g. <code>/home/username/deps/foo/src/lib.rs</code> -&gt; <code>foo-0.1.0/src/lib.rs</code></li>
+<li>Path to the source files of the standard and core library (sysroot) will begin with <code>/rustc/&lt;rustc commit hash&gt;</code>, e.g. <code>/home/username/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs</code> -&gt; <code>/rustc/fe72845f7bb6a77b9e671e6a4f32fe714962cec4/library/core/src/result.rs</code></li>
+<li>Path to the current package will be stripped, relatively to the current workspace root, e.g. <code>/home/username/crate/src/lib.rs</code> -&gt; <code>src/lib.rs</code>. This also covers path dependencies located inside the workspace directory.</li>
+<li>Path to a registry dependency will begin with <code>/cargo/registry/&lt;registry id&gt;</code>, which replaces the registry’s extraction directory, e.g. <code>/home/username/.cargo/registry/src/index.crates.io-6f17d22d3f0a95d1/foo-0.1.0/src/lib.rs</code> -&gt; <code>/cargo/registry/6f17d22d3f0a95d1/foo-0.1.0/src/lib.rs</code>.</li>
+<li>Path to a git dependency will begin with <code>/cargo/git/&lt;git source id&gt;/&lt;revision&gt;</code>, which replaces the checkout directory. <code>&lt;revision&gt;</code> is a prefix of the resolved commit ID recorded in the lockfile.</li>
+<li>Path to a path dependency outside the workspace will be replaced with <code>/cargo/path/&lt;package name&gt;-&lt;package version&gt;</code>.</li>
+<li>Path into the build directory, for example <code>OUT_DIR</code> generated sources, will begin with <code>/cargo/build-dir</code>.</li>
 </ol>
+<p><code>&lt;registry id&gt;</code> and <code>&lt;git source id&gt;</code> are opaque stable hashes of the dependency’s source.</p>
+<p>Vendored copies of registry or git dependencies (via <a href="#source-replacement">source replacement</a>) are sanitized by their file location instead, like workspace paths when inside the workspace directory, otherwise like path dependencies.</p>
 <p>When a path to the source files of the standard and core library is <em>not</em> in scope for sanitization, the emitted path will depend on if <code>rust-src</code> component is present. If it is, then some paths will point to the copy of the source files on your file system; if it isn’t, then they will show up as <code>/rustc/[rustc commit hash]/library/...</code> (just like when it is selected for sanitization). Paths to all other source files will not be affected.</p>
 <p>This will not affect any hard-coded paths in the source code, such as in strings.</p>
+<h5 id="unremap-files"><a class="header" href="#unremap-files">Unremap files</a></h5>
+<p>When the <code>object</code> scope is active and debuginfo is enabled, Cargo writes an unremap file beside each final artifact. The file is aimed at helping debuggers substitute sanitized paths back to local ones, e.g., via GDB’s <code>set substitute-path</code> or LLDB’s <code>target.source-map</code>.</p>
+<p>The unremap file name ends with <code>.trim-paths.jsonl</code>. For example, your <code>my-app</code> executable would come with an unremap file named <code>my-app.trim-paths.jsonl</code> beside it.</p>
+<p>The unremap file is in JSONL format:</p>
+<ul>
+<li>The first record carries the format version.</li>
+<li>The second record is file-level metadata, such as the toolchain version and the workspace root.</li>
+<li>Each following record maps a sanitized path prefix in the artifact (<code>from</code>) back to the local path it replaced (<code>to</code>), ordered by the <code>from</code> prefix. Note that this follows the debugger substitution direction, which is the inverse of <code>--remap-path-prefix</code>.</li>
+</ul>
+<p>An example of the unremap file:</p>
+<pre><code class="language-json">{"v":1}
+{"rust_version":"1.96.0-nightly","workspace_root":"/home/me/app"}
+{"from":"/cargo/build-dir","to":"/home/me/app/target"}
+{"from":"/cargo/registry/6f17d22d3f0a95d1","to":"/home/me/.cargo/registry/src/index.crates.io-6f17d22d3f0a95d1"}
+{"from":"/rustc/abc123","to":"/home/me/.rustup/toolchains/nightly/lib/rustlib/src/rust"}
+</code></pre>
+<p>Since it is meant to be a debugging aid, it includes absolute paths of your system, so there is no artifact privacy guarantee. You might want to exclude <code>*.trim-paths.jsonl</code> files when distributing artifacts.</p>
 <h4 id="environment-variable"><a class="header" href="#environment-variable">Environment variable</a></h4>
 <p><em>as a new entry of <a href="#environment-variables-cargo-sets-for-crates">“Environment variables Cargo sets for build scripts”</a></em></p>
 <ul>
@@ -10870,7 +10908,7 @@ cargo -V
 <blockquote>
 <p><strong>Note</strong>: The <a href="https://doc.rust-lang.org/nightly/unstable-book/library-features/test.html"><code>#[bench]</code> attribute</a> is currently unstable and only available on the <a href="https://doc.rust-lang.org/book/appendix-07-nightly-rust.html">nightly channel</a>. There are some packages available on <a href="https://crates.io/keywords/benchmark">crates.io</a> that may help with running benchmarks on the stable channel, such as <a href="https://crates.io/crates/criterion">Criterion</a>.</p>
 </blockquote>
-<p>By default, <code>cargo bench</code> uses the <a href="#bench"><code>bench</code> profile</a>, which enables optimizations and disables debugging information. If you need to debug a benchmark, you can use the <code>--profile=dev</code> command-line option to switch to the dev profile. You can then run the debug-enabled benchmark within a debugger.</p>
+<p>By default, <code>cargo bench</code> uses the <a href="#bench"><code>bench</code> profile</a>, which enables optimizations and disables debugging information. If you need to debug a benchmark, you can use the <code>--profile=debug</code> command-line option to switch to the debug profile. You can then run the debug-enabled benchmark within a debugger.</p>
 <h3 id="working-directory-of-benchmarks"><a class="header" href="#working-directory-of-benchmarks">Working directory of benchmarks</a></h3>
 <p>The working directory of every benchmark is set to the root directory of the package the benchmark belongs to. Setting the working directory of benchmarks to the package’s root directory makes it possible for benchmarks to reliably access the package’s files using relative paths, regardless from where <code>cargo bench</code> was executed from.</p>
 <h2 id="options-3"><a class="header" href="#options-3">OPTIONS</a></h2>
@@ -15466,7 +15504,7 @@ and requires the <code>-Z unstable-options</code> flag to enable.</p>
 <p>Tests are built with the <code>--test</code> option to <code>rustc</code> which creates a special executable by linking your code with libtest. The executable automatically runs all functions annotated with the <code>#[test]</code> attribute in multiple threads. <code>#[bench]</code> annotated functions will also be run with one iteration to verify that they are functional.</p>
 <p>If the package contains multiple test targets, each target compiles to a special executable as aforementioned, and then is run serially.</p>
 <p>The libtest harness may be disabled by setting <code>harness = false</code> in the target manifest settings, in which case your code will need to provide its own <code>main</code> function to handle running tests.</p>
-<p>By default, <code>cargo test</code> uses the <a href="#test"><code>test</code> profile</a>, which enables debugging.</p>
+<p>By default, <code>cargo test</code> uses the <a href="#test"><code>test</code> profile</a>, which enables some optimizations and disables debugging information for fast feedback. If you need to debug a test, you can use the <code>--profile=debug</code> command-line option to switch to the debug profile. You can then run the debug-enabled test within a debugger.</p>
 <h3 id="documentation-tests"><a class="header" href="#documentation-tests">Documentation tests</a></h3>
 <p>Documentation tests are also run by default, which is handled by <code>rustdoc</code>. It extracts code samples from documentation comments of the library target, and then executes them.</p>
 <p>Different from normal test targets, each code block compiles to a doctest executable on the fly with <code>rustc</code>. These executables run in parallel in separate processes. The compilation of a code block is in fact a part of test function controlled by libtest, so some options such as <code>--jobs</code> might not take effect. Note that this execution model of doctests is not guaranteed and may change in the future; beware of depending on it.</p>
@@ -18611,10 +18649,10 @@ requirement in <code>Cargo.toml</code> doesn’t contain any pre-release identif
 
 </dd>
 
-<dt class="option-term" id="option-cargo-update---breaking"><a class="option-anchor" href="#option-cargo-update---breaking"><code>--breaking</code> <em>directory</em></a></dt>
+<dt class="option-term" id="option-cargo-update---breaking"><a class="option-anchor" href="#option-cargo-update---breaking"><code>--breaking</code></a></dt>
 
 <dd class="option-desc">
-<p>Update <em>spec</em> to latest SemVer-breaking version.</p>
+<p>Update <em>spec</em> to highest SemVer-breaking version.</p>
 
 <p>Version requirements will be modified to allow this update.</p>
 
@@ -19545,7 +19583,7 @@ is specified.</p>
 <dt class="option-term" id="option-cargo-install---debug"><a class="option-anchor" href="#option-cargo-install---debug"><code>--debug</code></a></dt>
 
 <dd class="option-desc">
-<p>Build with the <code>dev</code> profile instead of the <code>release</code> profile.
+<p>Build with the <code>debug</code> profile instead of the <code>release</code> profile.
 See also the <code>--profile</code> option for choosing a specific profile by name.</p>
 
 </dd>
@@ -22460,9 +22498,6 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <p><a href="https://github.com/rust-lang/cargo/compare/c25859fa...rust-1.98.0">c25859fa…rust-1.98.0</a></p>
 <h3 id="added-1"><a class="header" href="#added-1">Added</a></h3>
 <h3 id="changed-1"><a class="header" href="#changed-1">Changed</a></h3>
-<ul>
-<li>Forward <code>--verbose</code> flag to rustc for local crates <a href="https://github.com/rust-lang/cargo/pull/17006">#17006</a></li>
-</ul>
 <h3 id="fixed-1"><a class="header" href="#fixed-1">Fixed</a></h3>
 <ul>
 <li>Strip the trailing carriage return from tokens of <code>cargo:token-from-stdout</code> credential providers. This was a regression in 1.96 that caused a confusing “failed to parse header value” error on Windows. <a href="https://github.com/rust-lang/cargo/pull/17081">#17081</a></li>

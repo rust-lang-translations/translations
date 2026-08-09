@@ -98,7 +98,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a493a2b7.js";
+            window.path_to_searchindex_js = "searchindex-b11eb613.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6b0c3669.js"></script>
@@ -1982,10 +1982,11 @@ documentation.workspace = true
 <ul>
 <li>이 테이블의 의존성은 <code>optional</code> 로 선언될 수 없습니다.</li>
 <li>이 테이블에 선언된 <a href="#기능-1"><code>기능(features)</code></a> 은 <code>[dependencies]</code> 의 <code>features</code> 에 추가됩니다.</li>
+<li><code>default-features</code> declared on a package dependency overrides the value set here in Edition 2024 packages (requires Rust 1.99+). Before Rust 1.99, or in earlier editions, package-level <code>default-features = false</code> may be ignored or rejected unless the workspace dependency also disables default features.</li>
 </ul>
 <p>그런 다음 <a href="#inheriting-a-dependency-from-a-workspace">워크스페이스 의존성을 패키지 의존성으로 상속</a> 할 수 있습니다.</p>
 <p>예시:</p>
-<pre><code class="language-toml"># [프로젝트_디렉토리]/Cargo.toml
+<pre><code class="language-toml"># [PROJECT_DIR]/Cargo.toml
 [workspace]
 members = ["bar"]
 `git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
@@ -1993,14 +1994,17 @@ members = ["bar"]
 cc = "1.0.73"
 rand = "0.8.5"
 regex = { version = "1.6.0", default-features = false, features = ["std"] }
+serde = { version = "1.0.190", default-features = true }
 </code></pre>
-<pre><code class="language-toml"># [프로젝트_디렉토리]/bar/Cargo.toml
+<pre><code class="language-toml"># [PROJECT_DIR]/bar/Cargo.toml
 [package]
 name = "bar"
 version = "0.2.0"
+edition = "2024"
 `git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
 [dependencies]
 regex = { workspace = true, features = ["unicode"] }
+serde = { workspace = true, default-features = false }
 `git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
 [build-dependencies]
 cc.workspace = true
@@ -2343,17 +2347,20 @@ log-debug = ['bar/log-debug'] # using 'foo/log-debug' would be an error!
 <p>워크스페이스의 <a href="#the-dependencies-table"><code>[workspace.dependencies]</code></a> 테이블에 의존성을 지정하여 워크스페이스에서 의존성을 상속할 수 있습니다. 그 후, <code>[dependencies]</code> 테이블에 <code>workspace = true</code> 와 함께 추가하세요.</p>
 <p><code>workspace</code> 키와 더불어 의존성에는 다음 키들이 포함될 수 있습니다.</p>
 <ul>
-<li><a href="#optional-dependencies"><code>optional</code></a>: <code>[workspace.dependencies]</code> 테이블에서는 <code>optional</code> 을 지정할 수 없습니다.</li>
+<li><a href="#optional-dependencies"><code>optional</code></a>: Note that the <code>[workspace.dependencies]</code> table is not allowed to specify <code>optional</code>.</li>
 <li><a href="#기능-1"><code>기능(features)</code></a>: 이는 <code>[workspace.dependencies]</code> 에 선언된 기능에 추가됩니다.</li>
+<li><a href="#dependency-features"><code>default-features</code></a> (Edition 2024 packages, requires Rust 1.99+): Overrides the value set in <code>[workspace.dependencies]</code>. If neither the package nor the workspace specifies <code>default-features</code>, it defaults to <code>true</code>. Before Rust 1.99, or in earlier editions, package-level <code>default-features = false</code> may be ignored or rejected unless the workspace dependency also disables default features.</li>
 </ul>
-<p><code>optional</code> 및 <code>features</code> 외에 상속된 의존성은 다른 의존성 키(<code>version</code> 또는 <code>default-features</code> 등)를 사용할 수 없습니다.</p>
+<p>Other than <code>optional</code>, <code>features</code>, and <code>default-features</code>, inherited dependencies cannot use any other dependency key (such as <code>version</code>).</p>
 <p><code>[dependencies]</code>, <code>[dev-dependencies]</code>, <code>[build-dependencies]</code>, <code>[target."...".dependencies]</code> 섹션의 의존성은 의존성의 <code>[workspace.dependencies]</code> 정의를 참조하는 기능을 지원합니다.</p>
 <pre><code class="language-toml">[package]
 name = "bar"
 version = "0.2.0"
+edition = "2024"
 `git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
 [dependencies]
 regex = { workspace = true, features = ["unicode"] }
+serde = { workspace = true, default-features = false }
 `git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
 [build-dependencies]
 cc.workspace = true
@@ -3309,7 +3316,7 @@ strip = "debuginfo"
 <p><code>rpath</code> 설정은 <a href="https://en.wikipedia.org/wiki/Rpath"><code>rpath</code></a> 활성화 여부를 제어하는 <a href="../rustc/codegen-options/index.html#rpath"><code>-C rpath</code> 플래그</a> 를 제어합니다.</p>
 <h2 id="기본-프로파일"><a class="header" href="#기본-프로파일">기본 프로파일</a></h2>
 <h3 id="dev"><a class="header" href="#dev">dev</a></h3>
-<p><code>dev</code> 프로파일은 일반적인 개발 및 디버깅에 사용됩니다. <a href="#cargo-build1"><code>cargo build</code></a> 와 같은 빌드 명령어의 기본값이며, <code>cargo install --debug</code> 에 사용됩니다.</p>
+<p>The <code>dev</code> profile is used for normal development. It is the default for build commands like <a href="#cargo-build1"><code>cargo build</code></a>, and is used for <code>cargo install --profile dev</code>.</p>
 <p><code>dev</code> 프로파일의 기본 설정은 다음과 같습니다.</p>
 <pre><code class="language-toml">[profile.dev]
 opt-level = 0
@@ -3323,6 +3330,12 @@ panic = 'unwind'
 incremental = true
 codegen-units = 256
 rpath = false
+</code></pre>
+<h3 id="debug-1"><a class="header" href="#debug-1">debug</a></h3>
+<p>The <code>debug</code> profile is used for creating binaries to run with a debugger. It is used with <code>cargo build --profile debug</code> and <code>cargo install --debug</code>.</p>
+<p>The default settings for the <code>debug</code> profile are:</p>
+<pre><code class="language-toml">[profile.debug]
+inherits = "dev"
 </code></pre>
 <h3 id="release"><a class="header" href="#release">release</a></h3>
 <p><code>release</code> 프로파일은 릴리스 및 프로덕션에서 사용되는 최적화된 결과물을 위한 것입니다. <code>--release</code> 플래그를 사용할 때 사용되며, <a href="#cargo-install1"><code>cargo install</code></a> 의 기본값입니다.</p>
@@ -8330,7 +8343,13 @@ frequency = "always"
 <p>마지막 표에는 각 유닛에 소요된 총 시간과 “코드 생성” 시간, 그리고 각 유닛 컴파일 중에 활성화된 기능들이 나열됩니다.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="린트"><a class="header" href="#린트">린트</a></h1>
-<p>참고: <a href="#lintscargo">Cargo의 린트 시스템은 불안정</a> 하며 나이틀리 툴체인에서만 사용할 수 있습니다</p>
+<blockquote>
+<p>[!NOTE] This chapter is about lints emitted by <code>cargo</code> itself.</p>
+<p>See <a href="#the-lints-section">the lints section in the Manifest Format chapter</a> to configure lint levels for tools such as <code>rustc</code> or <code>clippy</code>.</p>
+</blockquote>
+<blockquote>
+<p>[!WARNING] <a href="#lintscargo">Cargo’s linting system is unstable</a> and can only be used on nightly toolchains.</p>
+</blockquote>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -8339,11 +8358,8 @@ frequency = "always"
 <tbody>
 <tr><td><code>cargo::default</code></td><td>all lints that are on by default (correctness, suspicious, style, complexity, perf)</td><td>warn/deny</td></tr>
 <tr><td><code>cargo::correctness</code></td><td>code that is outright wrong or useless</td><td>deny</td></tr>
-<tr><td><code>cargo::complexity</code></td><td>code that does something simple but in a complex way</td><td>warn</td></tr>
-<tr><td><code>cargo::perf</code></td><td>code that can be written to run faster</td><td>warn</td></tr>
 <tr><td><code>cargo::style</code></td><td>code that should be written in a more idiomatic way</td><td>warn</td></tr>
 <tr><td><code>cargo::suspicious</code></td><td>code that is most likely wrong or useless</td><td>warn</td></tr>
-<tr><td><code>cargo::nursery</code></td><td>new lints that are still under development</td><td>allow</td></tr>
 <tr><td><code>cargo::pedantic</code></td><td>lints which are rather strict or have occasional false positives</td><td>allow</td></tr>
 <tr><td><code>cargo::restriction</code></td><td>lints which prevent the use of Cargo features</td><td>allow</td></tr>
 </tbody>
@@ -8361,10 +8377,10 @@ frequency = "always"
 <p>이 린트들은 기본적으로 모두 ‘warn’(경고) 수준으로 설정되어 있습니다.</p>
 <ul>
 <li><a href="#blanket_hint_mostly_unused"><code>blanket_hint_mostly_unused</code></a></li>
+<li><a href="#manual_readme"><code>manual_readme</code></a></li>
 <li><a href="#missing_lints_inheritance"><code>missing_lints_inheritance</code></a></li>
 <li><a href="#non_kebab_case_bins"><code>non_kebab_case_bins</code></a></li>
 <li><a href="#redundant_homepage"><code>redundant_homepage</code></a></li>
-<li><a href="#redundant_readme"><code>redundant_readme</code></a></li>
 <li><a href="#unknown_lints"><code>unknown_lints</code></a></li>
 <li><a href="#unused_dependencies"><code>unused_dependencies</code></a></li>
 <li><a href="#unused_workspace_dependencies"><code>unused_workspace_dependencies</code></a></li>
@@ -8394,18 +8410,40 @@ hint-mostly-unused = true
 <pre><code class="language-toml">[profile.dev.package.huge-mostly-unused-dependency]
 hint-mostly-unused = true
 </code></pre>
+<h2 id="manual_readme"><a class="header" href="#manual_readme"><code>manual_readme</code></a></h2>
+<ul>
+<li>Group: <code>style</code></li>
+<li>Level: <code>warn</code></li>
+<li>Minimal <a href="#rust-버전"><code>package.rust-version</code></a>: <code>1.79.0</code></li>
+</ul>
+<h3 id="동작-방식-1"><a class="header" href="#동작-방식-1">동작 방식</a></h3>
+<p>Checks for <code>package.readme</code> fields that can be inferred.</p>
+<p>See also <a href="#the-readme-field"><code>package.readme</code> reference documentation</a>.</p>
+<h3 id="why-is-this-bad-1"><a class="header" href="#why-is-this-bad-1">Why is this bad?</a></h3>
+<p>Adds boilerplate.</p>
+<h3 id="drawbacks"><a class="header" href="#drawbacks">Drawbacks</a></h3>
+<p>It might not be obvious if they named their file correctly.</p>
+<h3 id="예제-1-1"><a class="header" href="#예제-1-1">예제</a></h3>
+<pre><code class="language-toml">[package]
+name = "foo"
+readme = "README.md"
+</code></pre>
+<p>Should be written as:</p>
+<pre><code class="language-toml">[package]
+name = "foo"
+</code></pre>
 <h2 id="missing_lints_inheritance"><a class="header" href="#missing_lints_inheritance"><code>missing_lints_inheritance</code></a></h2>
 <ul>
 <li>Group: <code>suspicious</code></li>
 <li>Level: <code>warn</code></li>
 <li>Minimal <a href="#rust-버전"><code>package.rust-version</code></a>: <code>1.79.0</code></li>
 </ul>
-<h3 id="동작-방식-1"><a class="header" href="#동작-방식-1">동작 방식</a></h3>
+<h3 id="동작-방식-2"><a class="header" href="#동작-방식-2">동작 방식</a></h3>
 <p>Checks for packages without a <code>lints</code> table while <code>workspace.lints</code> is present.</p>
-<h3 id="why-is-this-bad-1"><a class="header" href="#why-is-this-bad-1">Why is this bad?</a></h3>
+<h3 id="why-is-this-bad-2"><a class="header" href="#why-is-this-bad-2">Why is this bad?</a></h3>
 <p>Many people mistakenly think that <code>workspace.lints</code> is implicitly inherited when it is not.</p>
-<h3 id="drawbacks"><a class="header" href="#drawbacks">Drawbacks</a></h3>
-<h3 id="예제-1-1"><a class="header" href="#예제-1-1">예제</a></h3>
+<h3 id="drawbacks-1"><a class="header" href="#drawbacks-1">Drawbacks</a></h3>
+<h3 id="예제-2"><a class="header" href="#예제-2">예제</a></h3>
 <pre><code class="language-toml">[workspace.lints.cargo]
 </code></pre>
 <p>Should be written as:</p>
@@ -8425,15 +8463,15 @@ workspace = true
 <li>Level: <code>warn</code></li>
 <li>Minimal <a href="#rust-버전"><code>package.rust-version</code></a>: <code>1.79.0</code></li>
 </ul>
-<h3 id="동작-방식-2"><a class="header" href="#동작-방식-2">동작 방식</a></h3>
+<h3 id="동작-방식-3"><a class="header" href="#동작-방식-3">동작 방식</a></h3>
 <p>Detect binary names, explicit and implicit, that are not kebab-case</p>
-<h3 id="why-is-this-bad-2"><a class="header" href="#why-is-this-bad-2">Why is this bad?</a></h3>
+<h3 id="why-is-this-bad-3"><a class="header" href="#why-is-this-bad-3">Why is this bad?</a></h3>
 <p>Kebab-case binary names is a common convention among command line tools.</p>
-<h3 id="drawbacks-1"><a class="header" href="#drawbacks-1">Drawbacks</a></h3>
+<h3 id="drawbacks-2"><a class="header" href="#drawbacks-2">Drawbacks</a></h3>
 <p>It would be disruptive to existing users to change the binary name.</p>
 <p>A binary may need to conform to externally controlled conventions which can include a different naming convention.</p>
 <p>GUI applications may wish to choose a more user focused naming convention, like “Title Case” or “Sentence case”.</p>
-<h3 id="예제-2"><a class="header" href="#예제-2">예제</a></h3>
+<h3 id="예제-3"><a class="header" href="#예제-3">예제</a></h3>
 <pre><code class="language-toml">[[bin]]
 name = "foo_bar"
 </code></pre>
@@ -8446,13 +8484,13 @@ name = "foo-bar"
 <li>Group: <code>restriction</code></li>
 <li>Level: <code>allow</code></li>
 </ul>
-<h3 id="동작-방식-3"><a class="header" href="#동작-방식-3">동작 방식</a></h3>
+<h3 id="동작-방식-4"><a class="header" href="#동작-방식-4">동작 방식</a></h3>
 <p>Detect feature names that are not kebab-case.</p>
 <h3 id="why-restrict-this"><a class="header" href="#why-restrict-this">Why restrict this?</a></h3>
 <p>Having multiple naming styles within a workspace can be confusing.</p>
-<h3 id="drawbacks-2"><a class="header" href="#drawbacks-2">Drawbacks</a></h3>
+<h3 id="drawbacks-3"><a class="header" href="#drawbacks-3">Drawbacks</a></h3>
 <p>Users would expect that a feature tightly coupled to a dependency would match the dependency’s name.</p>
-<h3 id="예제-3"><a class="header" href="#예제-3">예제</a></h3>
+<h3 id="예제-4"><a class="header" href="#예제-4">예제</a></h3>
 <pre><code class="language-toml">[features]
 foo_bar = []
 </code></pre>
@@ -8465,13 +8503,13 @@ foo-bar = []
 <li>Group: <code>restriction</code></li>
 <li>Level: <code>allow</code></li>
 </ul>
-<h3 id="동작-방식-4"><a class="header" href="#동작-방식-4">동작 방식</a></h3>
+<h3 id="동작-방식-5"><a class="header" href="#동작-방식-5">동작 방식</a></h3>
 <p>Detect package names that are not kebab-case.</p>
 <h3 id="why-restrict-this-1"><a class="header" href="#why-restrict-this-1">Why restrict this?</a></h3>
 <p>Having multiple naming styles within a workspace can be confusing.</p>
-<h3 id="drawbacks-3"><a class="header" href="#drawbacks-3">Drawbacks</a></h3>
+<h3 id="drawbacks-4"><a class="header" href="#drawbacks-4">Drawbacks</a></h3>
 <p>Users have to mentally translate package names to namespaces in Rust.</p>
-<h3 id="예제-4"><a class="header" href="#예제-4">예제</a></h3>
+<h3 id="예제-5"><a class="header" href="#예제-5">예제</a></h3>
 <pre><code class="language-toml">[package]
 name = "foo_bar"
 </code></pre>
@@ -8484,13 +8522,13 @@ name = "foo-bar"
 <li>Group: <code>restriction</code></li>
 <li>Level: <code>allow</code></li>
 </ul>
-<h3 id="동작-방식-5"><a class="header" href="#동작-방식-5">동작 방식</a></h3>
+<h3 id="동작-방식-6"><a class="header" href="#동작-방식-6">동작 방식</a></h3>
 <p>Detect feature names that are not snake-case.</p>
 <h3 id="why-restrict-this-2"><a class="header" href="#why-restrict-this-2">Why restrict this?</a></h3>
 <p>Having multiple naming styles within a workspace can be confusing.</p>
-<h3 id="drawbacks-4"><a class="header" href="#drawbacks-4">Drawbacks</a></h3>
+<h3 id="drawbacks-5"><a class="header" href="#drawbacks-5">Drawbacks</a></h3>
 <p>Users would expect that a feature tightly coupled to a dependency would match the dependency’s name.</p>
-<h3 id="예제-5"><a class="header" href="#예제-5">예제</a></h3>
+<h3 id="예제-6"><a class="header" href="#예제-6">예제</a></h3>
 <pre><code class="language-toml">[features]
 foo-bar = []
 </code></pre>
@@ -8503,13 +8541,13 @@ foo_bar = []
 <li>Group: <code>restriction</code></li>
 <li>Level: <code>allow</code></li>
 </ul>
-<h3 id="동작-방식-6"><a class="header" href="#동작-방식-6">동작 방식</a></h3>
+<h3 id="동작-방식-7"><a class="header" href="#동작-방식-7">동작 방식</a></h3>
 <p>Detect package names that are not snake-case.</p>
 <h3 id="why-restrict-this-3"><a class="header" href="#why-restrict-this-3">Why restrict this?</a></h3>
 <p>Having multiple naming styles within a workspace can be confusing.</p>
-<h3 id="drawbacks-5"><a class="header" href="#drawbacks-5">Drawbacks</a></h3>
+<h3 id="drawbacks-6"><a class="header" href="#drawbacks-6">Drawbacks</a></h3>
 <p>Users have to mentally translate package names to namespaces in Rust.</p>
-<h3 id="예제-6"><a class="header" href="#예제-6">예제</a></h3>
+<h3 id="예제-7"><a class="header" href="#예제-7">예제</a></h3>
 <pre><code class="language-toml">[package]
 name = "foo_bar"
 </code></pre>
@@ -8523,13 +8561,13 @@ name = "foo-bar"
 <li>Level: <code>warn</code></li>
 <li>Minimal <a href="#rust-버전"><code>package.rust-version</code></a>: <code>1.79.0</code></li>
 </ul>
-<h3 id="동작-방식-7"><a class="header" href="#동작-방식-7">동작 방식</a></h3>
+<h3 id="동작-방식-8"><a class="header" href="#동작-방식-8">동작 방식</a></h3>
 <p>Checks if the value of <code>package.homepage</code> is already covered by another field.</p>
 <p>See also <a href="#the-homepage-field"><code>package.homepage</code> reference documentation</a>.</p>
-<h3 id="why-is-this-bad-3"><a class="header" href="#why-is-this-bad-3">Why is this bad?</a></h3>
+<h3 id="why-is-this-bad-4"><a class="header" href="#why-is-this-bad-4">Why is this bad?</a></h3>
 <p>When package browsers render each link, a redundant link adds visual noise.</p>
-<h3 id="drawbacks-6"><a class="header" href="#drawbacks-6">Drawbacks</a></h3>
-<h3 id="예제-7"><a class="header" href="#예제-7">예제</a></h3>
+<h3 id="drawbacks-7"><a class="header" href="#drawbacks-7">Drawbacks</a></h3>
+<h3 id="예제-8"><a class="header" href="#예제-8">예제</a></h3>
 <pre><code class="language-toml">[package]
 name = "foo"
 homepage = "https://github.com/rust-lang/cargo/"
@@ -8539,28 +8577,6 @@ repository = "https://github.com/rust-lang/cargo/"
 <pre><code class="language-toml">[package]
 name = "foo"
 repository = "https://github.com/rust-lang/cargo/"
-</code></pre>
-<h2 id="redundant_readme"><a class="header" href="#redundant_readme"><code>redundant_readme</code></a></h2>
-<ul>
-<li>Group: <code>style</code></li>
-<li>Level: <code>warn</code></li>
-<li>Minimal <a href="#rust-버전"><code>package.rust-version</code></a>: <code>1.79.0</code></li>
-</ul>
-<h3 id="동작-방식-8"><a class="header" href="#동작-방식-8">동작 방식</a></h3>
-<p>Checks for <code>package.readme</code> fields that can be inferred.</p>
-<p>See also <a href="#the-readme-field"><code>package.readme</code> reference documentation</a>.</p>
-<h3 id="why-is-this-bad-4"><a class="header" href="#why-is-this-bad-4">Why is this bad?</a></h3>
-<p>Adds boilerplate.</p>
-<h3 id="drawbacks-7"><a class="header" href="#drawbacks-7">Drawbacks</a></h3>
-<p>It might not be obvious if they named their file correctly.</p>
-<h3 id="예제-8"><a class="header" href="#예제-8">예제</a></h3>
-<pre><code class="language-toml">[package]
-name = "foo"
-readme = "README.md"
-</code></pre>
-<p>Should be written as:</p>
-<pre><code class="language-toml">[package]
-name = "foo"
 </code></pre>
 <h2 id="text_direction_codepoint_in_comment"><a class="header" href="#text_direction_codepoint_in_comment"><code>text_direction_codepoint_in_comment</code></a></h2>
 <ul>
@@ -9732,12 +9748,34 @@ trim-paths = ["object", "diagnostics"]
 <p>기본 <code>release</code> 프로파일 설정(<code>object</code>)은 생성된 실행 파일이나 라이브러리 파일의 경로만 정제합니다. 패닉 메시지와 같은 매크로의 경로에는 항상 영향을 미치며, 디버그 정보의 경우 바이너리에 함께 임베드되는 경우(Linux 및 windows-gnu와 같은 ELF 바이너리가 있는 플랫폼의 기본값)에만 영향을 미치고 별도의 파일에 있는 경우(Windows MSVC 및 macOS의 기본값)에는 건드리지 않습니다. 그러나 이러한 별도 파일의 경로는 정제됩니다.</p>
 <p><code>trim-paths</code> 가 <code>none</code> 또는 <code>false</code> 가 아니면, 선택된 범위에 나타나는 다음 경로들이 정제됩니다:</p>
 <ol>
-<li>표준 및 코어 라이브러리(sysroot)의 소스 파일 경로는 <code>/rustc/[rustc commit hash]</code> 로 시작하게 됩니다. 예: <code>/home/username/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs</code> -&gt; <code>/rustc/fe72845f7bb6a77b9e671e6a4f32fe714962cec4/library/core/src/result.rs</code></li>
-<li>현재 패키지의 경로는 현재 워크스페이스 루트를 기준으로 제거됩니다. 예: <code>/home/username/crate/src/lib.rs</code> -&gt; <code>src/lib.rs</code>.</li>
-<li>의존성 패키지의 경로는 <code>[패키지 이름]-[버전]</code> 으로 대체됩니다. 예: <code>/home/username/deps/foo/src/lib.rs</code> -&gt; <code>foo-0.1.0/src/lib.rs</code></li>
+<li>Path to the source files of the standard and core library (sysroot) will begin with <code>/rustc/&lt;rustc commit hash&gt;</code>, e.g. <code>/home/username/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs</code> -&gt; <code>/rustc/fe72845f7bb6a77b9e671e6a4f32fe714962cec4/library/core/src/result.rs</code></li>
+<li>Path to the current package will be stripped, relatively to the current workspace root, e.g. <code>/home/username/crate/src/lib.rs</code> -&gt; <code>src/lib.rs</code>. This also covers path dependencies located inside the workspace directory.</li>
+<li>Path to a registry dependency will begin with <code>/cargo/registry/&lt;registry id&gt;</code>, which replaces the registry’s extraction directory, e.g. <code>/home/username/.cargo/registry/src/index.crates.io-6f17d22d3f0a95d1/foo-0.1.0/src/lib.rs</code> -&gt; <code>/cargo/registry/6f17d22d3f0a95d1/foo-0.1.0/src/lib.rs</code>.</li>
+<li>Path to a git dependency will begin with <code>/cargo/git/&lt;git source id&gt;/&lt;revision&gt;</code>, which replaces the checkout directory. <code>&lt;revision&gt;</code> is a prefix of the resolved commit ID recorded in the lockfile.</li>
+<li>Path to a path dependency outside the workspace will be replaced with <code>/cargo/path/&lt;package name&gt;-&lt;package version&gt;</code>.</li>
+<li>Path into the build directory, for example <code>OUT_DIR</code> generated sources, will begin with <code>/cargo/build-dir</code>.</li>
 </ol>
+<p><code>&lt;registry id&gt;</code> and <code>&lt;git source id&gt;</code> are opaque stable hashes of the dependency’s source.</p>
+<p>Vendored copies of registry or git dependencies (via <a href="#소스-교체">source replacement</a>) are sanitized by their file location instead, like workspace paths when inside the workspace directory, otherwise like path dependencies.</p>
 <p>표준 및 코어 라이브러리 소스 파일의 경로가 정제 범위에 포함되지 않은 경우, 출력되는 경로는 <code>rust-src</code> 컴포넌트의 존재 여부에 따라 달라집니다. 컴포넌트가 있으면 일부 경로는 파일 시스템의 소스 파일 복사본을 가리키고, 없으면 (정제 대상으로 선택되었을 때와 마찬가지로) <code>/rustc/[rustc commit hash]/library/...</code>로 표시됩니다. 다른 모든 소스 파일의 경로는 영향을 받지 않습니다.</p>
 <p>이는 문자열과 같이 소스 코드에 하드코딩된 경로에는 영향을 주지 않습니다.</p>
+<h5 id="unremap-files"><a class="header" href="#unremap-files">Unremap files</a></h5>
+<p>When the <code>object</code> scope is active and debuginfo is enabled, Cargo writes an unremap file beside each final artifact. The file is aimed at helping debuggers substitute sanitized paths back to local ones, e.g., via GDB’s <code>set substitute-path</code> or LLDB’s <code>target.source-map</code>.</p>
+<p>The unremap file name ends with <code>.trim-paths.jsonl</code>. For example, your <code>my-app</code> executable would come with an unremap file named <code>my-app.trim-paths.jsonl</code> beside it.</p>
+<p>The unremap file is in JSONL format:</p>
+<ul>
+<li>The first record carries the format version.</li>
+<li>The second record is file-level metadata, such as the toolchain version and the workspace root.</li>
+<li>Each following record maps a sanitized path prefix in the artifact (<code>from</code>) back to the local path it replaced (<code>to</code>), ordered by the <code>from</code> prefix. Note that this follows the debugger substitution direction, which is the inverse of <code>--remap-path-prefix</code>.</li>
+</ul>
+<p>An example of the unremap file:</p>
+<pre><code class="language-json">{"v":1}
+{"rust_version":"1.96.0-nightly","workspace_root":"/home/me/app"}
+{"from":"/cargo/build-dir","to":"/home/me/app/target"}
+{"from":"/cargo/registry/6f17d22d3f0a95d1","to":"/home/me/.cargo/registry/src/index.crates.io-6f17d22d3f0a95d1"}
+{"from":"/rustc/abc123","to":"/home/me/.rustup/toolchains/nightly/lib/rustlib/src/rust"}
+</code></pre>
+<p>Since it is meant to be a debugging aid, it includes absolute paths of your system, so there is no artifact privacy guarantee. You might want to exclude <code>*.trim-paths.jsonl</code> files when distributing artifacts.</p>
 <h4 id="환경-변수-2"><a class="header" href="#환경-변수-2">환경 변수</a></h4>
 <p><em><a href="#environment-variables-cargo-sets-for-crates">“Cargo가 빌드 스크립트를 위해 설정하는 환경 변수”</a> 의 새 항목으로</em></p>
 <ul>
@@ -10816,7 +10854,7 @@ cargo -V
 <blockquote>
 <p><strong>Note</strong>: The <a href="https://doc.rust-lang.org/nightly/unstable-book/library-features/test.html"><code>#[bench]</code> attribute</a> is currently unstable and only available on the <a href="https://doc.rust-lang.org/book/appendix-07-nightly-rust.html">nightly channel</a>. There are some packages available on <a href="https://crates.io/keywords/benchmark">crates.io</a> that may help with running benchmarks on the stable channel, such as <a href="https://crates.io/crates/criterion">Criterion</a>.</p>
 </blockquote>
-<p>기본적으로 <code>cargo bench</code> 는 최적화를 활성화하고 디버깅 정보를 비활성화하는 <a href="#bench"><code>bench</code> 프로파일</a> 을 사용합니다. 벤치마크를 디버깅해야 하는 경우, <code>--profile=dev</code> 명령줄 옵션을 사용하여 <code>dev</code> 프로파일로 전환할 수 있습니다. 그런 다음 디버거 내에서 디버깅이 활성화된 벤치마크를 실행할 수 있습니다.</p>
+<p>By default, <code>cargo bench</code> uses the <a href="#bench"><code>bench</code> profile</a>, which enables optimizations and disables debugging information. If you need to debug a benchmark, you can use the <code>--profile=debug</code> command-line option to switch to the debug profile. You can then run the debug-enabled benchmark within a debugger.</p>
 <h3 id="벤치마크의-작업-디렉토리"><a class="header" href="#벤치마크의-작업-디렉토리">벤치마크의 작업 디렉토리</a></h3>
 <p>모든 벤치마크의 작업 디렉토리는 해당 벤치마크가 속한 패키지의 루트 디렉토리로 설정됩니다. 벤치마크의 작업 디렉토리를 패키지의 루트 디렉토리로 설정하면, <code>cargo bench</code> 가 어디에서 실행되었는지에 관계없이 벤치마크가 상대 경로를 사용하여 패키지의 파일에 안정적으로 접근할 수 있습니다.</p>
 <h2 id="옵션-3"><a class="header" href="#옵션-3">옵션</a></h2>
@@ -15412,7 +15450,7 @@ and requires the <code>-Z unstable-options</code> flag to enable.</p>
 <p>테스트는 <code>rustc</code> 에 <code>--test</code> 옵션을 사용하여 빌드되며, 이는 libtest와 코드를 연결하여 특별한 실행 파일을 생성합니다. 실행 파일은 <code>#[test]</code> 속성으로 주석이 달린 모든 함수를 여러 스레드에서 자동으로 실행합니다. <code>#[bench]</code> 주석이 달린 함수도 기능하는지 확인하기 위해 1회 반복으로 실행됩니다.</p>
 <p>패키지에 여러 테스트 타겟이 포함된 경우, 각 타겟은 앞서 언급한 대로 특별한 실행 파일로 컴파일된 다음 순차적으로 실행됩니다.</p>
 <p>타겟 매니페스트 설정에서 <code>harness = false</code> 를 설정하여 libtest 하네스를 비활성화할 수 있으며, 이 경우 테스트 실행을 처리하기 위해 코드에서 자체 <code>main</code> 함수를 제공해야 합니다.</p>
-<p>By default, <code>cargo test</code> uses the <a href="#test"><code>test</code> profile</a>, which enables debugging.</p>
+<p>By default, <code>cargo test</code> uses the <a href="#test"><code>test</code> profile</a>, which enables some optimizations and disables debugging information for fast feedback. If you need to debug a test, you can use the <code>--profile=debug</code> command-line option to switch to the debug profile. You can then run the debug-enabled test within a debugger.</p>
 <h3 id="문서-테스트"><a class="header" href="#문서-테스트">문서 테스트</a></h3>
 <p>문서 테스트도 기본적으로 실행되며, <code>rustdoc</code> 에 의해 처리됩니다. 라이브러리 타겟의 문서 주석에서 코드 샘플을 추출한 다음 실행합니다.</p>
 <p>일반 테스트 타겟과 달리 각 코드 블록은 <code>rustc</code> 를 사용하여 즉석에서 doctest 실행 파일로 컴파일됩니다. 이러한 실행 파일은 별도의 프로세스에서 병렬로 실행됩니다. 코드 블록의 컴파일은 사실 libtest에 의해 제어되는 테스트 함수의 일부이므로 <code>--jobs</code> 와 같은 일부 옵션은 적용되지 않을 수 있습니다. 이 doctest 실행 모델은 보장되지 않으며 향후 변경될 수 있으므로 이에 의존하지 않도록 주의하세요.</p>
@@ -18552,10 +18590,10 @@ requirement in <code>Cargo.toml</code> doesn’t contain any pre-release identif
 
 </dd>
 
-<dt class="option-term" id="option-cargo-update---breaking"><a class="option-anchor" href="#option-cargo-update---breaking"><code>--breaking</code> <em>directory</em></a></dt>
+<dt class="option-term" id="option-cargo-update---breaking"><a class="option-anchor" href="#option-cargo-update---breaking"><code>--breaking</code></a></dt>
 
 <dd class="option-desc">
-<p>Update <em>spec</em> to latest SemVer-breaking version.</p>
+<p>Update <em>spec</em> to highest SemVer-breaking version.</p>
 
 <p>Version requirements will be modified to allow this update.</p>
 
@@ -19486,7 +19524,7 @@ is specified.</p>
 <dt class="option-term" id="option-cargo-install---debug"><a class="option-anchor" href="#option-cargo-install---debug"><code>--debug</code></a></dt>
 
 <dd class="option-desc">
-<p>Build with the <code>dev</code> profile instead of the <code>release</code> profile.
+<p>Build with the <code>debug</code> profile instead of the <code>release</code> profile.
 See also the <code>--profile</code> option for choosing a specific profile by name.</p>
 
 </dd>
@@ -22401,9 +22439,6 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <p><a href="https://github.com/rust-lang/cargo/compare/c25859fa...rust-1.98.0">c25859fa…rust-1.98.0</a></p>
 <h3 id="추가됨-1"><a class="header" href="#추가됨-1">추가됨</a></h3>
 <h3 id="변경됨-1"><a class="header" href="#변경됨-1">변경됨</a></h3>
-<ul>
-<li>Forward <code>--verbose</code> flag to rustc for local crates <a href="https://github.com/rust-lang/cargo/pull/17006">#17006</a></li>
-</ul>
 <h3 id="수정됨-1"><a class="header" href="#수정됨-1">수정됨</a></h3>
 <ul>
 <li>Strip the trailing carriage return from tokens of <code>cargo:token-from-stdout</code> credential providers. This was a regression in 1.96 that caused a confusing “failed to parse header value” error on Windows. <a href="https://github.com/rust-lang/cargo/pull/17081">#17081</a></li>

@@ -92,7 +92,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b1ab28c7.js";
+            window.path_to_searchindex_js = "searchindex-a6d5957a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-818727da.js"></script>
@@ -384,15 +384,13 @@ the flag in question to Rustdoc on the command-line. To do this from Cargo, you 
 This is very easy to use in scripts that manually invoke rustdoc, but it’s also slow, because it
 performs O(crates) work on every crate, meaning it performs O(crates<sup>2</sup>) work. When
 <code>--write-doc-meta-dir</code> and/or <code>--read-doc-meta-dir</code> are supplied, this is turned off.</p>
-<p>When <code>--write-doc-meta-dir</code> is supplied, rustdoc will write the crate’s metadata to that directory.
-If this parameter is supplied but <code>--read-doc-meta-dir</code> isn’t, it runs in <em>intermediate mode</em>:
-some pages may be written to the output dir, but there is a lot of functionality that won’t work
-until rustdoc is run in <em>finalize mode</em>.</p>
-<p>When <code>--read-doc-meta-dir</code> is supplied, rustdoc runs in <em>finalize mode</em>. It will read the data from
-the supplied directory, and will write it to the doc output directory in the form that the web
-frontend will use.</p>
-<p>If both <code>--write-doc-meta-dir</code> and <code>--read-doc-meta-dir</code> are specified, the crate metadata will be
-written to both the HTML <code>--out-dir</code> and to the supplied <code>--write-doc-meta-dir</code>.</p>
+<p>When <code>--write-doc-meta-dir</code> is supplied, rustdoc will write the crate’s shared metadata to
+that directory. This is an <em>intermediate mode</em> where it may write some files to the doc output
+directory, but some features won’t work until it is finalized.</p>
+<p>When <code>--read-doc-meta-dir</code> is supplied, rustdoc runs in <em>finalize mode</em>. No crate source code is
+passed to rustdoc when it runs in this mode. Multiple <code>--read-doc-meta-dir</code> can be passed to
+rustdoc, so your build system can split the state between multiple directories if that helps.</p>
+<p><code>--write-doc-meta-dir</code> and <code>--read-doc-meta-dir</code> cannot both be passed to the same rustdoc invocation.</p>
 <pre><code class="language-console">$ rustdoc crate1.rs --out-dir=doc
 $ cat doc/search.index/crateNames/*
 rd_("fcrate1")
@@ -402,10 +400,25 @@ rd_("fcrate1fcrate2")
 </code></pre>
 <p>To delay shared-data merging until the end of a build, so that you only have to perform O(crates)
 work, use <code>--write-doc-meta-dir</code> on every crate, and the last will use <code>--read-doc-meta-dir</code>.</p>
-<pre><code class="language-console">$ rustdoc +nightly crate1.rs --write-doc-meta=crate1.d -Zunstable-options
+<p>You can use separate metadata directories:</p>
+<pre><code class="language-console">$ rustdoc +nightly crate1.rs --write-doc-meta-dir=crate1.d -Zunstable-options
 $ cat doc/search.index/crateNames/*
 cat: 'doc/search.index/crateNames/*': No such file or directory
-$ rustdoc +nightly crate2.rs --read-doc-meta=crate1.d -Zunstable-options
+$ rustdoc +nightly crate2.rs --write-doc-meta-dir=crate2.d -Zunstable-options
+$ cat doc/search.index/crateNames/*
+cat: 'doc/search.index/crateNames/*': No such file or directory
+$ rustdoc +nightly --read-doc-meta-dir=crate1.d --read-doc-meta-dir=crate2.d -Zunstable-options
+$ cat doc/search.index/crateNames/*
+rd_("fcrate1fcrate2")
+</code></pre>
+<p>Or you can use a single metadata directory for all of the crates:</p>
+<pre><code class="language-console">$ rustdoc +nightly crate1.rs --write-doc-meta-dir=meta.d -Zunstable-options
+$ cat doc/search.index/crateNames/*
+cat: 'doc/search.index/crateNames/*': No such file or directory
+$ rustdoc +nightly crate2.rs --write-doc-meta-dir=meta.d -Zunstable-options
+$ cat doc/search.index/crateNames/*
+cat: 'doc/search.index/crateNames/*': No such file or directory
+$ rustdoc +nightly --read-doc-meta-dir=meta.d -Zunstable-options
 $ cat doc/search.index/crateNames/*
 rd_("fcrate1fcrate2")
 </code></pre>

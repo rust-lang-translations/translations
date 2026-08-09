@@ -97,7 +97,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a493a2b7.js";
+            window.path_to_searchindex_js = "../searchindex-b11eb613.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-6b0c3669.js"></script>
@@ -1309,12 +1309,34 @@ trim-paths = ["object", "diagnostics"]
 <p>기본 <code>release</code> 프로파일 설정(<code>object</code>)은 생성된 실행 파일이나 라이브러리 파일의 경로만 정제합니다. 패닉 메시지와 같은 매크로의 경로에는 항상 영향을 미치며, 디버그 정보의 경우 바이너리에 함께 임베드되는 경우(Linux 및 windows-gnu와 같은 ELF 바이너리가 있는 플랫폼의 기본값)에만 영향을 미치고 별도의 파일에 있는 경우(Windows MSVC 및 macOS의 기본값)에는 건드리지 않습니다. 그러나 이러한 별도 파일의 경로는 정제됩니다.</p>
 <p><code>trim-paths</code> 가 <code>none</code> 또는 <code>false</code> 가 아니면, 선택된 범위에 나타나는 다음 경로들이 정제됩니다:</p>
 <ol>
-<li>표준 및 코어 라이브러리(sysroot)의 소스 파일 경로는 <code>/rustc/[rustc commit hash]</code> 로 시작하게 됩니다. 예: <code>/home/username/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs</code> -&gt; <code>/rustc/fe72845f7bb6a77b9e671e6a4f32fe714962cec4/library/core/src/result.rs</code></li>
-<li>현재 패키지의 경로는 현재 워크스페이스 루트를 기준으로 제거됩니다. 예: <code>/home/username/crate/src/lib.rs</code> -&gt; <code>src/lib.rs</code>.</li>
-<li>의존성 패키지의 경로는 <code>[패키지 이름]-[버전]</code> 으로 대체됩니다. 예: <code>/home/username/deps/foo/src/lib.rs</code> -&gt; <code>foo-0.1.0/src/lib.rs</code></li>
+<li>Path to the source files of the standard and core library (sysroot) will begin with <code>/rustc/&lt;rustc commit hash&gt;</code>, e.g. <code>/home/username/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs</code> -&gt; <code>/rustc/fe72845f7bb6a77b9e671e6a4f32fe714962cec4/library/core/src/result.rs</code></li>
+<li>Path to the current package will be stripped, relatively to the current workspace root, e.g. <code>/home/username/crate/src/lib.rs</code> -&gt; <code>src/lib.rs</code>. This also covers path dependencies located inside the workspace directory.</li>
+<li>Path to a registry dependency will begin with <code>/cargo/registry/&lt;registry id&gt;</code>, which replaces the registry’s extraction directory, e.g. <code>/home/username/.cargo/registry/src/index.crates.io-6f17d22d3f0a95d1/foo-0.1.0/src/lib.rs</code> -&gt; <code>/cargo/registry/6f17d22d3f0a95d1/foo-0.1.0/src/lib.rs</code>.</li>
+<li>Path to a git dependency will begin with <code>/cargo/git/&lt;git source id&gt;/&lt;revision&gt;</code>, which replaces the checkout directory. <code>&lt;revision&gt;</code> is a prefix of the resolved commit ID recorded in the lockfile.</li>
+<li>Path to a path dependency outside the workspace will be replaced with <code>/cargo/path/&lt;package name&gt;-&lt;package version&gt;</code>.</li>
+<li>Path into the build directory, for example <code>OUT_DIR</code> generated sources, will begin with <code>/cargo/build-dir</code>.</li>
 </ol>
+<p><code>&lt;registry id&gt;</code> and <code>&lt;git source id&gt;</code> are opaque stable hashes of the dependency’s source.</p>
+<p>Vendored copies of registry or git dependencies (via <a href="./source-replacement.html">source replacement</a>) are sanitized by their file location instead, like workspace paths when inside the workspace directory, otherwise like path dependencies.</p>
 <p>표준 및 코어 라이브러리 소스 파일의 경로가 정제 범위에 포함되지 않은 경우, 출력되는 경로는 <code>rust-src</code> 컴포넌트의 존재 여부에 따라 달라집니다. 컴포넌트가 있으면 일부 경로는 파일 시스템의 소스 파일 복사본을 가리키고, 없으면 (정제 대상으로 선택되었을 때와 마찬가지로) <code>/rustc/[rustc commit hash]/library/...</code>로 표시됩니다. 다른 모든 소스 파일의 경로는 영향을 받지 않습니다.</p>
 <p>이는 문자열과 같이 소스 코드에 하드코딩된 경로에는 영향을 주지 않습니다.</p>
+<h5 id="unremap-files"><a class="header" href="#unremap-files">Unremap files</a></h5>
+<p>When the <code>object</code> scope is active and debuginfo is enabled, Cargo writes an unremap file beside each final artifact. The file is aimed at helping debuggers substitute sanitized paths back to local ones, e.g., via GDB’s <code>set substitute-path</code> or LLDB’s <code>target.source-map</code>.</p>
+<p>The unremap file name ends with <code>.trim-paths.jsonl</code>. For example, your <code>my-app</code> executable would come with an unremap file named <code>my-app.trim-paths.jsonl</code> beside it.</p>
+<p>The unremap file is in JSONL format:</p>
+<ul>
+<li>The first record carries the format version.</li>
+<li>The second record is file-level metadata, such as the toolchain version and the workspace root.</li>
+<li>Each following record maps a sanitized path prefix in the artifact (<code>from</code>) back to the local path it replaced (<code>to</code>), ordered by the <code>from</code> prefix. Note that this follows the debugger substitution direction, which is the inverse of <code>--remap-path-prefix</code>.</li>
+</ul>
+<p>An example of the unremap file:</p>
+<pre><code class="language-json">{"v":1}
+{"rust_version":"1.96.0-nightly","workspace_root":"/home/me/app"}
+{"from":"/cargo/build-dir","to":"/home/me/app/target"}
+{"from":"/cargo/registry/6f17d22d3f0a95d1","to":"/home/me/.cargo/registry/src/index.crates.io-6f17d22d3f0a95d1"}
+{"from":"/rustc/abc123","to":"/home/me/.rustup/toolchains/nightly/lib/rustlib/src/rust"}
+</code></pre>
+<p>Since it is meant to be a debugging aid, it includes absolute paths of your system, so there is no artifact privacy guarantee. You might want to exclude <code>*.trim-paths.jsonl</code> files when distributing artifacts.</p>
 <h4 id="환경-변수"><a class="header" href="#환경-변수">환경 변수</a></h4>
 <p><em><a href="./environment-variables.html#environment-variables-cargo-sets-for-crates">“Cargo가 빌드 스크립트를 위해 설정하는 환경 변수”</a> 의 새 항목으로</em></p>
 <ul>

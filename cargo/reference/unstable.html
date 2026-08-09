@@ -97,7 +97,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-dbb97da4.js";
+            window.path_to_searchindex_js = "../searchindex-d45253d3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-d4808052.js"></script>
@@ -1587,12 +1587,31 @@ but will not touch them if they are in separate files (the default on Windows MS
 But the paths to these separate files are sanitized.</p>
 <p>If <code>trim-paths</code> is not <code>none</code> or <code>false</code>, then the following paths are sanitized if they appear in a selected scope:</p>
 <ol>
-<li>Path to the source files of the standard and core library (sysroot) will begin with <code>/rustc/[rustc commit hash]</code>,
+<li>Path to the source files of the standard and core library (sysroot) will begin with <code>/rustc/&lt;rustc commit hash&gt;</code>,
 e.g. <code>/home/username/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs</code> -&gt;
 <code>/rustc/fe72845f7bb6a77b9e671e6a4f32fe714962cec4/library/core/src/result.rs</code></li>
-<li>Path to the current package will be stripped, relatively to the current workspace root, e.g. <code>/home/username/crate/src/lib.rs</code> -&gt; <code>src/lib.rs</code>.</li>
-<li>Path to dependency packages will be replaced with <code>[package name]-[version]</code>. E.g. <code>/home/username/deps/foo/src/lib.rs</code> -&gt; <code>foo-0.1.0/src/lib.rs</code></li>
+<li>Path to the current package will be stripped,
+relatively to the current workspace root,
+e.g. <code>/home/username/crate/src/lib.rs</code> -&gt; <code>src/lib.rs</code>.
+This also covers path dependencies located inside the workspace directory.</li>
+<li>Path to a registry dependency will begin with <code>/cargo/registry/&lt;registry id&gt;</code>,
+which replaces the registry’s extraction directory,
+e.g. <code>/home/username/.cargo/registry/src/index.crates.io-6f17d22d3f0a95d1/foo-0.1.0/src/lib.rs</code> -&gt;
+<code>/cargo/registry/6f17d22d3f0a95d1/foo-0.1.0/src/lib.rs</code>.</li>
+<li>Path to a git dependency will begin with <code>/cargo/git/&lt;git source id&gt;/&lt;revision&gt;</code>,
+which replaces the checkout directory.
+<code>&lt;revision&gt;</code> is a prefix of the resolved commit ID recorded in the lockfile.</li>
+<li>Path to a path dependency outside the workspace will be replaced with
+<code>/cargo/path/&lt;package name&gt;-&lt;package version&gt;</code>.</li>
+<li>Path into the build directory, for example <code>OUT_DIR</code> generated sources,
+will begin with <code>/cargo/build-dir</code>.</li>
 </ol>
+<p><code>&lt;registry id&gt;</code> and <code>&lt;git source id&gt;</code> are opaque stable hashes of the dependency’s source.</p>
+<p>Vendored copies of registry or git dependencies
+(via <a href="./source-replacement.html">source replacement</a>)
+are sanitized by their file location instead,
+like workspace paths when inside the workspace directory,
+otherwise like path dependencies.</p>
 <p>When a path to the source files of the standard and core library is <em>not</em> in scope for sanitization,
 the emitted path will depend on if <code>rust-src</code> component is present.
 If it is, then some paths will point to the copy of the source files on your file system;
@@ -1600,6 +1619,37 @@ if it isn’t, then they will show up as <code>/rustc/[rustc commit hash]/librar
 (just like when it is selected for sanitization).
 Paths to all other source files will not be affected.</p>
 <p>This will not affect any hard-coded paths in the source code, such as in strings.</p>
+<h5 id="unremap-files"><a class="header" href="#unremap-files">Unremap files</a></h5>
+<p>When the <code>object</code> scope is active and debuginfo is enabled,
+Cargo writes an unremap file beside each final artifact.
+The file is aimed at helping debuggers substitute sanitized paths back to local ones,
+e.g., via GDB’s <code>set substitute-path</code> or LLDB’s <code>target.source-map</code>.</p>
+<p>The unremap file name ends with <code>.trim-paths.jsonl</code>.
+For example,
+your <code>my-app</code> executable would come with an unremap file named
+<code>my-app.trim-paths.jsonl</code> beside it.</p>
+<p>The unremap file is in JSONL format:</p>
+<ul>
+<li>The first record carries the format version.</li>
+<li>The second record is file-level metadata,
+such as the toolchain version and the workspace root.</li>
+<li>Each following record maps a sanitized path prefix in the artifact
+(<code>from</code>) back to the local path it replaced (<code>to</code>),
+ordered by the <code>from</code> prefix.
+Note that this follows the debugger substitution direction,
+which is the inverse of <code>--remap-path-prefix</code>.</li>
+</ul>
+<p>An example of the unremap file:</p>
+<pre><code class="language-json">{"v":1}
+{"rust_version":"1.96.0-nightly","workspace_root":"/home/me/app"}
+{"from":"/cargo/build-dir","to":"/home/me/app/target"}
+{"from":"/cargo/registry/6f17d22d3f0a95d1","to":"/home/me/.cargo/registry/src/index.crates.io-6f17d22d3f0a95d1"}
+{"from":"/rustc/abc123","to":"/home/me/.rustup/toolchains/nightly/lib/rustlib/src/rust"}
+</code></pre>
+<p>Since it is meant to be a debugging aid,
+it includes absolute paths of your system,
+so there is no artifact privacy guarantee.
+You might want to exclude <code>*.trim-paths.jsonl</code> files when distributing artifacts.</p>
 <h4 id="environment-variable"><a class="header" href="#environment-variable">Environment variable</a></h4>
 <p><em>as a new entry of <a href="./environment-variables.html#environment-variables-cargo-sets-for-crates">“Environment variables Cargo sets for build scripts”</a></em></p>
 <ul>
