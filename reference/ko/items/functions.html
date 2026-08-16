@@ -93,7 +93,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2be49500.js";
+            window.path_to_searchindex_js = "../searchindex-0a03923b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-20da6b24.js"></script>
@@ -1019,7 +1019,30 @@ Type</text>
 <div class="rule" id="r-items.fn.params.varargs"><a class="rule-link" href="#r-items.fn.params.varargs" title="items.fn.params.varargs"><span>[items<wbr>.fn<wbr>.params<wbr>.varargs]</span></a>
 </div>
 
-<p><code>...</code> 토큰이 있는 매개변수는 <a href="external-blocks.html#variadic-functions">가변 인자 함수</a> 임을 나타내며, 오직 <a href="external-blocks.html">외부 블록</a> 함수의 마지막 매개변수로만 사용될 수 있습니다. 가변 인자 매개변수는 <code>args: ...</code> 와 같이 선택적인 식별자를 가질 수 있습니다.</p>
+<p>A parameter with the <code>...</code> token indicates a <a href="functions.html#r-items.fn.c-variadic.intro">C-variadic function</a> and may only be used as the last parameter. In a function declaration in an <a href="external-blocks.html"><code>extern</code> block</a>, the C-variadic parameter may have a pattern, such as <code>ap: ...</code>, and in a <a href="functions.html#r-items.fn.c-variadic.intro">C-variadic function</a> definition or C-variadic associated function declaration in a trait definition, the pattern is mandatory.</p>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>unsafe extern "C" {
+    unsafe fn f1(...);
+    unsafe fn f2(ap: ...);
+}
+   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
+unsafe extern "C" fn f3(ap: ...) {}
+   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
+trait Tr {
+    unsafe extern "C" fn f4(ap: ...);
+}
+<span class="boring">}</span></code></pre>
+<pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>unsafe extern "C" fn f(...) {} // ERROR: Missing pattern.
+<span class="boring">}</span></code></pre>
+<pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>trait Tr {
+    unsafe extern "C" fn f(...); // ERROR: Missing pattern.
+}
+<span class="boring">}</span></code></pre>
 <div class="rule" id="r-items.fn.body"><a class="rule-link" href="#r-items.fn.body" title="items.fn.body"><span>[items<wbr>.fn<wbr>.body]</span></a>
 </div>
 
@@ -1280,6 +1303,250 @@ async fn safe_example() {
 <span class="boring">}</span></code></pre>
 <p>이 동작은 <code>impl Future</code> 를 반환하는 함수로의 디슈거링 결과입니다. 이 경우 디슈거링된 함수는 <code>unsafe</code> 함수이지만, 반환 값은 동일하게 유지됩니다.</p>
 <p>Unsafe는 다른 함수에서 사용되는 것과 정확히 동일한 방식으로 비동기 함수에서 사용됩니다. 이는 함수가 건전성을 보장하기 위해 호출자에게 몇 가지 추가적인 의무를 부과함을 나타냅니다. 다른 모든 unsafe 함수와 마찬가지로, 이러한 조건은 초기 호출 자체를 넘어 확장될 수 있습니다. 예를 들어, 위의 스니펫에서 <code>unsafe_example</code> 함수는 포인터 <code>x</code> 를 인자로 받았고, (어웨이트되었을 때) 해당 포인터를 역참조했습니다. 이는 퓨처가 실행을 마칠 때까지 <code>x</code> 가 유효해야 함을 의미하며, 이를 보장하는 것은 호출자의 책임입니다.</p>
+<div class="rule" id="r-items.fn.c-variadic"><a class="rule-link" href="#r-items.fn.c-variadic" title="items.fn.c-variadic"><span>[items<wbr>.fn<wbr>.c-variadic]</span></a>
+</div>
+
+<h2 id="c-variadic-functions"><a class="header" href="#c-variadic-functions">C-variadic functions</a></h2>
+<div class="rule" id="r-items.fn.c-variadic.intro"><a class="rule-link" href="#r-items.fn.c-variadic.intro" title="items.fn.c-variadic.intro"><span>[items<wbr>.fn<wbr>.c-variadic<wbr>.intro]</span></a>
+</div>
+
+<p>A <em>C-variadic</em> function accepts a variable argument list <code>pat: ...</code> as its final parameter.</p>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>unsafe extern "C" fn f(mut ap: ...) -&gt; f64 {
+    unsafe { ap.next_arg::&lt;f64&gt;() }
+}
+<span class="boring">}</span></code></pre>
+<pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>unsafe extern "C" fn f(ap: ..., _: ()) {} // ERROR: `...` must be last.
+<span class="boring">}</span></code></pre>
+<p>This parameter stands in for an arbitrary number of arguments that may be passed by the caller.</p>
+<div class="rule" id="r-items.fn.c-variadic.parameter-type"><a class="rule-link" href="#r-items.fn.c-variadic.parameter-type" title="items.fn.c-variadic.parameter-type"><span>[items<wbr>.fn<wbr>.c-variadic<wbr>.parameter-type]</span></a>
+</div>
+
+<p>The type of <code>pat</code> in the function body is <a href="../special-types-and-traits.html#r-lang-types.va-list"><code>VaList&lt;'_&gt;</code></a>.</p>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use core::ffi::VaList;
+</span>unsafe extern "C" fn f(ap: ...) {
+    let _: VaList&lt;'_&gt; = ap;
+}
+<span class="boring">}</span></code></pre>
+<div class="rule" id="r-items.fn.c-variadic.lifetime"><a class="rule-link" href="#r-items.fn.c-variadic.lifetime" title="items.fn.c-variadic.lifetime"><span>[items<wbr>.fn<wbr>.c-variadic<wbr>.lifetime]</span></a>
+</div>
+
+<p>A C-variadic function definition is implicitly generic over the lifetime of its variadic parameter, as if the parameter had type <code>VaList&lt;'x&gt;</code> for a fresh, unnameable lifetime <code>'x</code>. Because the function must be valid for any such lifetime, the <code>VaList</code> cannot be proved to outlive any caller-provided lifetime (and so cannot escape the call) and no caller-provided lifetime can be proved to outlive it.</p>
+<pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use core::ffi::VaList;
+</span>fn b_outlives_a&lt;'a, 'b: 'a&gt;(_: &amp;mut VaList&lt;'a&gt;, _: &amp;mut &amp;'b mut u8) {}
+unsafe extern "C" fn f(mut r: &amp;mut u8, mut ap: ...) {
+    b_outlives_a(&amp;mut ap, &amp;mut r); // ERROR: May not live long enough.
+}
+<span class="boring">}</span></code></pre>
+<pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use core::ffi::VaList;
+</span>fn a_outlives_b&lt;'a: 'b, 'b&gt;(_: &amp;mut VaList&lt;'a&gt;, _: &amp;mut &amp;'b mut u8) {}
+unsafe extern "C" fn f(mut r: &amp;mut u8, mut ap: ...) {
+    a_outlives_b(&amp;mut ap, &amp;mut r); // ERROR: May not live long enough.
+}
+<span class="boring">}</span></code></pre>
+<div class="alert alert-note">
+<blockquote>
+<p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+
+<p>This is different than if the data were a stack variable: any caller-provided lifetime can be proved to outlive a borrow of a callee stack variable.</p>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>struct MockVaList&lt;'data&gt;(&amp;'data u8);
+fn b_outlives_a&lt;'a, 'b: 'a&gt;(_: &amp;mut MockVaList&lt;'a&gt;, _: &amp;mut &amp;'b mut u8) {}
+unsafe extern "C" fn f(mut r: &amp;mut u8) {
+    let data = 0;
+    let mut ap = MockVaList(&amp;data);
+    b_outlives_a(&amp;mut ap, &amp;mut r); // OK.
+}
+<span class="boring">}</span></code></pre>
+</blockquote>
+</div>
+
+<div class="rule" id="r-items.fn.c-variadic.desugar-brief"><a class="rule-link" href="#r-items.fn.c-variadic.desugar-brief" title="items.fn.c-variadic.desugar-brief"><span>[items<wbr>.fn<wbr>.c-variadic<wbr>.desugar-brief]</span></a>
+</div>
+
+<p>A C-variadic function definition is roughly equivalent to a function operating on a <a href="../special-types-and-traits.html#r-lang-types.va-list"><code>VaList</code></a>.</p>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>unsafe extern "C" fn f(mut ap: ...) -&gt; i32 {
+    unsafe { ap.next_arg::&lt;i32&gt;() }
+}
+<span class="boring">}</span></code></pre>
+<p>Roughly desugars to:</p>
+<!-- no_run: conceptual desugaring -->
+<pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">#![ feature(core_intrinsics) ]
+</span><span class="boring">#![allow(internal_features)]
+</span><span class="boring">use core::ffi::VaList;
+</span><span class="boring">use core::mem::MaybeUninit;
+</span>use core::intrinsics::{va_arg, va_end};
+// `va_start` is magic and has no intrinsic.
+fn va_start(ap: *mut VaList&lt;'_&gt;) { /* magic */ }
+unsafe extern "C" fn f() -&gt; i32 {
+    unsafe {
+        let mut ap: MaybeUninit&lt;VaList&lt;'_&gt;&gt; = MaybeUninit::uninit();
+        va_start(ap.as_mut_ptr());
+        let mut ap = ap.assume_init();
+        let x = va_arg::&lt;i32&gt;(&amp;mut ap);
+        va_end(&amp;mut ap);
+        x
+    }
+}
+<span class="boring">}</span></code></pre>
+<div class="alert alert-note">
+<blockquote>
+<p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+
+<p>In an actual C-variadic function definition, the lifetime in <code>VaList&lt;'_&gt;</code> is different from what this code would suggest. See <a href="functions.html#r-items.fn.c-variadic.lifetime">items.fn.c-variadic.lifetime</a>.</p>
+</blockquote>
+</div>
+
+<div class="rule" id="r-items.fn.c-variadic.next-arg-safety"><a class="rule-link" href="#r-items.fn.c-variadic.next-arg-safety" title="items.fn.c-variadic.next-arg-safety"><span>[items<wbr>.fn<wbr>.c-variadic<wbr>.next-arg-safety]</span></a>
+</div>
+
+<p>Calling <code>VaList::next_arg</code> to read an argument of type <code>T</code> is only safe if all of the following conditions are satisfied:</p>
+<ul>
+<li>There is another C-variadic argument to read.</li>
+<li>The actual type of the argument <code>U</code> is compatible with <code>T</code> (as defined below).</li>
+<li>If <code>U</code> and <code>T</code> are both integer types, then the value passed by the caller must be representable in both types.</li>
+</ul>
+<p>Types <code>T</code> and <code>U</code> are compatible when one of the following is true:</p>
+<ul>
+<li><code>T</code> and <code>U</code> are the same type (up to free lifetimes).</li>
+<li><code>T</code> and <code>U</code> are integer types of the same size.</li>
+<li><code>T</code> and <code>U</code> are both pointers and their target types are compatible.</li>
+<li><code>T</code> is a pointer to <code>c_void</code> and <code>U</code> is a pointer to <code>i8</code> or <code>u8</code>, or vice versa.</li>
+</ul>
+<p>Examples of compatible types are:</p>
+<ul>
+<li><code>u32</code> and <code>i32</code> — but UB may still occur if the value is not representable in the target type.</li>
+<li><code>u64</code> and <code>usize</code> — on a 64-bit platform.</li>
+<li><code>*const &amp;'a u32</code> and <code>*mut &amp;'static u32</code> — these types are equal up to free lifetimes.</li>
+</ul>
+<p>Examples of incompatible types are:</p>
+<ul>
+<li><code>usize</code> and <code>*const _</code> — pointers and integers are not compatible.</li>
+<li><code>*const fn(&amp;'static ())</code> and <code>*const for&lt;'a&gt; fn(&amp;'a ())</code> — these types are not equal up to free lifetimes.</li>
+</ul>
+<div class="rule" id="r-items.fn.c-variadic.abi-compatibility"><a class="rule-link" href="#r-items.fn.c-variadic.abi-compatibility" title="items.fn.c-variadic.abi-compatibility"><span>[items<wbr>.fn<wbr>.c-variadic<wbr>.abi-compatibility]</span></a>
+</div>
+
+<p><a href="../special-types-and-traits.html#r-lang-types.va-list"><code>VaList</code></a> is ABI compatible with the C <code>va_list</code> type.</p>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use core::ffi::{c_char, c_int, VaList};
+</span>unsafe extern "C" {
+    // The C `vprintf` function is:
+    //
+    //     int vprintf(const char *format, va_list ap);
+    //
+    unsafe fn vprintf(fmt: *const c_char, ap: VaList&lt;'_&gt;) -&gt; c_int;
+}
+   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
+unsafe extern "C" fn print(fmt: *const c_char, ap: ...) -&gt; c_int {
+    // The `VaList` is passed directly to the C function.
+    unsafe { vprintf(fmt, ap) }
+}
+<span class="boring">}</span></code></pre>
+<div class="rule" id="r-items.fn.c-variadic.abi"><a class="rule-link" href="#r-items.fn.c-variadic.abi" title="items.fn.c-variadic.abi"><span>[items<wbr>.fn<wbr>.c-variadic<wbr>.abi]</span></a>
+</div>
+
+<p>Only <code>extern "C"</code> and <code>extern "C-unwind"</code> function definitions can accept a variable argument list.</p>
+<pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>unsafe fn f(ap: ...) {} // ERROR: Not supported.
+<span class="boring">}</span></code></pre>
+<pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>unsafe extern "sysv64" fn f(ap: ...) {} // ERROR: Not supported.
+<span class="boring">}</span></code></pre>
+<div class="rule" id="r-items.fn.c-variadic.safety"><a class="rule-link" href="#r-items.fn.c-variadic.safety" title="items.fn.c-variadic.safety"><span>[items<wbr>.fn<wbr>.c-variadic<wbr>.safety]</span></a>
+</div>
+
+<p>When a variable argument list is used in the signature:</p>
+<ul>
+<li>Function definitions must be <code>unsafe</code>.</li>
+<li>Function declarations within trait definitions must be <code>unsafe</code>.</li>
+<li>Function declarations in <code>extern</code> blocks may be <code>safe</code>.</li>
+</ul>
+<pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>extern "C" fn f(ap: ...) {} // ERROR: Must be `unsafe`.
+<span class="boring">}</span></code></pre>
+<pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>trait Tr {
+    extern "C" fn f(ap: ...); // ERROR: Must be `unsafe`.
+}
+<span class="boring">}</span></code></pre>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>unsafe extern "C" {
+    safe fn f(ap: ...); // OK.
+}
+<span class="boring">}</span></code></pre>
+<div class="alert alert-note">
+<blockquote>
+<p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+
+<p>For <code>safe</code> function declarations in an <code>extern</code> block, see the warning in <a href="external-blocks.html#r-items.extern.variadic">items.extern.variadic</a>.</p>
+</blockquote>
+</div>
+
+<div class="rule" id="r-items.fn.c-variadic.async"><a class="rule-link" href="#r-items.fn.c-variadic.async" title="items.fn.c-variadic.async"><span>[items<wbr>.fn<wbr>.c-variadic<wbr>.async]</span></a>
+</div>
+
+<p>A C-variadic function cannot be <code>async</code>.</p>
+<pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async unsafe extern "C" fn f(ap: ...) {} // ERROR: Cannot be `async`.
+<span class="boring">}</span></code></pre>
+<div class="rule" id="r-items.fn.c-variadic.const"><a class="rule-link" href="#r-items.fn.c-variadic.const" title="items.fn.c-variadic.const"><span>[items<wbr>.fn<wbr>.c-variadic<wbr>.const]</span></a>
+</div>
+
+<p>A C-variadic function cannot be <code>const</code>.</p>
+<pre class="playground"><code class="language-rust compile_fail E0658 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>const unsafe extern "C" fn f(ap: ...) {} // ERROR: Cannot be `const`.
+<span class="boring">}</span></code></pre>
+<div class="rule" id="r-items.fn.c-variadic.stable-targets"><a class="rule-link" href="#r-items.fn.c-variadic.stable-targets" title="items.fn.c-variadic.stable-targets"><span>[items<wbr>.fn<wbr>.c-variadic<wbr>.stable-targets]</span></a>
+</div>
+
+<p>Support for C-variadic function definitions is stable on the following target architectures:</p>
+<ul>
+<li>x86 및 x86-64</li>
+<li>ARM</li>
+<li>AArch64 및 Arm64EC</li>
+<li>RISC-V 32-bit and 64-bit (except when using the ilp32e ABI)</li>
+<li>LoongArch 32-bit and 64-bit</li>
+<li>s390x</li>
+<li>PowerPC and PowerPC64</li>
+<li>AMDGPU and NVPTX</li>
+<li>Wasm32 and Wasm64</li>
+<li>C-SKY</li>
+<li>Xtensa</li>
+<li>Hexagon</li>
+<li>SPARC64</li>
+<li>MIPS</li>
+</ul>
+<div class="alert alert-note">
+<blockquote>
+<p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+
+<p>Some target architectures (e.g., BPF) do not support C-variadic function definitions. The compiler will emit an error if such a definition is used on an unsupported target.</p>
+</blockquote>
+</div>
+
 <div class="rule" id="r-items.fn.attributes"><a class="rule-link" href="#r-items.fn.attributes" title="items.fn.attributes"><span>[items<wbr>.fn<wbr>.attributes]</span></a>
 </div>
 

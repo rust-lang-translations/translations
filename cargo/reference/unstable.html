@@ -97,7 +97,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d45253d3.js";
+            window.path_to_searchindex_js = "../searchindex-06562f58.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-d4808052.js"></script>
@@ -313,7 +313,6 @@ build-std = ["core", "alloc"]
 <li><a href="#msrv-policy">msrv-policy</a> — MSRV-aware resolver and version selection</li>
 <li><a href="#precise-pre-release">precise-pre-release</a> — Allows pre-release versions to be selected with <code>update --precise</code></li>
 <li><a href="#sbom">sbom</a> — Generates SBOM pre-cursor files for compiled artifacts</li>
-<li><a href="#update-breaking">update-breaking</a> — Allows upgrading to breaking versions with <code>update --breaking</code></li>
 <li><a href="#feature-unification">feature-unification</a> — Enable new feature unification modes in workspaces</li>
 <li><a href="#lockfile-publish-time">lockfile-publish-time</a> — Limit resolver to packages older than the specified time</li>
 <li><a href="#min-publish-age">min-publish-age</a> — Filters out dependency versions published more recently than a configured minimum age.</li>
@@ -671,7 +670,7 @@ that are uplifted into the target or artifact directories.</p>
         {
           // Index in to the crates array.
           "index": 1,
-          // Dependency kind: 
+          // Dependency kind:
           // Normal: A dependency linked to the artifact produced by this crate.
           // Build: A compile-time dependency used to build this crate (build-script or proc-macro).
           "kind": "normal"
@@ -707,26 +706,6 @@ that are uplifted into the target or artifact directories.</p>
   }
 }
 </code></pre>
-<h2 id="update-breaking"><a class="header" href="#update-breaking">update-breaking</a></h2>
-<ul>
-<li>Tracking Issue: <a href="https://github.com/rust-lang/cargo/issues/12425">#12425</a></li>
-</ul>
-<p>Allow upgrading dependencies version requirements in <code>Cargo.toml</code> across SemVer
-incompatible versions using with the <code>--breaking</code> flag.</p>
-<p>This only applies to dependencies when</p>
-<ul>
-<li>The package is a dependency of a workspace member</li>
-<li>The dependency is not renamed</li>
-<li>A SemVer-incompatible version is available</li>
-<li>The “SemVer operator” is used (<code>^</code> which is the default)</li>
-</ul>
-<p>Users may further restrict which packages get upgraded by specifying them on
-the command line.</p>
-<p>Example:</p>
-<pre><code class="language-console">$ cargo +nightly -Zunstable-options update --breaking
-$ cargo +nightly -Zunstable-options update --breaking clap
-</code></pre>
-<p><em>This is meant to fill a similar role as <a href="https://github.com/killercup/cargo-edit/">cargo-upgrade</a></em></p>
 <h2 id="build-std"><a class="header" href="#build-std">build-std</a></h2>
 <ul>
 <li>Tracking Repository: <a href="https://github.com/rust-lang/wg-cargo-std-aware">https://github.com/rust-lang/wg-cargo-std-aware</a></li>
@@ -1381,9 +1360,10 @@ you are ok with dev-deps being build for <code>cargo doc</code>.</p>
 <ul>
 <li>Tracking Issue: <a href="https://github.com/rust-lang/cargo/issues/13283">#13283</a></li>
 </ul>
-<p>This flag determines the output format of <code>cargo rustdoc</code>, accepting <code>html</code> or <code>json</code>, providing tools with a way to lean on <a href="https://doc.rust-lang.org/nightly/nightly-rustc/rustdoc_json_types/">rustdoc’s experimental JSON format</a>.</p>
+<p>This flag determines the output format of <code>cargo rustdoc</code> and <code>cargo doc</code>, accepting <code>html</code> or <code>json</code>, providing tools with a way to lean on <a href="https://doc.rust-lang.org/nightly/nightly-rustc/rustdoc_json_types/">rustdoc’s experimental JSON format</a>.</p>
 <p>You can use the flag like this:</p>
 <pre><code>cargo rustdoc -Z unstable-options --output-format json
+cargo doc -Z unstable-options --output-format json
 </code></pre>
 <h2 id="codegen-backend"><a class="header" href="#codegen-backend">codegen-backend</a></h2>
 <p>The <code>codegen-backend</code> feature makes it possible to select the codegen backend used by rustc using a profile.</p>
@@ -1602,7 +1582,7 @@ e.g. <code>/home/username/.cargo/registry/src/index.crates.io-6f17d22d3f0a95d1/f
 which replaces the checkout directory.
 <code>&lt;revision&gt;</code> is a prefix of the resolved commit ID recorded in the lockfile.</li>
 <li>Path to a path dependency outside the workspace will be replaced with
-<code>/cargo/path/&lt;package name&gt;-&lt;package version&gt;</code>.</li>
+<code>/cargo/deps/&lt;package name&gt;-&lt;package version&gt;</code>.</li>
 <li>Path into the build directory, for example <code>OUT_DIR</code> generated sources,
 will begin with <code>/cargo/build-dir</code>.</li>
 </ol>
@@ -1619,6 +1599,9 @@ if it isn’t, then they will show up as <code>/rustc/[rustc commit hash]/librar
 (just like when it is selected for sanitization).
 Paths to all other source files will not be affected.</p>
 <p>This will not affect any hard-coded paths in the source code, such as in strings.</p>
+<p>The exact remap path prefixes are not stable across Cargo versions.
+Tools that map paths embedded in artifacts back to local sources
+should consume unremap files instead of interpreting these prefixes.</p>
 <h5 id="unremap-files"><a class="header" href="#unremap-files">Unremap files</a></h5>
 <p>When the <code>object</code> scope is active and debuginfo is enabled,
 Cargo writes an unremap file beside each final artifact.
@@ -1642,6 +1625,7 @@ which is the inverse of <code>--remap-path-prefix</code>.</li>
 <p>An example of the unremap file:</p>
 <pre><code class="language-json">{"v":1}
 {"rust_version":"1.96.0-nightly","workspace_root":"/home/me/app"}
+{"from":".","to":"/home/me/app"}
 {"from":"/cargo/build-dir","to":"/home/me/app/target"}
 {"from":"/cargo/registry/6f17d22d3f0a95d1","to":"/home/me/.cargo/registry/src/index.crates.io-6f17d22d3f0a95d1"}
 {"from":"/rustc/abc123","to":"/home/me/.rustup/toolchains/nightly/lib/rustlib/src/rust"}
@@ -2069,8 +2053,7 @@ incompatible-publish-age = "deny" # Specifies how resolver reacts to these
 min-publish-age = "..."  # Override `registry.global-min-publish-age` for this registry
 
 [registry]
-min-publish-age = "..."  # Override `registry.global-min-publish-age` for crates.io
-global-min-publish-age = "0"  # Minimum time span allowed for packages from this registry
+global-min-publish-age = "0"  # Minimum time span allowed for registry packages by default
 </code></pre>
 <h4 id="resolverincompatible-publish-age"><a class="header" href="#resolverincompatible-publish-age"><code>resolver.incompatible-publish-age</code></a></h4>
 <ul>
@@ -2080,7 +2063,7 @@ global-min-publish-age = "0"  # Minimum time span allowed for packages from this
 </ul>
 <p>When resolving the version of a dependency,
 specify the behavior for versions with a <code>pubtime</code> (if present)
-that is incompatible with <code>registry.min-publish-age</code>.
+that is incompatible with the configured <code>min-publish-age</code>.
 Values include:</p>
 <ul>
 <li><code>allow</code>: treat pubtime-incompatible versions like any other version</li>
@@ -2101,21 +2084,6 @@ registry. If not set, <code>registry.global-min-publish-age</code> will be used.
 <li>An integer followed by “seconds”, “minutes”, “hours”, “days”, “weeks”, or “months”</li>
 <li><code>"0"</code> to allow all packages</li>
 </ul>
-<h4 id="registrymin-publish-age"><a class="header" href="#registrymin-publish-age"><code>registry.min-publish-age</code></a></h4>
-<ul>
-<li>Type: String</li>
-<li>Default: none</li>
-<li>Environment: <code>CARGO_REGISTRY_MIN_PUBLISH_AGE</code></li>
-</ul>
-<p>Specifies the minimum timespan since a version’s <code>pubtime</code> that it may be
-considered for <code>resolver.incompatible-publish-age</code> for packages from crates.io.
-If not set, <code>registry.global-min-publish-age</code> will be used.</p>
-<p>It supports the following values:</p>
-<ul>
-<li>An integer followed by “seconds”, “minutes”, “hours”, “days”, “weeks”, or “months”</li>
-<li><code>"0"</code> to allow all packages</li>
-</ul>
-<p>Generally, <code>"0"</code>, <code>"N days"</code>, and <code>"N weeks"</code> will be used.</p>
 <h4 id="registryglobal-min-publish-age"><a class="header" href="#registryglobal-min-publish-age"><code>registry.global-min-publish-age</code></a></h4>
 <ul>
 <li>Type: String</li>
@@ -2331,6 +2299,9 @@ See the <a href="config.html#include"><code>include</code> config documentation<
 <p>Support for <code>resolver.lockfile-path</code> config field has been stabilized in Rust 1.97.0.</p>
 <h2 id="warnings"><a class="header" href="#warnings">warnings</a></h2>
 <p>The <code>build.warnings</code> config field has been stabilized in Rust 1.97.</p>
+<h2 id="update-breaking"><a class="header" href="#update-breaking">update-breaking</a></h2>
+<p>The <code>cargo update -Zunstable-options --breaking</code> flag has been removed in 1.99-nightly.
+See <a href="https://github.com/rust-lang/cargo/pull/17333">https://github.com/rust-lang/cargo/pull/17333</a> fopr the reason for its removal.</p>
 
                     </main>
 
