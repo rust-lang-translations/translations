@@ -94,7 +94,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-abef3581.js";
+            window.path_to_searchindex_js = "searchindex-1060a290.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1af1b443.js"></script>
@@ -1087,46 +1087,6 @@ fn main() {
 }</code></pre>
 <p>수명 시스템은 <code>loan</code> 의 수명과 <code>mutate_and_share</code> 의 시그니처 때문에 <code>&amp;mut foo</code> 의 수명을 <code>'c</code> 로 확장해야 합니다. 그런 다음 우리가 <code>share</code> 를 호출하려고 할 때, 시스템은 우리가 <code>&amp;'c mut foo</code> 를 별칭(alias)하려고 한다는 것을 감지하고 에러를 터뜨립니다!</p>
 <p>이 프로그램은 우리가 실제로 신경 쓰는 참조 의미론에 따르면 분명히 올바르지만, 수명 시스템이 너무 거칠어서(coarse-grained) 이를 처리하지 못합니다.</p>
-<h2 id="부적절하게-축소된-대여improperly-reduced-borrows"><a class="header" href="#부적절하게-축소된-대여improperly-reduced-borrows">부적절하게 축소된 대여(Improperly reduced borrows)</a></h2>
-<p>다음 코드는 컴파일에 실패합니다. 러스트가 변수 <code>map</code> 이 두 번 대여되는 것을 보고, 두 번째 대여가 발생하기 전에 첫 번째 대여의 필요성이 사라진다는 것을 추론하지 못하기 때문입니다. 이는 러스트가 보수적으로 첫 번째 대여에 전체 스코프를 사용하도록 대체하기 때문에 발생합니다. 이것은 결국 수정될 것입니다.</p>
-<pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span><span class="boring">use std::collections::HashMap;
-</span><span class="boring">use std::hash::Hash;
-</span>fn get_default&lt;'m, K, V&gt;(map: &amp;'m mut HashMap&lt;K, V&gt;, key: K) -&gt; &amp;'m mut V
-where
-    K: Clone + Eq + Hash,
-    V: Default,
-{
-    match map.get_mut(&amp;key) {
-        Some(value) =&gt; value,
-        None =&gt; {
-            map.insert(key.clone(), V::default());
-            map.get_mut(&amp;key).unwrap()
-        }
-    }
-}
-<span class="boring">}</span></code></pre>
-<p>부과된 수명 제한 때문에 <code>&amp;mut map</code> 의 수명이 다른 가변 대여와 겹쳐서 컴파일 에러가 발생합니다:</p>
-<pre><code class="language-text">error[E0499]: cannot borrow `*map` as mutable more than once at a time
-  --&gt; src/main.rs:12:13
-   |
-4  |   fn get_default&lt;'m, K, V&gt;(map: &amp;'m mut HashMap&lt;K, V&gt;, key: K) -&gt; &amp;'m mut V
-   |                  -- lifetime `'m` defined here
-...
-9  |       match map.get_mut(&amp;key) {
-   |       -     --- first mutable borrow occurs here
-   |  _____|
-   | |
-10 | |         Some(value) =&gt; value,
-11 | |         None =&gt; {
-12 | |             map.insert(key.clone(), V::default());
-   | |             ^^^ second mutable borrow occurs here
-13 | |             map.get_mut(&amp;key).unwrap()
-14 | |         }
-15 | |     }
-   | |_____- returning this value requires that `*map` is borrowed for `'m`
-</code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="수명-생략"><a class="header" href="#수명-생략">수명 생략</a></h1>
 <p>일반적인 패턴을 더 인체공학적으로 만들기 위해, 러스트는 함수 시그니처에서 수명을 <em>생략(elide)</em> 할 수 있게 허용합니다.</p>

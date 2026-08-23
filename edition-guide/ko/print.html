@@ -93,10 +93,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-56476814.js";
+            window.path_to_searchindex_js = "searchindex-9c592b2e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-8ce05715.js"></script>
+        <script src="toc-1238e310.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -2415,9 +2415,7 @@ fn absurd&lt;T&gt;(x: !) -&gt; T { x }
 <p>자동 수정 기능은 없지만, 에디션 변경으로 인해 깨질 코드를 자동으로 감지하는 기능은 있습니다. 이전 에디션을 사용하는 동안 코드가 깨질 경우 경고가 표시됩니다.</p>
 <p>해결 방법은 폴백 타입이 사용되지 않도록 타입을 명시적으로 지정하는 것입니다. 불행히도 어떤 타입을 지정해야 하는지 파악하는 것이 쉽지 않을 수 있습니다.</p>
 <p>이 변경으로 인해 깨지는 가장 일반적인 패턴 중 하나는 <code>f()?;</code> 를 사용하는 경우인데, 여기서 <code>f</code> 는 반환 타입의 <code>Ok</code> 부분에 대해 제네릭입니다:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span><span class="boring">#![allow(dependency_on_unit_never_type_fallback)]
+<pre><code class="language-rust ignore"><span class="boring">#![allow(dependency_on_unit_never_type_fallback)]
 </span><span class="boring">fn outer&lt;T&gt;(x: T) -&gt; Result&lt;T, ()&gt; {
 </span>fn f&lt;T: Default&gt;() -&gt; Result&lt;T, ()&gt; {
     Ok(T::default())
@@ -2425,7 +2423,6 @@ fn absurd&lt;T&gt;(x: !) -&gt; T { x }
 심지어 `panic!(123)` 과 같이 문자열이 아닌 것도 허용하는데, 이는 드물고 거의 유용하지 않습니다. 왜냐하면 놀라울 정도로 도움이 되지 않는 메시지인 `panicked at 'Box&lt;Any&gt;'` 를 생성하기 때문입니다.
 f()?;
 <span class="boring">Ok(x)
-</span><span class="boring">}
 </span><span class="boring">}</span></code></pre>
 <p>이 예제에서 타입 <code>T</code> 를 추론할 수 없다고 생각할 수 있습니다. 하지만 현재 <code>?</code> 연산자의 탈탕(desugaring) 방식 때문에 이전에는 <code>()</code> 로 추론되었으나, 이제는 <code>!</code> 로 추론됩니다.</p>
 <p>이 문제를 해결하려면 <code>T</code> 타입을 명시적으로 지정해야 합니다:</p>
@@ -2443,9 +2440,7 @@ f()?;
 </span><span class="boring">}
 </span><span class="boring">}</span></code></pre>
 <p>비교적 흔한 또 다른 케이스는 클로저 내에서의 패닉입니다:</p>
-<pre class="playground"><code class="language-rust should_panic"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span><span class="boring">#![allow(dependency_on_unit_never_type_fallback)]
+<pre><code class="language-rust should_panic ignore"><span class="boring">#![allow(dependency_on_unit_never_type_fallback)]
 </span>trait Unit {}
 impl Unit for () {}
 심지어 `panic!(123)` 과 같이 문자열이 아닌 것도 허용하는데, 이는 드물고 거의 유용하지 않습니다. 왜냐하면 놀라울 정도로 도움이 되지 않는 메시지인 `panicked at 'Box&lt;Any&gt;'` 를 생성하기 때문입니다.
@@ -2453,8 +2448,7 @@ fn run&lt;R: Unit&gt;(f: impl FnOnce() -&gt; R) {
     f();
 }
 심지어 `panic!(123)` 과 같이 문자열이 아닌 것도 허용하는데, 이는 드물고 거의 유용하지 않습니다. 왜냐하면 놀라울 정도로 도움이 되지 않는 메시지인 `panicked at 'Box&lt;Any&gt;'` 를 생성하기 때문입니다.
-run(|| panic!());
-<span class="boring">}</span></code></pre>
+run(|| panic!());</code></pre>
 <p>이전에는 <code>panic!</code> 의 <code>!</code> 가 <code>Unit</code> 을 구현하는 <code>()</code> 로 강제 변환되었습니다. 하지만 이제는 <code>!</code> 가 <code>!</code> 로 유지되므로 <code>!</code> 가 <code>Unit</code> 을 구현하지 않아 이 코드는 실패합니다. 이 문제를 해결하려면 클로저의 반환 타입을 지정할 수 있습니다:</p>
 <pre class="playground"><code class="language-rust edition2024 should_panic"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2468,15 +2462,12 @@ run(|| panic!());
 </span>run(|| -&gt; () { panic!() });
 <span class="boring">}</span></code></pre>
 <p><code>f()?</code> 와 유사한 사례로, 한 분기에서는 <code>!</code> 타입 표현식을 사용하고 다른 분기에서는 반환 타입이 제한되지 않은 함수를 사용할 때 볼 수 있습니다:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span><span class="boring">#![allow(dependency_on_unit_never_type_fallback)]
+<pre><code class="language-rust ignore"><span class="boring">#![allow(dependency_on_unit_never_type_fallback)]
 </span>if true {
     Default::default()
 } else {
     return
-};
-<span class="boring">}</span></code></pre>
+};</code></pre>
 <p>이전에는 <code>return</code> 의 <code>!</code> 가 <code>()</code> 로 잘못 강제 변환되었기 때문에 <code>Default::default()</code> 의 반환 타입으로 <code>()</code> 가 추론되었습니다. 이제는 대신 <code>!</code> 가 추론되어 <code>!</code> 가 <code>Default</code> 를 구현하지 않으므로 이 코드는 컴파일되지 않습니다.</p>
 <p>마찬가지로, 타입을 명시적으로 지정하여 해결할 수 있습니다:</p>
 <pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
@@ -2834,34 +2825,35 @@ rand = { version = "0.8.5", default-features = false }
 <p><code>cargo fix --edition</code> 을 사용할 때, Cargo는 <code>Cargo.toml</code> 파일을 자동으로 업데이트하여 선호되는 테이블 및 키 이름을 사용하도록 합니다.</p>
 <p>If you prefer to update your <code>Cargo.toml</code> manually, be sure to go through the list above and make sure only the new forms are used.</p>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="cargo-사용되지-않는-상속된-기본-기능-거부"><a class="header" href="#cargo-사용되지-않는-상속된-기본-기능-거부">Cargo: 사용되지 않는 상속된 기본 기능 거부</a></h1>
+<h1 id="cargo-override-inherited-default-features"><a class="header" href="#cargo-override-inherited-default-features">Cargo: Override inherited default-features</a></h1>
 <h2 id="요약-34"><a class="header" href="#요약-34">요약</a></h2>
 <ul>
-<li>워크스페이스 의존성이 <code>default-features = true</code> 를 지정하거나 (<code>default-features</code>를 지정하지 않은 경우) 상속된 워크스페이스 의존성에서 <code>default-features = false</code>를 사용하는 것은 더 이상 허용되지 않습니다.</li>
+<li>Starting with Rust 1.99, <code>default-features</code> on an inherited dependency in a 2024 Edition package overrides the value from <code>[workspace.dependencies]</code>.</li>
 </ul>
 <h2 id="세부-정보-31"><a class="header" href="#세부-정보-31">세부 정보</a></h2>
-<p><a href="../cargo/reference/specifying-dependencies.html#inheriting-a-dependency-from-a-workspace">워크스페이스 상속(Workspace inheritance)</a>을 사용하면 의존성을 한 곳(워크스페이스)에 지정한 다음, 패키지 내에서 해당 워크스페이스 의존성을 참조할 수 있습니다. <code>default-features</code> 지정 방식에 의도치 않은 상호작용이 있었으며, 이는 2024 에디션에서 더 이상 허용되지 않습니다.</p>
-<p>워크스페이스가 <code>default-features = false</code> 를 지정하지 않는 한, 상속된 패키지 의존성에서 <code>default-features = false</code> 를 지정하는 것은 더 이상 허용되지 않습니다. 예를 들어, 다음과 같이 지정된 워크스페이스가 있다고 가정해 보겠습니다:</p>
+<p><a href="../cargo/reference/specifying-dependencies.html#inheriting-a-dependency-from-a-workspace">Workspace inheritance</a> allows you to specify dependencies in one place (the workspace), and then to refer to those workspace dependencies from within a package.</p>
+<p>In editions earlier than 2024, <code>default-features = false</code> is ignored when the workspace dependency specifies <code>default-features = true</code> (or does not specify <code>default-features</code>). The original 2024 Edition behavior in Rust 1.85 through 1.98 rejected this combination. Starting with Rust 1.99, a 2024 Edition package’s <code>default-features</code> setting overrides the workspace setting.</p>
+<p>For example, with a workspace that specifies:</p>
 <pre><code class="language-toml">[workspace.dependencies]
 regex = "1.10.4"
 </code></pre>
-<p>다음은 이제 오류입니다:</p>
+<p>The following disables the default features for <code>regex</code>:</p>
 <pre><code class="language-toml">[package]
 name = "foo"
 version = "1.0.0"
 edition = "2024"
 심지어 `panic!(123)` 과 같이 문자열이 아닌 것도 허용하는데, 이는 드물고 거의 유용하지 않습니다. 왜냐하면 놀라울 정도로 도움이 되지 않는 메시지인 `panicked at 'Box&lt;Any&gt;'` 를 생성하기 때문입니다.
 [dependencies]
-regex = { workspace = true, default-features = false }  # ERROR
+regex = { workspace = true, default-features = false }
 </code></pre>
-<p>이 변경의 이유는 기본 기능(default features)이 이미 활성화된 상태에서 <code>default-features = false</code>를 지정할 때 발생하는 혼란을 피하기 위해서입니다. 왜냐하면 이는 아무런 효과가 없기 때문입니다.</p>
-<p>의존성이 해당 의존성의 기본 기능을 활성화할지 여부를 결정하는 유연성을 원한다면, 워크스페이스 정의에서 <code>default-features = false</code> 로 설정해야 합니다. 단, 여러 워크스페이스 멤버를 동시에 빌드하는 경우 기능(feature)들이 통합되므로, 한 멤버가 <code>default-features = true</code> 로 설정하면(명시적으로 설정하지 않은 경우 이것이 기본값임) 해당 의존성을 사용하는 모든 멤버에 대해 기본 기능이 활성화된다는 점에 유의하세요.</p>
+<p>Just beware that if you build multiple workspace members at the same time, the features will be unified so that if one member sets <code>default-features = true</code> (which is the default if not explicitly set), the default-features will be enabled for all members using that dependency.</p>
 <h2 id="마이그레이션-29"><a class="header" href="#마이그레이션-29">마이그레이션</a></h2>
-<p><code>cargo fix --edition</code> 을 사용할 때, Cargo는 <code>Cargo.toml</code> 파일에서 이러한 상황의 <code>default-features = false</code> 를 자동으로 제거합니다.</p>
-<p>If you prefer to update your <code>Cargo.toml</code> manually, check for any warnings when running a build and remove the corresponding entries. Previous editions should display something like:</p>
+<p>When using <code>cargo fix --edition</code>, Cargo will automatically remove <code>default-features = false</code> in this situation. Without this fix, changing to the 2024 Edition would produce an error with Rust 1.85 through 1.98 and would disable default features with Rust 1.99 or newer.</p>
+<p>If you want to use the new behavior, add the setting back after changing to the 2024 Edition. If you prefer to migrate manually while preserving the previous behavior, remove the corresponding entries. Previous editions should display something like:</p>
 <pre><code class="language-text">warning: /home/project/Cargo.toml: `default-features` is ignored for regex,
-since `default-features` was not specified for `workspace.dependencies.regex`,
-this could become a hard error in the future
+since `default-features` was not specified for `workspace.dependencies.regex`;
+overriding workspace `default-features` to false requires Rust 1.99+
+and the 2024 edition
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="rustdoc"><a class="header" href="#rustdoc">Rustdoc</a></h1>

@@ -97,7 +97,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8d00b7a2.js";
+            window.path_to_searchindex_js = "../searchindex-c1db573e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-6b0c3669.js"></script>
@@ -307,7 +307,6 @@ build-std = ["core", "alloc"]
 <li>출력 동작
 <ul>
 <li><a href="#artifact-dir">artifact-dir</a> — 결과물이 복사될 디렉토리를 추가합니다.</li>
-<li><a href="#build-dir-new-layout">build-dir-new-layout</a> — Enables the new build-dir filesystem layout</li>
 <li><a href="#different-binary-name">Different binary name</a> — 빌드된 바이너리에 크레이트 이름과 별개의 이름을 할당합니다.</li>
 <li><a href="#root-dir">root-dir</a> — 경로가 출력될 기준이 되는 루트 디렉토리를 제어합니다.</li>
 </ul>
@@ -672,6 +671,27 @@ Hello, world!
 </ul>
 <p><code>-Z checksum-freshness</code> 플래그는 Cargo의 핑거프린트(fingerprint)에서 파일 mtime 대신 파일 체크섬 값을 사용하도록 대체합니다. 이는 mtime 구현이 부실한 시스템이나 CI/CD 환경에서 유용합니다. 체크섬 알고리즘은 Cargo 버전에 따라 예고 없이 변경될 수 있습니다. 핑거프린트는 Cargo가 크레이트 재빌드 필요 여부를 결정하는 데 사용됩니다.</p>
 <p>당분간은 <code>checksum-freshness</code> 가 활성화되어 있더라도 빌드 스크립트에서 사용되는 파일들은 계속해서 mtime을 사용합니다. 이는 장기적인 해결책으로 의도된 것은 아닙니다.</p>
+<pre><code class="language-toml"># .cargo/config.toml
+[unstable]
+checksum-freshness = true
+`git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
+[build]
+fingerprint = "content"
+</code></pre>
+<h3 id="buildfingerprint"><a class="header" href="#buildfingerprint"><code>build.fingerprint</code></a></h3>
+<ul>
+<li>타입: 문자열</li>
+<li>Default: <code>"mtime"</code></li>
+<li>Environment: <code>CARGO_BUILD_FINGERPRINT</code></li>
+</ul>
+<p>Select the method used for detecting when a build should occur based on source input changes.</p>
+<ul>
+<li><code>mtime</code>: Last modified time of the input</li>
+<li><code>content</code>: Checksum of the input</li>
+</ul>
+<blockquote>
+<p>[!NOTE] This does not affect the build script <code>cargo::rerun-if-changed</code> directive.</p>
+</blockquote>
 <h2 id="panic-abort-tests"><a class="header" href="#panic-abort-tests">panic-abort-tests</a></h2>
 <ul>
 <li>추적 이슈: <a href="https://github.com/rust-lang/rust/issues/67650">#67650</a></li>
@@ -1409,7 +1429,6 @@ panic = "immediate-abort"
 <li>Tracking Issue: <a href="https://github.com/rust-lang/cargo/issues/4282">#4282</a></li>
 </ul>
 <p>Use fine grain locking instead of locking the entire build cache.</p>
-<p>Note: Fine grain locking implicitly enables <a href="#build-dir-new-layout">build-dir-new-layout</a> as fine grain locking builds on that directory reoganization.</p>
 <h2 id="lintscargo"><a class="header" href="#lintscargo"><code>[lints.cargo]</code></a></h2>
 <ul>
 <li>추적 이슈: <a href="https://github.com/rust-lang/cargo/issues/12235">#12235</a></li>
@@ -1598,11 +1617,6 @@ enabled = true
 <li><code>cargo report timings</code> — Generates an HTML timing report from a previous session, similar to <code>cargo build --timings</code> but without rebuilding.</li>
 <li><code>cargo report rebuilds</code> — Reports why crates were rebuilt, helping diagnose unexpected recompilations.</li>
 </ul>
-<h2 id="build-dir-new-layout"><a class="header" href="#build-dir-new-layout">build-dir-new-layout</a></h2>
-<ul>
-<li>Tracking Issue: <a href="https://github.com/rust-lang/cargo/issues/15010">#15010</a></li>
-</ul>
-<p>Enables the new build-dir filesystem layout. This layout change unblocks work towards caching and locking improvements.</p>
 <h2 id="compile-time-deps"><a class="header" href="#compile-time-deps">compile-time-deps</a></h2>
 <p>This permanently-unstable flag to only build proc-macros and build scripts (and their required dependencies), as well as run the build scripts.</p>
 <p>It is intended for use by tools like rust-analyzer and will never be stabilized.</p>
@@ -1806,6 +1820,8 @@ global-min-publish-age = "0"  # Minimum time span allowed for registry packages 
 <p>The <code>build.warnings</code> config field has been stabilized in Rust 1.97.</p>
 <h2 id="update-breaking"><a class="header" href="#update-breaking">update-breaking</a></h2>
 <p>The <code>cargo update -Zunstable-options --breaking</code> flag has been removed in 1.99-nightly. See <a href="https://github.com/rust-lang/cargo/pull/17333">https://github.com/rust-lang/cargo/pull/17333</a> fopr the reason for its removal.</p>
+<h2 id="build-dir-new-layout"><a class="header" href="#build-dir-new-layout">build-dir-new-layout</a></h2>
+<p>The new build-dir filesystem layout was stabilized in the 1.100.0 release.</p>
 
                     </main>
 

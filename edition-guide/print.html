@@ -93,10 +93,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6f6f1bf5.js";
+            window.path_to_searchindex_js = "searchindex-4fa65af7.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-33a0e6fd.js"></script>
+        <script src="toc-a024ee56.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -2780,9 +2780,7 @@ fn absurd&lt;T&gt;(x: !) -&gt; T { x }
 <p>There is no automatic fix, but there is automatic detection of code that will be broken by the edition change.  While still on a previous edition you will see warnings if your code will be broken.</p>
 <p>The fix is to specify the type explicitly so that the fallback type is not used.  Unfortunately, it might not be trivial to see which type needs to be specified.</p>
 <p>One of the most common patterns broken by this change is using <code>f()?;</code> where <code>f</code> is generic over the <code>Ok</code>-part of the return type:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span><span class="boring">#![allow(dependency_on_unit_never_type_fallback)]
+<pre><code class="language-rust ignore"><span class="boring">#![allow(dependency_on_unit_never_type_fallback)]
 </span><span class="boring">fn outer&lt;T&gt;(x: T) -&gt; Result&lt;T, ()&gt; {
 </span>fn f&lt;T: Default&gt;() -&gt; Result&lt;T, ()&gt; {
     Ok(T::default())
@@ -2790,7 +2788,6 @@ fn absurd&lt;T&gt;(x: !) -&gt; T { x }
 
 f()?;
 <span class="boring">Ok(x)
-</span><span class="boring">}
 </span><span class="boring">}</span></code></pre>
 <p>You might think that, in this example, type <code>T</code> can’t be inferred.  However, due to the current desugaring of the <code>?</code> operator, it was inferred as <code>()</code>, and it will now be inferred as <code>!</code>.</p>
 <p>To fix the issue you need to specify the <code>T</code> type explicitly:</p>
@@ -2808,9 +2805,7 @@ f()?;
 </span><span class="boring">}
 </span><span class="boring">}</span></code></pre>
 <p>Another relatively common case is panicking in a closure:</p>
-<pre class="playground"><code class="language-rust should_panic"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span><span class="boring">#![allow(dependency_on_unit_never_type_fallback)]
+<pre><code class="language-rust should_panic ignore"><span class="boring">#![allow(dependency_on_unit_never_type_fallback)]
 </span>trait Unit {}
 impl Unit for () {}
 
@@ -2818,8 +2813,7 @@ fn run&lt;R: Unit&gt;(f: impl FnOnce() -&gt; R) {
     f();
 }
 
-run(|| panic!());
-<span class="boring">}</span></code></pre>
+run(|| panic!());</code></pre>
 <p>Previously <code>!</code> from the <code>panic!</code> coerced to <code>()</code> which implements <code>Unit</code>.  However now the <code>!</code> is kept as <code>!</code> so this code fails because <code>!</code> doesn’t implement <code>Unit</code>.  To fix this you can specify the return type of the closure:</p>
 <pre class="playground"><code class="language-rust edition2024 should_panic"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2833,15 +2827,12 @@ run(|| panic!());
 </span>run(|| -&gt; () { panic!() });
 <span class="boring">}</span></code></pre>
 <p>A similar case to that of <code>f()?</code> can be seen when using a <code>!</code>-typed expression in one branch and a function with an unconstrained return type in the other:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span><span class="boring">#![allow(dependency_on_unit_never_type_fallback)]
+<pre><code class="language-rust ignore"><span class="boring">#![allow(dependency_on_unit_never_type_fallback)]
 </span>if true {
     Default::default()
 } else {
     return
-};
-<span class="boring">}</span></code></pre>
+};</code></pre>
 <p>Previously <code>()</code> was inferred as the return type of <code>Default::default()</code> because <code>!</code> from <code>return</code> was spuriously coerced to <code>()</code>.  Now, <code>!</code> will be inferred instead causing this code to not compile because <code>!</code> does not implement <code>Default</code>.</p>
 <p>Again, this can be fixed by specifying the type explicitly:</p>
 <pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
@@ -3217,38 +3208,35 @@ rand = { version = "0.8.5", default-features = false }
 <p>When using <code>cargo fix --edition</code>, Cargo will automatically update your <code>Cargo.toml</code> file to use the preferred table and key names.</p>
 <p>If you prefer to update your <code>Cargo.toml</code> manually, be sure to go through the list above and make sure only the new forms are used.</p>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="cargo-reject-unused-inherited-default-features"><a class="header" href="#cargo-reject-unused-inherited-default-features">Cargo: Reject unused inherited default-features</a></h1>
+<h1 id="cargo-override-inherited-default-features"><a class="header" href="#cargo-override-inherited-default-features">Cargo: Override inherited default-features</a></h1>
 <h2 id="summary-34"><a class="header" href="#summary-34">Summary</a></h2>
 <ul>
-<li><code>default-features = false</code> is no longer allowed in an inherited workspace dependency if the workspace dependency specifies <code>default-features = true</code> (or does not specify <code>default-features</code>).</li>
+<li>Starting with Rust 1.99, <code>default-features</code> on an inherited dependency in a 2024 Edition package overrides the value from <code>[workspace.dependencies]</code>.</li>
 </ul>
 <h2 id="details-31"><a class="header" href="#details-31">Details</a></h2>
-<p><a href="../cargo/reference/specifying-dependencies.html#inheriting-a-dependency-from-a-workspace">Workspace inheritance</a> allows you to specify dependencies in one place (the workspace), and then to refer to those workspace dependencies from within a package.
-There was an inadvertent interaction with how <code>default-features</code> is specified that is no longer allowed in the 2024 Edition.</p>
-<p>Unless the workspace specifies <code>default-features = false</code>, it is no longer allowed to specify <code>default-features = false</code> in an inherited package dependency.
-For example, with a workspace that specifies:</p>
+<p><a href="../cargo/reference/specifying-dependencies.html#inheriting-a-dependency-from-a-workspace">Workspace inheritance</a> allows you to specify dependencies in one place (the workspace), and then to refer to those workspace dependencies from within a package.</p>
+<p>In editions earlier than 2024, <code>default-features = false</code> is ignored when the workspace dependency specifies <code>default-features = true</code> (or does not specify <code>default-features</code>). The original 2024 Edition behavior in Rust 1.85 through 1.98 rejected this combination. Starting with Rust 1.99, a 2024 Edition package’s <code>default-features</code> setting overrides the workspace setting.</p>
+<p>For example, with a workspace that specifies:</p>
 <pre><code class="language-toml">[workspace.dependencies]
 regex = "1.10.4"
 </code></pre>
-<p>The following is now an error:</p>
+<p>The following disables the default features for <code>regex</code>:</p>
 <pre><code class="language-toml">[package]
 name = "foo"
 version = "1.0.0"
 edition = "2024"
 
 [dependencies]
-regex = { workspace = true, default-features = false }  # ERROR
+regex = { workspace = true, default-features = false }
 </code></pre>
-<p>The reason for this change is to avoid confusion when specifying <code>default-features = false</code> when the default feature is already enabled, since it has no effect.</p>
-<p>If you want the flexibility of deciding whether or not a dependency enables the default-features of a dependency, be sure to set <code>default-features = false</code> in the workspace definition.
-Just beware that if you build multiple workspace members at the same time, the features will be unified so that if one member sets <code>default-features = true</code> (which is the default if not explicitly set), the default-features will be enabled for all members using that dependency.</p>
+<p>Just beware that if you build multiple workspace members at the same time, the features will be unified so that if one member sets <code>default-features = true</code> (which is the default if not explicitly set), the default-features will be enabled for all members using that dependency.</p>
 <h2 id="migration-28"><a class="header" href="#migration-28">Migration</a></h2>
-<p>When using <code>cargo fix --edition</code>, Cargo will automatically update your <code>Cargo.toml</code> file to remove <code>default-features = false</code> in this situation.</p>
-<p>If you prefer to update your <code>Cargo.toml</code> manually, check for any warnings when running a build and remove the corresponding entries.
-Previous editions should display something like:</p>
+<p>When using <code>cargo fix --edition</code>, Cargo will automatically remove <code>default-features = false</code> in this situation. Without this fix, changing to the 2024 Edition would produce an error with Rust 1.85 through 1.98 and would disable default features with Rust 1.99 or newer.</p>
+<p>If you want to use the new behavior, add the setting back after changing to the 2024 Edition. If you prefer to migrate manually while preserving the previous behavior, remove the corresponding entries. Previous editions should display something like:</p>
 <pre><code class="language-text">warning: /home/project/Cargo.toml: `default-features` is ignored for regex,
-since `default-features` was not specified for `workspace.dependencies.regex`,
-this could become a hard error in the future
+since `default-features` was not specified for `workspace.dependencies.regex`;
+overriding workspace `default-features` to false requires Rust 1.99+
+and the 2024 edition
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="rustdoc"><a class="header" href="#rustdoc">Rustdoc</a></h1>

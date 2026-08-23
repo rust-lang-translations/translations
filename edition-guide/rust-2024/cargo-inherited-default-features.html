@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Cargo: Reject unused inherited default-features - The Rust Edition Guide</title>
+        <title>Cargo: Override inherited default-features - The Rust Edition Guide</title>
 
 
         <!-- Custom HTML head -->
@@ -92,10 +92,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6f6f1bf5.js";
+            window.path_to_searchindex_js = "../searchindex-4fa65af7.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-33a0e6fd.js"></script>
+        <script src="../toc-a024ee56.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -237,38 +237,35 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="cargo-reject-unused-inherited-default-features"><a class="header" href="#cargo-reject-unused-inherited-default-features">Cargo: Reject unused inherited default-features</a></h1>
+                        <h1 id="cargo-override-inherited-default-features"><a class="header" href="#cargo-override-inherited-default-features">Cargo: Override inherited default-features</a></h1>
 <h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
 <ul>
-<li><code>default-features = false</code> is no longer allowed in an inherited workspace dependency if the workspace dependency specifies <code>default-features = true</code> (or does not specify <code>default-features</code>).</li>
+<li>Starting with Rust 1.99, <code>default-features</code> on an inherited dependency in a 2024 Edition package overrides the value from <code>[workspace.dependencies]</code>.</li>
 </ul>
 <h2 id="details"><a class="header" href="#details">Details</a></h2>
-<p><a href="../../cargo/reference/specifying-dependencies.html#inheriting-a-dependency-from-a-workspace">Workspace inheritance</a> allows you to specify dependencies in one place (the workspace), and then to refer to those workspace dependencies from within a package.
-There was an inadvertent interaction with how <code>default-features</code> is specified that is no longer allowed in the 2024 Edition.</p>
-<p>Unless the workspace specifies <code>default-features = false</code>, it is no longer allowed to specify <code>default-features = false</code> in an inherited package dependency.
-For example, with a workspace that specifies:</p>
+<p><a href="../../cargo/reference/specifying-dependencies.html#inheriting-a-dependency-from-a-workspace">Workspace inheritance</a> allows you to specify dependencies in one place (the workspace), and then to refer to those workspace dependencies from within a package.</p>
+<p>In editions earlier than 2024, <code>default-features = false</code> is ignored when the workspace dependency specifies <code>default-features = true</code> (or does not specify <code>default-features</code>). The original 2024 Edition behavior in Rust 1.85 through 1.98 rejected this combination. Starting with Rust 1.99, a 2024 Edition package’s <code>default-features</code> setting overrides the workspace setting.</p>
+<p>For example, with a workspace that specifies:</p>
 <pre><code class="language-toml">[workspace.dependencies]
 regex = "1.10.4"
 </code></pre>
-<p>The following is now an error:</p>
+<p>The following disables the default features for <code>regex</code>:</p>
 <pre><code class="language-toml">[package]
 name = "foo"
 version = "1.0.0"
 edition = "2024"
 
 [dependencies]
-regex = { workspace = true, default-features = false }  # ERROR
+regex = { workspace = true, default-features = false }
 </code></pre>
-<p>The reason for this change is to avoid confusion when specifying <code>default-features = false</code> when the default feature is already enabled, since it has no effect.</p>
-<p>If you want the flexibility of deciding whether or not a dependency enables the default-features of a dependency, be sure to set <code>default-features = false</code> in the workspace definition.
-Just beware that if you build multiple workspace members at the same time, the features will be unified so that if one member sets <code>default-features = true</code> (which is the default if not explicitly set), the default-features will be enabled for all members using that dependency.</p>
+<p>Just beware that if you build multiple workspace members at the same time, the features will be unified so that if one member sets <code>default-features = true</code> (which is the default if not explicitly set), the default-features will be enabled for all members using that dependency.</p>
 <h2 id="migration"><a class="header" href="#migration">Migration</a></h2>
-<p>When using <code>cargo fix --edition</code>, Cargo will automatically update your <code>Cargo.toml</code> file to remove <code>default-features = false</code> in this situation.</p>
-<p>If you prefer to update your <code>Cargo.toml</code> manually, check for any warnings when running a build and remove the corresponding entries.
-Previous editions should display something like:</p>
+<p>When using <code>cargo fix --edition</code>, Cargo will automatically remove <code>default-features = false</code> in this situation. Without this fix, changing to the 2024 Edition would produce an error with Rust 1.85 through 1.98 and would disable default features with Rust 1.99 or newer.</p>
+<p>If you want to use the new behavior, add the setting back after changing to the 2024 Edition. If you prefer to migrate manually while preserving the previous behavior, remove the corresponding entries. Previous editions should display something like:</p>
 <pre><code class="language-text">warning: /home/project/Cargo.toml: `default-features` is ignored for regex,
-since `default-features` was not specified for `workspace.dependencies.regex`,
-this could become a hard error in the future
+since `default-features` was not specified for `workspace.dependencies.regex`;
+overriding workspace `default-features` to false requires Rust 1.99+
+and the 2024 edition
 </code></pre>
 
                     </main>

@@ -92,10 +92,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6f6f1bf5.js";
+            window.path_to_searchindex_js = "../searchindex-4fa65af7.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-33a0e6fd.js"></script>
+        <script src="../toc-a024ee56.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -287,9 +287,7 @@ fn absurd&lt;T&gt;(x: !) -&gt; T { x }
 <p>There is no automatic fix, but there is automatic detection of code that will be broken by the edition change.  While still on a previous edition you will see warnings if your code will be broken.</p>
 <p>The fix is to specify the type explicitly so that the fallback type is not used.  Unfortunately, it might not be trivial to see which type needs to be specified.</p>
 <p>One of the most common patterns broken by this change is using <code>f()?;</code> where <code>f</code> is generic over the <code>Ok</code>-part of the return type:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span><span class="boring">#![allow(dependency_on_unit_never_type_fallback)]
+<pre><code class="language-rust ignore"><span class="boring">#![allow(dependency_on_unit_never_type_fallback)]
 </span><span class="boring">fn outer&lt;T&gt;(x: T) -&gt; Result&lt;T, ()&gt; {
 </span>fn f&lt;T: Default&gt;() -&gt; Result&lt;T, ()&gt; {
     Ok(T::default())
@@ -297,7 +295,6 @@ fn absurd&lt;T&gt;(x: !) -&gt; T { x }
 
 f()?;
 <span class="boring">Ok(x)
-</span><span class="boring">}
 </span><span class="boring">}</span></code></pre>
 <p>You might think that, in this example, type <code>T</code> can’t be inferred.  However, due to the current desugaring of the <code>?</code> operator, it was inferred as <code>()</code>, and it will now be inferred as <code>!</code>.</p>
 <p>To fix the issue you need to specify the <code>T</code> type explicitly:</p>
@@ -315,9 +312,7 @@ f()?;
 </span><span class="boring">}
 </span><span class="boring">}</span></code></pre>
 <p>Another relatively common case is panicking in a closure:</p>
-<pre class="playground"><code class="language-rust should_panic"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span><span class="boring">#![allow(dependency_on_unit_never_type_fallback)]
+<pre><code class="language-rust should_panic ignore"><span class="boring">#![allow(dependency_on_unit_never_type_fallback)]
 </span>trait Unit {}
 impl Unit for () {}
 
@@ -325,8 +320,7 @@ fn run&lt;R: Unit&gt;(f: impl FnOnce() -&gt; R) {
     f();
 }
 
-run(|| panic!());
-<span class="boring">}</span></code></pre>
+run(|| panic!());</code></pre>
 <p>Previously <code>!</code> from the <code>panic!</code> coerced to <code>()</code> which implements <code>Unit</code>.  However now the <code>!</code> is kept as <code>!</code> so this code fails because <code>!</code> doesn’t implement <code>Unit</code>.  To fix this you can specify the return type of the closure:</p>
 <pre class="playground"><code class="language-rust edition2024 should_panic"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -340,15 +334,12 @@ run(|| panic!());
 </span>run(|| -&gt; () { panic!() });
 <span class="boring">}</span></code></pre>
 <p>A similar case to that of <code>f()?</code> can be seen when using a <code>!</code>-typed expression in one branch and a function with an unconstrained return type in the other:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span><span class="boring">#![allow(dependency_on_unit_never_type_fallback)]
+<pre><code class="language-rust ignore"><span class="boring">#![allow(dependency_on_unit_never_type_fallback)]
 </span>if true {
     Default::default()
 } else {
     return
-};
-<span class="boring">}</span></code></pre>
+};</code></pre>
 <p>Previously <code>()</code> was inferred as the return type of <code>Default::default()</code> because <code>!</code> from <code>return</code> was spuriously coerced to <code>()</code>.  Now, <code>!</code> will be inferred instead causing this code to not compile because <code>!</code> does not implement <code>Default</code>.</p>
 <p>Again, this can be fixed by specifying the type explicitly:</p>
 <pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]

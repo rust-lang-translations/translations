@@ -94,7 +94,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2732d9f9.js";
+            window.path_to_searchindex_js = "searchindex-9f5baef7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-ebf7fde9.js"></script>
@@ -1602,50 +1602,6 @@ try to call <code>share</code>, it sees we’re trying to alias that <code>&amp;
 blows up in our face!</p>
 <p>This program is clearly correct according to the reference semantics we actually
 care about, but the lifetime system is too coarse-grained to handle that.</p>
-<h2 id="improperly-reduced-borrows"><a class="header" href="#improperly-reduced-borrows">Improperly reduced borrows</a></h2>
-<p>The following code fails to compile, because Rust sees that a variable, <code>map</code>,
-is borrowed twice, and can not infer that the first borrow ceases to be needed
-before the second one occurs. This is caused by Rust conservatively falling back
-to using a whole scope for the first borrow. This will eventually get fixed.</p>
-<pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span><span class="boring">use std::collections::HashMap;
-</span><span class="boring">use std::hash::Hash;
-</span>fn get_default&lt;'m, K, V&gt;(map: &amp;'m mut HashMap&lt;K, V&gt;, key: K) -&gt; &amp;'m mut V
-where
-    K: Clone + Eq + Hash,
-    V: Default,
-{
-    match map.get_mut(&amp;key) {
-        Some(value) =&gt; value,
-        None =&gt; {
-            map.insert(key.clone(), V::default());
-            map.get_mut(&amp;key).unwrap()
-        }
-    }
-}
-<span class="boring">}</span></code></pre>
-<p>Because of the lifetime restrictions imposed, <code>&amp;mut map</code>’s lifetime
-overlaps other mutable borrows, resulting in a compile error:</p>
-<pre><code class="language-text">error[E0499]: cannot borrow `*map` as mutable more than once at a time
-  --&gt; src/main.rs:12:13
-   |
-4  |   fn get_default&lt;'m, K, V&gt;(map: &amp;'m mut HashMap&lt;K, V&gt;, key: K) -&gt; &amp;'m mut V
-   |                  -- lifetime `'m` defined here
-...
-9  |       match map.get_mut(&amp;key) {
-   |       -     --- first mutable borrow occurs here
-   |  _____|
-   | |
-10 | |         Some(value) =&gt; value,
-11 | |         None =&gt; {
-12 | |             map.insert(key.clone(), V::default());
-   | |             ^^^ second mutable borrow occurs here
-13 | |             map.get_mut(&amp;key).unwrap()
-14 | |         }
-15 | |     }
-   | |_____- returning this value requires that `*map` is borrowed for `'m`
-</code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="lifetime-elision"><a class="header" href="#lifetime-elision">Lifetime Elision</a></h1>
 <p>In order to make common patterns more ergonomic, Rust allows lifetimes to be
