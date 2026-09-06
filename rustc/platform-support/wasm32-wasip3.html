@@ -92,10 +92,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-7315e907.js";
+            window.path_to_searchindex_js = "../searchindex-9e989d1b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2ad610a7.js"></script>
+        <script src="../toc-d3260e3e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -238,46 +238,48 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="wasm32-wasip3"><a class="header" href="#wasm32-wasip3"><code>wasm32-wasip3</code></a></h1>
-<p><strong>Tier: 3</strong></p>
+<p><strong>Tier: 2</strong></p>
 <p>The <code>wasm32-wasip3</code> target is the next stage of evolution of the
 <a href="./wasm32-wasip2.html"><code>wasm32-wasip2</code></a> target. The <code>wasm32-wasip3</code> target enables
 the Rust standard library to use WASIp3 APIs to implement various pieces of
 functionality. WASIp3 brings native async support over WASIp2, which integrates
-well with Rust’s <code>async</code> ecosystem.</p>
+well with Rust’s <code>async</code> ecosystem. Additionally a future release of Rust’s
+<code>wasm32-wasip3</code> target will support cooperative threading and <code>std::thread</code>
+APIs.</p>
+<p>The original proposal for adding this target can be found in
+<a href="https://github.com/rust-lang/compiler-team/issues/1001">rust-lang/compiler-team#1001</a> and this target is first available on stable in
+Rust 1.100.0. A notable major change from historical WebAssembly targets is that
+the ABI of this target is slightly different. The linear memory shadow stack
+pointer is stored in a component model task context slot instead of a
+WebAssembly<code> global</code>. Additionally the base pointer of TLS is managed
+differently than other targets. These changes are made to enable cooperative
+multithreading on this target.</p>
 <blockquote>
-<p><strong>Note</strong>: As of 2025-10-01 WASIp3 has not yet been approved by the WASI
-subgroup of the WebAssembly Community Group. Development is expected to
-conclude in late 2025 or early 2026. Until then the Rust standard library
-won’t actually use WASIp3 APIs on the <code>wasm32-wasip3</code> target as they are not
-yet stable and would reduce the stability of this target. Once WASIp3 is
-approved, however, the standard library will update to use WASIp3 natively.</p>
-</blockquote>
-<blockquote>
-<p><strong>Note</strong>: This target does not yet build as of 2025-10-01 due to and update
-needed in the <code>libc</code> crate. Using it will require a <code>[patch]</code> for now.</p>
-</blockquote>
-<blockquote>
-<p><strong>Note</strong>: Until the standard library is fully migrated to use the <code>wasip3</code>
-crate then components produced for <code>wasm32-wasip3</code> may import WASIp2 APIs.
-This is considered a transitionary phase until fully support of libstd is
-implemented.</p>
+<p><strong>Note</strong>: As of 2026-09-03 cooperative multithreading is not yet supported on
+this target in Rust. The component model specification and library support
+work for this is in-development and not yet complete, but it’s expected to be
+complete before the end of the year. Before that time spawning a thread via
+<code>std::thread</code> will return an error. Note though that this support can be
+tested through the <a href="#testing-cooperative-multithreading">instructions below</a>.</p>
 </blockquote>
 <h2 id="target-maintainers"><a class="header" href="#target-maintainers">Target maintainers</a></h2>
-<p><a href="https://github.com/alexcrichton">@alexcrichton</a></p>
+<p><a href="https://github.com/alexcrichton">@alexcrichton</a>
+<a href="https://github.com/yoshuawuyts">@yoshuawuyts</a></p>
 <h2 id="requirements"><a class="header" href="#requirements">Requirements</a></h2>
-<p>This target is cross-compiled. The target supports <code>std</code> fully.</p>
+<p>This target is cross-compiled. The target supports <code>std</code> fully. This target
+requires LLVM 23 to be used and additionally requires <code>wasi-sdk-34</code>-or-later if
+you’re building it locally or linking with this externally.</p>
 <h2 id="platform-requirements"><a class="header" href="#platform-requirements">Platform requirements</a></h2>
-<p>The WebAssembly runtime should support both WASIp2 and WASIp3. Runtimes also
-are required to support components since this target outputs a component as
-opposed to a core wasm module. Two example runtimes for WASIp3 are <a href="https://wasmtime.dev/">Wasmtime</a>
-and <a href="https://github.com/bytecodealliance/jco">Jco</a>.</p>
+<p>WebAssembly runtimes that want to execute components compiled for this target
+must support WASI 0.3.0 and the requisite required component model features
+(notably async). Two example runtimes for WASIp3 are <a href="https://wasmtime.dev/">Wasmtime</a> and <a href="https://github.com/bytecodealliance/jco">Jco</a>.</p>
 <h2 id="building-the-target"><a class="header" href="#building-the-target">Building the target</a></h2>
 <p>To build this target first acquire a copy of
-<a href="https://github.com/WebAssembly/wasi-sdk/"><code>wasi-sdk</code></a>. At this time version 22
+<a href="https://github.com/WebAssembly/wasi-sdk/"><code>wasi-sdk</code></a>. At this time version 34
 is the minimum needed.</p>
 <p>Next configure the <code>WASI_SDK_PATH</code> environment variable to point to where this
 is installed. For example:</p>
-<pre><code class="language-text">export WASI_SDK_PATH=/path/to/wasi-sdk-22.0
+<pre><code class="language-text">export WASI_SDK_PATH=/path/to/wasi-sdk-34.0
 </code></pre>
 <p>Next be sure to enable LLD when building Rust from source as LLVM’s <code>wasm-ld</code>
 driver for LLD is required when linking WebAssembly code together. Rust’s build
@@ -296,6 +298,70 @@ system will automatically pick up any necessary binaries and programs from
 <p>The default set of WebAssembly features enabled for compilation is currently the
 same as <a href="./wasm32-unknown-unknown.html"><code>wasm32-unknown-unknown</code></a>. See the
 documentation there for more information.</p>
+<h2 id="testing-cooperative-multithreading"><a class="header" href="#testing-cooperative-multithreading">Testing Cooperative Multithreading</a></h2>
+<p>The <a href="https://github.com/webassembly/component-model">component model specification</a> is in the process of adding intrinsics
+to support cooperative multithreading in a component guest. These intrinsics can
+be found in the <a href="https://github.com/WebAssembly/component-model/blob/main/design/mvp/Explainer.md">explainer</a> and are all gated by the 🧵 emoji. Support for
+cooperative multithreading is a work-in-progress and not yet complete, but the
+adventurous can configure this target to go ahead and test things out.</p>
+<p>The majority of changes necessary to get cooperative multithreading lie within
+Rust’s <a href="https://github.com/webassembly/wasi-libc">wasi-libc dependency</a>. This means that to test cooperative
+multithreading a different build than the default wasi-libc needs to be used.
+Starting with <a href="https://github.com/WebAssembly/wasi-sdk/releases/tag/wasi-sdk-34">wasi-sdk-34</a> there is a temporary sysroot which contains support
+for a wasip3 target that has multithreading enabled in wasi-libc. To test out
+the <code>wasm32-wasip3</code> Rust target with threads your compilation needs to be
+configured to use this sysroot.</p>
+<p>An example of doing this is this program:</p>
+<pre><code class="language-rust">fn main() {
+    std::thread::spawn(|| {
+        println!("hi");
+    })
+    .join()
+    .unwrap();
+}</code></pre>
+<p>is compiled and run by default as:</p>
+<pre><code class="language-console">$ rustc foo.rs --target wasm32-wasip3
+$ wasmtime foo.wasm
+
+thread 'main' (1) panicked at library/std/src/thread/functions.rs:131:29:
+failed to spawn thread: Os { code: 58, kind: Unsupported, message: "Not supported" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+Error: failed to run main module `foo.wasm`
+
+...
+</code></pre>
+<p>which shows that by default threads cannot be spawned. By configuring a custom
+sysroot to be used, however:</p>
+<pre><code class="language-console">$ rustc foo.rs --target wasm32-wasip3 \
+    -Clink-self-contained=n \
+    -Clinker=$WASI_SDK_PATH/bin/wasm32-wasip3-clang \
+    -Clink-arg=--sysroot=$WASI_SDK_PATH/share/wasi-sysroot/experimental-coop-threads \
+    -Clink-arg=-Wl,--export=cabi_realloc
+$ wasmtime -W component-model-threading foo.wasm
+hi
+</code></pre>
+<p>Here <code>-Clink-self-contained=n</code> avoids the vendored files in the standard library
+which come from a build of wasi-libc incompatible with cooperative
+multithreading. The <code>-Clinker</code> flag changes to use <code>clang</code> to be able to pass a
+custom <code>--sysroot</code> argument and follow its logic for startup objects. The
+<code>--sysroot</code> flag then points to the experimental sysroot for coop threads and
+<code>--export</code> is required right now as a minor workaround.</p>
+<p>When compiling with Cargo you can use these environment variables:</p>
+<pre><code class="language-console">$ export CARGO_TARGET_WASM32_WASIP3_LINKER=$WASI_SDK_PATH/bin/wasm32-wasip3-clang
+$ export CARGO_TARGET_WASM32_WASIP3_RUNNER='wasmtime -W component-model-threading'
+$ export CARGO_TARGET_WASM32_WASIP3_RUSTFLAGS="\
+    -Clink-self-contained=n \
+    -Clink-arg=--sysroot=$WASI_SDK_PATH/share/wasi-sysroot/experimental-coop-threads \
+    -Clink-arg=-Wl,--export=cabi_realloc"
+$ cargo run --target wasm32-wasip3
+hi
+</code></pre>
+<p>Standard synchronization primitives in <code>std::thread</code> and <code>std::sync</code> should all
+work on this target with cooperative multithreading. Should you run into any
+issues please don’t hesitate to file an issue and cc the target maintainers.</p>
+<p>Note that it is currently intended that by the end of 2026 this support will all
+be enabled by default and this section of the documentation will be deleted
+since working with threads should “just work”.</p>
 
                     </main>
 

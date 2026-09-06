@@ -97,7 +97,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-c1db573e.js";
+            window.path_to_searchindex_js = "../searchindex-170ea796.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-6b0c3669.js"></script>
@@ -301,7 +301,6 @@ build-std = ["core", "alloc"]
 <li><a href="#sbom">sbom</a> — 컴파일된 결과물에 대한 SBOM 전구체 파일을 생성합니다.</li>
 <li><a href="#feature-unification">feature-unification</a> — 워크스페이스에서 새로운 기능 통합 모드를 활성화합니다.</li>
 <li><a href="#lockfile-publish-time">lockfile-publish-time</a> — Limit resolver to packages older than the specified time</li>
-<li><a href="#min-publish-age">min-publish-age</a> — Filters out dependency versions published more recently than a configured minimum age.</li>
 </ul>
 </li>
 <li>출력 동작
@@ -348,8 +347,8 @@ build-std = ["core", "alloc"]
 <li><a href="#per-package-target">per-package-target</a> — 각 개별 패키지에 사용할 <code>--target</code> 을 설정합니다.</li>
 <li><a href="#artifact-dependencies">결과물 의존성(artifact dependencies)</a> — 빌드 결과물을 다른 빌드 결과물에 포함할 수 있게 하고, 다른 타겟에 대해 빌드할 수 있게 합니다.</li>
 <li><a href="#profile-trim-paths-option">Profile <code>trim-paths</code> 옵션</a> — 빌드 출력에서 파일 경로의 정리(sanitization)를 제어합니다.</li>
-<li><a href="#lintscargo"><code>[lints.cargo]</code></a> — Cargo에 대한 린트를 설정할 수 있게 합니다.</li>
 <li><a href="#path-bases">path bases</a> — 경로 의존성을 위한 이름이 지정된 기본 디렉토리입니다.</li>
+<li><a href="#feature-metadata">feature-metadata</a> — Table syntax for feature definitions.</li>
 <li><a href="#unstable-editions"><code>unstable-editions</code></a> — Allows use of editions that are not yet stable.</li>
 </ul>
 </li>
@@ -414,7 +413,7 @@ build-std = ["core", "alloc"]
 <li>추적 이슈: <a href="https://github.com/rust-lang/cargo/issues/5657">#5657</a></li>
 </ul>
 <blockquote>
-<p>참고: 이 기능을 사용하는 것은 권장되지 않습니다. 모든 전이적(transitive) 의존성에 대해 최소 버전을 강제하기 때문에, 모든 외부 의존성이 적절한 하위 버전 범위를 선언하지는 않으므로 유용성이 제한적입니다. 향후 직접적인 의존성에 대해서만 최소 버전을 강제하도록 변경될 예정입니다.</p>
+<p>[!WARNING] It is not recommended to use this feature. Because it enforces minimal versions for all transitive dependencies, its usefulness is limited since not all external dependencies declare proper lower version bounds. It is intended that it will be changed in the future to only enforce minimal versions for direct dependencies.</p>
 </blockquote>
 <p><code>Cargo.lock</code> 파일이 생성될 때, <code>-Z minimal-versions</code> 플래그는 요구 사항을 충족하는 가장 높은 버전 대신 가장 낮은 SemVer 버전으로 의존성을 해결합니다.</p>
 <p>이 플래그의 의도된 사용 사례는 지속적 통합(CI) 중에 Cargo.toml에 지정된 버전이 실제로 사용 중인 최소 버전을 올바르게 반영하고 있는지 확인하는 것입니다. 즉, Cargo.toml에 <code>foo = "1.0.0"</code> 이라고 되어 있을 때 실수로 <code>foo 1.5.0</code> 에서만 추가된 기능에 의존하고 있지는 않은지 확인하는 것입니다.</p>
@@ -610,7 +609,7 @@ sbom = true
     "workspace_wrapper": null,
     // Commit hash for rustc
     "commit_hash": "bef3c3b01f690de16738b1c9f36470fbfc6ac623",
-    // Host target triple
+    // Host target tuple
     "host": "x86_64-pc-windows-msvc",
     // Verbose version string: `rustc -vV`
     "verbose_version": "rustc 1.86.0-nightly (bef3c3b01 2025-02-04)\nbinary: rustc\ncommit-hash: bef3c3b01f690de16738b1c9f36470fbfc6ac623\ncommit-date: 2025-02-04\nhost: x86_64-pc-windows-msvc\nrelease: 1.86.0-nightly\nLLVM version: 19.1.7\n"
@@ -704,8 +703,8 @@ fingerprint = "content"
 <li>원본 풀 리퀘스트: <a href="https://github.com/rust-lang/cargo/pull/9322">#9322</a></li>
 <li>추적 이슈: <a href="https://github.com/rust-lang/cargo/issues/9453">#9453</a></li>
 </ul>
-<p>역사적으로, 환경 변수 및 <a href="config.html#target"><code>[target]</code></a>의 <code>linker</code> 및 <code>rustflags</code> 설정 옵션이 빌드 스크립트, 플러그인 및 항상 호스트 플랫폼용으로 빌드되는 기타 결과물에 대해 적용되는지 여부에 관한 Cargo의 동작은 다소 일관되지 않았습니다. <code>--target</code> 이 전달되지 <em>않으면</em>, Cargo는 다른 모든 컴파일 결과물과 동일한 <code>linker</code> 및 <code>rustflags</code> 를 빌드 스크립트에 적용합니다. 그러나 <code>--target</code> 이 전달 <em>되면</em>, Cargo는 <a href="config.html#targettriplelinker"><code>[target.&lt;host triple&gt;]</code></a>의 <code>linker</code> 는 적용하지만, 어떤 <code>rustflags</code> 설정도 가져오지 않습니다. 이러한 이중적인 동작은 혼란스러울 뿐만 아니라, 호스트 트리플과 <a href="../appendix/glossary.html#target" title="&quot;target&quot; (용어집)">타겟 트리플</a>이 우연히 같더라도 빌드 호스트에서 실행될 결과물을 다르게 설정해야 하는 빌드를 올바르게 구성하는 것을 어렵게 만듭니다.</p>
-<p><code>-Ztarget-applies-to-host</code> 는 Cargo 설정 파일에서 최상위 <code>target-applies-to-host</code> 설정을 활성화하여 사용자가 이러한 속성들에 대해 다르고 (더 일관된) 동작을 선택할 수 있게 합니다. 설정 파일에서 <code>target-applies-to-host</code> 가 설정되지 않았거나 <code>true</code> 로 설정된 경우 기존 Cargo 동작이 유지됩니다 (단, 해당 기본값을 변경하는 <code>-Zhost-config</code> 를 참고하세요). <code>false</code> 로 설정되면, Cargo에 <code>--target</code> 전달 여부와 관계없이 호스트 결과물에 대해 <code>[target.&lt;host triple&gt;]</code>, <code>RUSTFLAGS</code> 또는 <code>[build]</code> 의 어떤 옵션도 적용되지 않습니다. 호스트에서 실행될 결과물을 사용자 정의하려면 <code>[host]</code> (<a href="#host-config"><code>host-config</code></a>)를 사용하세요.</p>
+<p>Historically, Cargo’s behavior for whether the <code>linker</code> and <code>rustflags</code> configuration options from environment variables and <a href="config.html#target"><code>[target]</code></a> are respected for build scripts, plugins, and other artifacts that are <em>always</em> built for the host platform has been somewhat inconsistent. When <code>--target</code> is <em>not</em> passed, Cargo respects the same <code>linker</code> and <code>rustflags</code> for build scripts as for all other compile artifacts. When <code>--target</code> <em>is</em> passed, however, Cargo respects <code>linker</code> from <a href="config.html#targettuplelinker"><code>[target.&lt;host tuple&gt;]</code></a>, and does not pick up any <code>rustflags</code> configuration. This dual behavior is confusing, but also makes it difficult to correctly configure builds where the host tuple and the <a href="../appendix/glossary.html#target" title="&quot;target&quot; (glossary)">target tuple</a> happen to be the same, but artifacts intended to run on the build host should still be configured differently.</p>
+<p><code>-Ztarget-applies-to-host</code> enables the top-level <code>target-applies-to-host</code> setting in Cargo configuration files which allows users to opt into different (and more consistent) behavior for these properties. When <code>target-applies-to-host</code> is unset, or set to <code>true</code>, in the configuration file, the existing Cargo behavior is preserved (though see <code>-Zhost-config</code>, which changes that default). When it is set to <code>false</code>, no options from <code>[target.&lt;host tuple&gt;]</code>, <code>RUSTFLAGS</code>, or <code>[build]</code> are respected for host artifacts regardless of whether <code>--target</code> is passed to Cargo. To customize artifacts intended to be run on the host, use <code>[host]</code> (<a href="#host-config"><code>host-config</code></a>).</p>
 <p>향후에는 더 합리적이고 일관된 기본 동작을 제공하기 위해 <code>target-applies-to-host</code> 의 기본값이 <code>false</code> 가 될 수 있습니다.</p>
 <pre><code class="language-toml"># config.toml
 target-applies-to-host = false
@@ -730,7 +729,7 @@ rustflags = ["-Clink-arg=--verbose"]
 [target.x86_64-unknown-linux-gnu]
 linker = "/path/to/target/linker"
 </code></pre>
-<p>The <code>host.runner</code> setting wraps execution of host build targets such as build scripts, similar to how <code>target.&lt;triple&gt;.runner</code> wraps <code>cargo run</code>/<code>test</code>/<code>bench</code>.</p>
+<p>The <code>host.runner</code> setting wraps execution of host build targets such as build scripts, similar to how <code>target.&lt;tuple&gt;.runner</code> wraps <code>cargo run</code>/<code>test</code>/<code>bench</code>.</p>
 <p>위의 일반 <code>host</code> 테이블은 <code>x86_64-unknown-linux-gnu</code> 호스트에서 빌드할 때 <code>host.x86_64-unknown-linux-gnu</code> 테이블이 우선하므로 완전히 무시됩니다.</p>
 <p><code>-Zhost-config</code> 를 설정하면 <code>target-applies-to-host</code> 의 기본값이 <code>true</code> 에서 <code>false</code> 로 변경됩니다.</p>
 <pre><code class="language-console">cargo +nightly -Ztarget-applies-to-host -Zhost-config build --target x86_64-unknown-linux-gnu
@@ -800,9 +799,10 @@ linker = "/path/to/target/linker"
         /* 패닉 전략, "unwind" 또는 "abort". */
         "panic": "unwind"
       },
-      /* 이 타겟이 어떤 플랫폼을 위해 빌드되는지 나타냅니다.
-         `null` 값은 호스트를 위한 것임을 나타냅니다.
-         그렇지 않으면 타겟 트리플 문자열(예: "x86_64-unknown-linux-gnu")입니다.
+      /* Which platform this target is being built for.
+         A value of `null` indicates it is for the host.
+         Otherwise it is a string of the target tuple (such as
+         "x86_64-unknown-linux-gnu").
       */
       "platform": null,
       /* 이 유닛의 "모드(mode)"입니다. 유효한 값:
@@ -1279,7 +1279,7 @@ fn main() {
 # ...
 `git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
 [profile.release]
-trim-paths = ["diagnostics", "object"]
+trim-paths = "object"
 </code></pre>
 <p>Cargo 설정의 프로파일에서 이를 설정하려면, <code>-Z trim-paths</code> 또는 <code>[unstable]</code> 테이블을 사용하여 활성화해야 합니다. 예를 들어,</p>
 <pre><code class="language-toml"># .cargo/config.toml
@@ -1287,32 +1287,35 @@ trim-paths = ["diagnostics", "object"]
 trim-paths = true
 `git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
 [profile.release]
-trim-paths = ["diagnostics", "object"]
+trim-paths = "object"
 </code></pre>
 <h3 id="문서-업데이트-1"><a class="header" href="#문서-업데이트-1">문서 업데이트</a></h3>
 <h4 id="trim-paths"><a class="header" href="#trim-paths">trim-paths</a></h4>
 <p><em>새로운 <a href="./profiles.html#profile-settings">“프로파일 설정” 항목</a> 으로</em></p>
-<p><code>trim-paths</code> 는 빌드 출력에서 파일 경로의 정제(sanitization)를 활성화하고 제어하는 프로파일 설정입니다. 다음과 같은 값들을 가질 수 있습니다:</p>
+<p>The <code>trim-paths</code> option controls the scope of path sanitization in build outputs Paths are sanitized according to these <a href="#remapping-rules">remapping rules</a>.</p>
+<p>사용 가능한 옵션은 다음과 같습니다.</p>
 <ul>
-<li><code>"none"</code> 및 <code>false</code> — 경로 정제를 비활성화합니다.</li>
-<li><code>"macro"</code> — <code>std::file!()</code> 매크로 확장 시 경로를 정제합니다. 이곳이 임베디드 패닉 메시지의 경로가 나오는 곳입니다.</li>
-<li><code>"diagnostics"</code> — 출력된 컴파일러 진단 정보의 경로를 정제합니다.</li>
-<li><code>"object"</code> — 컴파일된 실행 파일 또는 라이브러리의 경로를 정제합니다.</li>
-<li><code>"all"</code> 및 <code>true</code> — 가능한 모든 위치의 경로를 정제합니다.</li>
+<li><code>"none"</code> — disables path sanitization.</li>
+<li><code>"object"</code> — sanitizes paths embedded in compiled executables and libraries. Useful for improving artifact reproducibility with less impact on local development.</li>
+<li><code>"all"</code> — sanitizes paths in all supported locations. Useful for hermetic or remote builds that need artifacts and diagnostics to be independent of the build environment.</li>
 </ul>
-<p><code>"macro"</code>, <code>"diagnostics"</code>, <code>"object"</code> 의 조합으로 이루어진 배열을 받을 수도 있습니다.</p>
-<p><code>dev</code> 프로파일의 경우 기본값은 <code>none</code> 이며, <code>release</code> 프로파일의 경우 <code>object</code> 입니다. <code>Cargo.toml</code> 에 이 옵션을 지정하여 수동으로 재정의할 수 있습니다:</p>
+<blockquote>
+<p>[!WARNING] The <code>"all"</code> option remaps compiler diagnostics, including <a href="./external-tools.html#json-messages">compiler JSON messages</a>. Some remapped paths may not resolve to files on the local filesystem, which can affect editors and other tools that consume the diagnostic output.</p>
+</blockquote>
+<p>For details about each scope, see rustc’s <a href="../../rustc/remap-source-paths.html#--remap-path-scope"><code>--remap-path-scope</code></a> documentation.</p>
+<p>By default, <code>trim-paths</code> is not set and path sanitization is disabled for all profiles. You can enable it by specifying this option in <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[profile.dev]
 trim-paths = "all"
 `git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
 [profile.release]
-trim-paths = ["object", "diagnostics"]
+trim-paths = "object"
 </code></pre>
-<p>기본 <code>release</code> 프로파일 설정(<code>object</code>)은 생성된 실행 파일이나 라이브러리 파일의 경로만 정제합니다. 패닉 메시지와 같은 매크로의 경로에는 항상 영향을 미치며, 디버그 정보의 경우 바이너리에 함께 임베드되는 경우(Linux 및 windows-gnu와 같은 ELF 바이너리가 있는 플랫폼의 기본값)에만 영향을 미치고 별도의 파일에 있는 경우(Windows MSVC 및 macOS의 기본값)에는 건드리지 않습니다. 그러나 이러한 별도 파일의 경로는 정제됩니다.</p>
-<p><code>trim-paths</code> 가 <code>none</code> 또는 <code>false</code> 가 아니면, 선택된 범위에 나타나는 다음 경로들이 정제됩니다:</p>
+<h5 id="remapping-rules"><a class="header" href="#remapping-rules">Remapping rules</a></h5>
+<p>The exact remap path prefixes are unspecified and may change across Cargo versions. Tools that map paths embedded in artifacts back to local sources should consume <a href="#unremap-files">unremap files</a> instead of interpreting these prefixes.</p>
+<p>If <code>trim-paths</code> is not <code>"none"</code>, then the following paths are sanitized if they appear in a selected scope:</p>
 <ol>
 <li>Path to the source files of the standard and core library (sysroot) will begin with <code>/rustc/&lt;rustc commit hash&gt;</code>, e.g. <code>/home/username/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs</code> -&gt; <code>/rustc/fe72845f7bb6a77b9e671e6a4f32fe714962cec4/library/core/src/result.rs</code></li>
-<li>Path to the current package will be stripped, relatively to the current workspace root, e.g. <code>/home/username/crate/src/lib.rs</code> -&gt; <code>src/lib.rs</code>. This also covers path dependencies located inside the workspace directory.</li>
+<li>Path to a local package within the workspace will begin with <code>.</code>, which replaces the workspace root, e.g. <code>/home/username/crate/src/lib.rs</code> -&gt; <code>./src/lib.rs</code>. This also covers path dependencies located inside the workspace directory.</li>
 <li>Path to a registry dependency will begin with <code>/cargo/registry/&lt;registry id&gt;</code>, which replaces the registry’s extraction directory, e.g. <code>/home/username/.cargo/registry/src/index.crates.io-6f17d22d3f0a95d1/foo-0.1.0/src/lib.rs</code> -&gt; <code>/cargo/registry/6f17d22d3f0a95d1/foo-0.1.0/src/lib.rs</code>.</li>
 <li>Path to a git dependency will begin with <code>/cargo/git/&lt;git source id&gt;/&lt;revision&gt;</code>, which replaces the checkout directory. <code>&lt;revision&gt;</code> is a prefix of the resolved commit ID recorded in the lockfile.</li>
 <li>Path to a path dependency outside the workspace will be replaced with <code>/cargo/deps/&lt;package name&gt;-&lt;package version&gt;</code>.</li>
@@ -1320,11 +1323,9 @@ trim-paths = ["object", "diagnostics"]
 </ol>
 <p><code>&lt;registry id&gt;</code> and <code>&lt;git source id&gt;</code> are opaque stable hashes of the dependency’s source.</p>
 <p>Vendored copies of registry or git dependencies (via <a href="./source-replacement.html">source replacement</a>) are sanitized by their file location instead, like workspace paths when inside the workspace directory, otherwise like path dependencies.</p>
-<p>표준 및 코어 라이브러리 소스 파일의 경로가 정제 범위에 포함되지 않은 경우, 출력되는 경로는 <code>rust-src</code> 컴포넌트의 존재 여부에 따라 달라집니다. 컴포넌트가 있으면 일부 경로는 파일 시스템의 소스 파일 복사본을 가리키고, 없으면 (정제 대상으로 선택되었을 때와 마찬가지로) <code>/rustc/[rustc commit hash]/library/...</code>로 표시됩니다. 다른 모든 소스 파일의 경로는 영향을 받지 않습니다.</p>
-<p>이는 문자열과 같이 소스 코드에 하드코딩된 경로에는 영향을 주지 않습니다.</p>
-<p>The exact remap path prefixes are not stable across Cargo versions. Tools that map paths embedded in artifacts back to local sources should consume unremap files instead of interpreting these prefixes.</p>
 <h5 id="unremap-files"><a class="header" href="#unremap-files">Unremap files</a></h5>
 <p>When the <code>object</code> scope is active and debuginfo is enabled, Cargo writes an unremap file beside each final artifact. The file is aimed at helping debuggers substitute sanitized paths back to local ones, e.g., via GDB’s <code>set substitute-path</code> or LLDB’s <code>target.source-map</code>.</p>
+<p>The Rust toolchain provides <code>rust-gdb</code> and <code>rust-lldb</code> wrappers, which can load unremap files automatically. This integration is currently unstable and available only in nightly toolchains. To enable it, set <code>RUST_GDB_TRIM_PATHS=unstable</code> or <code>RUST_LLDB_TRIM_PATHS=unstable</code> respectively.</p>
 <p>The unremap file name ends with <code>.trim-paths.jsonl</code>. For example, your <code>my-app</code> executable would come with an unremap file named <code>my-app.trim-paths.jsonl</code> beside it.</p>
 <p>The unremap file is in JSONL format:</p>
 <ul>
@@ -1341,11 +1342,28 @@ trim-paths = ["object", "diagnostics"]
 {"from":"/rustc/abc123","to":"/home/me/.rustup/toolchains/nightly/lib/rustlib/src/rust"}
 </code></pre>
 <p>Since it is meant to be a debugging aid, it includes absolute paths of your system, so there is no artifact privacy guarantee. You might want to exclude <code>*.trim-paths.jsonl</code> files when distributing artifacts.</p>
+<h5 id="limitations"><a class="header" href="#limitations">Limitations</a></h5>
+<p><code>trim-paths</code> supports remapping source path prefixes as a best effort. Linkers may add paths that rustc cannot remap. See <a href="../../rustc/remap-source-paths.html#caveats-and-limitations">the limitations section</a> on rustc’s documentation for more.</p>
+<p>For example, on macOS, linkers generate OSO entries containing absolute paths to object files when debuginfo is enabled. The following profile settings keep these paths out of the executable while preserving debuginfo in a separate dSYM bundle:</p>
+<pre><code class="language-toml">[profile.release]
+debug = true
+trim-paths = "object"
+split-debuginfo = "packed"
+strip = "debuginfo"
+</code></pre>
+<p>The dSYM bundle can be used for debugging, but it still contains absolute paths.</p>
 <h4 id="환경-변수"><a class="header" href="#환경-변수">환경 변수</a></h4>
 <p><em><a href="./environment-variables.html#environment-variables-cargo-sets-for-crates">“Cargo가 빌드 스크립트를 위해 설정하는 환경 변수”</a> 의 새 항목으로</em></p>
 <ul>
-<li><code>CARGO_TRIM_PATHS_SCOPE</code> — The value of <code>trim-paths</code> profile option. <code>false</code>, <code>"none"</code>, and empty arrays would be converted to <code>none</code>. <code>true</code> and <code>"all"</code> become <code>all</code>. Values in a non-empty array would be joined into a comma-separated list. If the build script introduces absolute paths to built artifacts (such as by invoking a compiler), the user may request them to be sanitized in different types of artifacts. Common paths requiring sanitization include <code>OUT_DIR</code>, <code>CARGO_MANIFEST_DIR</code> and <code>CARGO_MANIFEST_PATH</code>, plus any other introduced by the build script, such as include directories.</li>
-<li><code>CARGO_TRIM_PATHS_REMAP</code> — The <code>&lt;from&gt;=&lt;to&gt;</code> path remap pairs Cargo passes to the compiler, joined by the platform path separator. Only set when <code>trim-paths</code> profile is active. Build scripts can forward these mappings to C/C++ compilers and other tools, for example via <code>cc</code>’s <code>-ffile-prefix-map</code>, to sanitize paths consistently with the rest of the build.</li>
+<li>
+<p><code>CARGO_TRIM_PATHS_SCOPE</code> — The value of <code>trim-paths</code> profile option. If the build script introduces absolute paths to built artifacts (such as by invoking a compiler), the user may request them to be sanitized in different types of artifacts. Common paths requiring sanitization include <code>OUT_DIR</code>, <code>CARGO_MANIFEST_DIR</code> and <code>CARGO_MANIFEST_PATH</code>, plus any other introduced by the build script, such as include directories.</p>
+<blockquote>
+<p>[!NOTE] For forward compatibility, build scripts should accept a comma-separated list of scopes.</p>
+</blockquote>
+</li>
+<li>
+<p><code>CARGO_TRIM_PATHS_REMAP</code> — The <code>&lt;from&gt;=&lt;to&gt;</code> path remap pairs Cargo passes to the compiler, joined by the platform path separator. Only set when <code>trim-paths</code> profile is active. Build scripts can forward these mappings to C/C++ compilers and other tools, for example via <code>cc</code>’s <code>-ffile-prefix-map</code>, to sanitize paths consistently with the rest of the build.</p>
+</li>
 </ul>
 <h2 id="gc"><a class="header" href="#gc">gc</a></h2>
 <ul>
@@ -1429,21 +1447,6 @@ panic = "immediate-abort"
 <li>Tracking Issue: <a href="https://github.com/rust-lang/cargo/issues/4282">#4282</a></li>
 </ul>
 <p>Use fine grain locking instead of locking the entire build cache.</p>
-<h2 id="lintscargo"><a class="header" href="#lintscargo"><code>[lints.cargo]</code></a></h2>
-<ul>
-<li>추적 이슈: <a href="https://github.com/rust-lang/cargo/issues/12235">#12235</a></li>
-</ul>
-<p><code>-Zcargo-lints</code> 가 사용될 때 Cargo 자체에서 내보내는 린트를 설정하는 데 사용할 수 있는 Cargo용 새로운 <code>lints</code> 도구 테이블입니다.</p>
-<pre><code class="language-toml">[lints.cargo]
-implicit-features = "warn"
-</code></pre>
-<p>이는 <a href="https://rust-lang.github.io/rfcs/2906-cargo-workspace-deduplicate.html">RFC 2906 <code>workspace-deduplicate</code></a>와 함께 작동합니다:</p>
-<pre><code class="language-toml">[workspace.lints.cargo]
-implicit-features = "warn"
-`git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
-[lints]
-workspace = true
-</code></pre>
 <h2 id="경로-베이스-path-bases"><a class="header" href="#경로-베이스-path-bases">경로 베이스 (Path Bases)</a></h2>
 <ul>
 <li>추적 이슈: <a href="https://github.com/rust-lang/cargo/issues/14355">#14355</a></li>
@@ -1653,69 +1656,6 @@ cargo +nightly check --compile-time-deps --all-targets -Z unstable-options
 <pre><code class="language-toml">[unstable]
 hint-msrv = true
 </code></pre>
-<h2 id="min-publish-age"><a class="header" href="#min-publish-age">min-publish-age</a></h2>
-<ul>
-<li>Tracking Issue: <a href="https://github.com/rust-lang/cargo/issues/17009">#17009</a></li>
-<li>RFC: <a href="https://github.com/rust-lang/rfcs/pull/3923">#3923</a></li>
-</ul>
-<p>The <code>-Zmin-publish-age</code> feature allows users to specify a minimum age for dependency versions. When specified, Cargo won’t use a version of a registry crate that is newer than the minimum age, with a way to override for exceptions like urgent security fixes.</p>
-<p>For example, in your <code>&lt;repo&gt;/.cargo/config.toml</code>:</p>
-<pre><code class="language-toml">[registry]
-global-min-publish-age = "14 days"
-</code></pre>
-<h3 id="added-to-configuration"><a class="header" href="#added-to-configuration">Added to Configuration</a></h3>
-<p>The following will be added to Cargo’s configuration format:</p>
-<pre><code class="language-toml">[resolver]
-incompatible-publish-age = "deny" # Specifies how resolver reacts to these
-`git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
-[registries.&lt;name&gt;]
-min-publish-age = "..."  # Override `registry.global-min-publish-age` for this registry
-`git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
-[registry]
-global-min-publish-age = "0"  # Minimum time span allowed for registry packages by default
-</code></pre>
-<h4 id="resolverincompatible-publish-age"><a class="header" href="#resolverincompatible-publish-age"><code>resolver.incompatible-publish-age</code></a></h4>
-<ul>
-<li>Type: String</li>
-<li>Default: <code>"deny"</code></li>
-<li>Environment: <code>CARGO_RESOLVER_INCOMPATIBLE_PUBLISH_AGE</code></li>
-</ul>
-<p>When resolving the version of a dependency, specify the behavior for versions with a <code>pubtime</code> (if present) that is incompatible with the configured <code>min-publish-age</code>. Values include:</p>
-<ul>
-<li><code>allow</code>: treat pubtime-incompatible versions like any other version</li>
-<li><code>deny</code>: ignore pubtime-incompatible versions unless they already exist in the lock file</li>
-</ul>
-<h4 id="registriesnamemin-publish-age"><a class="header" href="#registriesnamemin-publish-age"><code>registries.&lt;name&gt;.min-publish-age</code></a></h4>
-<ul>
-<li>Type: String</li>
-<li>기본값: 없음</li>
-<li>Environment: <code>CARGO_REGISTRIES_&lt;name&gt;_MIN_PUBLISH_AGE</code></li>
-</ul>
-<p>Specifies the minimum timespan since a version’s <code>pubtime</code> that it may be considered for <code>resolver.incompatible-publish-age</code> for packages from this registry. If not set, <code>registry.global-min-publish-age</code> will be used.</p>
-<p>Will be ignored if the registry does not support this.</p>
-<p>It supports the following values:</p>
-<ul>
-<li>An integer followed by “seconds”, “minutes”, “hours”, “days”, “weeks”, or “months”</li>
-<li><code>"0"</code> to allow all packages</li>
-</ul>
-<h4 id="registryglobal-min-publish-age"><a class="header" href="#registryglobal-min-publish-age"><code>registry.global-min-publish-age</code></a></h4>
-<ul>
-<li>Type: String</li>
-<li>Default: <code>"0"</code></li>
-<li>Environment: <code>CARGO_REGISTRY_GLOBAL_MIN_PUBLISH_AGE</code></li>
-</ul>
-<p>Specifies the global minimum timespan since a version’s <code>pubtime</code> that it may be considered for <code>resolver.incompatible-publish-age</code> for packages. If <code>min-publish-age</code> is not set for a specific registry using <code>registries.&lt;name&gt;.min-publish-age</code>, Cargo will use this minimum publish age.</p>
-<p>It supports the following values:</p>
-<ul>
-<li>An integer followed by “seconds”, “minutes”, “hours”, “days”, “weeks”, or “months”</li>
-<li><code>"0"</code> to allow all packages</li>
-</ul>
-<h3 id="added-to-resolver"><a class="header" href="#added-to-resolver">Added to Resolver</a></h3>
-<p>The following will be added to the <a href="../reference/resolver.html">resolver chapter</a> as a sibling section to “Yanked versions”:</p>
-<blockquote>
-<p>“Pubtime-incompatible versions”</p>
-<p>Versions with a publish time newer than the configured <code>min-publish-age</code> are considered pubtime-incompatible. When <code>resolver.incompatible-publish-age</code> is set to <code>deny</code>, the resolver will ignore these versions unless they already exist in the <code>Cargo.lock</code> file. Setting the config to <code>allow</code> would disable the check, which if combined with <code>cargo update --precise</code>, cargo would pull in a specific version and its transitive dependencies.</p>
-</blockquote>
 <h1 id="안정화-및-제거된-기능"><a class="header" href="#안정화-및-제거된-기능">안정화 및 제거된 기능</a></h1>
 <h2 id="컴파일-진행-상황"><a class="header" href="#컴파일-진행-상황">컴파일 진행 상황</a></h2>
 <p>compile-progress 기능은 1.30 릴리스에서 안정화되었습니다. 이제 진행률 표시줄(Progress bars)이 기본적으로 활성화됩니다. 이 기능을 제어하는 방법에 대한 자세한 내용은 <a href="config.html#termprogresswhen"><code>term.progress</code></a> 를 참조하세요.</p>
@@ -1772,7 +1712,7 @@ global-min-publish-age = "0"  # Minimum time span allowed for registry packages 
 <h2 id="config-cli"><a class="header" href="#config-cli">config-cli</a></h2>
 <p><code>--config</code> CLI 옵션은 1.63 릴리스에서 안정화되었습니다. 자세한 내용은 <a href="config.html#command-line-overrides">설정 문서</a>를 참조하세요.</p>
 <h2 id="multitarget"><a class="header" href="#multitarget">multitarget</a></h2>
-<p><code>-Z multitarget</code> 옵션은 1.64 릴리스에서 안정화되었습니다. 기본 [타겟 플랫폼 트리플](../appendix/glossary.md#target “타겟” (용어집)) 설정에 대한 자세한 내용은 <a href="config.html#buildtarget"><code>build.target</code></a> 을 참조하세요.</p>
+<p>The <code>-Z multitarget</code> option has been stabilized in the 1.64 release. See <a href="config.html#buildtarget"><code>build.target</code></a> for more information about setting the default <a href="../appendix/glossary.html#target" title="&quot;target&quot; (glossary)">target platform tuples</a>.</p>
 <h2 id="crate-type"><a class="header" href="#crate-type">crate-type</a></h2>
 <p><code>cargo rustc</code> 를 위한 <code>--crate-type</code> 플래그는 1.64 릴리스에서 안정화되었습니다. 자세한 내용은 <a href="../commands/cargo-rustc.html"><code>cargo rustc</code> 문서</a> 를 참조하세요.</p>
 <h2 id="워크스페이스-상속-workspace-inheritance"><a class="header" href="#워크스페이스-상속-workspace-inheritance">워크스페이스 상속 (Workspace Inheritance)</a></h2>
@@ -1814,6 +1754,16 @@ global-min-publish-age = "0"  # Minimum time span allowed for registry packages 
 <p>Support for including extra configuration files via the <code>include</code> config key has been stabilized in 1.93.0. See the <a href="config.html#include"><code>include</code> config documentation</a> for more.</p>
 <h2 id="pubtime"><a class="header" href="#pubtime">pubtime</a></h2>
 <p>The <code>pubtime</code> index field  has been stabilized in Rust 1.94.0.</p>
+<h2 id="feature-metadata"><a class="header" href="#feature-metadata">feature-metadata</a></h2>
+<ul>
+<li>Tracking Issue: <a href="https://github.com/rust-lang/cargo/issues/14157">#14157</a></li>
+</ul>
+<p>This allows to use a table when defining features, with a required <code>enables</code> key:</p>
+<pre><code class="language-toml">[features]
+# same as `foo = []`
+foo = { enables = [] }
+</code></pre>
+<p>This is equivalent to the array-of-strings syntax. Support for other keys should be added later.</p>
 <h2 id="lockfile-path"><a class="header" href="#lockfile-path">lockfile-path</a></h2>
 <p>Support for <code>resolver.lockfile-path</code> config field has been stabilized in Rust 1.97.0.</p>
 <h2 id="warnings"><a class="header" href="#warnings">warnings</a></h2>
@@ -1822,6 +1772,10 @@ global-min-publish-age = "0"  # Minimum time span allowed for registry packages 
 <p>The <code>cargo update -Zunstable-options --breaking</code> flag has been removed in 1.99-nightly. See <a href="https://github.com/rust-lang/cargo/pull/17333">https://github.com/rust-lang/cargo/pull/17333</a> fopr the reason for its removal.</p>
 <h2 id="build-dir-new-layout"><a class="header" href="#build-dir-new-layout">build-dir-new-layout</a></h2>
 <p>The new build-dir filesystem layout was stabilized in the 1.100.0 release.</p>
+<h2 id="lintscargo"><a class="header" href="#lintscargo"><code>[lints.cargo]</code></a></h2>
+<p>Cargo’s linting system and the <code>[lints.cargo]</code> table have been stabilized in Rust 1.100. See the <a href="lints.html">lints chapter</a> and <a href="manifest.html#the-lints-section">the lints section</a> for information about configuring Cargo lints.</p>
+<h2 id="min-publish-age"><a class="header" href="#min-publish-age">min-publish-age</a></h2>
+<p>Minimum publish-age configuration for dependency resolution was stabilized in Rust 1.100. See the <a href="config.html#registryglobal-min-publish-age">minimum publish-age configuration</a> and <a href="resolver.html#publish-age">resolver behavior</a> for more information.</p>
 
                     </main>
 

@@ -97,7 +97,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-01ae25d8.js";
+            window.path_to_searchindex_js = "../searchindex-a4a7bafa.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-eaea3cac.js"></script>
@@ -263,7 +263,7 @@ fn main() {
 </ul>
 <p>The sections below describe how build scripts work, and the <a href="build-script-examples.html">examples chapter</a> shows a variety of examples on how to write scripts.</p>
 <blockquote>
-<p>Note: The <a href="manifest.html#the-build-field"><code>package.build</code> manifest key</a> can be used to change the name of the build script, or disable it entirely.</p>
+<p>[!NOTE] The <a href="manifest.html#the-build-field"><code>package.build</code> manifest key</a> can be used to change the name of the build script, or disable it entirely.</p>
 </blockquote>
 <h2 id="life-cycle-of-a-build-script"><a class="header" href="#life-cycle-of-a-build-script">Life Cycle of a Build Script</a></h2>
 <p>Just before a package is built, Cargo will compile a build script into an executable (if it has not already been built). It will then run the script, which may perform any number of tasks. The script may communicate with Cargo by printing specially formatted commands prefixed with <code>cargo::</code> to stdout.</p>
@@ -274,13 +274,13 @@ fn main() {
 <p>When the build script is run, there are a number of inputs to the build script, all passed in the form of <a href="environment-variables.html#environment-variables-cargo-sets-for-build-scripts">environment variables</a>.</p>
 <p>In addition to environment variables, the build script’s current directory is the root directory of the build script’s package.</p>
 <blockquote>
-<p><strong>Note:</strong> When checking <a href="../../reference/conditional-compilation.html">configuration options</a> like <code>target_os</code> or <code>target_arch</code> in a build script, do not use the <code>cfg!</code> macro or <code>#[cfg]</code> attribute, these check the <strong>host</strong> machine (where the build script runs), not the <strong>target</strong> platform you’re compiling for. This distinction matters when cross-compiling.</p>
+<p>[!WARNING] When checking <a href="../../reference/conditional-compilation.html">configuration options</a> like <code>target_os</code> or <code>target_arch</code> in a build script, do not use the <code>cfg!</code> macro or <code>#[cfg]</code> attribute, these check the <strong>host</strong> machine (where the build script runs), not the <strong>target</strong> platform you’re compiling for. This distinction matters when cross-compiling.</p>
 <p>Instead, read the corresponding <a href="environment-variables.html#environment-variables-cargo-sets-for-build-scripts"><code>CARGO_CFG_*</code></a> environment variables, which correctly reflect the target’s configuration. For a typed API, consider using the <a href="https://crates.io/crates/build-rs"><code>build-rs</code></a> crate. See the <a href="build-script-examples.html#conditional-compilation">build script examples</a> for more details.</p>
 </blockquote>
 <h2 id="outputs-of-the-build-script"><a class="header" href="#outputs-of-the-build-script">Outputs of the Build Script</a></h2>
 <p>Build scripts may save any output files or intermediate artifacts in the directory specified in the <a href="environment-variables.html#environment-variables-cargo-sets-for-build-scripts"><code>OUT_DIR</code> environment variable</a>. Scripts should not modify any files outside of that directory.</p>
 <blockquote>
-<p><strong>Note:</strong> Cargo does not clean or reset <code>OUT_DIR</code> between builds. The contents of this directory may persist across rebuilds, even if the build script is re-run. This behavior is intentional to support incremental builds, such as native code compilation.</p>
+<p>[!IMPORTANT] Cargo does not clean or reset <code>OUT_DIR</code> between builds. The contents of this directory may persist across rebuilds, even if the build script is re-run. This behavior is intentional to support incremental builds, such as native code compilation.</p>
 <p>Build scripts should not rely on <code>OUT_DIR</code> being empty, as its contents may persist across rebuilds. If a script requires a clean directory, it is currently responsible for managing or cleaning up any files or subdirectories it creates. Future improvements in this area are being discussed (see <a href="https://github.com/rust-lang/cargo/issues/16427">#16427</a> and <a href="https://github.com/rust-lang/cargo/issues/9661">#9661</a>).</p>
 </blockquote>
 <p>Build scripts communicate with Cargo by printing to stdout. Cargo will interpret each line that starts with <code>cargo::</code> as an instruction that will influence compilation of the package. All other lines are ignored.</p>
@@ -401,12 +401,12 @@ if foo_bar_condition {
 <p>The <code>rustc-env</code> instruction tells Cargo to set the given environment variable when compiling the package. The value can be then retrieved by the <a href="../../std/macro.env.html"><code>env!</code> macro</a> in the compiled crate. This is useful for embedding additional metadata in crate’s code, such as the hash of git HEAD or the unique identifier of a continuous integration server.</p>
 <p>See also the <a href="environment-variables.html#environment-variables-cargo-sets-for-crates">environment variables automatically included by Cargo</a>.</p>
 <blockquote>
-<p><strong>Note</strong>: These environment variables are also set when running an executable with <code>cargo run</code> or <code>cargo test</code>. However, this usage is discouraged since it ties the executable to Cargo’s execution environment. Normally, these environment variables should only be checked at compile-time with the <code>env!</code> macro.</p>
+<p>[!NOTE] These environment variables are also set when running an executable with <code>cargo run</code> or <code>cargo test</code>. However, this usage is discouraged since it ties the executable to Cargo’s execution environment. Normally, these environment variables should only be checked at compile-time with the <code>env!</code> macro.</p>
 </blockquote>
 <h3 id="cargo-error"><a class="header" href="#cargo-error"><code>cargo::error=MESSAGE</code></a></h3>
 <p>The <code>error</code> instruction tells Cargo to display an error after the build script has finished running, and then fail the build.</p>
 <blockquote>
-<p>Note: Build script libraries should carefully consider if they want to use <code>cargo::error</code> versus returning a <code>Result</code>. It may be better to return a <code>Result</code>, and allow the caller to decide if the error is fatal or not. The caller can then decide whether or not to display the <code>Err</code> variant using <code>cargo::error</code>.</p>
+<p>[!NOTE] Build script libraries should carefully consider if they want to use <code>cargo::error</code> versus returning a <code>Result</code>. It may be better to return a <code>Result</code>, and allow the caller to decide if the error is fatal or not. The caller can then decide whether or not to display the <code>Err</code> variant using <code>cargo::error</code>.</p>
 </blockquote>
 <blockquote>
 <p><strong>MSRV:</strong> Respected as of 1.84</p>
