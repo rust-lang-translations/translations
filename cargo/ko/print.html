@@ -98,7 +98,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-170ea796.js";
+            window.path_to_searchindex_js = "searchindex-17854079.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6b0c3669.js"></script>
@@ -1523,8 +1523,12 @@ unsafe_code = "forbid"
 `git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
 [lints.clippy]
 enum_glob_use = "deny"
+`git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
+[lints.cargo]
+unused_dependencies = "deny"
 </code></pre>
 <p>일반적으로 이러한 설정은 현재 패키지의 로컬 개발에만 영향을 미칩니다. Cargo는 이를 현재 패키지에만 적용하고 의존성에는 적용하지 않습니다. 의존하는 패키지들의 경우, Cargo는 <a href="../rustc/lints/levels.html#capping-lints"><code>--cap-lints</code></a> 와 같은 기능을 사용하여 경로 기반이 아닌 의존성에서 발생하는 린트를 억제합니다.</p>
+<p>See also the <a href="#린트">lints chapter</a> for the available lints emitted by Cargo itself.</p>
 <blockquote>
 <p><strong>MSRV:</strong> 1.74 버전부터 적용됨</p>
 </blockquote>
@@ -8416,8 +8420,15 @@ frequency = "always"
 <h1 id="린트"><a class="header" href="#린트">린트</a></h1>
 <blockquote>
 <p>[!NOTE] This chapter is about lints emitted by <code>cargo</code> itself.</p>
-<p>See <a href="#the-lints-section">the lints section in the Manifest Format chapter</a> to configure lint levels for tools such as <code>rustc</code> or <code>clippy</code>.</p>
 </blockquote>
+<h2 id="configuring-cargo-lints"><a class="header" href="#configuring-cargo-lints">Configuring Cargo lints</a></h2>
+<p>Cargo lints can be configured in the <code>[lints.cargo]</code> table of the <code>Cargo.toml</code> manifest. The key is the lint name without the <code>cargo::</code> prefix. For example:</p>
+<pre><code class="language-toml">[lints.cargo]
+unused_dependencies = "deny"
+</code></pre>
+<p>See <a href="#the-lints-section">the <code>[lints]</code> section</a> for details about lint levels and priorities.</p>
+<h2 id="lint-groups"><a class="header" href="#lint-groups">Lint groups</a></h2>
+<p>Cargo has the concept of a “lint group”, where you can toggle several warnings through one name.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -19300,7 +19311,8 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <p><code>--path</code> 를 사용하여 설치하면 다른 패키지의 바이너리와 충돌하지 않는 한 항상 빌드 및 설치됩니다. <code>--force</code> 플래그를 사용하면 Cargo가 항상 패키지를 재설치하도록 강제할 수 있습니다.</p>
 <p>If the source is crates.io or <code>--git</code> then by default the crate will be built in a temporary target directory. To avoid this, the target directory can be specified by setting the <code>CARGO_TARGET_DIR</code> environment variable to a path. In particular, this can be useful for caching build artifacts on continuous integration systems.</p>
 <h3 id="잠금-파일-처리"><a class="header" href="#잠금-파일-처리">잠금 파일 처리</a></h3>
-<p>기본적으로 패키지에 포함된 <code>Cargo.lock</code> 파일은 무시됩니다. 이는 Cargo가 사용할 의존성 버전을 다시 계산하며, 패키지가 게시된 이후 릴리스된 최신 버전을 사용할 수도 있음을 의미합니다. <code>--locked</code> 플래그를 사용하면 사용 가능한 경우 패키지화된 <code>Cargo.lock</code> 파일을 사용하도록 강제할 수 있습니다. 이는 패키지가 게시되었을 때 사용 가능했던 정확히 동일한 의존성 집합을 사용하여 재현 가능한 빌드를 보장하는 데 유용할 수 있습니다. 또한 의존성의 최신 버전이 시스템에서 빌드되지 않거나 다른 문제가 있는 경우에도 유용할 수 있습니다. <code>--locked</code> 를 사용하는 것의 단점은 의존성에 대한 어떠한 수정 사항이나 업데이트도 받지 못한다는 것입니다. Cargo는 1.37 버전부터 <code>Cargo.lock</code> 파일을 게시하기 시작했으므로, 그 이전 버전에 게시된 패키지는 사용할 수 있는 <code>Cargo.lock</code> 파일이 없음을 유의하세요.</p>
+<p>By default, Cargo uses the <code>Cargo.lock</code> file included with the package if it is available. This ensures that the installed executable uses the dependency versions selected when the package was published. If no lockfile is available, including for packages published with versions of Cargo before 1.37, Cargo resolves the dependencies normally.</p>
+<p>The <code>--locked</code> flag does not currently change dependency resolution for <code>cargo install</code>. If no <code>Cargo.lock</code> is available, using <code>--locked</code> emits a warning.</p>
 <h3 id="설정-탐색"><a class="header" href="#설정-탐색">설정 탐색</a></h3>
 <p>이 명령어는 프로젝트 수준이 아니라 시스템 또는 사용자 수준에서 작동합니다. 즉, 로컬 <a href="#hierarchical-structure">설정 탐색</a> 이 무시됩니다. 대신 <code>$CARGO_HOME/config.toml</code> 에서 설정 탐색을 시작합니다. 패키지가 <code>--path $PATH</code> 로 설치된 경우, 로컬 설정이 사용되며 <code>$PATH/.cargo/config.toml</code>에서 탐색을 시작합니다.</p>
 <h2 id="옵션-25"><a class="header" href="#옵션-25">옵션</a></h2>

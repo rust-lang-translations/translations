@@ -93,7 +93,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8346b825.js";
+            window.path_to_searchindex_js = "../searchindex-aea97f58.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-20da6b24.js"></script>
@@ -524,6 +524,56 @@ fill-opacity: .1;
 </div>
 
 <h1 id="결코-리턴하지-않는-타입"><a class="header" href="#결코-리턴하지-않는-타입">결코 리턴하지 않는 타입</a></h1>
+<div class="rule" id="r-type.never.intro"><a class="rule-link" href="#r-type.never.intro" title="type.never.intro"><span>[type<wbr>.never<wbr>.intro]</span></a>
+</div>
+
+<p>The never type <code>!</code> is a type with no values, representing computations that never complete, also known as <a href="../divergence.html#r-divergence">diverging</a> computations.</p>
+<div class="alert alert-example">
+<blockquote>
+<p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"></path></svg>Example</p>
+
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn foo() -&gt; ! {
+    loop {}
+}
+<span class="boring">}</span></code></pre>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>unsafe extern "C" {
+    pub safe fn no_return_extern_func() -&gt; !;
+}
+<span class="boring">}</span></code></pre>
+<pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let _: ! = loop {};
+<span class="boring">}</span></code></pre>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn always_ok() -&gt; Result&lt;u32, !&gt; {
+    Ok(42)
+}
+<span class="boring">}</span></code></pre>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use std::str::FromStr;
+</span>struct Anything(String);
+
+impl FromStr for Anything {
+    type Err = !;
+
+    fn from_str(s: &amp;str) -&gt; Result&lt;Self, !&gt; {
+        Ok(Anything(s.to_owned()))
+    }
+}
+
+// This does not need to check for the `Err` variant because
+// `FromStr::Err` is the never type.
+let Ok(s) = Anything::from_str("example");
+<span class="boring">}</span></code></pre>
+</blockquote>
+</div>
+
 <div class="rule" id="r-type.never.syntax"><a class="rule-link" href="#r-type.never.syntax" title="type.never.syntax"><span>[type<wbr>.never<wbr>.syntax]</span></a>
 </div>
 
@@ -557,30 +607,18 @@ NeverType</text>
 
 </div>
 
-<div class="rule" id="r-type.never.intro"><a class="rule-link" href="#r-type.never.intro" title="type.never.intro"><span>[type<wbr>.never<wbr>.intro]</span></a>
-</div>
-
-<p>네버 타입 <code>!</code> 은 값이 없는 타입으로, 결코 완료되지 않는 계산의 결과를 나타냅니다.</p>
 <div class="rule" id="r-type.never.coercion"><a class="rule-link" href="#r-type.never.coercion" title="type.never.coercion"><span>[type<wbr>.never<wbr>.coercion]</span></a>
 </div>
 
-<p><code>!</code> 타입의 표현식은 다른 어떤 타입으로도 강제 변환(coerced)될 수 있습니다.</p>
-<div class="rule" id="r-type.never.constraint"><a class="rule-link" href="#r-type.never.constraint" title="type.never.constraint"><span>[type<wbr>.never<wbr>.constraint]</span></a>
+<p>Expressions of type <code>!</code> can be coerced into any type.</p>
+<div class="alert alert-note">
+<blockquote>
+<p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+
+<p>The standard library type <a href="../../core/convert/enum.Infallible.html"><code>Infallible</code></a> is a type alias for <code>!</code>.</p>
+</blockquote>
 </div>
 
-<p>현재 <code>!</code> 타입은 함수의 반환 타입에만 나타날 수 있으며, 이는 함수가 결코 반환되지 않는 발산 함수(diverging function)임을 나타냅니다.</p>
-<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn foo() -&gt; ! {
-    panic!("이 호출은 결코 반환되지 않습니다.");
-}
-<span class="boring">}</span></code></pre>
-<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>unsafe extern "C" {
-    pub safe fn no_return_extern_func() -&gt; !;
-}
-<span class="boring">}</span></code></pre>
 
                     </main>
 

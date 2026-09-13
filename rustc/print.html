@@ -93,7 +93,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9e989d1b.js";
+            window.path_to_searchindex_js = "searchindex-9b8bb61b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-d3260e3e.js"></script>
@@ -1547,7 +1547,7 @@ the warning may become an error.</p>
    = note: fields of packed structs might be misaligned: dereferencing a misaligned pointer or even just creating a misaligned reference is undefined behavior
 </code></pre>
 <p>For more information about the process and policy of future-incompatible
-changes, see <a href="https://github.com/rust-lang/rfcs/blob/master/text/1589-rustc-bug-fix-procedure.md">RFC 1589</a>.</p>
+changes, see <a href="https://rust-lang.github.io/rfcs/1589-rustc-bug-fix-procedure.html">RFC 1589</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="lint-levels"><a class="header" href="#lint-levels">Lint Levels</a></h1>
 <p>In <code>rustc</code>, lints are divided into six <em>levels</em>:</p>
@@ -1623,18 +1623,18 @@ is guaranteed to warn: no more, no less. This is true even if the overall lint
 level is capped via cap-lints.</p>
 <h2 id="deny"><a class="header" href="#deny">deny</a></h2>
 <p>A ‘deny’ lint produces an error if you violate it. For example, this code
-runs into the <code>exceeding_bitshifts</code> lint.</p>
+runs into the <code>arithmetic_overflow</code> lint.</p>
 <pre><code class="language-rust no_run">fn main() {
     100u8 &lt;&lt; 10;
 }</code></pre>
 <pre><code class="language-bash">$ rustc main.rs
-error: bitshift exceeds the type's number of bits
- --&gt; main.rs:2:13
+error: this arithmetic operation will overflow
+ --&gt; main.rs:2:5
   |
 2 |     100u8 &lt;&lt; 10;
-  |     ^^^^^^^^^^^
+  |     ^^^^^^^^^^^ attempt to shift left by `10_i32`, which would overflow
   |
-  = note: `#[deny(exceeding_bitshifts)]` on by default
+  = note: `#[deny(arithmetic_overflow)]` on by default
 </code></pre>
 <p>What’s the difference between an error from a lint and a regular old error?
 Lints are configurable via levels, so in a similar way to ‘allow’ lints,
@@ -1767,19 +1767,13 @@ code sample from the “deny” lint level above:</p>
 }</code></pre>
 <p>And we compile it, capping lints to warn:</p>
 <pre><code class="language-bash">$ rustc lib.rs --cap-lints warn
-warning: bitshift exceeds the type's number of bits
+warning: this arithmetic operation will overflow
  --&gt; lib.rs:2:5
   |
 2 |     100u8 &lt;&lt; 10;
-  |     ^^^^^^^^^^^
+  |     ^^^^^^^^^^^ attempt to shift left by `10_i32`, which would overflow
   |
-  = note: `#[warn(exceeding_bitshifts)]` on by default
-
-warning: this expression will panic at run-time
- --&gt; lib.rs:2:5
-  |
-2 |     100u8 &lt;&lt; 10;
-  |     ^^^^^^^^^^^ attempt to shift left with overflow
+  = note: `#[warn(arithmetic_overflow)]` on by default
 </code></pre>
 <p>It now only warns, rather than errors. We can go further and allow all lints:</p>
 <pre><code class="language-bash">$ rustc lib.rs --cap-lints allow
@@ -5165,17 +5159,22 @@ for targets at each tier, see the <a href="#target-tier-policy">Target Tier Poli
 <p>Targets are identified by their “target triple” which is the string to inform
 the compiler what kind of output should be produced.</p>
 <p>Component availability is tracked <a href="https://rust-lang.github.io/rustup-components-history/">here</a>.</p>
+<p>Support for targets can vary during their lifespan (a target con be promoted because the support
+improves or can be demoted because lack of resources). Procedures for promoting and demoting targets
+are documented at our <a href="https://forge.rust-lang.org/compiler/proposals-and-stabilization.html#targets">Forge documentation site</a>.</p>
 <h2 id="tier-1-with-host-tools"><a class="header" href="#tier-1-with-host-tools">Tier 1 with Host Tools</a></h2>
 <p>Tier 1 targets can be thought of as “guaranteed to work”. The Rust project
 builds official binary releases for each tier 1 target, and automated testing
-ensures that each tier 1 target builds and passes tests after each change.</p>
+ensures that each tier 1 target builds and passes tests after each change. For
+the full requirements, see <a href="#tier-1-target-policy">Tier 1 target
+policy</a> in the Target Tier Policy.</p>
 <p>Tier 1 targets with host tools additionally support running tools like <code>rustc</code>
 and <code>cargo</code> natively on the target, and automated testing ensures that tests
 pass for the host tools as well. This allows the target to be used as a
 development platform, not just a compilation target. For the full requirements,
 see <a href="#tier-1-with-host-tools-1">Tier 1 with Host Tools</a> in
 the Target Tier Policy.</p>
-<p>All tier 1 targets with host tools support the full standard library.</p>
+<p>All tier 1 (with host tools) targets support the full standard library.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -5185,22 +5184,25 @@ the Target Tier Policy.</p>
 <tr><td><a href="#-apple-darwin"><code>aarch64-apple-darwin</code></a></td><td>ARM64 macOS (11.0+, Big Sur+)</td></tr>
 <tr><td><a href="#-pc-windows-msvc"><code>aarch64-pc-windows-msvc</code></a></td><td>ARM64 Windows MSVC</td></tr>
 <tr><td><a href="#aarch64-unknown-linux-gnu"><code>aarch64-unknown-linux-gnu</code></a></td><td>ARM64 Linux (kernel 4.1+, glibc 2.17+)</td></tr>
-<tr><td><a href="#-pc-windows-msvc"><code>i686-pc-windows-msvc</code></a></td><td>32-bit MSVC (Windows 10+, Windows Server 2016+, Pentium 4) <sup class="footnote-reference" id="fr-x86_32-floats-return-ABI-1"><a href="#footnote-x86_32-floats-return-ABI">1</a></sup> <sup class="footnote-reference" id="fr-win32-msvc-alignment-1"><a href="#footnote-win32-msvc-alignment">2</a></sup></td></tr>
-<tr><td><code>i686-unknown-linux-gnu</code></td><td>32-bit Linux (kernel 3.2+, glibc 2.17+, Pentium 4) <sup class="footnote-reference" id="fr-x86_32-floats-return-ABI-2"><a href="#footnote-x86_32-floats-return-ABI">1</a></sup></td></tr>
+<tr><td><code>i686-unknown-linux-gnu</code></td><td>32-bit Linux (kernel 3.2+, glibc 2.17+, Pentium 4) <sup class="footnote-reference" id="fr-x86_32-floats-return-ABI-1"><a href="#footnote-x86_32-floats-return-ABI">1</a></sup></td></tr>
 <tr><td><a href="#-windows-gnu"><code>x86_64-pc-windows-gnu</code></a></td><td>64-bit MinGW (Windows 10+, Windows Server 2016+)</td></tr>
 <tr><td><a href="#-pc-windows-msvc"><code>x86_64-pc-windows-msvc</code></a></td><td>64-bit MSVC (Windows 10+, Windows Server 2016+)</td></tr>
 <tr><td><code>x86_64-unknown-linux-gnu</code></td><td>64-bit Linux (kernel 3.2+, glibc 2.17+)</td></tr>
 </tbody>
 </table>
 </div>
-<h2 id="tier-1"><a class="header" href="#tier-1">Tier 1</a></h2>
-<p>Tier 1 targets can be thought of as “guaranteed to work”. The Rust project
-builds official binary releases for each tier 1 target, and automated testing
-ensures that each tier 1 target builds and passes tests after each change. For
-the full requirements, see <a href="#tier-1-target-policy">Tier 1 target
-policy</a> in the Target Tier Policy.</p>
-<p>At this time, all Tier 1 targets are <a href="#tier-1-with-host-tools">Tier 1 with Host
-Tools</a>.</p>
+<h2 id="tier-1-without-host-tools"><a class="header" href="#tier-1-without-host-tools">Tier 1 without Host Tools</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>target</th><th>notes</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="#-pc-windows-msvc"><code>i686-pc-windows-msvc</code></a></td><td>32-bit MSVC (Windows 10+, Windows Server 2016+, Pentium 4) <sup class="footnote-reference" id="fr-x86_32-floats-return-ABI-2"><a href="#footnote-x86_32-floats-return-ABI">1</a></sup> <sup class="footnote-reference" id="fr-win32-msvc-alignment-1"><a href="#footnote-win32-msvc-alignment">2</a></sup></td></tr>
+</tbody>
+</table>
+</div>
+<p>All tier 1 (without host tools) targets support the full standard library.</p>
 <h2 id="tier-2-with-host-tools"><a class="header" href="#tier-2-with-host-tools">Tier 2 with Host Tools</a></h2>
 <p>Tier 2 targets can be thought of as “guaranteed to build”. The Rust project
 builds official binary releases of the standard library (or, in some cases,
@@ -5340,7 +5342,6 @@ so Rustup may install the documentation for a similar tier 1 target instead.</p>
 <tr><td><a href="#riscv32iimimaimcimfcimacimafc-unknown-none-elf"><code>riscv32imc-unknown-none-elf</code></a></td><td style="text-align: center">*</td><td>Bare RISC-V (RV32IMC ISA)</td></tr>
 <tr><td><a href="#riscv64a23-unknown-linux-gnu"><code>riscv64a23-unknown-linux-gnu</code></a></td><td style="text-align: center">✓</td><td>RISC-V Linux (kernel 6.8.0+, glibc 2.39)</td></tr>
 <tr><td><code>riscv64gc-unknown-none-elf</code></td><td style="text-align: center">*</td><td>Bare RISC-V (RV64IMAFDC ISA)</td></tr>
-<tr><td><a href="#riscv64im-unknown-none-elf"><code>riscv64im-unknown-none-elf</code></a></td><td style="text-align: center">*</td><td>Bare RISC-V (RV64IM ISA)</td></tr>
 <tr><td><code>riscv64imac-unknown-none-elf</code></td><td style="text-align: center">*</td><td>Bare RISC-V (RV64IMAC ISA)</td></tr>
 <tr><td><code>sparc64-unknown-linux-gnu</code></td><td style="text-align: center">✓</td><td>SPARC Linux (kernel 4.4+, glibc 2.23)</td></tr>
 <tr><td><a href="#s390x-unknown-none-softfloat"><code>s390x-unknown-none-softfloat</code></a></td><td style="text-align: center">*</td><td>Bare S390x (softfloat ABI)</td></tr>
@@ -5547,13 +5548,14 @@ host tools.</p>
 <tr><td><a href="#-oe-linux-gnu"><code>riscv64-oe-linux-gnu</code></a></td><td style="text-align: center">✓</td><td style="text-align: center"></td><td>RISC-V OpenEmbedded/Yocto Linux (GNU)</td></tr>
 <tr><td><a href="#-wrs-vxworks"><code>riscv64-wrs-vxworks</code></a></td><td style="text-align: center">✓</td><td style="text-align: center"></td><td></td></tr>
 <tr><td><code>riscv64gc-unknown-freebsd</code></td><td style="text-align: center">?</td><td style="text-align: center"></td><td>RISC-V FreeBSD</td></tr>
-<tr><td><code>riscv64gc-unknown-fuchsia</code></td><td style="text-align: center">?</td><td style="text-align: center"></td><td>RISC-V Fuchsia</td></tr>
+<tr><td><a href="#aarch64-unknown-fuchsia-and-x86_64-unknown-fuchsia"><code>riscv64gc-unknown-fuchsia</code></a></td><td style="text-align: center">✓</td><td style="text-align: center"></td><td>RISC-V Fuchsia</td></tr>
 <tr><td><a href="#-unknown-hermit"><code>riscv64gc-unknown-hermit</code></a></td><td style="text-align: center">✓</td><td style="text-align: center"></td><td>RISC-V Hermit</td></tr>
 <tr><td><a href="#-unknown-managarm-mlibc"><code>riscv64gc-unknown-managarm-mlibc</code></a></td><td style="text-align: center">?</td><td style="text-align: center"></td><td>RISC-V Managarm</td></tr>
 <tr><td><a href="#-unknown-netbsd"><code>riscv64gc-unknown-netbsd</code></a></td><td style="text-align: center">✓</td><td style="text-align: center">✓</td><td>RISC-V NetBSD</td></tr>
 <tr><td><a href="#-nuttx-elf"><code>riscv64gc-unknown-nuttx-elf</code></a></td><td style="text-align: center">✓</td><td style="text-align: center"></td><td>RISC-V 64bit with NuttX</td></tr>
 <tr><td><a href="#-unknown-openbsd"><code>riscv64gc-unknown-openbsd</code></a></td><td style="text-align: center">✓</td><td style="text-align: center">✓</td><td>OpenBSD/riscv64</td></tr>
 <tr><td><a href="#-unknown-redox"><code>riscv64gc-unknown-redox</code></a></td><td style="text-align: center">✓</td><td style="text-align: center"></td><td>RISC-V 64bit Redox OS</td></tr>
+<tr><td><a href="#riscv64im-unknown-none-elf"><code>riscv64im-unknown-none-elf</code></a></td><td style="text-align: center">*</td><td style="text-align: center"></td><td>Bare RISC-V (RV64IM ISA)</td></tr>
 <tr><td><a href="#-nuttx-elf"><code>riscv64imac-unknown-nuttx-elf</code></a></td><td style="text-align: center">✓</td><td style="text-align: center"></td><td>RISC-V 64bit with NuttX</td></tr>
 <tr><td><a href="#s390x-unknown-linux-musl"><code>s390x-unknown-linux-musl</code></a></td><td style="text-align: center">✓</td><td style="text-align: center"></td><td>S390x Linux (kernel 3.2, musl 1.2.5)</td></tr>
 <tr><td><code>sparc-unknown-linux-gnu</code></td><td style="text-align: center">✓</td><td style="text-align: center"></td><td>32-bit SPARC Linux</td></tr>
@@ -5635,6 +5637,7 @@ host tools.</p>
 <ul>
 <li><a href="#general">General</a></li>
 <li><a href="#adding-a-new-target">Adding a new target</a></li>
+<li><a href="#promoting-or-demoting-a-target">Promoting or demoting a target</a></li>
 <li><a href="#tier-3-target-policy">Tier 3 target policy</a></li>
 <li><a href="#tier-2-target-policy">Tier 2 target policy</a>
 <ul>
@@ -5753,6 +5756,10 @@ target from <code>rustc</code> as well. To break this cycle, you are strongly en
 to add a <em>minimal</em> <code>#![no_core]</code> target spec first to teach <code>rustc</code> about the
 target’s existence, and add <code>std</code> support as a follow-up once you’ve added
 support for the target in <code>cc</code> and <code>libc</code>.</p>
+<h2 id="promoting-or-demoting-a-target"><a class="header" href="#promoting-or-demoting-a-target">Promoting or demoting a target</a></h2>
+<p>Support for targets can vary during their lifespan (a target con be promoted because the support
+improves or can be demoted because lack of resources). Procedures for promoting and demoting targets
+are documented at our <a href="https://forge.rust-lang.org/compiler/proposals-and-stabilization.html#targets">Forge documentation site</a>.</p>
 <h2 id="tier-3-target-policy"><a class="header" href="#tier-3-target-policy">Tier 3 target policy</a></h2>
 <p>At this tier, the Rust project provides no official support for a target, so we
 place minimal requirements on the introduction of targets.</p>
@@ -6375,8 +6382,11 @@ specific minimum features beyond the baseline of the CPU/environment/etc? What
 version of the OS or environment do they expect?</p>
 <p>Are there notable <code>#[target_feature(...)]</code> or <code>-C target-feature=</code> values that
 programs may wish to use?</p>
-<p>What calling convention does <code>extern "C"</code> use on the target?</p>
-<p>What format do binaries use by default? ELF, PE, something else?</p>
+<p>What calling convention does <code>extern "C"</code> use on the target? Where can the most
+up-to-date calling convention and ABI documentation be found? Please link to
+this information if publicly available.</p>
+<p>What format do binaries use by default? ELF, PE, something else? Provide links
+if the format is not standard.</p>
 <h2 id="building-the-target"><a class="header" href="#building-the-target">Building the target</a></h2>
 <p>If Rust doesn’t build the target by default, how can users build it? Can users
 just add it to the <code>target</code> list in <code>bootstrap.toml</code>?</p>
@@ -9667,8 +9677,13 @@ build-std = ["std", "panic_abort"]
 <p><a href="https://fuchsia.dev/">Fuchsia</a> is a modern open source operating system that’s simple, secure,
 updatable, and performant.</p>
 <h2 id="target-maintainers-48"><a class="header" href="#target-maintainers-48">Target maintainers</a></h2>
-<p><a href="https://github.com/erickt">@erickt</a>
-<a href="https://github.com/Nashenas88">@Nashenas88</a></p>
+<ul>
+<li><a href="https://github.com/Nashenas88">@Nashenas88</a></li>
+<li><a href="https://github.com/PiJoules">@PiJoules</a></li>
+<li><a href="https://github.com/erickt">@erickt</a></li>
+<li><a href="https://github.com/ilovepi">@ilovepi</a></li>
+<li><a href="https://github.com/petrhosek">@petrhosek</a></li>
+</ul>
 <p>The up-to-date list can be also found via the
 <a href="https://github.com/rust-lang/team/blob/master/teams/fuchsia.toml">fuchsia marker team</a>.</p>
 <h2 id="table-of-contents-1"><a class="header" href="#table-of-contents-1">Table of contents</a></h2>
@@ -9819,10 +9834,10 @@ targeting our desired Fuchsia target.</p>
 <p>Before building Rust for Fuchsia, you’ll need a clang toolchain that supports
 Fuchsia as well. A recent version (14+) of clang should be sufficient to compile
 Rust for Fuchsia.</p>
-<p>x86-64 and AArch64 Fuchsia targets can be enabled using the following
+<p>x86-64, AArch64, and riscv64gc Fuchsia targets can be enabled using the following
 configuration in <code>bootstrap.toml</code>:</p>
 <pre><code class="language-toml">[build]
-target = ["&lt;host_platform&gt;", "aarch64-unknown-fuchsia", "x86_64-unknown-fuchsia"]
+target = ["&lt;host_platform&gt;", "aarch64-unknown-fuchsia", "x86_64-unknown-fuchsia", "riscv64gc-unknown-fuchsia"]
 
 [rust]
 lld = true
@@ -9835,6 +9850,10 @@ cc = "clang"
 cxx = "clang++"
 
 [target.aarch64-unknown-fuchsia]
+cc = "clang"
+cxx = "clang++"
+
+[target.riscv64gc-unknown-fuchsia]
 cc = "clang"
 cxx = "clang++"
 </code></pre>
@@ -9864,6 +9883,10 @@ export CFLAGS_x86_64_unknown_fuchsia="--target=x86_64-unknown-fuchsia --sysroot=
 export CXXFLAGS_x86_64_unknown_fuchsia="--target=x86_64-unknown-fuchsia --sysroot=${SDK_PATH}/arch/x64/sysroot -I${SDK_PATH}/pkg/fdio/include"
 export LDFLAGS_x86_64_unknown_fuchsia="--target=x86_64-unknown-fuchsia --sysroot=${SDK_PATH}/arch/x64/sysroot -L${SDK_PATH}/arch/x64/lib"
 export CARGO_TARGET_X86_64_UNKNOWN_FUCHSIA_RUSTFLAGS="-C link-arg=--sysroot=${SDK_PATH}/arch/x64/sysroot -Lnative=${SDK_PATH}/arch/x64/sysroot/lib -Lnative=${SDK_PATH}/arch/x64/lib"
+export CFLAGS_riscv64gc_unknown_fuchsia="--target=riscv64gc-unknown-fuchsia --sysroot=${SDK_PATH}/arch/riscv64/sysroot -I${SDK_PATH}/pkg/fdio/include"
+export CXXFLAGS_riscv64gc_unknown_fuchsia="--target=riscv64gc-unknown-fuchsia --sysroot=${SDK_PATH}/arch/riscv64/sysroot -I${SDK_PATH}/pkg/fdio/include"
+export LDFLAGS_riscv64gc_unknown_fuchsia="--target=riscv64gc-unknown-fuchsia --sysroot=${SDK_PATH}/arch/riscv64/sysroot -L${SDK_PATH}/arch/riscv64/lib"
+export CARGO_TARGET_RISCV64GC_UNKNOWN_FUCHSIA_RUSTFLAGS="-C link-arg=--sysroot=${SDK_PATH}/arch/riscv64/sysroot -Lnative=${SDK_PATH}/arch/riscv64/sysroot/lib -Lnative=${SDK_PATH}/arch/riscv64/lib"
 </code></pre>
 <p>Finally, the Rust compiler can be built and installed:</p>
 <pre><code class="language-sh">(source config-env.sh &amp;&amp; ./x.py install)
@@ -9894,8 +9917,9 @@ fn it_works() {
 <p>Using your freshly installed <code>rustc</code>, you can compile a binary for Fuchsia using
 the following options:</p>
 <ul>
-<li><code>--target x86_64-unknown-fuchsia</code>/<code>--target aarch64-unknown-fuchsia</code>: Targets the Fuchsia
-platform of your choice</li>
+<li><code>--target x86_64-unknown-fuchsia</code> / <code>--target aarch64-unknown-fuchsia</code> /
+<code>--target riscv64gc-unknown-fuchsia</code>: Targets the Fuchsia platform of your
+choice</li>
 <li><code>-Lnative ${SDK_PATH}/arch/${ARCH}/lib</code>: Link against Fuchsia libraries from
 the SDK</li>
 <li><code>-Lnative ${SDK_PATH}/arch/${ARCH}/sysroot/lib</code>: Link against Fuchsia sysroot
@@ -9903,8 +9927,8 @@ libraries from the SDK</li>
 </ul>
 <p>Putting it all together:</p>
 <pre><code class="language-sh"># Configure these for the Fuchsia target of your choice
-TARGET_ARCH="&lt;x86_64-unknown-fuchsia|aarch64-unknown-fuchsia&gt;"
-ARCH="&lt;x64|aarch64&gt;"
+TARGET_ARCH="&lt;x86_64-unknown-fuchsia|aarch64-unknown-fuchsia|riscv64gc-unknown-fuchsia&gt;"
+ARCH="&lt;x64|aarch64|riscv64&gt;"
 
 rustc \
     --target ${TARGET_ARCH} \
@@ -10196,12 +10220,12 @@ export TEST_TOOLCHAIN_TMP_DIR="/tmp/rust-tmp"
 </code></pre>
 <p>We can then use the script to start our test environment with:</p>
 <pre><code class="language-sh">( \
-    source config-env.sh &amp;&amp;                                                   \
-    src/ci/docker/scripts/fuchsia-test-runner.py start                        \
-    --rust-build ${RUST_SRC_PATH}/build                                       \
-    --sdk ${SDK_PATH}                                                         \
-    --target {x86_64-unknown-fuchsia|aarch64-unknown-fuchsia}                 \
-    --verbose                                                                 \
+    source config-env.sh &amp;&amp;                                                  \
+    src/ci/docker/scripts/fuchsia-test-runner.py start                       \
+    --rust-build ${RUST_SRC_PATH}/build                                      \
+    --sdk ${SDK_PATH}                                                        \
+    --target {x86_64-unknown-fuchsia|aarch64-unknown-fuchsia|riscv64gc-unknown-fuchsia} \
+    --verbose                                                                \
 )
 </code></pre>
 <p>Where <code>${RUST_SRC_PATH}/build</code> is the <code>build-dir</code> set in <code>bootstrap.toml</code>.</p>
@@ -10211,7 +10235,7 @@ run the full <code>tests/ui</code> test suite:</p>
 <pre><code class="language-sh">( \
     source config-env.sh &amp;&amp;                                                   \
     ./x.py                                                                    \
-    --config bootstrap.toml                                                      \
+    --config bootstrap.toml                                                   \
     --stage=2                                                                 \
     test tests/ui                                                             \
     --target x86_64-unknown-fuchsia                                           \
@@ -13952,8 +13976,11 @@ pub fn main() {
 <p><strong>Tier 1 with host tools:</strong></p>
 <ul>
 <li><code>aarch64-pc-windows-msvc</code>: Windows on ARM64.</li>
-<li><code>i686-pc-windows-msvc</code>: Windows on 32-bit x86.</li>
 <li><code>x86_64-pc-windows-msvc</code>: Windows on 64-bit x86.</li>
+</ul>
+<p><strong>Tier 1 without host tools:</strong></p>
+<ul>
+<li><code>i686-pc-windows-msvc</code>: Windows on 32-bit x86.</li>
 </ul>
 <h2 id="target-maintainers-103"><a class="header" href="#target-maintainers-103">Target maintainers</a></h2>
 <p><a href="https://github.com/ChrisDenton">@ChrisDenton</a>
@@ -13967,7 +13994,8 @@ pub fn main() {
 <p>Windows 10 or higher is required for client installs, Windows Server 2016 or higher is required for server installs.</p>
 <h3 id="host-tooling-1"><a class="header" href="#host-tooling-1">Host tooling</a></h3>
 <p>The minimum supported Visual Studio version is 2017 but this support is not actively tested in CI.
-It is <strong>highly</strong> recommended to use the latest version of VS (currently VS 2022).</p>
+It is <strong>highly</strong> recommended to use the latest version of VS (currently VS 2026).</p>
+<p>Only 64-bit <code>*-pc-windows-msvc</code> targets support host tools.</p>
 <h3 id="platform-details"><a class="header" href="#platform-details">Platform details</a></h3>
 <p>These targets fully implement the Rust standard library.</p>
 <p>The <code>extern "C"</code> calling convention conforms to Microsoft’s default calling convention for the given architecture: <a href="https://learn.microsoft.com/en-us/cpp/cpp/cdecl?view=msvc-170"><code>__cdecl</code></a> on <code>i686</code>, <a href="https://learn.microsoft.com/en-us/cpp/build/x64-calling-convention?view=msvc-170"><code>x64</code></a> on <code>x86_64</code> and <a href="https://learn.microsoft.com/en-us/cpp/build/arm64-windows-abi-conventions?view=msvc-170"><code>ARM64</code></a> on <code>aarch64</code>.</p>
@@ -15040,11 +15068,15 @@ effectively cannot be done.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="-windows-gnu"><a class="header" href="#-windows-gnu">*-windows-gnu</a></h1>
 <p><strong>⚠️ This documentation page is a stub, you can help improving it by sending a PR. ⚠️</strong></p>
-<p><strong>Tier: 1/2 (with host tools)</strong></p>
-<p>Target triples available:</p>
+<p><strong>Tier: 1 (with host tools)</strong></p>
+<p>Target tuples available:</p>
 <ul>
-<li><code>i686-pc-windows-gnu</code>: Tier 2</li>
-<li><code>x86_64-pc-windows-gnu</code>: Tier 1</li>
+<li><code>x86_64-pc-windows-gnu</code></li>
+</ul>
+<p><strong>Tier: 2 (without host tools)</strong></p>
+<p>Target tuples available:</p>
+<ul>
+<li><code>i686-pc-windows-gnu</code></li>
 </ul>
 <h2 id="target-maintainers-115"><a class="header" href="#target-maintainers-115">Target maintainers</a></h2>
 <p><strong>⚠️ These targets do not have any maintainers and are not properly maintained. ⚠️</strong></p>
@@ -15063,6 +15095,7 @@ Without maintainers, these targets may be demoted in the future.</p>
 <li>GCC 14.2</li>
 <li>mingw-w64 12.0.0</li>
 <li>MSVCRT library as the default</li>
+<li>Libgcc with DWARF-2 exception handling for i686 and SEH for x86_64</li>
 </ul>
 <p>Using older tools (especially Binutils) may not work properly, due to the number of issues plaguing older versions of Binutils.
 The supported toolchain versions are subject to change.</p>
@@ -15071,21 +15104,25 @@ The supported toolchain versions are subject to change.</p>
 That means one can easily compile and cross-compile for those targets from other hosts if C proper toolchain is installed.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="-windows-gnullvm"><a class="header" href="#-windows-gnullvm">*-windows-gnullvm</a></h1>
-<p><strong>Tier: 2 (with host tools)</strong></p>
 <p>Windows targets similar to <code>*-windows-gnu</code> but using Universal C Runtime (UCRT) as the runtime and various LLVM tools/libraries instead of
 GCC/Binutils.</p>
-<p>Target triples available so far:</p>
+<p><strong>Tier: 2 (with host tools)</strong></p>
+<p>Target tuples available so far:</p>
 <ul>
 <li><code>aarch64-pc-windows-gnullvm</code></li>
-<li><code>i686-pc-windows-gnullvm</code></li>
 <li><code>x86_64-pc-windows-gnullvm</code></li>
+</ul>
+<p><strong>Tier: 2 (without host tools)</strong></p>
+<p>Target tuples available so far:</p>
+<ul>
+<li><code>i686-pc-windows-gnullvm</code></li>
 </ul>
 <h2 id="target-maintainers-116"><a class="header" href="#target-maintainers-116">Target maintainers</a></h2>
 <p><a href="https://github.com/mati865">@mati865</a>
 <a href="https://github.com/thomcc">@thomcc</a></p>
 <h2 id="requirements-108"><a class="header" href="#requirements-108">Requirements</a></h2>
 <p>Building those targets requires an LLVM-based C toolchain, for example, <a href="https://github.com/mstorsjo/llvm-mingw">llvm-mingw</a> or <a href="https://www.msys2.org/docs/environments">MSYS2</a> with CLANG*
-environment.</p>
+environment, with static libunwind library available.</p>
 <p>Binaries for this target should be at least on par with <code>*-windows-gnu</code> in terms of requirements and functionality,
 except for implicit self-contained mode (explained in <a href="#building-rust-programs-86">the section below</a>).</p>
 <p>Those targets follow Windows calling convention for <code>extern "C"</code>.</p>

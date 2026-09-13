@@ -93,7 +93,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9870f8aa.js";
+            window.path_to_searchindex_js = "../searchindex-c9db6724.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-01ec0cab.js"></script>
@@ -995,10 +995,44 @@ let z = StructLike { value: 123 }; // Struct expression.
 </div>
 
 <p>Each enum instance has a <em>discriminant</em>: an integer logically associated to it that is used to determine which variant it holds.</p>
-<div class="rule" id="r-items.enum.discriminant.repr-rust"><a class="rule-link" href="#r-items.enum.discriminant.repr-rust" title="items.enum.discriminant.repr-rust"><span>[items<wbr>.enum<wbr>.discriminant<wbr>.repr-rust]</span></a>
+<div class="rule" id="r-items.enum.discriminant.type"><a class="rule-link" href="#r-items.enum.discriminant.type" title="items.enum.discriminant.type"><span>[items<wbr>.enum<wbr>.discriminant<wbr>.type]</span></a>
 </div>
 
-<p>Under the <a href="../type-layout.html#the-rust-representation"><code>Rust</code> representation</a>, the discriminant is interpreted as an <code>isize</code> value. However, the compiler is allowed to use a smaller type (or another means of distinguishing variants) in its actual memory layout.</p>
+<p>Enums without a <a href="../type-layout.html#primitive-representations">primitive representation</a> have discriminants of type <code>isize</code>. However, the compiler may use a smaller type or another means of distinguishing variants in the actual memory layout.</p>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use core::mem::size_of;
+</span>enum E {
+    V1 = 0isize, // OK: `isize` is the discriminant type.
+    V2,
+}
+
+assert!(size_of::&lt;E&gt;() &lt;= size_of::&lt;isize&gt;());
+<span class="boring">}</span></code></pre>
+<pre class="playground"><code class="language-rust compile_fail E0308 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>enum E {
+    V = 0u8, // ERROR: Expected `isize`, found `u8`.
+}
+<span class="boring">}</span></code></pre>
+<div class="rule" id="r-items.enum.discriminant.type-primitive"><a class="rule-link" href="#r-items.enum.discriminant.type-primitive" title="items.enum.discriminant.type-primitive"><span>[items<wbr>.enum<wbr>.discriminant<wbr>.type-primitive]</span></a>
+</div>
+
+<p>Enums with a <a href="../type-layout.html#primitive-representations">primitive representation</a> have discriminants of the type named by the representation. This also applies to enums that combine the <code>C</code> representation with a primitive representation (see <a href="../type-layout.html#r-layout.repr.primitive-c">layout.repr.primitive-c</a>).</p>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[repr(u8)]
+enum E {
+    V = 0u8, // OK: `u8` is the discriminant type.
+}
+<span class="boring">}</span></code></pre>
+<pre class="playground"><code class="language-rust compile_fail E0308 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[repr(u8)]
+enum E {
+    V = 0isize, // ERROR: Expected `u8`, found `isize`.
+}
+<span class="boring">}</span></code></pre>
 <h3 id="assigning-discriminant-values"><a class="header" href="#assigning-discriminant-values">Assigning discriminant values</a></h3>
 <div class="rule" id="r-items.enum.discriminant.explicit"><a class="rule-link" href="#r-items.enum.discriminant.explicit" title="items.enum.discriminant.explicit"><span>[items<wbr>.enum<wbr>.discriminant<wbr>.explicit]</span></a>
 </div>

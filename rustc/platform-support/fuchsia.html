@@ -92,7 +92,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9e989d1b.js";
+            window.path_to_searchindex_js = "../searchindex-9b8bb61b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-d3260e3e.js"></script>
@@ -242,8 +242,13 @@
 <p><a href="https://fuchsia.dev/">Fuchsia</a> is a modern open source operating system that’s simple, secure,
 updatable, and performant.</p>
 <h2 id="target-maintainers"><a class="header" href="#target-maintainers">Target maintainers</a></h2>
-<p><a href="https://github.com/erickt">@erickt</a>
-<a href="https://github.com/Nashenas88">@Nashenas88</a></p>
+<ul>
+<li><a href="https://github.com/Nashenas88">@Nashenas88</a></li>
+<li><a href="https://github.com/PiJoules">@PiJoules</a></li>
+<li><a href="https://github.com/erickt">@erickt</a></li>
+<li><a href="https://github.com/ilovepi">@ilovepi</a></li>
+<li><a href="https://github.com/petrhosek">@petrhosek</a></li>
+</ul>
 <p>The up-to-date list can be also found via the
 <a href="https://github.com/rust-lang/team/blob/master/teams/fuchsia.toml">fuchsia marker team</a>.</p>
 <h2 id="table-of-contents"><a class="header" href="#table-of-contents">Table of contents</a></h2>
@@ -394,10 +399,10 @@ targeting our desired Fuchsia target.</p>
 <p>Before building Rust for Fuchsia, you’ll need a clang toolchain that supports
 Fuchsia as well. A recent version (14+) of clang should be sufficient to compile
 Rust for Fuchsia.</p>
-<p>x86-64 and AArch64 Fuchsia targets can be enabled using the following
+<p>x86-64, AArch64, and riscv64gc Fuchsia targets can be enabled using the following
 configuration in <code>bootstrap.toml</code>:</p>
 <pre><code class="language-toml">[build]
-target = ["&lt;host_platform&gt;", "aarch64-unknown-fuchsia", "x86_64-unknown-fuchsia"]
+target = ["&lt;host_platform&gt;", "aarch64-unknown-fuchsia", "x86_64-unknown-fuchsia", "riscv64gc-unknown-fuchsia"]
 
 [rust]
 lld = true
@@ -410,6 +415,10 @@ cc = "clang"
 cxx = "clang++"
 
 [target.aarch64-unknown-fuchsia]
+cc = "clang"
+cxx = "clang++"
+
+[target.riscv64gc-unknown-fuchsia]
 cc = "clang"
 cxx = "clang++"
 </code></pre>
@@ -439,6 +448,10 @@ export CFLAGS_x86_64_unknown_fuchsia="--target=x86_64-unknown-fuchsia --sysroot=
 export CXXFLAGS_x86_64_unknown_fuchsia="--target=x86_64-unknown-fuchsia --sysroot=${SDK_PATH}/arch/x64/sysroot -I${SDK_PATH}/pkg/fdio/include"
 export LDFLAGS_x86_64_unknown_fuchsia="--target=x86_64-unknown-fuchsia --sysroot=${SDK_PATH}/arch/x64/sysroot -L${SDK_PATH}/arch/x64/lib"
 export CARGO_TARGET_X86_64_UNKNOWN_FUCHSIA_RUSTFLAGS="-C link-arg=--sysroot=${SDK_PATH}/arch/x64/sysroot -Lnative=${SDK_PATH}/arch/x64/sysroot/lib -Lnative=${SDK_PATH}/arch/x64/lib"
+export CFLAGS_riscv64gc_unknown_fuchsia="--target=riscv64gc-unknown-fuchsia --sysroot=${SDK_PATH}/arch/riscv64/sysroot -I${SDK_PATH}/pkg/fdio/include"
+export CXXFLAGS_riscv64gc_unknown_fuchsia="--target=riscv64gc-unknown-fuchsia --sysroot=${SDK_PATH}/arch/riscv64/sysroot -I${SDK_PATH}/pkg/fdio/include"
+export LDFLAGS_riscv64gc_unknown_fuchsia="--target=riscv64gc-unknown-fuchsia --sysroot=${SDK_PATH}/arch/riscv64/sysroot -L${SDK_PATH}/arch/riscv64/lib"
+export CARGO_TARGET_RISCV64GC_UNKNOWN_FUCHSIA_RUSTFLAGS="-C link-arg=--sysroot=${SDK_PATH}/arch/riscv64/sysroot -Lnative=${SDK_PATH}/arch/riscv64/sysroot/lib -Lnative=${SDK_PATH}/arch/riscv64/lib"
 </code></pre>
 <p>Finally, the Rust compiler can be built and installed:</p>
 <pre><code class="language-sh">(source config-env.sh &amp;&amp; ./x.py install)
@@ -469,8 +482,9 @@ fn it_works() {
 <p>Using your freshly installed <code>rustc</code>, you can compile a binary for Fuchsia using
 the following options:</p>
 <ul>
-<li><code>--target x86_64-unknown-fuchsia</code>/<code>--target aarch64-unknown-fuchsia</code>: Targets the Fuchsia
-platform of your choice</li>
+<li><code>--target x86_64-unknown-fuchsia</code> / <code>--target aarch64-unknown-fuchsia</code> /
+<code>--target riscv64gc-unknown-fuchsia</code>: Targets the Fuchsia platform of your
+choice</li>
 <li><code>-Lnative ${SDK_PATH}/arch/${ARCH}/lib</code>: Link against Fuchsia libraries from
 the SDK</li>
 <li><code>-Lnative ${SDK_PATH}/arch/${ARCH}/sysroot/lib</code>: Link against Fuchsia sysroot
@@ -478,8 +492,8 @@ libraries from the SDK</li>
 </ul>
 <p>Putting it all together:</p>
 <pre><code class="language-sh"># Configure these for the Fuchsia target of your choice
-TARGET_ARCH="&lt;x86_64-unknown-fuchsia|aarch64-unknown-fuchsia&gt;"
-ARCH="&lt;x64|aarch64&gt;"
+TARGET_ARCH="&lt;x86_64-unknown-fuchsia|aarch64-unknown-fuchsia|riscv64gc-unknown-fuchsia&gt;"
+ARCH="&lt;x64|aarch64|riscv64&gt;"
 
 rustc \
     --target ${TARGET_ARCH} \
@@ -771,12 +785,12 @@ export TEST_TOOLCHAIN_TMP_DIR="/tmp/rust-tmp"
 </code></pre>
 <p>We can then use the script to start our test environment with:</p>
 <pre><code class="language-sh">( \
-    source config-env.sh &amp;&amp;                                                   \
-    src/ci/docker/scripts/fuchsia-test-runner.py start                        \
-    --rust-build ${RUST_SRC_PATH}/build                                       \
-    --sdk ${SDK_PATH}                                                         \
-    --target {x86_64-unknown-fuchsia|aarch64-unknown-fuchsia}                 \
-    --verbose                                                                 \
+    source config-env.sh &amp;&amp;                                                  \
+    src/ci/docker/scripts/fuchsia-test-runner.py start                       \
+    --rust-build ${RUST_SRC_PATH}/build                                      \
+    --sdk ${SDK_PATH}                                                        \
+    --target {x86_64-unknown-fuchsia|aarch64-unknown-fuchsia|riscv64gc-unknown-fuchsia} \
+    --verbose                                                                \
 )
 </code></pre>
 <p>Where <code>${RUST_SRC_PATH}/build</code> is the <code>build-dir</code> set in <code>bootstrap.toml</code>.</p>
@@ -786,7 +800,7 @@ run the full <code>tests/ui</code> test suite:</p>
 <pre><code class="language-sh">( \
     source config-env.sh &amp;&amp;                                                   \
     ./x.py                                                                    \
-    --config bootstrap.toml                                                      \
+    --config bootstrap.toml                                                   \
     --stage=2                                                                 \
     test tests/ui                                                             \
     --target x86_64-unknown-fuchsia                                           \

@@ -93,7 +93,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8346b825.js";
+            window.path_to_searchindex_js = "../searchindex-aea97f58.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-20da6b24.js"></script>
@@ -993,10 +993,44 @@ let z = StructLike { value: 123 }; // 구조체 표현식.
 </div>
 
 <p>각 열거형 인스턴스는 <em>판별자(discriminant)</em> 를 가집니다. 이는 어떤 변형을 보유하고 있는지 결정하는 데 사용되는 논리적으로 연결된 정수입니다.</p>
-<div class="rule" id="r-items.enum.discriminant.repr-rust"><a class="rule-link" href="#r-items.enum.discriminant.repr-rust" title="items.enum.discriminant.repr-rust"><span>[items<wbr>.enum<wbr>.discriminant<wbr>.repr-rust]</span></a>
+<div class="rule" id="r-items.enum.discriminant.type"><a class="rule-link" href="#r-items.enum.discriminant.type" title="items.enum.discriminant.type"><span>[items<wbr>.enum<wbr>.discriminant<wbr>.type]</span></a>
 </div>
 
-<p><a href="../type-layout.html#the-rust-representation"><code>Rust</code> 표현</a> 하에서, 판별자는 <code>isize</code> 값으로 해석됩니다. 하지만, 컴파일러는 실제 메모리 레이아웃에서 더 작은 타입(또는 변형을 구별하는 다른 수단)을 사용하는 것이 허용됩니다.</p>
+<p>Enums without a <a href="../type-layout.html#primitive-representations">primitive representation</a> have discriminants of type <code>isize</code>. However, the compiler may use a smaller type or another means of distinguishing variants in the actual memory layout.</p>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use core::mem::size_of;
+</span>enum E {
+    V1 = 0isize, // OK: `isize` is the discriminant type.
+    V2,
+}
+   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
+assert!(size_of::&lt;E&gt;() &lt;= size_of::&lt;isize&gt;());
+<span class="boring">}</span></code></pre>
+<pre class="playground"><code class="language-rust compile_fail E0308 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>enum E {
+    V = 0u8, // ERROR: Expected `isize`, found `u8`.
+}
+<span class="boring">}</span></code></pre>
+<div class="rule" id="r-items.enum.discriminant.type-primitive"><a class="rule-link" href="#r-items.enum.discriminant.type-primitive" title="items.enum.discriminant.type-primitive"><span>[items<wbr>.enum<wbr>.discriminant<wbr>.type-primitive]</span></a>
+</div>
+
+<p>Enums with a <a href="../type-layout.html#primitive-representations">primitive representation</a> have discriminants of the type named by the representation. This also applies to enums that combine the <code>C</code> representation with a primitive representation (see <a href="../type-layout.html#r-layout.repr.primitive-c">layout.repr.primitive-c</a>).</p>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[repr(u8)]
+enum E {
+    V = 0u8, // OK: `u8` is the discriminant type.
+}
+<span class="boring">}</span></code></pre>
+<pre class="playground"><code class="language-rust compile_fail E0308 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[repr(u8)]
+enum E {
+    V = 0isize, // ERROR: Expected `u8`, found `isize`.
+}
+<span class="boring">}</span></code></pre>
 <h3 id="판별자-값-할당"><a class="header" href="#판별자-값-할당">판별자 값 할당</a></h3>
 <div class="rule" id="r-items.enum.discriminant.explicit"><a class="rule-link" href="#r-items.enum.discriminant.explicit" title="items.enum.discriminant.explicit"><span>[items<wbr>.enum<wbr>.discriminant<wbr>.explicit]</span></a>
 </div>

@@ -98,7 +98,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a4a7bafa.js";
+            window.path_to_searchindex_js = "searchindex-3999071a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-eaea3cac.js"></script>
@@ -1523,8 +1523,12 @@ unsafe_code = "forbid"
 
 [lints.clippy]
 enum_glob_use = "deny"
+
+[lints.cargo]
+unused_dependencies = "deny"
 </code></pre>
 <p>Generally, these will only affect local development of the current package. Cargo only applies these to the current package and not to dependencies. As for dependents, Cargo suppresses lints from non-path dependencies with features like <a href="../rustc/lints/levels.html#capping-lints"><code>--cap-lints</code></a>.</p>
+<p>See also the <a href="#lints">lints chapter</a> for the available lints emitted by Cargo itself.</p>
 <blockquote>
 <p><strong>MSRV:</strong> Respected as of 1.74</p>
 </blockquote>
@@ -8466,8 +8470,15 @@ frequency = "always"
 <h1 id="lints"><a class="header" href="#lints">Lints</a></h1>
 <blockquote>
 <p>[!NOTE] This chapter is about lints emitted by <code>cargo</code> itself.</p>
-<p>See <a href="#the-lints-section">the lints section in the Manifest Format chapter</a> to configure lint levels for tools such as <code>rustc</code> or <code>clippy</code>.</p>
 </blockquote>
+<h2 id="configuring-cargo-lints"><a class="header" href="#configuring-cargo-lints">Configuring Cargo lints</a></h2>
+<p>Cargo lints can be configured in the <code>[lints.cargo]</code> table of the <code>Cargo.toml</code> manifest. The key is the lint name without the <code>cargo::</code> prefix. For example:</p>
+<pre><code class="language-toml">[lints.cargo]
+unused_dependencies = "deny"
+</code></pre>
+<p>See <a href="#the-lints-section">the <code>[lints]</code> section</a> for details about lint levels and priorities.</p>
+<h2 id="lint-groups"><a class="header" href="#lint-groups">Lint groups</a></h2>
+<p>Cargo has the concept of a “lint group”, where you can toggle several warnings through one name.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -19357,7 +19368,8 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <p>Installing with <code>--path</code> will always build and install, unless there are conflicting binaries from another package. The <code>--force</code> flag may be used to force Cargo to always reinstall the package.</p>
 <p>If the source is crates.io or <code>--git</code> then by default the crate will be built in a temporary target directory. To avoid this, the target directory can be specified by setting the <code>CARGO_TARGET_DIR</code> environment variable to a path. In particular, this can be useful for caching build artifacts on continuous integration systems.</p>
 <h3 id="dealing-with-the-lockfile"><a class="header" href="#dealing-with-the-lockfile">Dealing with the Lockfile</a></h3>
-<p>By default, the <code>Cargo.lock</code> file that is included with the package will be ignored. This means that Cargo will recompute which versions of dependencies to use, possibly using newer versions that have been released since the package was published. The <code>--locked</code> flag can be used to force Cargo to use the packaged <code>Cargo.lock</code> file if it is available. This may be useful for ensuring reproducible builds, to use the exact same set of dependencies that were available when the package was published. It may also be useful if a newer version of a dependency is published that no longer builds on your system, or has other problems. The downside to using <code>--locked</code> is that you will not receive any fixes or updates to any dependency. Note that Cargo did not start publishing <code>Cargo.lock</code> files until version 1.37, which means packages published with prior versions will not have a <code>Cargo.lock</code> file available.</p>
+<p>By default, Cargo uses the <code>Cargo.lock</code> file included with the package if it is available. This ensures that the installed executable uses the dependency versions selected when the package was published. If no lockfile is available, including for packages published with versions of Cargo before 1.37, Cargo resolves the dependencies normally.</p>
+<p>The <code>--locked</code> flag does not currently change dependency resolution for <code>cargo install</code>. If no <code>Cargo.lock</code> is available, using <code>--locked</code> emits a warning.</p>
 <h3 id="configuration-discovery"><a class="header" href="#configuration-discovery">Configuration Discovery</a></h3>
 <p>This command operates on system or user level, not project level. This means that the local <a href="#hierarchical-structure">configuration discovery</a> is ignored. Instead, the configuration discovery begins at <code>$CARGO_HOME/config.toml</code>. If the package is installed with <code>--path $PATH</code>, the local configuration will be used, beginning discovery at <code>$PATH/.cargo/config.toml</code>.</p>
 <h2 id="options-25"><a class="header" href="#options-25">OPTIONS</a></h2>

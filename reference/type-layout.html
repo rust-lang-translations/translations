@@ -93,7 +93,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9870f8aa.js";
+            window.path_to_searchindex_js = "searchindex-c9db6724.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-01ec0cab.js"></script>
@@ -255,6 +255,9 @@
 </div>
 
 <h2 id="size-and-alignment"><a class="header" href="#size-and-alignment">Size and alignment</a></h2>
+<div class="rule" id="r-layout.properties.intro"><a class="rule-link" href="#r-layout.properties.intro" title="layout.properties.intro"><span>[layout<wbr>.properties<wbr>.intro]</span></a>
+</div>
+
 <p>All values have an alignment and size.</p>
 <div class="rule" id="r-layout.properties.align"><a class="rule-link" href="#r-layout.properties.align" title="layout.properties.align"><span>[layout<wbr>.properties<wbr>.align]</span></a>
 </div>
@@ -470,7 +473,7 @@ struct AlignedStruct {
 <li>The offset of a field is divisible by that field’s alignment.</li>
 <li>The alignment of the type is at least the maximum alignment of its fields.</li>
 </ol>
-<div class="rule" id="r-layout.repr.rust.layout.struct"><a class="rule-link" href="#r-layout.repr.rust.layout.struct" title="layout.repr.rust.layout.struct"><span>[layout<wbr>.repr<wbr>.rust<wbr>.layout<wbr>.struct]</span></a>
+<div class="rule" id="r-layout.repr.rust.struct"><a class="rule-link" href="#r-layout.repr.rust.struct" title="layout.repr.rust.struct"><span>[layout<wbr>.repr<wbr>.rust<wbr>.struct]</span></a>
 </div>
 
 <p>For <a href="items/structs.html">structs</a>, it is further guaranteed that the fields do not overlap. That is, the fields can be ordered such that the offset plus the size of any field is less than or equal to the offset of the next field in the ordering. The ordering does not have to be the same as the order in which the fields are specified in the declaration of the type.</p>
@@ -495,6 +498,35 @@ struct AlignedStruct {
 </div>
 
 <p>For <a href="items/enumerations.html">enums</a> (without a <a href="#primitive-representations">primitive representation</a> specified) with a single <a href="items/enumerations.html#grammar-EnumVariantStruct">field-struct-like variant</a>, a single <a href="items/enumerations.html#grammar-EnumVariant">unit-struct-like variant</a>, or a single <a href="items/enumerations.html#grammar-EnumVariantTuple">tuple-struct-like variant</a> and where the struct-like thing has no fields or where all of the fields are <a href="glossary.html#r-glossary.zst">zero sized</a>, the enums themselves are <a href="glossary.html#r-glossary.zst">zero sized</a>.</p>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use core::mem::size_of;
+</span>enum E1 {
+    V {},
+}
+
+enum E2 {
+    V { f: () },
+}
+
+enum E3 {
+    V,
+}
+
+enum E4 {
+    V(),
+}
+
+enum E5 {
+    V(()),
+}
+
+assert_eq!(size_of::&lt;E1&gt;(), 0);
+assert_eq!(size_of::&lt;E2&gt;(), 0);
+assert_eq!(size_of::&lt;E3&gt;(), 0);
+assert_eq!(size_of::&lt;E4&gt;(), 0);
+assert_eq!(size_of::&lt;E5&gt;(), 0);
+<span class="boring">}</span></code></pre>
 <div class="rule" id="r-layout.repr.rust.unspecified"><a class="rule-link" href="#r-layout.repr.rust.unspecified" title="layout.repr.rust.unspecified"><span>[layout<wbr>.repr<wbr>.rust<wbr>.unspecified]</span></a>
 </div>
 
@@ -686,12 +718,52 @@ assert_eq!(std::mem::offset_of!(SizeRoundedUp, b), 0);
 </div>
 
 <h4 id="reprc-field-less-enums"><a class="header" href="#reprc-field-less-enums"><code>#[repr(C)]</code> Field-less Enums</a></h4>
-<p>For <a href="items/enumerations.html#field-less-enum">field-less enums</a>, the <code>C</code> representation has the size and alignment of the default <code>enum</code> size and alignment for the target platform’s C ABI.</p>
+<div class="rule" id="r-layout.repr.c.enum.discriminant"><a class="rule-link" href="#r-layout.repr.c.enum.discriminant" title="layout.repr.c.enum.discriminant"><span>[layout<wbr>.repr<wbr>.c<wbr>.enum<wbr>.discriminant]</span></a>
+</div>
+
+<p>For a <a href="items/enumerations.html#r-items.enum.fieldless">field-less enum</a> with the <code>C</code> representation, the discriminant values must either all be representable by the <code>int</code> type in the target platform’s C ABI or all be representable by its <code>unsigned int</code> type.</p>
+<div class="alert alert-note">
+<blockquote>
+<p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+
+<p><code>repr(C)</code> enums without a primitive representation have discriminant values of type <code>isize</code>. See <a href="items/enumerations.html#r-items.enum.discriminant.type">items.enum.discriminant.type</a>. The size and alignment are determined from the discriminant values (according to the rule below) <em>after</em> they have been cast to <code>isize</code>.</p>
+</blockquote>
+</div>
+
+<div class="alert alert-note">
+<blockquote>
+<p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+
+<p><code>rustc</code> accepts enums whose discriminant values do not meet this requirement but lints against them. This will become an error in the future.</p>
+</blockquote>
+</div>
+
+<div class="rule" id="r-layout.repr.c.enum.size-align"><a class="rule-link" href="#r-layout.repr.c.enum.size-align" title="layout.repr.c.enum.size-align"><span>[layout<wbr>.repr<wbr>.c<wbr>.enum<wbr>.size-align]</span></a>
+</div>
+
+<p>A <a href="items/enumerations.html#r-items.enum.fieldless">field-less enum</a> with the <code>C</code> representation has the same size and alignment as a C enum with the same discriminant values and no fixed underlying type.</p>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use core::ffi::c_int;
+</span><span class="boring">use core::mem::{align_of, size_of};
+</span>#[repr(C)]
+enum E {
+    V1,
+    V2,
+}
+
+#[cfg(target_arch = "x86_64")]
+{
+    assert_eq!(size_of::&lt;E&gt;(), size_of::&lt;c_int&gt;());
+    assert_eq!(align_of::&lt;E&gt;(), align_of::&lt;c_int&gt;());
+}
+<span class="boring">}</span></code></pre>
 <div class="alert alert-note">
 <blockquote>
 <p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
 
 <p>The enum representation in C is implementation defined, so this is really a “best guess”. In particular, this may be incorrect when the C code of interest is compiled with certain flags.</p>
+<p>For maximum portability, prefer setting the size and alignment explicitly using a <a href="#primitive-representations">primitive representation</a> on the Rust side and a fixed underlying type (introduced in C23) on the C side.</p>
 </blockquote>
 </div>
 
@@ -796,7 +868,15 @@ struct MyDFields;
 </div>
 
 <h4 id="primitive-representation-of-field-less-enums"><a class="header" href="#primitive-representation-of-field-less-enums">Primitive representation of field-less enums</a></h4>
-<p>For <a href="items/enumerations.html#field-less-enum">field-less enums</a>, primitive representations set the size and alignment to be the same as the primitive type of the same name. For example, a field-less enum with a <code>u8</code> representation can only have discriminants between 0 and 255 inclusive.</p>
+<p>A <a href="items/enumerations.html#r-items.enum.fieldless">field-less enum</a> with a primitive representation has the same size and alignment as the primitive type of the same name.</p>
+<div class="alert alert-note">
+<blockquote>
+<p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+
+<p>Enums with a primitive representation have discriminant values of the type named by the representation. See <a href="items/enumerations.html#r-items.enum.discriminant.type-primitive">items.enum.discriminant.type-primitive</a>.</p>
+</blockquote>
+</div>
+
 <div class="rule" id="r-layout.repr.primitive.adt"><a class="rule-link" href="#r-layout.repr.primitive.adt" title="layout.repr.primitive.adt"><span>[layout<wbr>.repr<wbr>.primitive<wbr>.adt]</span></a>
 </div>
 
