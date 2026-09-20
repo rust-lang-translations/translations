@@ -98,7 +98,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1248347a.js";
+            window.path_to_searchindex_js = "searchindex-57ab3142.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-d4808052.js"></script>
@@ -11458,6 +11458,8 @@ where you can toggle several warnings through one name.</p>
 <h2 id="allowed-by-default"><a class="header" href="#allowed-by-default">Allowed-by-default</a></h2>
 <p>These lints are all set to the ‘allow’ level by default.</p>
 <ul>
+<li><a href="#manual_readme"><code>manual_readme</code></a></li>
+<li><a href="#non_kebab_case_bins"><code>non_kebab_case_bins</code></a></li>
 <li><a href="#non_kebab_case_features"><code>non_kebab_case_features</code></a></li>
 <li><a href="#non_kebab_case_packages"><code>non_kebab_case_packages</code></a></li>
 <li><a href="#non_snake_case_features"><code>non_snake_case_features</code></a></li>
@@ -11467,9 +11469,7 @@ where you can toggle several warnings through one name.</p>
 <p>These lints are all set to the ‘warn’ level by default.</p>
 <ul>
 <li><a href="#blanket_hint_mostly_unused"><code>blanket_hint_mostly_unused</code></a></li>
-<li><a href="#manual_readme"><code>manual_readme</code></a></li>
 <li><a href="#missing_lints_inheritance"><code>missing_lints_inheritance</code></a></li>
-<li><a href="#non_kebab_case_bins"><code>non_kebab_case_bins</code></a></li>
 <li><a href="#redundant_homepage"><code>redundant_homepage</code></a></li>
 <li><a href="#unknown_lints"><code>unknown_lints</code></a></li>
 <li><a href="#unused_dependencies"><code>unused_dependencies</code></a></li>
@@ -11508,8 +11508,8 @@ hint-mostly-unused = true
 </code></pre>
 <h2 id="manual_readme"><a class="header" href="#manual_readme"><code>manual_readme</code></a></h2>
 <ul>
-<li>Group: <code>style</code></li>
-<li>Level: <code>warn</code></li>
+<li>Group: <code>pedantic</code></li>
+<li>Level: <code>allow</code></li>
 <li>Minimal <a href="#rust-version"><code>package.rust-version</code></a>: <code>1.79.0</code></li>
 </ul>
 <h3 id="what-it-does-1"><a class="header" href="#what-it-does-1">What it does</a></h3>
@@ -11555,8 +11555,8 @@ workspace = true
 </code></pre>
 <h2 id="non_kebab_case_bins"><a class="header" href="#non_kebab_case_bins"><code>non_kebab_case_bins</code></a></h2>
 <ul>
-<li>Group: <code>style</code></li>
-<li>Level: <code>warn</code></li>
+<li>Group: <code>pedantic</code></li>
+<li>Level: <code>allow</code></li>
 <li>Minimal <a href="#rust-version"><code>package.rust-version</code></a>: <code>1.79.0</code></li>
 </ul>
 <h3 id="what-it-does-3"><a class="header" href="#what-it-does-3">What it does</a></h3>
@@ -13191,33 +13191,39 @@ which can load unremap files automatically.
 This integration is currently unstable and available only in nightly toolchains.
 To enable it,
 set <code>RUST_GDB_TRIM_PATHS=unstable</code> or <code>RUST_LLDB_TRIM_PATHS=unstable</code> respectively.</p>
-<p>The unremap file name ends with <code>.trim-paths.jsonl</code>.
+<p>The unremap file name ends with <code>.trim-paths.json</code>.
 For example,
 your <code>my-app</code> executable would come with an unremap file named
-<code>my-app.trim-paths.jsonl</code> beside it.</p>
-<p>The unremap file is in JSONL format:</p>
+<code>my-app.trim-paths.json</code> beside it.</p>
+<p>The unremap file is in JSON format:</p>
 <ul>
-<li>The first record carries the format version.</li>
-<li>The second record is file-level metadata,
-such as the toolchain version and the workspace root.</li>
-<li>Each following record maps a sanitized path prefix in the artifact
+<li><code>v</code> carries the format version.</li>
+<li><code>rust_version</code> and <code>workspace_root</code> are file-level metadata,
+namely the toolchain version and the workspace root.</li>
+<li><code>remaps</code> is an array of records.
+Each record maps a sanitized path prefix in the artifact
 (<code>from</code>) back to the local path it replaced (<code>to</code>),
 ordered by the <code>from</code> prefix.
 Note that this follows the debugger substitution direction,
 which is the inverse of <code>--remap-path-prefix</code>.</li>
 </ul>
 <p>An example of the unremap file:</p>
-<pre><code class="language-json">{"v":1}
-{"rust_version":"1.96.0-nightly","workspace_root":"/home/me/app"}
-{"from":".","to":"/home/me/app"}
-{"from":"/cargo/build-dir","to":"/home/me/app/target"}
-{"from":"/cargo/registry/6f17d22d3f0a95d1","to":"/home/me/.cargo/registry/src/index.crates.io-6f17d22d3f0a95d1"}
-{"from":"/rustc/abc123","to":"/home/me/.rustup/toolchains/nightly/lib/rustlib/src/rust"}
+<pre><code class="language-json">{
+  "v": 1,
+  "rust_version": "1.96.0-nightly",
+  "workspace_root": "/home/me/app",
+  "remaps": [
+    { "from": ".", "to": "/home/me/app" },
+    { "from": "/cargo/build-dir", "to": "/home/me/app/target" },
+    { "from": "/cargo/registry/6f17d22d3f0a95d1", "to": "/home/me/.cargo/registry/src/index.crates.io-6f17d22d3f0a95d1" },
+    { "from": "/rustc/abc123", "to": "/home/me/.rustup/toolchains/nightly/lib/rustlib/src/rust" }
+  ]
+}
 </code></pre>
 <p>Since it is meant to be a debugging aid,
 it includes absolute paths of your system,
 so there is no artifact privacy guarantee.
-You might want to exclude <code>*.trim-paths.jsonl</code> files when distributing artifacts.</p>
+You might want to exclude <code>*.trim-paths.json</code> files when distributing artifacts.</p>
 <h5 id="limitations"><a class="header" href="#limitations">Limitations</a></h5>
 <p><code>trim-paths</code> supports remapping source path prefixes as a best effort.
 Linkers may add paths that rustc cannot remap.
@@ -13796,14 +13802,41 @@ See the <a href="#include"><code>include</code> config documentation</a> for mor
 <h2 id="feature-metadata"><a class="header" href="#feature-metadata">feature-metadata</a></h2>
 <ul>
 <li>Tracking Issue: <a href="https://github.com/rust-lang/cargo/issues/14157">#14157</a></li>
+<li>RFC: <a href="https://github.com/rust-lang/rfcs/blob/master/text/3416-feature-metadata.md">#3416</a></li>
 </ul>
-<p>This allows to use a table when defining features, with a required <code>enables</code> key:</p>
-<pre><code class="language-toml">[features]
+<p>This allows defining features with a metadata table.</p>
+<pre><code class="language-toml">cargo-features = ["feature-metadata"]
+
+[package]
+# ...
+
+[features]
 # same as `foo = []`
 foo = { enables = [] }
 </code></pre>
-<p>This is equivalent to the array-of-strings syntax.
-Support for other keys should be added later.</p>
+<p>The required <code>enables</code> field is equivalent to the array-of-strings syntax.</p>
+<p>For other metadata fields, see the subsections below.</p>
+<h3 id="feature-documentation"><a class="header" href="#feature-documentation">feature-documentation</a></h3>
+<ul>
+<li>Tracking Issue: <a href="https://github.com/rust-lang/cargo/issues/17445">#17445</a></li>
+<li>RFC: <a href="https://github.com/rust-lang/rfcs/blob/master/text/3485-feature-documentation.md">#3485</a></li>
+</ul>
+<p>This adds a <code>doc</code> field to the feature table,
+which provides documentation for the feature.</p>
+<pre><code class="language-toml">cargo-features = ["feature-metadata"]
+
+[package]
+# ...
+
+[features.serde]
+enables = []
+doc = "Enables support for serialization and deserialization via serde."
+</code></pre>
+<p>The documentation can be consumed and displayed by tools.
+It can be a multi-line TOML string, contain multiple paragraphs, and use Markdown markup,
+similarly to Rust doc comments.
+Tools may only display the first paragraph in some contexts, which should therefore be
+relatively short and make sense without the rest of the description.</p>
 <h2 id="lockfile-path"><a class="header" href="#lockfile-path">lockfile-path</a></h2>
 <p>Support for <code>resolver.lockfile-path</code> config field has been stabilized in Rust 1.97.0.</p>
 <h2 id="warnings"><a class="header" href="#warnings">warnings</a></h2>

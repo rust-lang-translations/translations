@@ -92,7 +92,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9b8bb61b.js";
+            window.path_to_searchindex_js = "../searchindex-a03fc11f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-d3260e3e.js"></script>
@@ -242,14 +242,20 @@
 <li><strong>Tier: 2</strong></li>
 <li><strong>Library Support:</strong> core and alloc (bare-metal, <code>#![no_std]</code>)</li>
 </ul>
-<p>Bare-metal target for CPUs in the Armv7-R architecture family, supporting dual
-ARM/Thumb mode. The <code>armv7r-none-eabi*</code> targets use Arm mode by default and the
-<code>thumbv7r-none-eabi*</code> targets use Thumb mode by default. The <code>-eabi</code> targets use
-a soft-float ABI and do not require an FPU, while the <code>-eabihf</code> targets use a
-hard-float ABI and do require an FPU.</p>
-<p>Processors in this family include the <a href="https://en.wikipedia.org/wiki/ARM_Cortex-R">Arm Cortex-R4, 5, 7, and 8</a>.</p>
+<p>Bare-metal target for CPUs in the <a href="https://support.arm.com/documentation/ddi0406">Armv7-R</a> architecture family, supporting both
+the <a href="https://developer.arm.com/Architectures/A32%20Instruction%20Set%20Architecture">A32 (Arm) ISA</a> and <a href="https://developer.arm.com/Architectures/T32%20Instruction%20Set%20Architecture">T32 (Thumb) ISA</a>.</p>
+<p>The <code>armv7r-none-eabi*</code> targets use A32 (Arm) mode by default and the
+<code>thumbv7r-none-eabi*</code> targets use T32 (Thumb) mode by default.</p>
+<p>Processors in this family include the:</p>
+<ul>
+<li><a href="https://developer.arm.com/Processors/Cortex-R4">Arm Cortex-R4</a></li>
+<li><a href="https://developer.arm.com/Processors/Cortex-R5">Arm Cortex-R5</a></li>
+<li><a href="https://developer.arm.com/Processors/Cortex-R7">Arm Cortex-R7</a></li>
+<li><a href="https://developer.arm.com/Processors/Cortex-R8">Arm Cortex-R8</a></li>
+</ul>
 <p>See <a href="arm-none-eabi.html"><code>arm-none-eabi</code></a> for information applicable to all
-<code>arm-none-eabi</code> targets.</p>
+<code>arm-none-eabi</code> targets, in particular the difference between the <code>eabi</code> and
+<code>eabihf</code> ABI.</p>
 <h2 id="target-maintainers"><a class="header" href="#target-maintainers">Target maintainers</a></h2>
 <ul>
 <li><a href="https://github.com/chrisnc">@chrisnc</a></li>
@@ -263,12 +269,65 @@ hard-float ABI and do require an FPU.</p>
 <h2 id="requirements"><a class="header" href="#requirements">Requirements</a></h2>
 <p>When using the hardfloat (<code>-eabibf</code>) targets, the minimum floating-point
 features assumed are those of the <code>vfpv3-d16</code>, which includes single- and
-double-precision, with 16 double-precision registers. This floating-point unit
-appears in Cortex-R4F and Cortex-R5F processors. See <a href="https://developer.arm.com/documentation/den0042/a/Floating-Point/Floating-point-basics-and-the-IEEE-754-standard/VFP-in-the-Cortex-R-processors">VFP in the Cortex-R
+double-precision, with 16 double-precision registers. See <a href="https://developer.arm.com/documentation/den0042/a/Floating-Point/Floating-point-basics-and-the-IEEE-754-standard/VFP-in-the-Cortex-R-processors">VFP in the Cortex-R
 processors</a> for more details on the possible FPU variants.</p>
 <p>If your processor supports a different set of floating-point features than the
-default expectations of <code>vfpv3-d16</code>, then these should also be enabled or
-disabled as needed with <code>-C target-feature=(+/-)</code>.</p>
+default expectations of <code>vfpv3-d16</code> (for example, if it only supports
+single-precision and not double-precision), then those features should also be
+enabled or disabled as needed with <code>-C target-feature=(+/-)</code> (or using a custom
+JSON target). If you are removing features then you will also need to recompile
+the Rust Standard Library from source (e.g. using <code>-Zbuild-std=core</code>).</p>
+<p>See <a href="arm-none-eabi.html#target-cpu-and-target-feature-options">the bare-metal Arm
+docs</a> for details on how
+to use these flags.</p>
+<h3 id="table-of-supported-cpus-for-armthumbv7r-none-eabi"><a class="header" href="#table-of-supported-cpus-for-armthumbv7r-none-eabi">Table of supported CPUs for <code>(arm|thumb)v7r-none-eabi</code></a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>CPU</th><th>FPU</th><th>Target CPU</th><th>Target Features</th></tr>
+</thead>
+<tbody>
+<tr><td>Any</td><td>No</td><td>None</td><td>None</td></tr>
+<tr><td>Cortex-R4</td><td>No</td><td><code>cortex-r4</code></td><td>None</td></tr>
+<tr><td>Cortex-R4</td><td>DP</td><td><code>cortex-r4</code></td><td><code>+vfp3</code></td></tr>
+<tr><td>Cortex-R4</td><td>SP</td><td><code>cortex-r4</code></td><td><code>+vfp3,-fp64</code></td></tr>
+<tr><td>Cortex-R5</td><td>No</td><td><code>cortex-r5</code></td><td><code>-fpregs</code></td></tr>
+<tr><td>Cortex-R5</td><td>DP</td><td><code>cortex-r5</code></td><td>None</td></tr>
+<tr><td>Cortex-R5</td><td>SP</td><td><code>cortex-r5</code></td><td><code>-fp64</code></td></tr>
+<tr><td>Cortex-R7</td><td>No</td><td><code>cortex-r7</code></td><td><code>-fpregs</code></td></tr>
+<tr><td>Cortex-R7</td><td>DP</td><td><code>cortex-r7</code></td><td>None</td></tr>
+<tr><td>Cortex-R7</td><td>SP</td><td><code>cortex-r7</code></td><td><code>-fp64</code></td></tr>
+<tr><td>Cortex-R8</td><td>No</td><td><code>cortex-r8</code></td><td><code>-fpregs</code></td></tr>
+<tr><td>Cortex-R8</td><td>DP</td><td><code>cortex-r8</code></td><td>None</td></tr>
+<tr><td>Cortex-R8</td><td>SP</td><td><code>cortex-r8</code></td><td><code>-fp64</code></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="table-of-supported-cpus-for-armthumbv7r-none-eabihf"><a class="header" href="#table-of-supported-cpus-for-armthumbv7r-none-eabihf">Table of supported CPUs for <code>(arm|thumb)v7r-none-eabihf</code></a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>CPU</th><th>FPU</th><th>Target CPU</th><th>Target Features</th></tr>
+</thead>
+<tbody>
+<tr><td>Any</td><td>DP</td><td>None</td><td>None</td></tr>
+<tr><td>Any</td><td>SP</td><td>None</td><td><code>-fp64</code></td></tr>
+<tr><td>Cortex-R4</td><td>DP</td><td><code>cortex-r4</code></td><td>None</td></tr>
+<tr><td>Cortex-R4</td><td>SP</td><td><code>cortex-r4</code></td><td><code>-fp64</code></td></tr>
+<tr><td>Cortex-R5</td><td>DP</td><td><code>cortex-r5</code></td><td>None</td></tr>
+<tr><td>Cortex-R5</td><td>SP</td><td><code>cortex-r5</code></td><td><code>-fp64</code></td></tr>
+<tr><td>Cortex-R7</td><td>DP</td><td><code>cortex-r7</code></td><td>None</td></tr>
+<tr><td>Cortex-R7</td><td>SP</td><td><code>cortex-r7</code></td><td><code>-fp64</code></td></tr>
+<tr><td>Cortex-R8</td><td>DP</td><td><code>cortex-r8</code></td><td>None</td></tr>
+<tr><td>Cortex-R8</td><td>SP</td><td><code>cortex-r8</code></td><td><code>-fp64</code></td></tr>
+</tbody>
+</table>
+</div>
+<div class="warning">
+<p>Never use the <code>-fpregs</code> <em>target-feature</em> with the <code>(arm|thumb)v7r-none-eabihf</code> targets
+as it will cause compilation units to have different ABIs, which is unsound.</p>
+</div>
+
 <h2 id="start-up-and-low-level-code"><a class="header" href="#start-up-and-low-level-code">Start-up and Low-Level Code</a></h2>
 <p>The <a href="https://github.com/rust-embedded/wg?tab=readme-ov-file#the-arm-team">Rust Embedded Devices Working Group Arm Team</a> maintain the <a href="https://docs.rs/aarch32-cpu"><code>aarch32-cpu</code></a>
 and <a href="https://docs.rs/aarch32-rt"><code>aarch32-rt</code></a> crates, which may be useful for writing bare-metal code
