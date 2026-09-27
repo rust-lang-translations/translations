@@ -98,7 +98,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-57ab3142.js";
+            window.path_to_searchindex_js = "searchindex-df554670.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-d4808052.js"></script>
@@ -11869,7 +11869,7 @@ build-std = ["core", "alloc"]
 <li><a href="#direct-minimal-versions">direct-minimal-versions</a> — Forces the resolver to use the lowest compatible version instead of the highest.</li>
 <li><a href="#public-dependency">public-dependency</a> — Allows dependencies to be classified as either public or private.</li>
 <li><a href="#msrv-policy">msrv-policy</a> — MSRV-aware resolver and version selection</li>
-<li><a href="#precise-pre-release">precise-pre-release</a> — Allows pre-release versions to be selected with <code>update --precise</code></li>
+<li><a href="#prerelease">prerelease</a> — Allows pre-release versions to be selected with <code>update --precise</code></li>
 <li><a href="#sbom">sbom</a> — Generates SBOM pre-cursor files for compiled artifacts</li>
 <li><a href="#feature-unification-1">feature-unification</a> — Enable new feature unification modes in workspaces</li>
 <li><a href="#lockfile-publish-time">lockfile-publish-time</a> — Limit resolver to packages older than the specified time</li>
@@ -11922,6 +11922,7 @@ build-std = ["core", "alloc"]
 <li><a href="#path-bases">path bases</a> — Named base directories for path dependencies.</li>
 <li><a href="#feature-metadata">feature-metadata</a> — Table syntax for feature definitions.</li>
 <li><a href="#unstable-editions"><code>unstable-editions</code></a> — Allows use of editions that are not yet stable.</li>
+<li><a href="#builtin-dependencies">builtin-dependencies</a> — Allow specifying dependencies on standard library crates.</li>
 </ul>
 </li>
 <li>Information and metadata
@@ -11940,7 +11941,6 @@ build-std = ["core", "alloc"]
 <li>Registries
 <ul>
 <li><a href="#publish-timeout">publish-timeout</a> — Controls the timeout between uploading the crate and being available in the index</li>
-<li><a href="#asymmetric-token">asymmetric-token</a> — Adds support for authentication tokens using asymmetric cryptography (<code>cargo:paseto</code> provider).</li>
 </ul>
 </li>
 <li>Other
@@ -12165,20 +12165,23 @@ private_dep = "2.0.0" # Will be 'private' by default
 <p>Unimplemented</p>
 <h3 id="update-cargo-new-template-to-set-packagerust-version--toolchain"><a class="header" href="#update-cargo-new-template-to-set-packagerust-version--toolchain">Update <code>cargo new</code> template to set <code>package.rust-version = "toolchain"</code></a></h3>
 <p>Unimplemented</p>
-<h2 id="precise-pre-release"><a class="header" href="#precise-pre-release">precise-pre-release</a></h2>
+<h2 id="prerelease"><a class="header" href="#prerelease">prerelease</a></h2>
 <ul>
 <li>Tracking Issue: <a href="https://github.com/rust-lang/cargo/issues/13290">#13290</a></li>
 <li>RFC: <a href="https://github.com/rust-lang/rfcs/pull/3493">#3493</a></li>
 </ul>
-<p>The <code>precise-pre-release</code> feature allows pre-release versions to be selected with <code>update --precise</code>
+<p>The <code>-Zprerelease</code> flag allows pre-release versions to be selected with <code>update --precise</code>
 even when a pre-release is not specified by a projects <code>Cargo.toml</code>.</p>
 <p>Take for example this <code>Cargo.toml</code>.</p>
 <pre><code class="language-toml">[dependencies]
 my-dependency = "0.1.1"
 </code></pre>
-<p>It’s possible to update <code>my-dependency</code> to a pre-release with <code>update -Zunstable-options my-dependency --precise 0.1.2-pre.0</code>.
+<p>It’s possible to update <code>my-dependency</code> to a pre-release with <code>update -Zprerelease my-dependency --precise 0.1.2-pre.0</code>.
 This is because <code>0.1.2-pre.0</code> is considered compatible with <code>0.1.1</code>.
-It would not be possible to upgrade to <code>0.2.0-pre.0</code> from <code>0.1.1</code> in the same way.</p>
+It would not be possible to upgrade to <code>0.2.0-pre.0</code> from <code>0.1.1</code> in the same way.
+Subsequent <code>cargo</code> commands must also pass <code>-Zprerelease</code> to keep the locked pre-release.
+Without the flag, Cargo considers <code>0.1.2-pre.0</code> incompatible with <code>0.1.1</code> again
+and may either downgrade <code>my-dependency</code> back to <code>0.1.1</code> or fail with a resolution error.</p>
 <h2 id="sbom"><a class="header" href="#sbom">sbom</a></h2>
 <ul>
 <li>Tracking Issue: <a href="https://github.com/rust-lang/cargo/pull/13709">#13709</a></li>
@@ -12811,49 +12814,6 @@ available in the local index.</p>
 [publish]
 timeout = 300  # in seconds
 </code></pre>
-<h2 id="asymmetric-token"><a class="header" href="#asymmetric-token">asymmetric-token</a></h2>
-<ul>
-<li>Tracking Issue: <a href="https://github.com/rust-lang/cargo/issues/10519">10519</a></li>
-<li>RFC: <a href="https://github.com/rust-lang/rfcs/pull/3231">#3231</a></li>
-</ul>
-<p>The <code>-Z asymmetric-token</code> flag enables the <code>cargo:paseto</code> credential provider which allows Cargo to authenticate to registries without sending secrets over the network.</p>
-<p>In <a href="#configuration-1"><code>config.toml</code></a> and <code>credentials.toml</code> files there is a field called <code>private-key</code>, which is a private key formatted in the secret <a href="https://github.com/paseto-standard/paserk/blob/master/types/secret.md">subset of <code>PASERK</code></a> and is used to sign asymmetric tokens</p>
-<p>A keypair can be generated with <code>cargo login --generate-keypair</code> which will:</p>
-<ul>
-<li>generate a public/private keypair in the currently recommended fashion.</li>
-<li>save the private key in <code>credentials.toml</code>.</li>
-<li>print the public key in <a href="https://github.com/paseto-standard/paserk/blob/master/types/public.md">PASERK public</a> format.</li>
-</ul>
-<p>It is recommended that the <code>private-key</code> be saved in <code>credentials.toml</code>. It is also supported in <code>config.toml</code>, primarily so that it can be set using the associated environment variable, which is the recommended way to provide it in CI contexts. This setup is what we have for the <code>token</code> field for setting a secret token.</p>
-<p>There is also an optional field called <code>private-key-subject</code> which is a string chosen by the registry.
-This string will be included as part of an asymmetric token and should not be secret.
-It is intended for the rare use cases like “cryptographic proof that the central CA server authorized this action”. Cargo requires it to be non-whitespace printable ASCII. Registries that need non-ASCII data should base64 encode it.</p>
-<p>Both fields can be set with <code>cargo login --registry=name --private-key --private-key-subject="subject"</code> which will prompt you to put in the key value.</p>
-<p>A registry can have at most one of <code>private-key</code> or <code>token</code> set.</p>
-<p>All PASETOs will include <code>iat</code>, the current time in ISO 8601 format. Cargo will include the following where appropriate:</p>
-<ul>
-<li><code>sub</code> an optional, non-secret string chosen by the registry that is expected to be claimed with every request. The value will be the <code>private-key-subject</code> from the <code>config.toml</code> file.</li>
-<li><code>mutation</code> if present, indicates that this request is a mutating operation (or a read-only operation if not present), must be one of the strings <code>publish</code>, <code>yank</code>, or <code>unyank</code>.
-<ul>
-<li><code>name</code> name of the crate related to this request.</li>
-<li><code>vers</code> version string of the crate related to this request.</li>
-<li><code>cksum</code> the SHA256 hash of the crate contents, as a string of 64 lowercase hexadecimal digits, must be present only when <code>mutation</code> is equal to <code>publish</code></li>
-</ul>
-</li>
-<li><code>challenge</code> the challenge string received from a 401/403 from this server this session. Registries that issue challenges must track which challenges have been issued/used and never accept a given challenge more than once within the same validity period (avoiding the need to track every challenge ever issued).</li>
-</ul>
-<p>The “footer” (which is part of the signature) will be a JSON string in UTF-8 and include:</p>
-<ul>
-<li><code>url</code> the RFC 3986 compliant URL where cargo got the config.json file,
-<ul>
-<li>If this is a registry with an HTTP index, then this is the base URL that all index queries are relative to.</li>
-<li>If this is a registry with a GIT index, it is the URL Cargo used to clone the index.</li>
-</ul>
-</li>
-<li><code>kid</code> the identifier of the private key used to sign the request, using the <a href="https://github.com/paseto-standard/paserk/blob/master/operations/ID.md">PASERK IDs</a> standard.</li>
-</ul>
-<p>PASETO includes the message that was signed, so the server does not have to reconstruct the exact string from the request in order to check the signature. The server does need to check that the signature is valid for the string in the PASETO and that the contents of that string matches the request.
-If a claim should be expected for the request but is missing in the PASETO then the request must be rejected.</p>
 <h2 id="cargo-config"><a class="header" href="#cargo-config"><code>cargo config</code></a></h2>
 <ul>
 <li>Original Issue: <a href="https://github.com/rust-lang/cargo/issues/2362">#2362</a></li>
@@ -13141,7 +13101,7 @@ which can affect editors and other tools that consume the diagnostic output.</p>
 </blockquote>
 <p>For details about each scope,
 see rustc’s <a href="../rustc/remap-source-paths.html#--remap-path-scope"><code>--remap-path-scope</code></a> documentation.</p>
-<p>By default, <code>trim-paths</code> is not set and path sanitization is disabled for all profiles.
+<p>By default, <code>trim-paths</code> is <code>"none"</code> and path sanitization is disabled for all profiles.
 You can enable it by specifying this option in <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[profile.dev]
 trim-paths = "all"
@@ -13257,7 +13217,7 @@ build scripts should accept a comma-separated list of scopes.</p>
 </li>
 <li><code>CARGO_TRIM_PATHS_REMAP</code> — The <code>&lt;from&gt;=&lt;to&gt;</code> path remap pairs Cargo passes to the compiler,
 joined by the platform path separator.
-Only set when <code>trim-paths</code> profile is active.
+Empty when <code>trim-paths</code> is <code>"none"</code>.
 Build scripts can forward these mappings to C/C++ compilers and other tools,
 for example via <code>cc</code>’s <code>-ffile-prefix-map</code>,
 to sanitize paths consistently with the rest of the build.</li>
@@ -13617,6 +13577,20 @@ option:</p>
 <pre><code class="language-toml">[unstable]
 hint-msrv = true
 </code></pre>
+<h2 id="builtin-dependencies"><a class="header" href="#builtin-dependencies">builtin-dependencies</a></h2>
+<ul>
+<li>Tracking Issue: <a href="https://github.com/rust-lang/cargo/issues/16960">rust-lang/cargo#16960</a></li>
+</ul>
+<ul>
+<li>RFC: <a href="https://rust-lang.github.io/rfcs/3875-build-std-explicit-dependencies.html">rust-lang/rfcs#3875</a></li>
+</ul>
+<p>Allows specifying dependencies on standard library crates, like so:</p>
+<pre><code class="language-toml">[dependencies]
+std = { builtin = true, optional = true }
+core = { builtin = true}
+</code></pre>
+<p>Specifying builtin dependencies explicitly pairs well with <code>-Zbuild-std</code> and is
+also useful for <code>#[no_std]</code> crates. See the RFC for further details.</p>
 <h1 id="stabilized-and-removed-features"><a class="header" href="#stabilized-and-removed-features">Stabilized and removed features</a></h1>
 <h2 id="compile-progress"><a class="header" href="#compile-progress">Compile progress</a></h2>
 <p>The compile-progress feature has been stabilized in the 1.30 release.
@@ -13843,7 +13817,7 @@ relatively short and make sense without the rest of the description.</p>
 <p>The <code>build.warnings</code> config field has been stabilized in Rust 1.97.</p>
 <h2 id="update-breaking"><a class="header" href="#update-breaking">update-breaking</a></h2>
 <p>The <code>cargo update -Zunstable-options --breaking</code> flag has been removed in 1.99-nightly.
-See <a href="https://github.com/rust-lang/cargo/pull/17333">https://github.com/rust-lang/cargo/pull/17333</a> fopr the reason for its removal.</p>
+See <a href="https://github.com/rust-lang/cargo/pull/17333">https://github.com/rust-lang/cargo/pull/17333</a> for the reason for its removal.</p>
 <h2 id="build-dir-new-layout"><a class="header" href="#build-dir-new-layout">build-dir-new-layout</a></h2>
 <p>The new build-dir filesystem layout was stabilized in the 1.100.0 release.</p>
 <h2 id="lintscargo"><a class="header" href="#lintscargo"><code>[lints.cargo]</code></a></h2>
@@ -13854,6 +13828,9 @@ for information about configuring Cargo lints.</p>
 <p>Minimum publish-age configuration for dependency resolution was stabilized in Rust 1.100.
 See the <a href="#registryglobal-min-publish-age">minimum publish-age configuration</a>
 and <a href="#publish-age">resolver behavior</a> for more information.</p>
+<h2 id="asymmetric-token"><a class="header" href="#asymmetric-token">asymmetric-token</a></h2>
+<p>The <code>-Z asymmetric-token</code> flag and <code>cargo:paseto</code> credential provider have been removed in 1.100-nightly.
+See <a href="https://github.com/rust-lang/cargo/pull/17333">https://github.com/rust-lang/cargo/pull/17333</a> for the reason for its removal.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="cargo-commands"><a class="header" href="#cargo-commands">Cargo Commands</a></h1>
 <ul>

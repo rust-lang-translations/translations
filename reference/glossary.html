@@ -93,7 +93,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c9db6724.js";
+            window.path_to_searchindex_js = "searchindex-a45567d2.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-01ec0cab.js"></script>
@@ -299,6 +299,48 @@
 <p>A <code>struct</code>, <code>enum</code>, or <code>union</code> which was defined in the current crate. This is not affected by applied type arguments. <code>struct Foo</code> is considered local, but <code>Vec&lt;Foo&gt;</code> is not. <code>LocalType&lt;ForeignType&gt;</code> is local. Type aliases do not affect locality.</p>
 <h3 id="module"><a class="header" href="#module">Module</a></h3>
 <p>A module is a container for zero or more <a href="items.html">items</a>. Modules are organized in a tree, starting from an unnamed module at the root called the crate root or the root module. <a href="paths.html">Paths</a> may be used to refer to items from other modules, which may be restricted by <a href="visibility-and-privacy.html">visibility rules</a>. <a href="items/modules.html">More</a></p>
+<div class="rule" id="r-glossary.n-zst"><a class="rule-link" href="#r-glossary.n-zst" title="glossary.n-zst"><span>[glossary<wbr>.n-zst]</span></a>
+</div>
+
+<h4 id="n-aligned-zero-sized-type-n-zst"><a class="header" href="#n-aligned-zero-sized-type-n-zst">N-aligned zero-sized type (n-ZST)</a></h4>
+<p>An <em>n-ZST</em> refers to a type that is zero sized (a <a href="glossary.html#r-glossary.zst">ZST</a>) and has an <a href="type-layout.html#size-and-alignment">alignment</a> of <em>n</em>. For example, a <em>1-ZST</em> is a zero-sized type with alignment 1.</p>
+<p>Examples of 1-ZSTs include:</p>
+<ul>
+<li>The <a href="types/tuple.html#r-type.tuple.unit">unit type</a> (see <a href="type-layout.html#r-layout.tuple.unit">layout.tuple.unit</a>).</li>
+<li><code>repr(C)</code> <a href="items/structs.html">structs</a> with no fields or where all fields are 1-ZSTs (see <a href="type-layout.html#r-layout.repr.c.struct.align">layout.repr.c.struct.align</a> and <a href="type-layout.html#r-layout.repr.c.struct.size-field-offset">layout.repr.c.struct.size-field-offset</a>).</li>
+<li><code>repr(transparent)</code> <a href="items/structs.html">structs</a> with no fields or where all fields are 1-ZSTs (see <a href="type-layout.html#r-layout.repr.transparent.layout-abi">layout.repr.transparent.layout-abi</a>).</li>
+<li><a href="types/array.html#r-type.array">Arrays</a> of 1-ZSTs (see <a href="type-layout.html#r-layout.array">layout.array</a>).</li>
+</ul>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use core::mem::{align_of, size_of};
+</span>#[repr(C)]
+struct C1 {}
+#[repr(C)]
+struct C2 {
+    f1: (),
+    f2: [(); 10],
+    f3: C1,
+}
+#[repr(transparent)]
+struct T1 {}
+#[repr(transparent)]
+struct T2 {
+    f1: (),
+    f2: [(); 10],
+}
+
+fn is_1_zst&lt;T&gt;() -&gt; bool {
+    size_of::&lt;T&gt;() == 0 &amp;&amp; align_of::&lt;T&gt;() == 1
+}
+
+assert!(is_1_zst::&lt;()&gt;());
+assert!(is_1_zst::&lt;C1&gt;());
+assert!(is_1_zst::&lt;C2&gt;());
+assert!(is_1_zst::&lt;[(); 10]&gt;());
+assert!(is_1_zst::&lt;T1&gt;());
+assert!(is_1_zst::&lt;T2&gt;());
+<span class="boring">}</span></code></pre>
 <h3 id="name"><a class="header" href="#name">Name</a></h3>
 <p>A <a href="names.html"><em>name</em></a> is an <a href="identifiers.html">identifier</a> or <a href="tokens.html#lifetimes-and-loop-labels">lifetime or loop label</a> that refers to an <a href="#entity">entity</a>. A <em>name binding</em> is when an entity declaration introduces an identifier or label associated with that entity. <a href="paths.html">Paths</a>, identifiers, and labels are used to refer to an entity.</p>
 <h3 id="name-resolution"><a class="header" href="#name-resolution">Name resolution</a></h3>
