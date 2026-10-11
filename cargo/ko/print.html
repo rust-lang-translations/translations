@@ -98,7 +98,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a04a0996.js";
+            window.path_to_searchindex_js = "searchindex-ee663038.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6b0c3669.js"></script>
@@ -798,6 +798,17 @@ jobs:
 <li>Balance between exhaustiveness and turnaround time in selecting the combinations of platforms, features, and package/build-target combinations to check</li>
 <li>Some CI systems have direct integration for reporting lints, e.g. using <a href="https://crates.io/crates/clippy-sarif"><code>clippy-sarif</code></a> with GitHub</li>
 </ul>
+<h2 id="ensuring-the-lockfile-is-updated"><a class="header" href="#ensuring-the-lockfile-is-updated">Ensuring the lockfile is updated</a></h2>
+<p>Having a stale lockfile negates the <a href="#why-have-cargolock-in-version-control">benefits of committing a lockfile</a>.</p>
+<p>An example CI job to check for stale lockfiles using GitHub Actions:</p>
+<pre><code class="language-yaml">jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: rustup update stable &amp;&amp; rustup default stable
+      - run: cargo update --workspace --locked
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="cratesio에-게시하기"><a class="header" href="#cratesio에-게시하기">crates.io에 게시하기</a></h1>
 <p>세상과 공유하고 싶은 라이브러리가 생겼다면 이제 <a href="https://crates.io/">crates.io</a> 에 게시할 시간입니다! 크레이트를 게시한다는 것은 특정 버전을 <a href="https://crates.io/">crates.io</a> 에 호스팅하기 위해 업로드하는 것입니다.</p>
@@ -1535,7 +1546,7 @@ unused_dependencies = "deny"
 <h2 id="the-hints-section"><a class="header" href="#the-hints-section">The <code>[hints]</code> section</a></h2>
 <p>The <code>[hints]</code> section allows specifying hints for compiling this package. Cargo will respect these hints by default when compiling this package, though the top-level package being built can override these values through the <code>[profile]</code> mechanism. Hints are, by design, always safe for Cargo to ignore; if Cargo encounters a hint it doesn’t understand, or a hint it understands but with a value it doesn’t understand, it will warn, but not error. As a result, specifying hints in a crate does not impact the MSRV of the crate.</p>
 <p>Individual hints may have an associated unstable feature gate that you need to pass in order to apply the configuration they specify, but if you don’t specify that unstable feature gate, you will again get only a warning, not an error.</p>
-<p>There are no stable hints at this time. See the <a href="#profile-hint-mostly-unused-option">hint-mostly-unused documentation</a> for information on an unstable hint.</p>
+<p>There are no stable hints at this time. See the documentation for the unstable <a href="#profile-hint-mostly-unused-option"><code>mostly-unused</code></a> and <a href="#package-min-opt-level-hint"><code>min-opt-level</code></a> hints.</p>
 <blockquote>
 <p><strong>MSRV:</strong> Respected as of 1.90.</p>
 </blockquote>
@@ -3319,6 +3330,72 @@ strip = "debuginfo"
 <p>기본값은 <a href="#incremental">증분(#incremental)</a> 빌드의 경우 256이고, 비증분 빌드의 경우 16입니다.</p>
 <h3 id="rpath"><a class="header" href="#rpath">rpath</a></h3>
 <p><code>rpath</code> 설정은 <a href="https://en.wikipedia.org/wiki/Rpath"><code>rpath</code></a> 활성화 여부를 제어하는 <a href="../rustc/codegen-options/index.html#rpath"><code>-C rpath</code> 플래그</a> 를 제어합니다.</p>
+<h3 id="trim-paths"><a class="header" href="#trim-paths">trim-paths</a></h3>
+<p>The <code>trim-paths</code> option controls the scope of path sanitization in build outputs. Paths are sanitized according to these <a href="#remapping-rules">remapping rules</a>.</p>
+<p>사용 가능한 옵션은 다음과 같습니다.</p>
+<ul>
+<li><code>"none"</code> — disables path sanitization.</li>
+<li><code>"object"</code> — sanitizes paths embedded in compiled executables and libraries. Useful for improving artifact reproducibility with less impact on local development.</li>
+<li><code>"all"</code> — sanitizes paths in all supported locations. Useful for hermetic or remote builds that need artifacts and diagnostics to be independent of the build environment.</li>
+</ul>
+<blockquote>
+<p>[!WARNING] The <code>"all"</code> option remaps compiler diagnostics, including <a href="#json-messages">compiler JSON messages</a>. Some remapped paths may not resolve to files on the local filesystem, which can affect editors and other tools that consume the diagnostic output.</p>
+</blockquote>
+<p>For details about each scope, see rustc’s <a href="../rustc/remap-source-paths.html#--remap-path-scope"><code>--remap-path-scope</code></a> documentation.</p>
+<p>By default, <code>trim-paths</code> is <code>"none"</code> and path sanitization is disabled for all profiles. You can enable it by specifying this option in <code>Cargo.toml</code>:</p>
+<pre><code class="language-toml">[profile.dev]
+trim-paths = "all"
+`git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
+[profile.release]
+trim-paths = "object"
+</code></pre>
+<h4 id="remapping-rules"><a class="header" href="#remapping-rules">Remapping rules</a></h4>
+<p>The exact remap path prefixes are unspecified and may change across Cargo versions. Tools that map paths embedded in artifacts back to local sources should consume <a href="#unremap-files">unremap files</a> instead of interpreting these prefixes.</p>
+<p>If <code>trim-paths</code> is not <code>"none"</code>, then the following paths are sanitized if they appear in a selected scope:</p>
+<ol>
+<li>Path to the source files of the standard and core library (sysroot) will begin with <code>/rustc/&lt;rustc commit hash&gt;</code>, e.g. <code>/home/username/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs</code> -&gt; <code>/rustc/fe72845f7bb6a77b9e671e6a4f32fe714962cec4/library/core/src/result.rs</code></li>
+<li>Path to a local package within the workspace will begin with <code>.</code>, which replaces the workspace root, e.g. <code>/home/username/crate/src/lib.rs</code> -&gt; <code>./src/lib.rs</code>. This also covers path dependencies located inside the workspace directory.</li>
+<li>Path to a registry dependency will begin with <code>/cargo/registry/&lt;registry id&gt;</code>, which replaces the registry’s extraction directory, e.g. <code>/home/username/.cargo/registry/src/index.crates.io-6f17d22d3f0a95d1/foo-0.1.0/src/lib.rs</code> -&gt; <code>/cargo/registry/6f17d22d3f0a95d1/foo-0.1.0/src/lib.rs</code>.</li>
+<li>Path to a git dependency will begin with <code>/cargo/git/&lt;git source id&gt;/&lt;revision&gt;</code>, which replaces the checkout directory. <code>&lt;revision&gt;</code> is a prefix of the resolved commit ID recorded in the lockfile.</li>
+<li>Path to a path dependency outside the workspace will be replaced with <code>/cargo/deps/&lt;package name&gt;-&lt;package version&gt;</code>.</li>
+<li>Path into the build directory, for example <code>OUT_DIR</code> generated sources, will begin with <code>/cargo/build-dir</code>.</li>
+</ol>
+<p><code>&lt;registry id&gt;</code> and <code>&lt;git source id&gt;</code> are opaque stable hashes of the dependency’s source.</p>
+<p>Vendored copies of registry or git dependencies (via <a href="#소스-교체">source replacement</a>) are sanitized by their file location instead, like workspace paths when inside the workspace directory, otherwise like path dependencies.</p>
+<h4 id="unremap-files"><a class="header" href="#unremap-files">Unremap files</a></h4>
+<p>When the <code>object</code> scope is active and debuginfo is enabled, Cargo writes an unremap file beside each final artifact. The file is aimed at helping debuggers substitute sanitized paths back to local ones, e.g., via GDB’s <code>set substitute-path</code> or LLDB’s <code>target.source-map</code>.</p>
+<p>The Rust toolchain provides <code>rust-gdb</code> and <code>rust-lldb</code> wrappers, which can load unremap files automatically. This integration is currently unstable and available only in nightly toolchains. To enable it, set <code>RUST_GDB_TRIM_PATHS=unstable</code> or <code>RUST_LLDB_TRIM_PATHS=unstable</code> respectively.</p>
+<p>The unremap file name ends with <code>.trim-paths.json</code>. For example, your <code>my-app</code> executable would come with an unremap file named <code>my-app.trim-paths.json</code> beside it.</p>
+<p>The unremap file is in JSON format:</p>
+<ul>
+<li><code>v</code> carries the format version.</li>
+<li><code>rust_version</code> and <code>workspace_root</code> are file-level metadata, namely the toolchain version and the workspace root.</li>
+<li><code>remaps</code> is an array of records. Each record maps a sanitized path prefix in the artifact (<code>from</code>) back to the local path it replaced (<code>to</code>), ordered by the <code>from</code> prefix. Note that this follows the debugger substitution direction, which is the inverse of <code>--remap-path-prefix</code>.</li>
+</ul>
+<p>An example of the unremap file:</p>
+<pre><code class="language-json">{
+  "v": 1,
+  "rust_version": "1.96.0-nightly",
+  "workspace_root": "/home/me/app",
+  "remaps": [
+    { "from": ".", "to": "/home/me/app" },
+    { "from": "/cargo/build-dir", "to": "/home/me/app/target" },
+    { "from": "/cargo/registry/6f17d22d3f0a95d1", "to": "/home/me/.cargo/registry/src/index.crates.io-6f17d22d3f0a95d1" },
+    { "from": "/rustc/abc123", "to": "/home/me/.rustup/toolchains/nightly/lib/rustlib/src/rust" }
+  ]
+}
+</code></pre>
+<p>Since it is meant to be a debugging aid, it includes absolute paths of your system, so there is no artifact privacy guarantee. You might want to exclude <code>*.trim-paths.json</code> files when distributing artifacts.</p>
+<h4 id="limitations"><a class="header" href="#limitations">Limitations</a></h4>
+<p><code>trim-paths</code> supports remapping source path prefixes as a best effort. Linkers may add paths that rustc cannot remap. See <a href="../rustc/remap-source-paths.html#caveats-and-limitations">the limitations section</a> on rustc’s documentation for more.</p>
+<p>For example, on macOS, linkers generate OSO entries containing absolute paths to object files when debuginfo is enabled. The following profile settings keep these paths out of the executable while preserving debuginfo in a separate dSYM bundle:</p>
+<pre><code class="language-toml">[profile.release]
+debug = true
+trim-paths = "object"
+split-debuginfo = "packed"
+strip = "debuginfo"
+</code></pre>
+<p>The dSYM bundle can be used for debugging, but it still contains absolute paths.</p>
 <h2 id="기본-프로파일"><a class="header" href="#기본-프로파일">기본 프로파일</a></h2>
 <h3 id="dev"><a class="header" href="#dev">dev</a></h3>
 <p>The <code>dev</code> profile is used for normal development. It is the default for build commands like <a href="#cargo-build1"><code>cargo build</code></a>, and is used for <code>cargo install --profile dev</code>.</p>
@@ -3326,7 +3403,7 @@ strip = "debuginfo"
 <pre><code class="language-toml">[profile.dev]
 opt-level = 0
 debug = true
-split-debuginfo = '...'  # 플랫폼별 상이
+split-debuginfo = '...'  # Platform-specific.
 strip = "none"
 debug-assertions = true
 overflow-checks = true
@@ -3335,6 +3412,7 @@ panic = 'unwind'
 incremental = true
 codegen-units = 256
 rpath = false
+trim-paths = "none"
 </code></pre>
 <h3 id="debug-1"><a class="header" href="#debug-1">debug</a></h3>
 <p>The <code>debug</code> profile is used for creating binaries to run with a debugger. It is used with <code>cargo build --profile debug</code> and <code>cargo install --debug</code>.</p>
@@ -3348,7 +3426,7 @@ inherits = "dev"
 <pre><code class="language-toml">[profile.release]
 opt-level = 3
 debug = false
-split-debuginfo = '...'  # 플랫폼별 상이
+split-debuginfo = '...'  # Platform-specific.
 strip = "none"
 debug-assertions = false
 overflow-checks = false
@@ -3357,6 +3435,7 @@ panic = 'unwind'
 incremental = false
 codegen-units = 16
 rpath = false
+trim-paths = "none"
 </code></pre>
 <h3 id="test"><a class="header" href="#test">test</a></h3>
 <p>The <code>test</code> profile is the default profile used by <a href="#cargo-test1"><code>cargo test</code></a>.</p>
@@ -3567,6 +3646,7 @@ panic = 'unwind'         # The panic strategy.
 incremental = true       # Incremental compilation.
 codegen-units = 16       # Number of code generation units.
 rpath = false            # Sets the rpath linking option.
+trim-paths = "none"      # Sanitizes paths in build outputs.
 [profile.&lt;name&gt;.build-override]  # Overrides build-script settings.
 # Same keys for a normal profile.
 [profile.&lt;name&gt;.package.&lt;name&gt;]  # Override profile for a package.
@@ -4137,7 +4217,7 @@ lto = true
 <h4 id="netgit-fetch-with-cli"><a class="header" href="#netgit-fetch-with-cli"><code>net.git-fetch-with-cli</code></a></h4>
 <ul>
 <li>타입: 불리언</li>
-<li>기본값: false</li>
+<li>기본값: 자동 감지</li>
 <li>환경 변수: <code>CARGO_NET_GIT_FETCH_WITH_CLI</code></li>
 </ul>
 <p>이 값이 <code>true</code> 인 경우, Cargo는 <code>git</code> 실행 파일을 사용하여 레지스트리 인덱스 및 git 의존성을 가져옵니다. <code>false</code> 인 경우, 내장된 <code>git</code> 라이브러리를 사용합니다.</p>
@@ -4260,6 +4340,13 @@ known-hosts = [
 <li>환경 변수: <code>CARGO_PROFILE_&lt;name&gt;_STRIP</code></li>
 </ul>
 <p><a href="#strip">strip</a> 을 참조하세요.</p>
+<h4 id="profilenametrim-paths"><a class="header" href="#profilenametrim-paths"><code>profile.&lt;name&gt;.trim-paths</code></a></h4>
+<ul>
+<li>타입: 문자열</li>
+<li>기본값: 프로파일 문서 참조</li>
+<li>Environment: <code>CARGO_PROFILE_&lt;name&gt;_TRIM_PATHS</code></li>
+</ul>
+<p>See <a href="#trim-paths">trim-paths</a>.</p>
 <h3 id="resolver"><a class="header" href="#resolver"><code>[resolver]</code></a></h3>
 <p><code>[resolver]</code> 테이블은 로컬 개발을 위한 <a href="#의존성-해결">의존성 해결 동작</a> 을 재정의합니다 (예: <code>cargo install</code> 은 제외됨).</p>
 <h4 id="resolverlockfile-path"><a class="header" href="#resolverlockfile-path"><code>resolver.lockfile-path</code></a></h4>
@@ -4854,6 +4941,15 @@ let out_dir = env::var("OUT_DIR").unwrap();</code></pre>
 </li>
 <li>
 <p><code>CARGO_PKG_&lt;변수&gt;</code> — 패키지 정보 변수들로, <a href="#environment-variables-cargo-sets-for-crates">크레이트 빌드 시 제공되는 것들</a> 과 이름 및 값이 동일합니다.</p>
+</li>
+<li>
+<p><code>CARGO_TRIM_PATHS_SCOPE</code> — The value of the <a href="#trim-paths"><code>trim-paths</code></a> profile option. If the build script introduces absolute paths to built artifacts (such as by invoking a compiler), the user may request them to be sanitized in different types of artifacts. Common paths requiring sanitization include <code>OUT_DIR</code>, <code>CARGO_MANIFEST_DIR</code> and <code>CARGO_MANIFEST_PATH</code>, plus any other introduced by the build script, such as include directories.</p>
+<blockquote>
+<p>[!NOTE] For forward compatibility, build scripts should accept a comma-separated list of scopes.</p>
+</blockquote>
+</li>
+<li>
+<p><code>CARGO_TRIM_PATHS_REMAP</code> — The <code>&lt;from&gt;=&lt;to&gt;</code> path remap pairs Cargo passes to the compiler, joined by the platform path separator. Empty when <code>trim-paths</code> is <code>"none"</code>. Build scripts can forward these mappings to C/C++ compilers and other tools, for example via <code>cc</code>’s <code>-ffile-prefix-map</code>, to sanitize paths consistently with the rest of the build.</p>
 </li>
 </ul>
 <h2 id="environment-variables-cargo-sets-for-cargo-test"><a class="header" href="#environment-variables-cargo-sets-for-cargo-test">Environment variables Cargo sets for <code>cargo test</code></a></h2>
@@ -8882,6 +8978,7 @@ build-std = ["core", "alloc"]
 <li><a href="#fine-grain-locking">fine-grain-locking</a> — Use fine grain locking instead of locking the entire build cache</li>
 <li><a href="#json-target-spec">json-target-spec</a> — Allows the use of <code>.json</code> custom target specs.</li>
 <li><a href="#hint-msrv">hint-msrv</a> — Allows Cargo to set <code>-Zhint-msrv</code></li>
+<li><a href="#mem-stats">mem-stats</a> — Reports peak memory usage per build unit in <code>--timings</code>.</li>
 </ul>
 </li>
 <li>rustdoc
@@ -8897,10 +8994,10 @@ build-std = ["core", "alloc"]
 <ul>
 <li><a href="#profile-rustflags-option">Profile <code>rustflags</code> 옵션</a> — rustc에 직접 전달됩니다.</li>
 <li><a href="#profile-hint-mostly-unused-option">Profile <code>hint-mostly-unused</code> option</a> — Hint that a dependency is mostly unused, to optimize compilation time.</li>
+<li><a href="#package-min-opt-level-hint">Package <code>min-opt-level</code> hint</a> — Request a numeric optimization floor for one package.</li>
 <li><a href="#codegen-backend">codegen-backend</a> — rustc에서 사용할 코드 생성 백엔드를 선택합니다.</li>
 <li><a href="#per-package-target">per-package-target</a> — 각 개별 패키지에 사용할 <code>--target</code> 을 설정합니다.</li>
 <li><a href="#artifact-dependencies">결과물 의존성(artifact dependencies)</a> — 빌드 결과물을 다른 빌드 결과물에 포함할 수 있게 하고, 다른 타겟에 대해 빌드할 수 있게 합니다.</li>
-<li><a href="#profile-trim-paths-option">Profile <code>trim-paths</code> 옵션</a> — 빌드 출력에서 파일 경로의 정리(sanitization)를 제어합니다.</li>
 <li><a href="#path-bases">path bases</a> — 경로 의존성을 위한 이름이 지정된 기본 디렉토리입니다.</li>
 <li><a href="#feature-metadata">feature-metadata</a> — Table syntax for feature definitions.</li>
 <li><a href="#unstable-editions"><code>unstable-editions</code></a> — Allows use of editions that are not yet stable.</li>
@@ -9439,6 +9536,41 @@ hint-mostly-unused = true
 mostly-unused = true
 </code></pre>
 <p>This will cause the crate to default to hint-mostly-unused, unless overridden via <code>profile</code>, which takes precedence, and which can only be specified in the top-level crate being built.</p>
+<h2 id="package-min-opt-level-hint"><a class="header" href="#package-min-opt-level-hint">Package <code>min-opt-level</code> hint</a></h2>
+<ul>
+<li>Tracking Issue: <a href="https://github.com/rust-lang/cargo/issues/17334">#17334</a></li>
+<li>RFC: <a href="https://github.com/rust-lang/rfcs/pull/3924">#3924</a></li>
+</ul>
+<p>This feature adds the <code>min-opt-level</code> key to the <code>[hints]</code> table. It lets a package set the lowest optimization level that Cargo will use to build it:</p>
+<pre><code class="language-toml">[hints]
+min-opt-level = 2
+</code></pre>
+<p>To enable this feature, pass <code>-Zhint-min-opt-level</code>. Without the flag, Cargo warns and ignores the hint. Versions of Cargo prior to the introduction of this feature will give an “unused manifest key” warning, but will otherwise function without erroring. This means using the hint does not change the package’s MSRV.</p>
+<h3 id="문서-업데이트"><a class="header" href="#문서-업데이트">문서 업데이트</a></h3>
+<h4 id="min-opt-level"><a class="header" href="#min-opt-level"><code>min-opt-level</code></a></h4>
+<p><em>as a new subsection of <a href="#the-hints-section">“The <code>[hints]</code> section”</a>, which would gain one subsection per hint</em></p>
+<p>The <code>min-opt-level</code> hint sets the lowest <a href="#opt-level"><code>opt-level</code></a> that Cargo will use to build this package. Some packages are very slow without optimization, or take longer to build without it. Such a package can ask for a minimum optimization level:</p>
+<pre><code class="language-toml"># In example-dependency's Cargo.toml
+[hints]
+min-opt-level = 2
+</code></pre>
+<p>The valid values are <code>0</code>, <code>1</code>, <code>2</code>, and <code>3</code>. Cargo warns about and ignores any other value. The <code>"s"</code> and <code>"z"</code> levels are not valid, because they cannot be compared with the numeric levels, and the top-level package is in a better position to choose them.</p>
+<p>When the selected <a href="#프로파일">profile</a> has a lower <code>opt-level</code> than the hint, Cargo builds the package at the hinted level instead. When the profile has a higher <code>opt-level</code>, Cargo keeps the higher level. This is true whether the profile’s <code>opt-level</code> is the default or is set by the user. It also applies to the <code>opt-level = 0</code> default for <a href="#build-dependencies">build dependencies</a>.</p>
+<p>The top-level package can override a hint with a profile <a href="#overrides">override</a>. Any <code>opt-level</code> set in a <code>package</code> table, in the <code>"*"</code> package, or in the <code>build-override</code> table takes precedence over the hint. Setting <code>opt-level = "s"</code> or <code>"z"</code> in the profile also takes precedence, because a package that optimizes for size usually wants its dependencies to do the same.</p>
+<pre><code class="language-toml"># Does not lower the `opt-level` below a dependency's hint.
+[profile.dev]
+opt-level = 0
+`git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
+# Overrides the hint for the `example-dependency` package.
+[profile.dev.package.example-dependency]
+opt-level = 0
+`git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
+# Overrides the hint for all dependencies.
+[profile.dev.package."*"]
+opt-level = 1
+</code></pre>
+<p>A hint only applies to the package that sets it, not to its dependencies. If the slow code is in a dependency, that dependency needs to set its own hint.</p>
+<p>Only use this hint when optimizing the package makes a full build faster, or when the package is many times slower without optimization.</p>
 <h2 id="rustdoc-map"><a class="header" href="#rustdoc-map">rustdoc-map</a></h2>
 <ul>
 <li>추적 이슈: <a href="https://github.com/rust-lang/cargo/issues/8296">#8296</a></li>
@@ -9780,110 +9912,7 @@ fn main() {
 <li><code>cargo &lt;path&gt;</code> 는 일반적인 기본값보다 낮은 상세 수준으로 실행됩니다. 정상적인 출력을 얻으려면 <code>-v</code> 를 전달하세요.</li>
 </ul>
 <p>When running a package with an embedded manifest, <a href="https://doc.rust-lang.org/std/os/unix/process/trait.CommandExt.html#tymethod.arg0"><code>arg0</code></a> will be the scripts path. To get the executable’s path, see <a href="https://doc.rust-lang.org/std/env/fn.current_exe.html"><code>current_exe</code></a>.</p>
-<h3 id="문서-업데이트"><a class="header" href="#문서-업데이트">문서 업데이트</a></h3>
-<h2 id="프로파일-trim-paths-옵션"><a class="header" href="#프로파일-trim-paths-옵션">프로파일 <code>trim-paths</code> 옵션</a></h2>
-<ul>
-<li>추적 이슈: <a href="https://github.com/rust-lang/cargo/issues/12137">rust-lang/cargo#12137</a></li>
-<li>rustc 추적 이슈: <a href="https://github.com/rust-lang/rust/issues/111540">rust-lang/rust#111540</a></li>
-</ul>
-<p>이는 생성된 바이너리에서 경로가 정제(sanitize)되는 방식을 제어하는 새로운 프로파일 설정을 추가합니다. 다음과 같이 활성화할 수 있습니다:</p>
-<pre><code class="language-toml">cargo-features = ["trim-paths"]
-`git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
-[package]
-# ...
-`git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
-[profile.release]
-trim-paths = "object"
-</code></pre>
-<p>Cargo 설정의 프로파일에서 이를 설정하려면, <code>-Z trim-paths</code> 또는 <code>[unstable]</code> 테이블을 사용하여 활성화해야 합니다. 예를 들어,</p>
-<pre><code class="language-toml"># .cargo/config.toml
-[unstable]
-trim-paths = true
-`git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
-[profile.release]
-trim-paths = "object"
-</code></pre>
 <h3 id="문서-업데이트-1"><a class="header" href="#문서-업데이트-1">문서 업데이트</a></h3>
-<h4 id="trim-paths"><a class="header" href="#trim-paths">trim-paths</a></h4>
-<p><em>새로운 <a href="#profile-settings">“프로파일 설정” 항목</a> 으로</em></p>
-<p>The <code>trim-paths</code> option controls the scope of path sanitization in build outputs Paths are sanitized according to these <a href="#remapping-rules">remapping rules</a>.</p>
-<p>사용 가능한 옵션은 다음과 같습니다.</p>
-<ul>
-<li><code>"none"</code> — disables path sanitization.</li>
-<li><code>"object"</code> — sanitizes paths embedded in compiled executables and libraries. Useful for improving artifact reproducibility with less impact on local development.</li>
-<li><code>"all"</code> — sanitizes paths in all supported locations. Useful for hermetic or remote builds that need artifacts and diagnostics to be independent of the build environment.</li>
-</ul>
-<blockquote>
-<p>[!WARNING] The <code>"all"</code> option remaps compiler diagnostics, including <a href="#json-messages">compiler JSON messages</a>. Some remapped paths may not resolve to files on the local filesystem, which can affect editors and other tools that consume the diagnostic output.</p>
-</blockquote>
-<p>For details about each scope, see rustc’s <a href="../rustc/remap-source-paths.html#--remap-path-scope"><code>--remap-path-scope</code></a> documentation.</p>
-<p>By default, <code>trim-paths</code> is <code>"none"</code> and path sanitization is disabled for all profiles. You can enable it by specifying this option in <code>Cargo.toml</code>:</p>
-<pre><code class="language-toml">[profile.dev]
-trim-paths = "all"
-`git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
-[profile.release]
-trim-paths = "object"
-</code></pre>
-<h5 id="remapping-rules"><a class="header" href="#remapping-rules">Remapping rules</a></h5>
-<p>The exact remap path prefixes are unspecified and may change across Cargo versions. Tools that map paths embedded in artifacts back to local sources should consume <a href="#unremap-files">unremap files</a> instead of interpreting these prefixes.</p>
-<p>If <code>trim-paths</code> is not <code>"none"</code>, then the following paths are sanitized if they appear in a selected scope:</p>
-<ol>
-<li>Path to the source files of the standard and core library (sysroot) will begin with <code>/rustc/&lt;rustc commit hash&gt;</code>, e.g. <code>/home/username/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs</code> -&gt; <code>/rustc/fe72845f7bb6a77b9e671e6a4f32fe714962cec4/library/core/src/result.rs</code></li>
-<li>Path to a local package within the workspace will begin with <code>.</code>, which replaces the workspace root, e.g. <code>/home/username/crate/src/lib.rs</code> -&gt; <code>./src/lib.rs</code>. This also covers path dependencies located inside the workspace directory.</li>
-<li>Path to a registry dependency will begin with <code>/cargo/registry/&lt;registry id&gt;</code>, which replaces the registry’s extraction directory, e.g. <code>/home/username/.cargo/registry/src/index.crates.io-6f17d22d3f0a95d1/foo-0.1.0/src/lib.rs</code> -&gt; <code>/cargo/registry/6f17d22d3f0a95d1/foo-0.1.0/src/lib.rs</code>.</li>
-<li>Path to a git dependency will begin with <code>/cargo/git/&lt;git source id&gt;/&lt;revision&gt;</code>, which replaces the checkout directory. <code>&lt;revision&gt;</code> is a prefix of the resolved commit ID recorded in the lockfile.</li>
-<li>Path to a path dependency outside the workspace will be replaced with <code>/cargo/deps/&lt;package name&gt;-&lt;package version&gt;</code>.</li>
-<li>Path into the build directory, for example <code>OUT_DIR</code> generated sources, will begin with <code>/cargo/build-dir</code>.</li>
-</ol>
-<p><code>&lt;registry id&gt;</code> and <code>&lt;git source id&gt;</code> are opaque stable hashes of the dependency’s source.</p>
-<p>Vendored copies of registry or git dependencies (via <a href="#소스-교체">source replacement</a>) are sanitized by their file location instead, like workspace paths when inside the workspace directory, otherwise like path dependencies.</p>
-<h5 id="unremap-files"><a class="header" href="#unremap-files">Unremap files</a></h5>
-<p>When the <code>object</code> scope is active and debuginfo is enabled, Cargo writes an unremap file beside each final artifact. The file is aimed at helping debuggers substitute sanitized paths back to local ones, e.g., via GDB’s <code>set substitute-path</code> or LLDB’s <code>target.source-map</code>.</p>
-<p>The Rust toolchain provides <code>rust-gdb</code> and <code>rust-lldb</code> wrappers, which can load unremap files automatically. This integration is currently unstable and available only in nightly toolchains. To enable it, set <code>RUST_GDB_TRIM_PATHS=unstable</code> or <code>RUST_LLDB_TRIM_PATHS=unstable</code> respectively.</p>
-<p>The unremap file name ends with <code>.trim-paths.json</code>. For example, your <code>my-app</code> executable would come with an unremap file named <code>my-app.trim-paths.json</code> beside it.</p>
-<p>The unremap file is in JSON format:</p>
-<ul>
-<li><code>v</code> carries the format version.</li>
-<li><code>rust_version</code> and <code>workspace_root</code> are file-level metadata, namely the toolchain version and the workspace root.</li>
-<li><code>remaps</code> is an array of records. Each record maps a sanitized path prefix in the artifact (<code>from</code>) back to the local path it replaced (<code>to</code>), ordered by the <code>from</code> prefix. Note that this follows the debugger substitution direction, which is the inverse of <code>--remap-path-prefix</code>.</li>
-</ul>
-<p>An example of the unremap file:</p>
-<pre><code class="language-json">{
-  "v": 1,
-  "rust_version": "1.96.0-nightly",
-  "workspace_root": "/home/me/app",
-  "remaps": [
-    { "from": ".", "to": "/home/me/app" },
-    { "from": "/cargo/build-dir", "to": "/home/me/app/target" },
-    { "from": "/cargo/registry/6f17d22d3f0a95d1", "to": "/home/me/.cargo/registry/src/index.crates.io-6f17d22d3f0a95d1" },
-    { "from": "/rustc/abc123", "to": "/home/me/.rustup/toolchains/nightly/lib/rustlib/src/rust" }
-  ]
-}
-</code></pre>
-<p>Since it is meant to be a debugging aid, it includes absolute paths of your system, so there is no artifact privacy guarantee. You might want to exclude <code>*.trim-paths.json</code> files when distributing artifacts.</p>
-<h5 id="limitations"><a class="header" href="#limitations">Limitations</a></h5>
-<p><code>trim-paths</code> supports remapping source path prefixes as a best effort. Linkers may add paths that rustc cannot remap. See <a href="../rustc/remap-source-paths.html#caveats-and-limitations">the limitations section</a> on rustc’s documentation for more.</p>
-<p>For example, on macOS, linkers generate OSO entries containing absolute paths to object files when debuginfo is enabled. The following profile settings keep these paths out of the executable while preserving debuginfo in a separate dSYM bundle:</p>
-<pre><code class="language-toml">[profile.release]
-debug = true
-trim-paths = "object"
-split-debuginfo = "packed"
-strip = "debuginfo"
-</code></pre>
-<p>The dSYM bundle can be used for debugging, but it still contains absolute paths.</p>
-<h4 id="환경-변수-2"><a class="header" href="#환경-변수-2">환경 변수</a></h4>
-<p><em><a href="#environment-variables-cargo-sets-for-crates">“Cargo가 빌드 스크립트를 위해 설정하는 환경 변수”</a> 의 새 항목으로</em></p>
-<ul>
-<li>
-<p><code>CARGO_TRIM_PATHS_SCOPE</code> — The value of <code>trim-paths</code> profile option. If the build script introduces absolute paths to built artifacts (such as by invoking a compiler), the user may request them to be sanitized in different types of artifacts. Common paths requiring sanitization include <code>OUT_DIR</code>, <code>CARGO_MANIFEST_DIR</code> and <code>CARGO_MANIFEST_PATH</code>, plus any other introduced by the build script, such as include directories.</p>
-<blockquote>
-<p>[!NOTE] For forward compatibility, build scripts should accept a comma-separated list of scopes.</p>
-</blockquote>
-</li>
-<li>
-<p><code>CARGO_TRIM_PATHS_REMAP</code> — The <code>&lt;from&gt;=&lt;to&gt;</code> path remap pairs Cargo passes to the compiler, joined by the platform path separator. Empty when <code>trim-paths</code> is <code>"none"</code>. Build scripts can forward these mappings to C/C++ compilers and other tools, for example via <code>cc</code>’s <code>-ffile-prefix-map</code>, to sanitize paths consistently with the rest of the build.</p>
-</li>
-</ul>
 <h2 id="gc"><a class="header" href="#gc">gc</a></h2>
 <ul>
 <li>추적 이슈: <a href="https://github.com/rust-lang/cargo/issues/12633">#12633</a></li>
@@ -10114,6 +10143,11 @@ edition = "future"
 <p>This feature can be used to extend the output of <code>cargo build --timings</code>. It will tell rustc to produce timings of individual compilation sections, which will be then displayed in the timings HTML/JSON output.</p>
 <pre><code class="language-console">cargo +nightly -Zsection-timings build --timings
 </code></pre>
+<h2 id="mem-stats"><a class="header" href="#mem-stats">mem-stats</a></h2>
+<p>Adds a “Peak memory usage per unit” table to the <code>cargo build --timings</code> report, showing the peak resident set size of each build unit’s process (<code>rustc</code>, <code>rustdoc</code>, and build scripts).</p>
+<pre><code class="language-console">cargo +nightly -Zmem-stats build --timings
+</code></pre>
+<p>Peak memory is measured on Unix (<code>wait4</code>’s <code>ru_maxrss</code>) and Windows (<code>GetProcessMemoryInfo</code>); the table is omitted on other platforms.</p>
 <h2 id="build-analysis"><a class="header" href="#build-analysis">Build analysis</a></h2>
 <ul>
 <li>Original Issue: <a href="https://github.com/rust-lang/rust-project-goals/pull/332">rust-lang/rust-project-goals#332</a></li>
@@ -10344,6 +10378,8 @@ doc = "Enables support for serialization and deserialization via serde."
 <p>Minimum publish-age configuration for dependency resolution was stabilized in Rust 1.100. See the <a href="#registryglobal-min-publish-age">minimum publish-age configuration</a> and <a href="#publish-age">resolver behavior</a> for more information.</p>
 <h2 id="asymmetric-token"><a class="header" href="#asymmetric-token">asymmetric-token</a></h2>
 <p>The <code>-Z asymmetric-token</code> flag and <code>cargo:paseto</code> credential provider have been removed in 1.100-nightly. See <a href="https://github.com/rust-lang/cargo/pull/17333">https://github.com/rust-lang/cargo/pull/17333</a> for the reason for its removal.</p>
+<h2 id="trim-paths-1"><a class="header" href="#trim-paths-1">trim-paths</a></h2>
+<p>The <code>trim-paths</code> profile option was stabilized in Rust 1.101. See the <a href="#trim-paths"><code>trim-paths</code> profile setting</a> for more information.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="cargo-명령어"><a class="header" href="#cargo-명령어">Cargo 명령어</a></h1>
 <ul>
@@ -10600,7 +10636,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-3"><a class="header" href="#환경-변수-3">환경 변수</a></h2>
+<h2 id="환경-변수-2"><a class="header" href="#환경-변수-2">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태"><a class="header" href="#종료-상태">종료 상태</a></h2>
 <ul>
@@ -10816,7 +10852,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-4"><a class="header" href="#환경-변수-4">환경 변수</a></h2>
+<h2 id="환경-변수-3"><a class="header" href="#환경-변수-3">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-1"><a class="header" href="#종료-상태-1">종료 상태</a></h2>
 <ul>
@@ -11418,7 +11454,7 @@ Should not be 0.</p>
 <pre><code>cargo build --benches --release --keep-going
 cargo bench --no-fail-fast
 </code></pre>
-<h2 id="환경-변수-5"><a class="header" href="#환경-변수-5">환경 변수</a></h2>
+<h2 id="환경-변수-4"><a class="header" href="#환경-변수-4">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-2"><a class="header" href="#종료-상태-2">종료 상태</a></h2>
 <ul>
@@ -11945,7 +11981,7 @@ produced during execution of this command</p>
 
 </dl>
 
-<h2 id="환경-변수-6"><a class="header" href="#환경-변수-6">환경 변수</a></h2>
+<h2 id="환경-변수-5"><a class="header" href="#환경-변수-5">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-3"><a class="header" href="#종료-상태-3">종료 상태</a></h2>
 <ul>
@@ -12465,7 +12501,7 @@ produced during execution of this command</p>
 
 </dl>
 
-<h2 id="환경-변수-7"><a class="header" href="#환경-변수-7">환경 변수</a></h2>
+<h2 id="환경-변수-6"><a class="header" href="#환경-변수-6">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-4"><a class="header" href="#종료-상태-4">종료 상태</a></h2>
 <ul>
@@ -12746,7 +12782,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-8"><a class="header" href="#환경-변수-8">환경 변수</a></h2>
+<h2 id="환경-변수-7"><a class="header" href="#환경-변수-7">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-5"><a class="header" href="#종료-상태-5">종료 상태</a></h2>
 <ul>
@@ -13255,7 +13291,7 @@ and requires the <code>-Z unstable-options</code> flag to enable.</p>
 
 </dl>
 
-<h2 id="환경-변수-9"><a class="header" href="#환경-변수-9">환경 변수</a></h2>
+<h2 id="환경-변수-8"><a class="header" href="#환경-변수-8">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-6"><a class="header" href="#종료-상태-6">종료 상태</a></h2>
 <ul>
@@ -13468,7 +13504,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-10"><a class="header" href="#환경-변수-10">환경 변수</a></h2>
+<h2 id="환경-변수-9"><a class="header" href="#환경-변수-9">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-7"><a class="header" href="#종료-상태-7">종료 상태</a></h2>
 <ul>
@@ -14043,7 +14079,7 @@ builds, even if the one run first fails.</p>
 
 </dl>
 
-<h2 id="환경-변수-11"><a class="header" href="#환경-변수-11">환경 변수</a></h2>
+<h2 id="환경-변수-10"><a class="header" href="#환경-변수-10">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-8"><a class="header" href="#종료-상태-8">종료 상태</a></h2>
 <ul>
@@ -14470,7 +14506,7 @@ builds, even if the one run first fails.</p>
 
 </dl>
 
-<h2 id="환경-변수-12"><a class="header" href="#환경-변수-12">환경 변수</a></h2>
+<h2 id="환경-변수-11"><a class="header" href="#환경-변수-11">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-9"><a class="header" href="#종료-상태-9">종료 상태</a></h2>
 <ul>
@@ -14992,7 +15028,7 @@ produced during execution of this command</p>
 
 </dl>
 
-<h2 id="환경-변수-13"><a class="header" href="#환경-변수-13">환경 변수</a></h2>
+<h2 id="환경-변수-12"><a class="header" href="#환경-변수-12">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-10"><a class="header" href="#종료-상태-10">종료 상태</a></h2>
 <ul>
@@ -15506,7 +15542,7 @@ and requires the <code>-Z unstable-options</code> flag to enable.</p>
 
 </dl>
 
-<h2 id="환경-변수-14"><a class="header" href="#환경-변수-14">환경 변수</a></h2>
+<h2 id="환경-변수-13"><a class="header" href="#환경-변수-13">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-11"><a class="header" href="#종료-상태-11">종료 상태</a></h2>
 <ul>
@@ -16072,7 +16108,7 @@ produced during execution of this command</p>
 <pre><code>cargo build --tests --keep-going
 cargo test --tests --no-fail-fast
 </code></pre>
-<h2 id="환경-변수-15"><a class="header" href="#환경-변수-15">환경 변수</a></h2>
+<h2 id="환경-변수-14"><a class="header" href="#환경-변수-14">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-12"><a class="header" href="#종료-상태-12">종료 상태</a></h2>
 <ul>
@@ -16476,7 +16512,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-16"><a class="header" href="#환경-변수-16">환경 변수</a></h2>
+<h2 id="환경-변수-15"><a class="header" href="#환경-변수-15">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-13"><a class="header" href="#종료-상태-13">종료 상태</a></h2>
 <ul>
@@ -16706,7 +16742,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-17"><a class="header" href="#환경-변수-17">환경 변수</a></h2>
+<h2 id="환경-변수-16"><a class="header" href="#환경-변수-16">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-14"><a class="header" href="#종료-상태-14">종료 상태</a></h2>
 <ul>
@@ -16914,7 +16950,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-18"><a class="header" href="#환경-변수-18">환경 변수</a></h2>
+<h2 id="환경-변수-17"><a class="header" href="#환경-변수-17">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-15"><a class="header" href="#종료-상태-15">종료 상태</a></h2>
 <ul>
@@ -17090,7 +17126,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-19"><a class="header" href="#환경-변수-19">환경 변수</a></h2>
+<h2 id="환경-변수-18"><a class="header" href="#환경-변수-18">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-16"><a class="header" href="#종료-상태-16">종료 상태</a></h2>
 <ul>
@@ -17647,7 +17683,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-20"><a class="header" href="#환경-변수-20">환경 변수</a></h2>
+<h2 id="환경-변수-19"><a class="header" href="#환경-변수-19">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-17"><a class="header" href="#종료-상태-17">종료 상태</a></h2>
 <ul>
@@ -17863,7 +17899,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-21"><a class="header" href="#환경-변수-21">환경 변수</a></h2>
+<h2 id="환경-변수-20"><a class="header" href="#환경-변수-20">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-18"><a class="header" href="#종료-상태-18">종료 상태</a></h2>
 <ul>
@@ -18113,7 +18149,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-22"><a class="header" href="#환경-변수-22">환경 변수</a></h2>
+<h2 id="환경-변수-21"><a class="header" href="#환경-변수-21">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-19"><a class="header" href="#종료-상태-19">종료 상태</a></h2>
 <ul>
@@ -18566,7 +18602,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-23"><a class="header" href="#환경-변수-23">환경 변수</a></h2>
+<h2 id="환경-변수-22"><a class="header" href="#환경-변수-22">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-20"><a class="header" href="#종료-상태-20">종료 상태</a></h2>
 <ul>
@@ -18865,7 +18901,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-24"><a class="header" href="#환경-변수-24">환경 변수</a></h2>
+<h2 id="환경-변수-23"><a class="header" href="#환경-변수-23">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-21"><a class="header" href="#종료-상태-21">종료 상태</a></h2>
 <ul>
@@ -19102,7 +19138,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-25"><a class="header" href="#환경-변수-25">환경 변수</a></h2>
+<h2 id="환경-변수-24"><a class="header" href="#환경-변수-24">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-22"><a class="header" href="#종료-상태-22">종료 상태</a></h2>
 <ul>
@@ -19315,7 +19351,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-26"><a class="header" href="#환경-변수-26">환경 변수</a></h2>
+<h2 id="환경-변수-25"><a class="header" href="#환경-변수-25">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-23"><a class="header" href="#종료-상태-23">종료 상태</a></h2>
 <ul>
@@ -19838,7 +19874,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-27"><a class="header" href="#환경-변수-27">환경 변수</a></h2>
+<h2 id="환경-변수-26"><a class="header" href="#환경-변수-26">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-24"><a class="header" href="#종료-상태-24">종료 상태</a></h2>
 <ul>
@@ -20035,7 +20071,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-28"><a class="header" href="#환경-변수-28">환경 변수</a></h2>
+<h2 id="환경-변수-27"><a class="header" href="#환경-변수-27">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-25"><a class="header" href="#종료-상태-25">종료 상태</a></h2>
 <ul>
@@ -20191,7 +20227,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-29"><a class="header" href="#환경-변수-29">환경 변수</a></h2>
+<h2 id="환경-변수-28"><a class="header" href="#환경-변수-28">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-26"><a class="header" href="#종료-상태-26">종료 상태</a></h2>
 <ul>
@@ -20355,7 +20391,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-30"><a class="header" href="#환경-변수-30">환경 변수</a></h2>
+<h2 id="환경-변수-29"><a class="header" href="#환경-변수-29">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-27"><a class="header" href="#종료-상태-27">종료 상태</a></h2>
 <ul>
@@ -20513,7 +20549,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-31"><a class="header" href="#환경-변수-31">환경 변수</a></h2>
+<h2 id="환경-변수-30"><a class="header" href="#환경-변수-30">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-28"><a class="header" href="#종료-상태-28">종료 상태</a></h2>
 <ul>
@@ -20664,7 +20700,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-32"><a class="header" href="#환경-변수-32">환경 변수</a></h2>
+<h2 id="환경-변수-31"><a class="header" href="#환경-변수-31">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-29"><a class="header" href="#종료-상태-29">종료 상태</a></h2>
 <ul>
@@ -20863,7 +20899,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-33"><a class="header" href="#환경-변수-33">환경 변수</a></h2>
+<h2 id="환경-변수-32"><a class="header" href="#환경-변수-32">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-30"><a class="header" href="#종료-상태-30">종료 상태</a></h2>
 <ul>
@@ -21354,7 +21390,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-34"><a class="header" href="#환경-변수-34">환경 변수</a></h2>
+<h2 id="환경-변수-33"><a class="header" href="#환경-변수-33">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-31"><a class="header" href="#종료-상태-31">종료 상태</a></h2>
 <ul>
@@ -21741,7 +21777,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-35"><a class="header" href="#환경-변수-35">환경 변수</a></h2>
+<h2 id="환경-변수-34"><a class="header" href="#환경-변수-34">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-32"><a class="header" href="#종료-상태-32">종료 상태</a></h2>
 <ul>
@@ -21945,7 +21981,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-36"><a class="header" href="#환경-변수-36">환경 변수</a></h2>
+<h2 id="환경-변수-35"><a class="header" href="#환경-변수-35">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-33"><a class="header" href="#종료-상태-33">종료 상태</a></h2>
 <ul>
@@ -22127,7 +22163,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-37"><a class="header" href="#환경-변수-37">환경 변수</a></h2>
+<h2 id="환경-변수-36"><a class="header" href="#환경-변수-36">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-34"><a class="header" href="#종료-상태-34">종료 상태</a></h2>
 <ul>
@@ -22330,7 +22366,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-<h2 id="환경-변수-38"><a class="header" href="#환경-변수-38">환경 변수</a></h2>
+<h2 id="환경-변수-37"><a class="header" href="#환경-변수-37">환경 변수</a></h2>
 <p>Cargo가 읽는 환경 변수에 대한 자세한 내용은 <a href="#환경-변수-1">레퍼런스</a>를 참조하세요.</p>
 <h2 id="종료-상태-35"><a class="header" href="#종료-상태-35">종료 상태</a></h2>
 <ul>
@@ -22520,6 +22556,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 </ul>
 <h3 id="수정됨-1"><a class="header" href="#수정됨-1">수정됨</a></h3>
 <ul>
+<li>Support target tuples with <code>.</code> in them in <code>.cargo/config.toml</code>’s <code>[target]</code> table as <code>[target."thumbv8m.main-none-eabihf"]</code>. A bug allowed <code>[target.thumbv8m.main-none-eabihf]</code> to work. Support has been maintained for the current set of target tuples with a future-incomptibility warning that these tables will be ignored or error in the future. <a href="https://github.com/rust-lang/cargo/pull/17490">#17490</a> <a href="https://github.com/rust-lang/cargo/pull/17536">#17536</a></li>
 <li>The automatic <code>git gc</code> run no longer fails when Git is configured with <code>safe.bareRepository=explicit</code>. <a href="https://github.com/rust-lang/cargo/pull/17370">#17370</a></li>
 <li>Commands editing <code>Cargo.toml</code> like <code>cargo add</code> now write to the correct file when the file is a relative symlink. Previously this could fail or overwrite an unrelated file. <a href="https://github.com/rust-lang/cargo/pull/17362">#17362</a></li>
 <li>cargo-clean: now accounts for hardlinks when calculating clean file size. <a href="https://github.com/rust-lang/cargo/pull/17485">#17485</a></li>
@@ -22560,7 +22597,6 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <ul>
 <li>Cargo internal profiling improvements <a href="https://github.com/rust-lang/cargo/pull/17411">#17411</a></li>
 <li>Consolidate more config table definitions <a href="https://github.com/rust-lang/cargo/pull/17480">#17480</a></li>
-<li>Split config keys in code, not at runtime <a href="https://github.com/rust-lang/cargo/pull/17490">#17490</a></li>
 <li>Resolve theoretical use-after-free <a href="https://github.com/rust-lang/cargo/pull/17428">#17428</a></li>
 <li>Remove ad-hoc <code>subslice_range</code> <a href="https://github.com/rust-lang/cargo/pull/17390">#17390</a></li>
 <li>Avoid passing search path <code>-L</code> args when they are passed as <code>--extern</code> <a href="https://github.com/rust-lang/cargo/pull/17410">#17410</a></li>
@@ -26542,8 +26578,7 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 <p><em>워크스페이스 루트(workspace root)</em> 는 워크스페이스의 <code>Cargo.toml</code> 매니페스트가 위치한 디렉토리입니다. (<a href="#package"><em>패키지 루트</em></a> 와 비교해 보세요.)</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="git-인증"><a class="header" href="#git-인증">Git 인증</a></h1>
-<p>Cargo는 Git 의존성과 레지스트리를 사용할 때 몇 가지 형태의 인증을 지원합니다. 이 부록에는 Cargo와 함께 작동하는 방식으로 Git 인증을 설정하는 데 필요한 정보가 포함되어 있습니다.</p>
-<p>다른 인증 방법이 필요한 경우, 내장 지원 대신 <code>git</code> 실행 파일을 사용하여 원격 저장소를 가져오도록 <a href="#netgit-fetch-with-cli"><code>net.git-fetch-with-cli</code></a> 설정 값을 지정할 수 있습니다. 이는 <code>CARGO_NET_GIT_FETCH_WITH_CLI=true</code> 환경 변수로 활성화할 수 있습니다.</p>
+<p>By default, Cargo delegates to git for authentication when using git dependencies and registries. This appendix contains some information for setting up git authentication in a way that works with Cargo when <a href="#netgit-fetch-with-cli"><code>net.git-fetch-with-cli</code></a> is disabled,</p>
 <blockquote>
 <p>[!NOTE] Cargo does not require authentication for public git dependencies so if you see an authentication failure in that context, ensure that the URL is correct.</p>
 </blockquote>

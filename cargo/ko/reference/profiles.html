@@ -97,7 +97,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a04a0996.js";
+            window.path_to_searchindex_js = "../searchindex-ee663038.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-6b0c3669.js"></script>
@@ -345,6 +345,72 @@ strip = "debuginfo"
 <p>기본값은 <a href="#incremental">증분(#incremental)</a> 빌드의 경우 256이고, 비증분 빌드의 경우 16입니다.</p>
 <h3 id="rpath"><a class="header" href="#rpath">rpath</a></h3>
 <p><code>rpath</code> 설정은 <a href="https://en.wikipedia.org/wiki/Rpath"><code>rpath</code></a> 활성화 여부를 제어하는 <a href="../../rustc/codegen-options/index.html#rpath"><code>-C rpath</code> 플래그</a> 를 제어합니다.</p>
+<h3 id="trim-paths"><a class="header" href="#trim-paths">trim-paths</a></h3>
+<p>The <code>trim-paths</code> option controls the scope of path sanitization in build outputs. Paths are sanitized according to these <a href="#remapping-rules">remapping rules</a>.</p>
+<p>사용 가능한 옵션은 다음과 같습니다.</p>
+<ul>
+<li><code>"none"</code> — disables path sanitization.</li>
+<li><code>"object"</code> — sanitizes paths embedded in compiled executables and libraries. Useful for improving artifact reproducibility with less impact on local development.</li>
+<li><code>"all"</code> — sanitizes paths in all supported locations. Useful for hermetic or remote builds that need artifacts and diagnostics to be independent of the build environment.</li>
+</ul>
+<blockquote>
+<p>[!WARNING] The <code>"all"</code> option remaps compiler diagnostics, including <a href="external-tools.html#json-messages">compiler JSON messages</a>. Some remapped paths may not resolve to files on the local filesystem, which can affect editors and other tools that consume the diagnostic output.</p>
+</blockquote>
+<p>For details about each scope, see rustc’s <a href="../../rustc/remap-source-paths.html#--remap-path-scope"><code>--remap-path-scope</code></a> documentation.</p>
+<p>By default, <code>trim-paths</code> is <code>"none"</code> and path sanitization is disabled for all profiles. You can enable it by specifying this option in <code>Cargo.toml</code>:</p>
+<pre><code class="language-toml">[profile.dev]
+trim-paths = "all"
+`git/checkouts` Git 소스가 사용되는 경우, `git/db` 내의 bare repo에서 필요한 repo 커밋이 이 디렉토리로 체크아웃됩니다. 이는 해당 의존성에 지정된 커밋의 repo에 포함된 실제 파일을 컴파일러에 제공합니다. 동일한 repo의 다른 커밋을 여러 번 체크아웃할 수 있습니다.
+[profile.release]
+trim-paths = "object"
+</code></pre>
+<h4 id="remapping-rules"><a class="header" href="#remapping-rules">Remapping rules</a></h4>
+<p>The exact remap path prefixes are unspecified and may change across Cargo versions. Tools that map paths embedded in artifacts back to local sources should consume <a href="#unremap-files">unremap files</a> instead of interpreting these prefixes.</p>
+<p>If <code>trim-paths</code> is not <code>"none"</code>, then the following paths are sanitized if they appear in a selected scope:</p>
+<ol>
+<li>Path to the source files of the standard and core library (sysroot) will begin with <code>/rustc/&lt;rustc commit hash&gt;</code>, e.g. <code>/home/username/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs</code> -&gt; <code>/rustc/fe72845f7bb6a77b9e671e6a4f32fe714962cec4/library/core/src/result.rs</code></li>
+<li>Path to a local package within the workspace will begin with <code>.</code>, which replaces the workspace root, e.g. <code>/home/username/crate/src/lib.rs</code> -&gt; <code>./src/lib.rs</code>. This also covers path dependencies located inside the workspace directory.</li>
+<li>Path to a registry dependency will begin with <code>/cargo/registry/&lt;registry id&gt;</code>, which replaces the registry’s extraction directory, e.g. <code>/home/username/.cargo/registry/src/index.crates.io-6f17d22d3f0a95d1/foo-0.1.0/src/lib.rs</code> -&gt; <code>/cargo/registry/6f17d22d3f0a95d1/foo-0.1.0/src/lib.rs</code>.</li>
+<li>Path to a git dependency will begin with <code>/cargo/git/&lt;git source id&gt;/&lt;revision&gt;</code>, which replaces the checkout directory. <code>&lt;revision&gt;</code> is a prefix of the resolved commit ID recorded in the lockfile.</li>
+<li>Path to a path dependency outside the workspace will be replaced with <code>/cargo/deps/&lt;package name&gt;-&lt;package version&gt;</code>.</li>
+<li>Path into the build directory, for example <code>OUT_DIR</code> generated sources, will begin with <code>/cargo/build-dir</code>.</li>
+</ol>
+<p><code>&lt;registry id&gt;</code> and <code>&lt;git source id&gt;</code> are opaque stable hashes of the dependency’s source.</p>
+<p>Vendored copies of registry or git dependencies (via <a href="source-replacement.html">source replacement</a>) are sanitized by their file location instead, like workspace paths when inside the workspace directory, otherwise like path dependencies.</p>
+<h4 id="unremap-files"><a class="header" href="#unremap-files">Unremap files</a></h4>
+<p>When the <code>object</code> scope is active and debuginfo is enabled, Cargo writes an unremap file beside each final artifact. The file is aimed at helping debuggers substitute sanitized paths back to local ones, e.g., via GDB’s <code>set substitute-path</code> or LLDB’s <code>target.source-map</code>.</p>
+<p>The Rust toolchain provides <code>rust-gdb</code> and <code>rust-lldb</code> wrappers, which can load unremap files automatically. This integration is currently unstable and available only in nightly toolchains. To enable it, set <code>RUST_GDB_TRIM_PATHS=unstable</code> or <code>RUST_LLDB_TRIM_PATHS=unstable</code> respectively.</p>
+<p>The unremap file name ends with <code>.trim-paths.json</code>. For example, your <code>my-app</code> executable would come with an unremap file named <code>my-app.trim-paths.json</code> beside it.</p>
+<p>The unremap file is in JSON format:</p>
+<ul>
+<li><code>v</code> carries the format version.</li>
+<li><code>rust_version</code> and <code>workspace_root</code> are file-level metadata, namely the toolchain version and the workspace root.</li>
+<li><code>remaps</code> is an array of records. Each record maps a sanitized path prefix in the artifact (<code>from</code>) back to the local path it replaced (<code>to</code>), ordered by the <code>from</code> prefix. Note that this follows the debugger substitution direction, which is the inverse of <code>--remap-path-prefix</code>.</li>
+</ul>
+<p>An example of the unremap file:</p>
+<pre><code class="language-json">{
+  "v": 1,
+  "rust_version": "1.96.0-nightly",
+  "workspace_root": "/home/me/app",
+  "remaps": [
+    { "from": ".", "to": "/home/me/app" },
+    { "from": "/cargo/build-dir", "to": "/home/me/app/target" },
+    { "from": "/cargo/registry/6f17d22d3f0a95d1", "to": "/home/me/.cargo/registry/src/index.crates.io-6f17d22d3f0a95d1" },
+    { "from": "/rustc/abc123", "to": "/home/me/.rustup/toolchains/nightly/lib/rustlib/src/rust" }
+  ]
+}
+</code></pre>
+<p>Since it is meant to be a debugging aid, it includes absolute paths of your system, so there is no artifact privacy guarantee. You might want to exclude <code>*.trim-paths.json</code> files when distributing artifacts.</p>
+<h4 id="limitations"><a class="header" href="#limitations">Limitations</a></h4>
+<p><code>trim-paths</code> supports remapping source path prefixes as a best effort. Linkers may add paths that rustc cannot remap. See <a href="../../rustc/remap-source-paths.html#caveats-and-limitations">the limitations section</a> on rustc’s documentation for more.</p>
+<p>For example, on macOS, linkers generate OSO entries containing absolute paths to object files when debuginfo is enabled. The following profile settings keep these paths out of the executable while preserving debuginfo in a separate dSYM bundle:</p>
+<pre><code class="language-toml">[profile.release]
+debug = true
+trim-paths = "object"
+split-debuginfo = "packed"
+strip = "debuginfo"
+</code></pre>
+<p>The dSYM bundle can be used for debugging, but it still contains absolute paths.</p>
 <h2 id="기본-프로파일"><a class="header" href="#기본-프로파일">기본 프로파일</a></h2>
 <h3 id="dev"><a class="header" href="#dev">dev</a></h3>
 <p>The <code>dev</code> profile is used for normal development. It is the default for build commands like <a href="../commands/cargo-build.html"><code>cargo build</code></a>, and is used for <code>cargo install --profile dev</code>.</p>
@@ -352,7 +418,7 @@ strip = "debuginfo"
 <pre><code class="language-toml">[profile.dev]
 opt-level = 0
 debug = true
-split-debuginfo = '...'  # 플랫폼별 상이
+split-debuginfo = '...'  # Platform-specific.
 strip = "none"
 debug-assertions = true
 overflow-checks = true
@@ -361,6 +427,7 @@ panic = 'unwind'
 incremental = true
 codegen-units = 256
 rpath = false
+trim-paths = "none"
 </code></pre>
 <h3 id="debug-1"><a class="header" href="#debug-1">debug</a></h3>
 <p>The <code>debug</code> profile is used for creating binaries to run with a debugger. It is used with <code>cargo build --profile debug</code> and <code>cargo install --debug</code>.</p>
@@ -374,7 +441,7 @@ inherits = "dev"
 <pre><code class="language-toml">[profile.release]
 opt-level = 3
 debug = false
-split-debuginfo = '...'  # 플랫폼별 상이
+split-debuginfo = '...'  # Platform-specific.
 strip = "none"
 debug-assertions = false
 overflow-checks = false
@@ -383,6 +450,7 @@ panic = 'unwind'
 incremental = false
 codegen-units = 16
 rpath = false
+trim-paths = "none"
 </code></pre>
 <h3 id="test"><a class="header" href="#test">test</a></h3>
 <p>The <code>test</code> profile is the default profile used by <a href="../commands/cargo-test.html"><code>cargo test</code></a>.</p>
