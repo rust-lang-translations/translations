@@ -92,10 +92,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2a262e87.js";
+            window.path_to_searchindex_js = "../searchindex-e24f716b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-c2779fd7.js"></script>
+        <script src="../toc-e5a2a203.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -253,29 +253,6 @@
 <h2 id="requirements"><a class="header" href="#requirements">Requirements</a></h2>
 <p>This target is cross-compiled. Dynamic linking is unsupported.</p>
 <p><code>#![no_std]</code> crates can be built using <code>build-std</code> to build <code>core</code> and <code>panic_abort</code> and optionally <code>alloc</code>. Unwinding panics are not yet supported on this target.</p>
-<p><code>std</code> has only partial support due to platform limitations. Notably:</p>
-<ul>
-<li><code>std::process</code> and <code>std::net</code> are unimplemented. <code>std::thread</code> only supports sleeping and yielding, as this is a single-threaded environment.</li>
-<li><code>std::time</code> has full support for <code>Instant</code>, but no support for <code>SystemTime</code>.</li>
-<li><code>std::io</code> has full support for <code>stdin</code>/<code>stdout</code>/<code>stderr</code>. <code>stdout</code> and <code>stderr</code> both write to USB channel 1 on this platform and are not differentiated.</li>
-<li><code>std::fs</code> has limited support for reading or writing to files. The following features are unsupported:
-<ul>
-<li>All directory operations (including <code>mkdir</code> and <code>readdir</code>), although reading directories is possible through <a href="https://docs.rs/vex-sdk/latest/vex_sdk/file/fn.vexFileDirectoryGet.html">third-party crates</a></li>
-<li>Deleting files and directories</li>
-<li>File metadata other than file size and type (that is, file vs. directory)</li>
-<li>Opening files with an uncommon combination of open options, such as read + write at the same time.
-The supported modes for opening files are in read-only mode, append mode, or write mode (with or without truncation).</li>
-</ul>
-</li>
-<li>A global allocator implemented on top of <code>dlmalloc</code> is provided.</li>
-<li>Modules that do not need to interact with the OS beyond allocation, such as <code>std::collections</code>, <code>std::hash</code>, <code>std::future</code>, <code>std::sync</code>, etc., are fully supported.</li>
-<li>Random number generation and hashing is insecure, as there is no reliable source of entropy on this platform.</li>
-</ul>
-<p>When compiling for this target, the “C” calling convention maps to AAPCS with VFP registers (hard float ABI) and the “system” calling convention maps to AAPCS without VFP registers (softfp ABI).</p>
-<p>This target generates binaries in the ELF format that may be uploaded to the brain with external tools.</p>
-<h3 id="platform-sdks"><a class="header" href="#platform-sdks">Platform SDKs</a></h3>
-<p>To use most platform-specific APIs, users must configure a supporting runtime SDK for <code>libstd</code> to link against. Official <em>VEXcode</em> SDKs from VEX can be downloaded and linked via the <a href="https://crates.io/crates/vex-sdk-vexcode"><code>vex-sdk-vexcode</code></a> crate, but they have a restrictive redistribution policy that might not be suitable for all projects. The suggested SDK for open-source projects is the community-supported <a href="https://crates.io/crates/vex-sdk-jumptable"><code>vex-sdk-jumptable</code></a> crate. SDK implementations are generally thin wrappers over system calls, so projects should not expect to see significant differences in behavior depending on which SDK they use.</p>
-<p>Libraries may access symbols from the active VEX SDK without depending on a specific implementation by using the <a href="https://crates.io/crates/vex-sdk"><code>vex-sdk</code></a> crate.</p>
 <h2 id="building-the-target"><a class="header" href="#building-the-target">Building the target</a></h2>
 <p>You can build Rust with support for this target by adding it to the <code>target</code> list in <code>bootstrap.toml</code>, and then running <code>./x build --target thumbv7a-vex-v5 compiler</code>.</p>
 <h2 id="building-rust-programs"><a class="header" href="#building-rust-programs">Building Rust programs</a></h2>
@@ -307,6 +284,59 @@ fn main() {
     println!("Hello, world");
 }
 </code></pre>
+<h2 id="environment"><a class="header" href="#environment">Environment</a></h2>
+<p>The <code>main</code> function is entered on a Zynq 7000’s CPU1 in the <em>System</em> processor mode in <em>Secure</em> state. Programs or runtimes should periodically call <code>std::thread::yield_now</code> to flush buffers and fetch the latest peripheral state.</p>
+<p>Developers writing programs for this target should use a high-level runtime such as <a href="https://vexide.dev">vexide</a> or a lower-level system access crate such as <a href="https://crates.io/crates/vex-sdk"><code>vex-sdk</code></a> to access peripherals such as motors and sensors.</p>
+<p>When compiling for this target, the “C” calling convention maps to AAPCS with VFP registers (hard float ABI) and the “system” calling convention maps to AAPCS without VFP registers (softfp ABI).</p>
+<p>This target generates binaries in the ELF format that may be uploaded to the brain with external tools.</p>
+<p>See Also: <a href="https://internals.vexide.dev/technical/environment">VEX V5 Environment</a>.</p>
+<h3 id="platform-sdks"><a class="header" href="#platform-sdks">Platform SDKs</a></h3>
+<p>To use most platform-specific APIs, users must configure a supporting runtime SDK for <code>libstd</code> to link against. Official <em>VEXcode</em> SDKs from VEX can be downloaded and linked via the <a href="https://crates.io/crates/vex-sdk-vexcode"><code>vex-sdk-vexcode</code></a> crate, but they have a restrictive redistribution policy that might not be suitable for all projects. The suggested SDK for open-source projects is the community-supported <a href="https://crates.io/crates/vex-sdk-jumptable"><code>vex-sdk-jumptable</code></a> crate. SDK implementations are generally thin wrappers over system calls, so projects should not expect to see significant differences in behavior depending on which SDK they use.</p>
+<p>Libraries may access symbols from the active VEX SDK without depending on a specific implementation by using the <a href="https://crates.io/crates/vex-sdk"><code>vex-sdk</code></a> crate.</p>
+<h3 id="standard-library-support"><a class="header" href="#standard-library-support">Standard Library Support</a></h3>
+<p><code>std</code> has only partial support due to platform limitations. Notably:</p>
+<ul>
+<li><code>std::process</code> and <code>std::net</code> are unimplemented. <code>std::thread</code> only supports sleeping and yielding.</li>
+<li><code>std::time</code> has full support for <code>Instant</code>, but no support for <code>SystemTime</code>.</li>
+<li><code>std::io</code> has full support for <code>stdin</code>/<code>stdout</code>/<code>stderr</code>. <code>stdout</code> and <code>stderr</code> both write to USB channel 1 on this platform and are not differentiated.</li>
+<li><code>std::fs</code> has limited support for reading or writing to files. The following features are unsupported:
+<ul>
+<li>All directory operations (including <code>mkdir</code> and <code>readdir</code>), although reading directories is possible through <a href="https://docs.rs/vex-sdk/latest/vex_sdk/file/fn.vexFileDirectoryGet.html">third-party crates</a></li>
+<li>Deleting files and directories</li>
+<li>File metadata other than file size and type (that is, file vs. directory)</li>
+<li>Opening files with an uncommon combination of open options, such as read + write at the same time.
+The supported modes for opening files are in read-only mode, append mode, or write mode (with or without truncation).</li>
+</ul>
+</li>
+<li>A global allocator implemented on top of <code>dlmalloc</code> is provided.</li>
+<li><code>std::sync</code>’s synchronization primitives assume single-threaded execution.</li>
+<li>Modules that do not need to interact with the OS beyond allocation, such as <code>std::collections</code>, <code>std::hash</code>, <code>std::future</code>, etc., are fully supported.</li>
+<li>Random number generation and hashing is insecure, as there is no reliable source of entropy on this platform.</li>
+</ul>
+<h3 id="thread-safety-and-synchronization"><a class="header" href="#thread-safety-and-synchronization">Thread Safety and Synchronization</a></h3>
+<p><em>This section only applies to programs that use the <code>std</code> crate.</em></p>
+<p>When executing on this target, the <code>std</code> crate only supports one Rust execution context plus any user-installed Armv7-A exception handlers (configured using the <code>VBAR</code> register), provided they properly synchronize access to shared resources. <code>std</code> on this target is not aware of any execution inside a task scheduler, so <code>thread_local</code> globals will always have the same identity.</p>
+<h4 id="vexos-task-scheduler"><a class="header" href="#vexos-task-scheduler">VEXos Task Scheduler</a></h4>
+<p>This target begins execution outside of the context of the builtin <a href="https://internals.vexide.dev/sdk/tasks">VEXos task scheduler</a>. Spawning VEXos Full Tasks through VEX’s undocumented scheduler API (e.g. using the <code>vexTaskAdd</code> function) or using any other stack-switching scheduler (including FreeRTOS) is strictly forbidden on this target and will result in undefined behavior. Rust programs may assume that <code>vexTasksRun</code> and <code>std::thread::yield_now</code> will never switch stacks.</p>
+<p>Code running inside a VEXos Simple Task context (for example, inside a user touchscreen callback) is forbidden from ticking the task scheduler reentrantly. Thus, it is invalid for task code to:</p>
+<ul>
+<li>call <code>vexTasksRun</code>, <code>thread::yield_now</code>, <code>thread::sleep</code>, <code>thread::park</code>, or derivatives,</li>
+<li>or access standard I/O streams via <code>std::io</code>.</li>
+</ul>
+<h4 id="exception-handlers"><a class="header" href="#exception-handlers">Exception Handlers</a></h4>
+<p>Interrupt Service Routines and other ARM exception handlers are the only form of preemptive concurrency allowed on this target. Exception handlers may be installed on this target using unsafe code and are conceptually treated akin to UNIX signal handlers.</p>
+<p>Exception handlers in programs using <code>std</code> <em>must not</em>:</p>
+<ul>
+<li>use the data structures in <code>std::sync</code> to synchronize access to shared state,</li>
+<li>use <code>thread_local!</code> values whatsoever,</li>
+<li>panic, which indirectly accesses thread locals,</li>
+<li>access standard I/O streams via <code>std::io</code>,</li>
+<li>access the filesystem,</li>
+<li>allocate/deallocate using the <code>System</code> allocator,</li>
+<li>or call <code>std::thread::current</code>, which allocates using the <code>System</code> allocator,</li>
+</ul>
+<p>since these features are not synchronized.</p>
+<p>However, exception handlers <em>may</em> use types originating from <code>core::sync</code> and <code>alloc::sync</code>, including atomics, to synchronize state.</p>
 <h2 id="testing"><a class="header" href="#testing">Testing</a></h2>
 <p>Binaries built for this target can be run in an emulator (such as <a href="https://github.com/vexide/vex-v5-qemu">vex-v5-qemu</a>), or uploaded to a physical device over a USB serial connection.</p>
 <p>The default Rust test runner is not supported.</p>

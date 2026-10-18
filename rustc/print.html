@@ -93,10 +93,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2a262e87.js";
+            window.path_to_searchindex_js = "searchindex-e24f716b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-c2779fd7.js"></script>
+        <script src="toc-e5a2a203.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -5420,6 +5420,7 @@ host tools.</p>
 <tr><td><a href="#-unknown-openbsd"><code>aarch64-unknown-openbsd</code></a></td><td style="text-align: center">✓</td><td style="text-align: center">✓</td><td>ARM64 OpenBSD</td></tr>
 <tr><td><a href="#-unknown-redox"><code>aarch64-unknown-redox</code></a></td><td style="text-align: center">✓</td><td style="text-align: center"></td><td>ARM64 Redox OS</td></tr>
 <tr><td><a href="#aarch64-unknown-teeos"><code>aarch64-unknown-teeos</code></a></td><td style="text-align: center">?</td><td style="text-align: center"></td><td>ARM64 TEEOS</td></tr>
+<tr><td><a href="#aarch64-unknown-qtee"><code>aarch64-unknown-qtee</code></a></td><td style="text-align: center">?</td><td style="text-align: center"></td><td>ARM64 QTEE</td></tr>
 <tr><td><a href="#aarch64-unknown-trusty-and-armv7-unknown-trusty"><code>aarch64-unknown-trusty</code></a></td><td style="text-align: center">✓</td><td style="text-align: center"></td><td></td></tr>
 <tr><td><a href="#x86_64-uwp-windows-msvc-i686-uwp-windows-msvc-thumbv7a-uwp-windows-msvc-and-aarch64-uwp-windows-msvc"><code>aarch64-uwp-windows-msvc</code></a></td><td style="text-align: center">✓</td><td style="text-align: center"></td><td></td></tr>
 <tr><td><a href="#-wrs-vxworks"><code>aarch64-wrs-vxworks</code></a></td><td style="text-align: center">✓</td><td style="text-align: center"></td><td>ARM64 VxWorks OS</td></tr>
@@ -9626,12 +9627,84 @@ linker = "/path/to/aarch64-unknown-teeos-clang.sh" # or aarch64-linux-gnu-ld
 <p>Running the Rust testsuite is not possible now.</p>
 <p>More information about how to test CA/TA. <a href="https://gitee.com/openharmony-sig/tee_tee_dev_kit/tree/master/docs">See here</a></p>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="aarch64-unknown-qtee"><a class="header" href="#aarch64-unknown-qtee">aarch64-unknown-qtee</a></h1>
+<p><strong>Tier: 3</strong></p>
+<p>Target support for the Qualcomm Trusted Execution Environment <a href="https://docs.qualcomm.com/doc/80-88500-4/topic/77_TrustZone_and_secure_application.html">QTEE</a>, which runs
+Trusted Applications (TAs) in ARM’s TrustZone.</p>
+<h2 id="target-maintainers-46"><a class="header" href="#target-maintainers-46">Target maintainers</a></h2>
+<ul>
+<li><a href="mailto:amartora@qti.qualcomm.com">@atmartorana</a></li>
+<li><a href="mailto:gaurkash@qti.qualcomm.com">Gaurav Kashyap</a></li>
+<li><a href="mailto:nhaas@qti.qualcomm.com">Neal Haas</a></li>
+<li>As a fallback rustzone@qti.qualcomm.com</li>
+</ul>
+<h2 id="requirements-38"><a class="header" href="#requirements-38">Requirements</a></h2>
+<p>This target is cross-compiled, and there is no host-tools support.</p>
+<p>QTEE support for the standard library is a work in progress: <code>alloc</code> will be fully supported and <code>std</code> will have support that excludes
+things like network I/O, spawning processes / threads (as QTEE is single threaded).
+Filesystem access is limited to QTEE’s Secure File System (SFS) rather than a general-purpose fileystem.
+File descriptors are supported for the purpose of IPC. I/O is limited to standard output and standard error logging.</p>
+<p>QTEE uses the ELF format. Each TA is linked as a position-dependent executable and must export <code>TA_APP_NAME</code> symbol which
+identifies it to the QTEE loader.</p>
+<h2 id="setup-2"><a class="header" href="#setup-2">Setup</a></h2>
+<p>A copy of the QTEE SDK and built artifacts will be needed for runtime support.</p>
+<h2 id="building-the-target-28"><a class="header" href="#building-the-target-28">Building the target</a></h2>
+<p>Rust does not yet ship pre-compiled artifacts for this target. To compile you will either need to
+build Rust with the target enabled (see example below), or use <code>build-std</code> to compile <code>std</code>
+from source yourself.</p>
+<p>To build a Rust toolchain, create a <code>bootstrap.toml</code> with following contents as an example:</p>
+<pre><code class="language-toml">[build]
+target = ["x86_64-unknown-linux-gnu", "aarch64-unknown-qtee"]
+
+[target.aarch64-unknown-qtee]
+profiler = false
+sanitizers = false
+cc = "/path/to/llvm/bin/clang"
+cxx = "/path/to/llvm/bin/clang++"
+linker = "/path/to/llvm/bin/clang"
+ar = "/path/to/llvm/bin/llvm-ar"
+ranlib = "/path/to/llvm/bin/llvm-ranlib"
+
+The upstream LLVM build packaged with Rust is sufficient to compile for the target.
+
+## Building Rust programs
+
+Compiling binaries for this target requires some additional linker inputs supplied from the QTEE SDK,
+primarily:
+
+- `libcmnlib.so`
+- `applib.lib`
+- `common_applib.o`
+
+The directory containing these objects can optionally be set when building the Rust toolchain
+for the target itself. For example setting the directory containing these objects from the prebuilts
+directory of the QTEE SDK, via the `qtee-dist-path` target option in `bootstrap.toml`:
+
+```toml
+[target.aarch64-unknown-qtee]
+qtee-dist-path = "/path/to/qteesdk/prebuilts/x86-64/"
+
+Building the `aarch64-unknown-qtee` compiler and standard library does not require these objects
+at all - they are only consumed when self-contained linking copies them into the target's lib
+directory for an actual TA binary. If `qtee-dist-path` is unset this copy step is skipped
+and the toolchain will still build. However, compiling a TA will then fail at the linker stage.
+
+To build executables and on-target tests:
+
+```shell
+$ rustc --target aarch64-unknown-qtee your-code.rs
+</code></pre>
+<h2 id="testing-29"><a class="header" href="#testing-29">Testing</a></h2>
+<p>Currently there is no support to run the rustc test suite for this target. This
+is majorly due to the fact we enforce symbols like <code>TA_APP_NAME</code> to be exported
+that just cannot happen when we link test files.</p>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="avr-none"><a class="header" href="#avr-none"><code>avr-none</code></a></h1>
 <p>Series of microcontrollers from Atmel: ATmega8, ATmega328p etc.</p>
 <p><strong>Tier: 3</strong></p>
-<h2 id="target-maintainers-46"><a class="header" href="#target-maintainers-46">Target maintainers</a></h2>
+<h2 id="target-maintainers-47"><a class="header" href="#target-maintainers-47">Target maintainers</a></h2>
 <p><a href="https://github.com/Patryk27">@Patryk27</a></p>
-<h2 id="requirements-38"><a class="header" href="#requirements-38">Requirements</a></h2>
+<h2 id="requirements-39"><a class="header" href="#requirements-39">Requirements</a></h2>
 <p>This target is only cross-compiled; x86-64 Linux, x86-64 macOS and aarch64 macOS
 hosts are confirmed to work, but in principle any machine able to run rustc and
 avr-gcc should be good.</p>
@@ -9640,7 +9713,7 @@ intrinsics (like 32-bit multiplication) rely on <a href="https://github.com/gcc-
 and can’t be provided through <code>compiler-builtins</code> yet. This is a limitation that
 <a href="https://github.com/rust-lang/compiler-builtins/issues/711">we hope to lift in the future</a>.</p>
 <p>You’ll also need to setup the <code>.cargo/config</code> file - see below for details.</p>
-<h2 id="building-the-target-28"><a class="header" href="#building-the-target-28">Building the target</a></h2>
+<h2 id="building-the-target-29"><a class="header" href="#building-the-target-29">Building the target</a></h2>
 <p>Rust comes with AVR support enabled, you don’t have to rebuild the compiler.</p>
 <h2 id="building-rust-programs-29"><a class="header" href="#building-rust-programs-29">Building Rust programs</a></h2>
 <p>Install <code>avr-gcc</code>:</p>
@@ -9672,7 +9745,7 @@ recommended to always use <code>--release</code> to avoid running out of space.<
 the possible variants:</p>
 <p><a href="https://github.com/llvm/llvm-project/blob/d5a6124259b55789bc49489632efa7c168a4f6cb/clang/lib/Basic/Targets/AVR.cpp#L48">https://github.com/llvm/llvm-project/blob/d5a6124259b55789bc49489632efa7c168a4f6cb/clang/lib/Basic/Targets/AVR.cpp#L48</a></p>
 <p>Note that devices that have no SRAM are not supported, same as when compiling C/C++ programs with avr-gcc or Clang.</p>
-<h2 id="testing-29"><a class="header" href="#testing-29">Testing</a></h2>
+<h2 id="testing-30"><a class="header" href="#testing-30">Testing</a></h2>
 <p>You can use <a href="https://github.com/buserror/simavr"><code>simavr</code></a> to emulate the
 resulting firmware on your machine:</p>
 <pre><code class="language-console">$ simavr -m atmega328p ./target/avr-none/release/your-project.elf
@@ -9693,11 +9766,11 @@ generally uses the same <code>target-cpu</code> for all crates in a build. <a hr
 <h1 id="-espidf"><a class="header" href="#-espidf"><code>*-espidf</code></a></h1>
 <p><strong>Tier: 3</strong></p>
 <p>Targets for the <a href="https://github.com/espressif/esp-idf">ESP-IDF</a> development framework running on RISC-V and Xtensa CPUs.</p>
-<h2 id="target-maintainers-47"><a class="header" href="#target-maintainers-47">Target maintainers</a></h2>
+<h2 id="target-maintainers-48"><a class="header" href="#target-maintainers-48">Target maintainers</a></h2>
 <p><a href="https://github.com/ivmarkov">@ivmarkov</a>
 <a href="https://github.com/MabezDev">@MabezDev</a>
 <a href="https://github.com/SergioGasquez">@SergioGasquez</a></p>
-<h2 id="requirements-39"><a class="header" href="#requirements-39">Requirements</a></h2>
+<h2 id="requirements-40"><a class="header" href="#requirements-40">Requirements</a></h2>
 <p>The target names follow this format: <code>$ARCH-esp-espidf</code>, where <code>$ARCH</code> specifies the target processor architecture. The following targets are currently defined:</p>
 <div class="table-wrapper">
 <table>
@@ -9717,7 +9790,7 @@ generally uses the same <code>target-cpu</code> for all crates in a build. <a hr
 </table>
 </div>
 <p>It is recommended to use the latest ESP-IDF stable release if possible.</p>
-<h2 id="building-the-target-29"><a class="header" href="#building-the-target-29">Building the target</a></h2>
+<h2 id="building-the-target-30"><a class="header" href="#building-the-target-30">Building the target</a></h2>
 <p>The target can be built by enabling it for a <code>rustc</code> build. The <code>build-std</code> feature is required to build the standard library for ESP-IDF. <code>ldproxy</code> is also required for linking, it can be installed from crates.io.</p>
 <pre><code class="language-toml">[build]
 target = ["$ARCH-esp-espidf"]
@@ -9736,7 +9809,7 @@ build-std = ["std", "panic_abort"]
 <p><strong>Tier: 2</strong></p>
 <p><a href="https://fuchsia.dev/">Fuchsia</a> is a modern open source operating system that’s simple, secure,
 updatable, and performant.</p>
-<h2 id="target-maintainers-48"><a class="header" href="#target-maintainers-48">Target maintainers</a></h2>
+<h2 id="target-maintainers-49"><a class="header" href="#target-maintainers-49">Target maintainers</a></h2>
 <ul>
 <li><a href="https://github.com/Nashenas88">@Nashenas88</a></li>
 <li><a href="https://github.com/PiJoules">@PiJoules</a></li>
@@ -9748,7 +9821,7 @@ updatable, and performant.</p>
 <a href="https://github.com/rust-lang/team/blob/master/teams/fuchsia.toml">fuchsia marker team</a>.</p>
 <h2 id="table-of-contents-1"><a class="header" href="#table-of-contents-1">Table of contents</a></h2>
 <ol>
-<li><a href="#requirements-40">Requirements</a></li>
+<li><a href="#requirements-41">Requirements</a></li>
 <li><a href="#walkthrough-structure">Walkthrough structure</a></li>
 <li><a href="#compiling-a-rust-binary-targeting-fuchsia">Compiling a Rust binary targeting Fuchsia</a>
 <ol>
@@ -9777,7 +9850,7 @@ updatable, and performant.</p>
 </ol>
 </li>
 <li><a href="#gitignore-extensions"><code>.gitignore</code> extensions</a></li>
-<li><a href="#testing-30">Testing</a>
+<li><a href="#testing-31">Testing</a>
 <ol>
 <li><a href="#running-unit-tests">Running unit tests</a></li>
 <li><a href="#running-the-compiler-test-suite">Running the compiler test suite</a></li>
@@ -9792,7 +9865,7 @@ updatable, and performant.</p>
 </ol>
 </li>
 </ol>
-<h2 id="requirements-40"><a class="header" href="#requirements-40">Requirements</a></h2>
+<h2 id="requirements-41"><a class="header" href="#requirements-41">Requirements</a></h2>
 <p>This target is cross-compiled from a host environment. You will need a recent
 copy of the <a href="https://chrome-infra-packages.appspot.com/p/fuchsia/sdk/core">Fuchsia SDK</a>, which provides the tools, libraries, and binaries
 required to build and link programs for Fuchsia.</p>
@@ -10227,7 +10300,7 @@ pkg/meta/hello_fuchsia.cm
 pkg/hello_fuchsia_manifest
 pkg/hello_fuchsia_package_manifest
 </code></pre>
-<h2 id="testing-30"><a class="header" href="#testing-30">Testing</a></h2>
+<h2 id="testing-31"><a class="header" href="#testing-31">Testing</a></h2>
 <h3 id="running-unit-tests"><a class="header" href="#running-unit-tests">Running unit tests</a></h3>
 <p>Tests can be run in the same way as a regular binary.</p>
 <ul>
@@ -10465,11 +10538,11 @@ attach and load any relevant debug symbols.</p>
 <li>x86_64-unknown-l4re-uclibc</li>
 <li>aarch64-unknown-l4re-uclibc</li>
 </ul>
-<h2 id="target-maintainers-49"><a class="header" href="#target-maintainers-49">Target maintainers</a></h2>
+<h2 id="target-maintainers-50"><a class="header" href="#target-maintainers-50">Target maintainers</a></h2>
 <ul>
 <li>Marius Melzer (<a href="https://github.com/farao">@farao</a>)</li>
 </ul>
-<h2 id="requirements-41"><a class="header" href="#requirements-41">Requirements</a></h2>
+<h2 id="requirements-42"><a class="header" href="#requirements-42">Requirements</a></h2>
 <p>The L4Re targets are cross-compiled from a host environment, commonly Linux.
 See <a href="https://l4re.org/getting_started">Getting Started</a> for options to set up L4Re.</p>
 <p>The L4Re sources can be found in the <a href="https://github.com/L4Re">Github Repos</a>.</p>
@@ -10505,17 +10578,17 @@ via the ned script. The image can then be put on hardware or run on Qemu.</p>
 <p><strong>Tier: 3</strong></p>
 <p><a href="https://source.android.com/docs/security/features/trusty">Trusty</a> is a secure Operating System that provides a Trusted Execution
 Environment (TEE) for Android.</p>
-<h2 id="target-maintainers-50"><a class="header" href="#target-maintainers-50">Target maintainers</a></h2>
+<h2 id="target-maintainers-51"><a class="header" href="#target-maintainers-51">Target maintainers</a></h2>
 <p><a href="https://github.com/randomPoison">@randomPoison</a>
 <a href="https://github.com/ahomescu">@ahomescu</a></p>
-<h2 id="requirements-42"><a class="header" href="#requirements-42">Requirements</a></h2>
+<h2 id="requirements-43"><a class="header" href="#requirements-43">Requirements</a></h2>
 <p>These targets are cross-compiled. They have no special requirements for the host.</p>
 <p>Trusty targets have partial support for the standard library: <code>alloc</code> is fully
 supported and <code>std</code> has limited support that excludes things like filesystem
 access, network I/O, and spawning processes/threads. File descriptors are
 supported for the purpose of IPC.</p>
 <p>Trusty uses the ELF file format.</p>
-<h2 id="building-the-target-30"><a class="header" href="#building-the-target-30">Building the target</a></h2>
+<h2 id="building-the-target-31"><a class="header" href="#building-the-target-31">Building the target</a></h2>
 <p>The targets can be built by enabling them for a <code>rustc</code> build, for example:</p>
 <pre><code class="language-toml">[build]
 build-stage = 1
@@ -10525,7 +10598,7 @@ target = ["aarch64-unknown-trusty", "armv7-unknown-trusty"]
 <p>There is currently no supported way to build a Trusty app with Cargo. You can
 follow the <a href="https://source.android.com/docs/security/features/trusty/download-and-build">Trusty build instructions</a> to build the Trusty kernel along with any
 Rust apps that are setup in the project.</p>
-<h2 id="testing-31"><a class="header" href="#testing-31">Testing</a></h2>
+<h2 id="testing-32"><a class="header" href="#testing-32">Testing</a></h2>
 <p>See the <a href="https://source.android.com/docs/security/features/trusty/download-and-build">Trusty build instructions</a> for information on how to build Rust code
 within the main Trusty project. The main project also includes infrastructure
 for testing Rust applications within a QEMU emulator.</p>
@@ -10549,9 +10622,9 @@ within Trusty.</p>
 </tbody>
 </table>
 </div>
-<h2 id="target-maintainers-51"><a class="header" href="#target-maintainers-51">Target Maintainers</a></h2>
+<h2 id="target-maintainers-52"><a class="header" href="#target-maintainers-52">Target Maintainers</a></h2>
 <p><a href="https://github.com/kawadakk">@kawadakk</a></p>
-<h2 id="requirements-43"><a class="header" href="#requirements-43">Requirements</a></h2>
+<h2 id="requirements-44"><a class="header" href="#requirements-44">Requirements</a></h2>
 <p>This target is cross-compiled.
 A platform-provided C compiler toolchain is required, though it can be substituted by <a href="https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm">GNU Arm Embedded Toolchain</a> for the purpose of building Rust and functional binaries.</p>
 <h2 id="building-3"><a class="header" href="#building-3">Building</a></h2>
@@ -10565,7 +10638,7 @@ cc = "arm-none-eabi-gcc"
 </code></pre>
 <h2 id="cross-compilation-8"><a class="header" href="#cross-compilation-8">Cross-compilation</a></h2>
 <p>This target can be cross-compiled from any hosts.</p>
-<h2 id="testing-32"><a class="header" href="#testing-32">Testing</a></h2>
+<h2 id="testing-33"><a class="header" href="#testing-33">Testing</a></h2>
 <p>Currently there is no support to run the rustc test suite for this target.</p>
 <h2 id="building-rust-programs-31"><a class="header" href="#building-rust-programs-31">Building Rust programs</a></h2>
 <p>Building executables is not supported yet.</p>
@@ -10584,9 +10657,9 @@ $ ls libyour_code.a
 <li><code>bpfel-unknown-none</code> (little endian)</li>
 </ul>
 <p>Targets for the 64-bit <a href="https://ebpf.io/">BPF virtual machine</a>.</p>
-<h2 id="target-maintainers-52"><a class="header" href="#target-maintainers-52">Target maintainers</a></h2>
+<h2 id="target-maintainers-53"><a class="header" href="#target-maintainers-53">Target maintainers</a></h2>
 <p><a href="https://github.com/nagisa">@nagisa</a> <a href="https://github.com/vadorovsky">@vadorovsky</a></p>
-<h2 id="requirements-44"><a class="header" href="#requirements-44">Requirements</a></h2>
+<h2 id="requirements-45"><a class="header" href="#requirements-45">Requirements</a></h2>
 <p>BPF targets require a Rust toolchain with the <code>rust-src</code> component. In
 addition, you must install the <a href="https://github.com/aya-rs/bpf-linker">bpf-linker</a>.</p>
 <p>They don’t support std and alloc and are meant for a <code>no_std</code> environment.</p>
@@ -10598,7 +10671,7 @@ bytecode into the native host architecture.</p>
 <a href="https://github.com/torvalds/linux/commit/69b693f0a">that introduced BTF</a>, or newer. On RISC-V hosts that
 requirement goes up to <a href="https://github.com/torvalds/linux/commit/5f316b65e">5.7</a>, on PowerPC32 - to [5.13]
 <a href="https://github.com/torvalds/linux/commit/51c66ad84">linux-commit-ppc32</a>, and on LoongArch - to <a href="https://github.com/torvalds/linux/commit/5dc615520">6.1</a>.</p>
-<h2 id="building-the-target-31"><a class="header" href="#building-the-target-31">Building the target</a></h2>
+<h2 id="building-the-target-32"><a class="header" href="#building-the-target-32">Building the target</a></h2>
 <p>You can build Rust with support for BPF targets by adding them to the <code>target</code>
 list in <code>config.toml</code>:</p>
 <pre><code class="language-toml">[build]
@@ -10632,7 +10705,7 @@ fn panic(_info: &amp;core::panic::PanicInfo) -&gt; ! {
 }</code></pre>
 <p>Infinite loops are forbidden by the BPF verifier. Therefore, if the program
 contains any code which can panic, the BPF VM refuses to load it.</p>
-<h2 id="testing-33"><a class="header" href="#testing-33">Testing</a></h2>
+<h2 id="testing-34"><a class="header" href="#testing-34">Testing</a></h2>
 <p>BPF bytecode needs to be executed on a BPF virtual machine, like the one
 provided by the Linux kernel or one of the user-space implementations like
 <a href="https://github.com/qmonnet/rbpf">rbpf</a>. None of them support running Rust <code>#[test]</code> functions. One of the
@@ -10708,10 +10781,10 @@ println!("cargo:rustc-link-lib=link-arg={out_dir}/my_module.bpf.o");</code></pre
 <li>https://c-sky.github.io/</li>
 <li>https://gitlab.com/c-sky/</li>
 </ul>
-<h2 id="target-maintainers-53"><a class="header" href="#target-maintainers-53">Target maintainers</a></h2>
+<h2 id="target-maintainers-54"><a class="header" href="#target-maintainers-54">Target maintainers</a></h2>
 <p><a href="https://github.com/Dirreke">@Dirreke</a></p>
-<h2 id="requirements-45"><a class="header" href="#requirements-45">Requirements</a></h2>
-<h2 id="building-the-target-32"><a class="header" href="#building-the-target-32">Building the target</a></h2>
+<h2 id="requirements-46"><a class="header" href="#requirements-46">Requirements</a></h2>
+<h2 id="building-the-target-33"><a class="header" href="#building-the-target-33">Building the target</a></h2>
 <h3 id="get-a-c-toolchain-1"><a class="header" href="#get-a-c-toolchain-1">Get a C toolchain</a></h3>
 <p>Compiling rust for this target has been tested on <code>x86_64</code> linux hosts.  Other host types have not been tested, but may work, if you can find a suitable cross compilation toolchain for them.</p>
 <p>If you don’t already have a suitable toolchain, you can download from <a href="https://occ-oss-prod.oss-cn-hangzhou.aliyuncs.com/resource/1356021/1619528643136/csky-linux-gnuabiv2-tools-x86_64-glibc-linux-4.9.56-20210423.tar.gz">here</a>, and unpack it into a directory.</p>
@@ -10772,10 +10845,10 @@ DSP architecture.</p>
 </tbody>
 </table>
 </div>
-<h2 id="target-maintainers-54"><a class="header" href="#target-maintainers-54">Target maintainers</a></h2>
+<h2 id="target-maintainers-55"><a class="header" href="#target-maintainers-55">Target maintainers</a></h2>
 <p><a href="https://github.com/androm3da">@androm3da</a>
 <a href="https://github.com/quic-mliebel">@quic-mliebel</a></p>
-<h2 id="requirements-46"><a class="header" href="#requirements-46">Requirements</a></h2>
+<h2 id="requirements-47"><a class="header" href="#requirements-47">Requirements</a></h2>
 <p>The target is cross-compiled. This target supports <code>std</code>.  By default, code
 generated with this target should run on Hexagon DSP hardware.</p>
 <ul>
@@ -10804,7 +10877,7 @@ at paths like <code>/opt/clang+llvm-21.1.8-cross-hexagon-unknown-linux-musl/x86_
 the opensource hexagon toolchain and the Hexagon SDK</li>
 <li><code>rust-lld</code> can be used by specifying <code>-C linker=rust-lld</code></li>
 </ul>
-<h2 id="building-the-target-33"><a class="header" href="#building-the-target-33">Building the target</a></h2>
+<h2 id="building-the-target-34"><a class="header" href="#building-the-target-34">Building the target</a></h2>
 <p>Because it is Tier 3, rust does not yet ship pre-compiled artifacts for this
 target.</p>
 <p>Therefore, you can build Rust with support for the target by adding it to the
@@ -10823,7 +10896,7 @@ musl-root = "/opt/clang+llvm-VERSION-cross-hexagon-unknown-linux-musl/x86_64-lin
 llvm-libunwind = 'in-tree'
 qemu-rootfs = "/opt/clang+llvm-VERSION-cross-hexagon-unknown-linux-musl/x86_64-linux-gnu/target/hexagon-unknown-linux-musl/usr"
 </code></pre>
-<h2 id="testing-34"><a class="header" href="#testing-34">Testing</a></h2>
+<h2 id="testing-35"><a class="header" href="#testing-35">Testing</a></h2>
 <p>Currently there is no support to run the rustc test suite for this target.</p>
 <h2 id="building-rust-programs-33"><a class="header" href="#building-rust-programs-33">Building Rust programs</a></h2>
 <p>Download and install the hexagon open source toolchain from https://github.com/quic/toolchain_for_hexagon/releases</p>
@@ -10861,9 +10934,9 @@ cargo run -Zbuild-std -Zbuild-std-features=llvm-libunwind
 </tbody>
 </table>
 </div>
-<h2 id="target-maintainers-55"><a class="header" href="#target-maintainers-55">Target maintainers</a></h2>
+<h2 id="target-maintainers-56"><a class="header" href="#target-maintainers-56">Target maintainers</a></h2>
 <p><a href="https://github.com/androm3da">@androm3da</a></p>
-<h2 id="requirements-47"><a class="header" href="#requirements-47">Requirements</a></h2>
+<h2 id="requirements-48"><a class="header" href="#requirements-48">Requirements</a></h2>
 <p>This target is cross-compiled.  There is no support for <code>std</code>. There is no
 default allocator, but it’s possible to use <code>alloc</code> by supplying an allocator.</p>
 <p>By default, code generated with this target should run on Hexagon DSP hardware.</p>
@@ -10877,7 +10950,7 @@ default allocator, but it’s possible to use <code>alloc</code> by supplying an
 <a href="https://github.com/qualcomm/eld">eld</a>, which is also provided with
 <a href="https://github.com/quic/toolchain_for_hexagon">the opensource hexagon toolchain</a>
 and the Hexagon SDK.</p>
-<h2 id="building-the-target-34"><a class="header" href="#building-the-target-34">Building the target</a></h2>
+<h2 id="building-the-target-35"><a class="header" href="#building-the-target-35">Building the target</a></h2>
 <p>You can build Rust with support for the target by adding it to the <code>target</code>
 list in <code>bootstrap.toml</code>:</p>
 <pre><code class="language-toml">[build]
@@ -10901,7 +10974,7 @@ else is appropriate for your host machine.</p>
 this target, you will either need to build Rust with the target enabled (see
 “Building the target” above), or build your own copy of <code>core</code> by using
 <code>build-std</code> or similar.</p>
-<h2 id="testing-35"><a class="header" href="#testing-35">Testing</a></h2>
+<h2 id="testing-36"><a class="header" href="#testing-36">Testing</a></h2>
 <p>Since <code>hexagon-unknown-none-elf</code> supports a variety of different environments and
 does not support <code>std</code>, this target does not support running the Rust test suite.</p>
 <h2 id="cross-compilation-toolchains-and-c-code-18"><a class="header" href="#cross-compilation-toolchains-and-c-code-18">Cross-compilation toolchains and C code</a></h2>
@@ -11111,9 +11184,9 @@ ${hex_toolchain}/x86_64-linux-gnu/bin/qemu-system-hexagon \
 </tbody>
 </table>
 </div>
-<h2 id="target-maintainers-56"><a class="header" href="#target-maintainers-56">Target maintainers</a></h2>
+<h2 id="target-maintainers-57"><a class="header" href="#target-maintainers-57">Target maintainers</a></h2>
 <p><a href="https://github.com/androm3da">@androm3da</a></p>
-<h2 id="requirements-48"><a class="header" href="#requirements-48">Requirements</a></h2>
+<h2 id="requirements-49"><a class="header" href="#requirements-49">Requirements</a></h2>
 <p>This target is cross-compiled. There is support for <code>std</code>. The target uses
 QuRT’s standard library and runtime.</p>
 <p>By default, code generated with this target should run on Hexagon DSP hardware
@@ -11138,7 +11211,7 @@ The linker is available at paths like
 and the Hexagon SDK</li>
 <li><code>rust-lld</code> can be used by specifying <code>-C linker=rust-lld</code></li>
 </ul>
-<h2 id="building-the-target-35"><a class="header" href="#building-the-target-35">Building the target</a></h2>
+<h2 id="building-the-target-36"><a class="header" href="#building-the-target-36">Building the target</a></h2>
 <p>You can build Rust with support for the target by adding it to the <code>target</code>
 list in <code>bootstrap.toml</code>:</p>
 <pre><code class="language-toml">[build]
@@ -11211,7 +11284,7 @@ rustflags = [
     "-C", "relocation-model=pic"
 ]
 </code></pre>
-<h2 id="testing-36"><a class="header" href="#testing-36">Testing</a></h2>
+<h2 id="testing-37"><a class="header" href="#testing-37">Testing</a></h2>
 <p>Since <code>hexagon-unknown-qurt</code> requires the QuRT runtime environment, testing requires
 either:</p>
 <ul>
@@ -11257,22 +11330,22 @@ deployment scenarios.</p>
 <p><strong>Tier: 2/3</strong></p>
 <p><a href="https://www.illumos.org/">illumos</a>, is a Unix operating system which provides next-generation features for downstream distributions,
 including advanced system debugging, next generation filesystem, networking, and virtualization options.</p>
-<h2 id="target-maintainers-57"><a class="header" href="#target-maintainers-57">Target maintainers</a></h2>
+<h2 id="target-maintainers-58"><a class="header" href="#target-maintainers-58">Target maintainers</a></h2>
 <p><a href="https://github.com/jclulow">@jclulow</a>
 <a href="https://github.com/pfmooney">@pfmooney</a></p>
-<h2 id="requirements-49"><a class="header" href="#requirements-49">Requirements</a></h2>
+<h2 id="requirements-50"><a class="header" href="#requirements-50">Requirements</a></h2>
 <p>The target supports host tools.</p>
 <p>The illumos target supports <code>std</code> and uses the standard ELF file format.</p>
 <p><code>x86_64-unknown-illumos</code> is a tier 2 target with host tools.
 <code>aarch64-unknown-illumos</code> is a tier 3 target.</p>
-<h2 id="building-the-target-36"><a class="header" href="#building-the-target-36">Building the target</a></h2>
+<h2 id="building-the-target-37"><a class="header" href="#building-the-target-37">Building the target</a></h2>
 <p>These targets can be built by adding <code>aarch64-unknown-illumos</code> and
 <code>x86_64-unknown-illumos</code> as targets in the rustc list.</p>
 <h2 id="building-rust-programs-36"><a class="header" href="#building-rust-programs-36">Building Rust programs</a></h2>
 <p>Rust ships pre-compiled artifacts for the <code>x86_64-unknown-illumos</code> target.
 Rust does not ship pre-compiled artifacts for <code>aarch64-unknown-illumos</code>,
 it requires building the target either as shown above or using <code>-Zbuild-std</code>.</p>
-<h2 id="testing-37"><a class="header" href="#testing-37">Testing</a></h2>
+<h2 id="testing-38"><a class="header" href="#testing-38">Testing</a></h2>
 <p>Tests can be run in the same way as a regular binary.</p>
 <h2 id="cross-compilation-toolchains-and-c-code-20"><a class="header" href="#cross-compilation-toolchains-and-c-code-20">Cross-compilation toolchains and C code</a></h2>
 <p>The target supports C code.</p>
@@ -11300,10 +11373,10 @@ LoongArch is a RISC ISA developed by Loongson Technology Corporation Limited.</p
 <li><a href="https://loongson.github.io/LoongArch-Documentation/README-EN.html">LoongArch ISA manuals</a></li>
 <li><a href="https://github.com/loongson/la-abi-specs">Application Binary Interface for the LoongArch™ Architecture</a></li>
 </ul>
-<h2 id="target-maintainers-58"><a class="header" href="#target-maintainers-58">Target maintainers</a></h2>
+<h2 id="target-maintainers-59"><a class="header" href="#target-maintainers-59">Target maintainers</a></h2>
 <p><a href="https://github.com/heiher">@heiher</a>
 <a href="https://github.com/xen0n">@xen0n</a></p>
-<h2 id="requirements-50"><a class="header" href="#requirements-50">Requirements</a></h2>
+<h2 id="requirements-51"><a class="header" href="#requirements-51">Requirements</a></h2>
 <h3 id="os-version-6"><a class="header" href="#os-version-6">OS Version</a></h3>
 <p>The minimum supported Linux version is 5.19.</p>
 <p>Some Linux distributions, mostly commercial ones, may provide forked Linux
@@ -11372,7 +11445,7 @@ export QEMU_LD_PREFIX="$TOOLCHAIN_PATH"/sysroot
 
 cargo run --target loongarch64-unknown-linux-gnu --release
 </code></pre>
-<h2 id="testing-38"><a class="header" href="#testing-38">Testing</a></h2>
+<h2 id="testing-39"><a class="header" href="#testing-39">Testing</a></h2>
 <p>There are no special requirements for testing and running the targets.
 For testing cross builds on the host, please refer to the “Cross-compilation”
 section above.</p>
@@ -11405,10 +11478,10 @@ cargo build --target loongarch64-unknown-linux-gnu
 </tbody>
 </table>
 </div>
-<h2 id="target-maintainers-59"><a class="header" href="#target-maintainers-59">Target maintainers</a></h2>
+<h2 id="target-maintainers-60"><a class="header" href="#target-maintainers-60">Target maintainers</a></h2>
 <p><a href="https://github.com/heiher">@heiher</a>
 <a href="https://github.com/xen0n">@xen0n</a></p>
-<h2 id="requirements-51"><a class="header" href="#requirements-51">Requirements</a></h2>
+<h2 id="requirements-52"><a class="header" href="#requirements-52">Requirements</a></h2>
 <p>This target is cross-compiled. There is no support for <code>std</code>. There is no
 default allocator, but it’s possible to use <code>alloc</code> by supplying an allocator.</p>
 <p>The <code>*-softfloat</code> target does not assume existence of FPU or any other LoongArch
@@ -11428,7 +11501,7 @@ You can change this using the <code>-C code-model=</code> option to rustc.</p>
 <p>The targets generate binaries in the ELF format. Any alternate formats or
 special considerations for binary layout will require linker options or linker
 scripts.</p>
-<h2 id="building-the-target-37"><a class="header" href="#building-the-target-37">Building the target</a></h2>
+<h2 id="building-the-target-38"><a class="header" href="#building-the-target-38">Building the target</a></h2>
 <p>You can build Rust with support for the targets by adding them to the <code>target</code>
 list in <code>bootstrap.toml</code>:</p>
 <pre><code class="language-toml">[build]
@@ -11440,7 +11513,7 @@ target = [
   "loongarch64-unknown-none-softfloat",
 ]
 </code></pre>
-<h2 id="testing-39"><a class="header" href="#testing-39">Testing</a></h2>
+<h2 id="testing-40"><a class="header" href="#testing-40">Testing</a></h2>
 <p>As the targets support a variety of different environments and do not support
 <code>std</code>, they do not support running the Rust test suite.</p>
 <h2 id="building-rust-programs-38"><a class="header" href="#building-rust-programs-38">Building Rust programs</a></h2>
@@ -11486,16 +11559,16 @@ product suite.</p>
 <ul>
 <li><code>x86_64-lynx-lynxos178</code></li>
 </ul>
-<h2 id="target-maintainers-60"><a class="header" href="#target-maintainers-60">Target maintainers</a></h2>
+<h2 id="target-maintainers-61"><a class="header" href="#target-maintainers-61">Target maintainers</a></h2>
 <p><a href="https://github.com/rfatykhov-lynx">@rfatykhov-lynx</a></p>
-<h2 id="requirements-52"><a class="header" href="#requirements-52">Requirements</a></h2>
+<h2 id="requirements-53"><a class="header" href="#requirements-53">Requirements</a></h2>
 <p>To build Rust programs for LynxOS-178, you must first have LYNX MOSA.ic
 installed on the build machine.</p>
 <p>This target supports only cross-compilation, from the same hosts supported by
 the Lynx CDK.</p>
 <p>Currently only <code>no_std</code> programs are supported. Work to support <code>std</code> is in
 progress.</p>
-<h2 id="building-the-target-38"><a class="header" href="#building-the-target-38">Building the target</a></h2>
+<h2 id="building-the-target-39"><a class="header" href="#building-the-target-39">Building the target</a></h2>
 <p>You can build Rust with support for x86_64-lynx-lynxos178 by adding that
 to the <code>target</code> list in <code>config.toml</code>, and then running <code>./x build --target x86_64-lynx-lynxos178 compiler</code>.</p>
 <h2 id="building-rust-programs-39"><a class="header" href="#building-rust-programs-39">Building Rust programs</a></h2>
@@ -11517,7 +11590,7 @@ variable.</p>
 project:</p>
 <pre><code class="language-bash">cargo +nightly build -Z build-std=core --target x86_64-lynx-lynxos178
 </code></pre>
-<h2 id="testing-40"><a class="header" href="#testing-40">Testing</a></h2>
+<h2 id="testing-41"><a class="header" href="#testing-41">Testing</a></h2>
 <p>Binaries built with rust can be provided to a LynxOS-178 instance on its file
 system, where they can be executed. Rust binaries tend to be large, so it may
 be necessary to strip them first.</p>
@@ -11531,10 +11604,10 @@ LynxOS-178.</p>
 <h1 id="m68k-unknown-linux-gnu"><a class="header" href="#m68k-unknown-linux-gnu">m68k-unknown-linux-gnu</a></h1>
 <p><strong>Tier: 3</strong></p>
 <p>Motorola 680x0 Linux</p>
-<h2 id="target-maintainers-61"><a class="header" href="#target-maintainers-61">Target Maintainers</a></h2>
+<h2 id="target-maintainers-62"><a class="header" href="#target-maintainers-62">Target Maintainers</a></h2>
 <p><a href="https://github.com/glaubitz">@glaubitz</a>
 <a href="https://github.com/ricky26">@ricky26</a></p>
-<h2 id="requirements-53"><a class="header" href="#requirements-53">Requirements</a></h2>
+<h2 id="requirements-54"><a class="header" href="#requirements-54">Requirements</a></h2>
 <p>This target requires a Linux/m68k build environment for cross-compilation which
 is available on Debian and Debian-based systems, openSUSE and other distributions.</p>
 <p>On Debian, it should be sufficient to install a g++ cross-compiler for the m68k
@@ -11574,7 +11647,7 @@ the near future.</p>
 <h2 id="cross-compilation-10"><a class="header" href="#cross-compilation-10">Cross-compilation</a></h2>
 <p>This target can be cross-compiled from a standard Debian or Debian-based, openSUSE or any
 other distribution which has a basic m68k cross-toolchain available.</p>
-<h2 id="testing-41"><a class="header" href="#testing-41">Testing</a></h2>
+<h2 id="testing-42"><a class="header" href="#testing-42">Testing</a></h2>
 <p>Currently there is no support to run the rustc test suite for this target.</p>
 <h2 id="building-rust-programs-40"><a class="header" href="#building-rust-programs-40">Building Rust programs</a></h2>
 <p>Rust programs can be built for that target:</p>
@@ -11589,9 +11662,9 @@ for testing.</p>
 <h1 id="m68k-unknown-none-elf"><a class="header" href="#m68k-unknown-none-elf">m68k-unknown-none-elf</a></h1>
 <p><strong>Tier: 3</strong></p>
 <p>Bare metal Motorola 680x0</p>
-<h2 id="target-maintainers-62"><a class="header" href="#target-maintainers-62">Target Maintainers</a></h2>
+<h2 id="target-maintainers-63"><a class="header" href="#target-maintainers-63">Target Maintainers</a></h2>
 <p><a href="https://github.com/knickish">@knickish</a></p>
-<h2 id="requirements-54"><a class="header" href="#requirements-54">Requirements</a></h2>
+<h2 id="requirements-55"><a class="header" href="#requirements-55">Requirements</a></h2>
 <p>This target requires an m68k build environment for cross-compilation which
 is available on Debian, Debian-based systems, openSUSE, and other distributions.
 The gnu linker is currently required, as <code>lld</code> has no support for the <code>m68k</code> architecture</p>
@@ -11610,7 +11683,7 @@ binaries:</p>
 <h2 id="cross-compilation-11"><a class="header" href="#cross-compilation-11">Cross-compilation</a></h2>
 <p>This target can be cross-compiled from a standard Debian or Debian-based, openSUSE or any
 other distribution which has a basic m68k cross-toolchain available.</p>
-<h2 id="testing-42"><a class="header" href="#testing-42">Testing</a></h2>
+<h2 id="testing-43"><a class="header" href="#testing-43">Testing</a></h2>
 <p>Currently there is no support to run the rustc test suite for this target.</p>
 <h2 id="building-rust-programs-41"><a class="header" href="#building-rust-programs-41">Building Rust programs</a></h2>
 <p>Recommended <code>.cargo/config.toml</code>:</p>
@@ -11636,22 +11709,22 @@ linker = "m68k-linux-gnu-ld"
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="mips64-openwrt-linux-musl"><a class="header" href="#mips64-openwrt-linux-musl"><code>mips64-openwrt-linux-musl</code></a></h1>
 <p><strong>Tier: 3</strong></p>
-<h2 id="target-maintainers-63"><a class="header" href="#target-maintainers-63">Target maintainers</a></h2>
+<h2 id="target-maintainers-64"><a class="header" href="#target-maintainers-64">Target maintainers</a></h2>
 <p><a href="https://github.com/Itus-Shield">@Itus-Shield</a></p>
-<h2 id="requirements-55"><a class="header" href="#requirements-55">Requirements</a></h2>
+<h2 id="requirements-56"><a class="header" href="#requirements-56">Requirements</a></h2>
 <p>This target is cross-compiled. There is no support for <code>std</code>. There is no
 default allocator, but it’s possible to use <code>alloc</code> by supplying an allocator.</p>
 <p>By default, Rust code generated for this target uses <code>-msoft-float</code> and is
 dynamically linked.</p>
 <p>This target generated binaries in the ELF format.</p>
-<h2 id="building-the-target-39"><a class="header" href="#building-the-target-39">Building the target</a></h2>
+<h2 id="building-the-target-40"><a class="header" href="#building-the-target-40">Building the target</a></h2>
 <p>This target is built exclusively within the <code>OpenWrt</code> build system via
 the <code>rust-lang</code> HOST package</p>
 <h2 id="building-rust-programs-42"><a class="header" href="#building-rust-programs-42">Building Rust programs</a></h2>
 <p>Rust does not yet ship pre-compiled artifacts for this target. To compile for
 this target, you will either need to build Rust with the target enabled (see
 “Building the target” above).</p>
-<h2 id="testing-43"><a class="header" href="#testing-43">Testing</a></h2>
+<h2 id="testing-44"><a class="header" href="#testing-44">Testing</a></h2>
 <p>As <code>mips64-openwrt-linux-musl</code> supports a variety of different environments and does
 not support <code>std</code>, this target does not support running the Rust testsuite at this
 time.</p>
@@ -11659,12 +11732,12 @@ time.</p>
 <h1 id="mips64-unknown-linux-muslabi64"><a class="header" href="#mips64-unknown-linux-muslabi64">mips64-unknown-linux-muslabi64</a></h1>
 <p><strong>Tier: 3</strong></p>
 <p>Target for 64-bit big endian MIPS Linux programs using musl libc and the N64 ABI.</p>
-<h2 id="target-maintainers-64"><a class="header" href="#target-maintainers-64">Target maintainers</a></h2>
+<h2 id="target-maintainers-65"><a class="header" href="#target-maintainers-65">Target maintainers</a></h2>
 <p><a href="https://github.com/Gelbpunkt">@Gelbpunkt</a></p>
-<h2 id="requirements-56"><a class="header" href="#requirements-56">Requirements</a></h2>
+<h2 id="requirements-57"><a class="header" href="#requirements-57">Requirements</a></h2>
 <p>Building the target itself requires a 64-bit big endian MIPS compiler that is
 supported by <code>cc-rs</code>.</p>
-<h2 id="building-the-target-40"><a class="header" href="#building-the-target-40">Building the target</a></h2>
+<h2 id="building-the-target-41"><a class="header" href="#building-the-target-41">Building the target</a></h2>
 <p>The target can be built by enabling it for a <code>rustc</code> build.</p>
 <pre><code class="language-toml">[build]
 target = ["mips64-unknown-linux-muslabi64"]
@@ -11683,7 +11756,7 @@ this target, you will first need to build Rust with the target enabled (see
 “Building the target” above).</p>
 <h2 id="cross-compilation-12"><a class="header" href="#cross-compilation-12">Cross-compilation</a></h2>
 <p>This target can be cross-compiled from any host.</p>
-<h2 id="testing-44"><a class="header" href="#testing-44">Testing</a></h2>
+<h2 id="testing-45"><a class="header" href="#testing-45">Testing</a></h2>
 <p>This target can be tested as normal with <code>x.py</code> on a 64-bit big endian MIPS
 host or via QEMU emulation.</p>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -11692,7 +11765,7 @@ host or via QEMU emulation.</p>
 <p>Sony PlayStation 1 (psx)</p>
 <h2 id="designated-developer"><a class="header" href="#designated-developer">Designated Developer</a></h2>
 <p><a href="https://github.com/ayrtonm">@ayrtonm</a></p>
-<h2 id="requirements-57"><a class="header" href="#requirements-57">Requirements</a></h2>
+<h2 id="requirements-58"><a class="header" href="#requirements-58">Requirements</a></h2>
 <p>This target is cross-compiled.
 It has no special requirements for the host.</p>
 <h2 id="building-7"><a class="header" href="#building-7">Building</a></h2>
@@ -11703,7 +11776,7 @@ target = ["mipsel-sony-psx"]
 </code></pre>
 <h2 id="cross-compilation-13"><a class="header" href="#cross-compilation-13">Cross-compilation</a></h2>
 <p>This target can be cross-compiled from any host.</p>
-<h2 id="testing-45"><a class="header" href="#testing-45">Testing</a></h2>
+<h2 id="testing-46"><a class="header" href="#testing-46">Testing</a></h2>
 <p>Currently there is no support to run the rustc test suite for this target.</p>
 <h2 id="building-rust-programs-44"><a class="header" href="#building-rust-programs-44">Building Rust programs</a></h2>
 <p>Since it is Tier 3, rust doesn’t ship pre-compiled artifacts for this target.</p>
@@ -11718,11 +11791,11 @@ target = ["mipsel-sony-psx"]
 <h1 id="mipsel-unknown-linux-gnu"><a class="header" href="#mipsel-unknown-linux-gnu"><code>mipsel-unknown-linux-gnu</code></a></h1>
 <p><strong>Tier: 3</strong></p>
 <p>Little-endian 32 bit MIPS for Linux with `glibc.</p>
-<h2 id="target-maintainers-65"><a class="header" href="#target-maintainers-65">Target maintainers</a></h2>
+<h2 id="target-maintainers-66"><a class="header" href="#target-maintainers-66">Target maintainers</a></h2>
 <p><a href="https://github.com/LukasWoodtli">@LukasWoodtli</a></p>
-<h2 id="requirements-58"><a class="header" href="#requirements-58">Requirements</a></h2>
+<h2 id="requirements-59"><a class="header" href="#requirements-59">Requirements</a></h2>
 <p>The target supports std on Linux. Host tools are supported but not tested.</p>
-<h2 id="building-the-target-41"><a class="header" href="#building-the-target-41">Building the target</a></h2>
+<h2 id="building-the-target-42"><a class="header" href="#building-the-target-42">Building the target</a></h2>
 <p>For cross compilation the GNU C compiler for the mipsel architecture needs to
 be installed. On Ubuntu install the packets: <code>gcc-mipsel-linux-gnu</code> and
 <code>g++-mipsel-linux-gnu</code>.</p>
@@ -11739,12 +11812,12 @@ this target, you will need to build Rust with the target enabled (see
 <li>mips-mti-none-elf</li>
 <li>mipsel-mti-none-elf</li>
 </ul>
-<h2 id="target-maintainers-66"><a class="header" href="#target-maintainers-66">Target maintainers</a></h2>
+<h2 id="target-maintainers-67"><a class="header" href="#target-maintainers-67">Target maintainers</a></h2>
 <p><a href="https://github.com/wzssyqa">@wzssyqa</a></p>
 <h2 id="background"><a class="header" href="#background">Background</a></h2>
 <p>These 2 targets, aka mips-mti-none-elf and mipsel-mti-none-elf, are for
 baremetal development of MIPS32r2. The lld is used instead of Gnu-ld.</p>
-<h2 id="requirements-59"><a class="header" href="#requirements-59">Requirements</a></h2>
+<h2 id="requirements-60"><a class="header" href="#requirements-60">Requirements</a></h2>
 <p>The target only supports cross compilation and no host tools. The target
 supports <code>alloc</code> with a default allocator while only support <code>no-std</code> development.</p>
 <p>The vendor name <code>mti</code> follows the naming of gcc to indicate MIPS32r2.</p>
@@ -11771,12 +11844,12 @@ target.  On clang and ld.lld linker, it can be generated using the
 </tbody>
 </table>
 </div>
-<h2 id="target-maintainers-67"><a class="header" href="#target-maintainers-67">Target Maintainers</a></h2>
+<h2 id="target-maintainers-68"><a class="header" href="#target-maintainers-68">Target Maintainers</a></h2>
 <p><a href="https://github.com/chenx97">@chenx97</a>
 <a href="https://github.com/709924470">@709924470</a>
 <a href="https://github.com/Cyanoxygen">@Cyanoxygen</a>
 <a href="https://github.com/Fearyncess">@Fearyncess</a></p>
-<h2 id="requirements-60"><a class="header" href="#requirements-60">Requirements</a></h2>
+<h2 id="requirements-61"><a class="header" href="#requirements-61">Requirements</a></h2>
 <h3 id="cc-toolchain"><a class="header" href="#cc-toolchain">C/C++ Toolchain</a></h3>
 <p>A GNU toolchain for one of the MIPS R6 target is required. <a href="https://aosc.io/">AOSC OS</a> provides working native and cross-compiling build environments. You may also supply your own a toolchain consisting of recent versions of GCC and Binutils.</p>
 <h3 id="target-libraries"><a class="header" href="#target-libraries">Target libraries</a></h3>
@@ -11873,7 +11946,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 <p>To build Rust programs for MIPS R6 targets, for instance, the <code>mipsisa64r6el-unknown-linux-gnuabi64</code> target:</p>
 <pre><code class="language-bash">cargo build --target mipsisa64r6el-unknown-linux-gnuabi64
 </code></pre>
-<h2 id="testing-46"><a class="header" href="#testing-46">Testing</a></h2>
+<h2 id="testing-47"><a class="header" href="#testing-47">Testing</a></h2>
 <p>To test a cross-compiled binary on your build system, install the Qemu user emulator that support the MIPS R6 architecture (<code>qemu-user-mipsel</code> or <code>qemu-user-mips64el</code>). GCC runtime libraries (<code>libgcc_s</code>) for the target architecture should be present in target sysroot to run the program.</p>
 <pre><code class="language-sh">env \
     CARGO_TARGET_MIPSISA64R6EL_UNKNOWN_LINUX_GNUABI64_LINKER="/opt/abcross/mips64r6el/bin/mipsisa64r6el-aosc-linux-gnuabi64-gcc" \
@@ -11890,10 +11963,10 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 <p><strong>Tier: 2</strong></p>
 <p>This is the target meant for deploying code for Nvidia® accelerators based on their CUDA
 platform.</p>
-<h2 id="target-maintainers-68"><a class="header" href="#target-maintainers-68">Target maintainers</a></h2>
+<h2 id="target-maintainers-69"><a class="header" href="#target-maintainers-69">Target maintainers</a></h2>
 <p><a href="https://github.com/kjetilkjeka">@kjetilkjeka</a>
 <a href="https://github.com/kulst">@kulst</a></p>
-<h2 id="requirements-61"><a class="header" href="#requirements-61">Requirements</a></h2>
+<h2 id="requirements-62"><a class="header" href="#requirements-62">Requirements</a></h2>
 <p>This target is <code>no_std</code>, and uses the <code>llvm-bitcode-linker</code> by default. For PTX output, build with crate-type <code>cdylib</code>.
 The necessary components for this workflow are:</p>
 <ul>
@@ -12019,9 +12092,9 @@ caveats.)
 <li><code>armv7-oe-linux-gnueabihf</code></li>
 <li><code>riscv64-oe-linux-gnu</code></li>
 </ul>
-<h2 id="target-maintainers-69"><a class="header" href="#target-maintainers-69">Target maintainers</a></h2>
+<h2 id="target-maintainers-70"><a class="header" href="#target-maintainers-70">Target maintainers</a></h2>
 <p><a href="https://github.com/DeepeshWR">@DeepeshWR</a></p>
-<h2 id="requirements-62"><a class="header" href="#requirements-62">Requirements</a></h2>
+<h2 id="requirements-63"><a class="header" href="#requirements-63">Requirements</a></h2>
 <h3 id="operating-system"><a class="header" href="#operating-system">Operating System</a></h3>
 <p>These targets are intended for Linux systems built using the OpenEmbedded and Yocto Project build systems.</p>
 <h3 id="c-toolchain"><a class="header" href="#c-toolchain">C Toolchain</a></h3>
@@ -12050,7 +12123,7 @@ this platform, and <a href="https://web.archive.org/web/20120608163804/https://w
 for details on SPE ABI.</p>
 <p>Note that support for PowerPC SPE by GCC was <a href="https://gcc.gnu.org/gcc-8/changes.html">removed in GCC 9</a>,
 so recent GCC cannot be used as linker/compiler for this target.</p>
-<h2 id="target-maintainers-70"><a class="header" href="#target-maintainers-70">Target maintainers</a></h2>
+<h2 id="target-maintainers-71"><a class="header" href="#target-maintainers-71">Target maintainers</a></h2>
 <p>There are currently no formally documented target maintainers.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="powerpc-unknown-linux-muslspe"><a class="header" href="#powerpc-unknown-linux-muslspe">powerpc-unknown-linux-muslspe</a></h1>
@@ -12058,34 +12131,34 @@ so recent GCC cannot be used as linker/compiler for this target.</p>
 <p>This target is very similar to already existing ones like <code>powerpc-unknown-linux-musl</code> and <code>powerpc-unknown-linux-gnuspe</code>.
 This one has PowerPC SPE support for musl. Unfortunately, the last supported gcc version with PowerPC SPE is 8.4.0.</p>
 <p>See also <a href="#powerpc-unknown-linux-gnuspe">platform support documentation of <code>powerpc-unknown-linux-gnuspe</code></a> for information about PowerPC SPE.</p>
-<h2 id="target-maintainers-71"><a class="header" href="#target-maintainers-71">Target maintainers</a></h2>
+<h2 id="target-maintainers-72"><a class="header" href="#target-maintainers-72">Target maintainers</a></h2>
 <p><a href="https://github.com/BKPepe">@BKPepe</a></p>
-<h2 id="requirements-63"><a class="header" href="#requirements-63">Requirements</a></h2>
+<h2 id="requirements-64"><a class="header" href="#requirements-64">Requirements</a></h2>
 <p>This target is cross-compiled. There is no support for <code>std</code>. There is no
 default allocator, but it’s possible to use <code>alloc</code> by supplying an allocator.</p>
 <p>This target generated binaries in the ELF format.</p>
-<h2 id="building-the-target-42"><a class="header" href="#building-the-target-42">Building the target</a></h2>
+<h2 id="building-the-target-43"><a class="header" href="#building-the-target-43">Building the target</a></h2>
 <p>This target was tested and used within the <code>OpenWrt</code> build system for CZ.NIC Turris 1.x routers using Freescale P2020.</p>
 <h2 id="building-rust-programs-48"><a class="header" href="#building-rust-programs-48">Building Rust programs</a></h2>
 <p>Rust does not yet ship pre-compiled artifacts for this target. To compile for
 this target, you will either need to build Rust with the target enabled (see
 “Building the target” above), or build your own copy of <code>core</code> by using
 <code>build-std</code> or similar.</p>
-<h2 id="testing-47"><a class="header" href="#testing-47">Testing</a></h2>
+<h2 id="testing-48"><a class="header" href="#testing-48">Testing</a></h2>
 <p>This is a cross-compiled target and there is no support to run rustc test suite.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="powerpc64-ibm-aix"><a class="header" href="#powerpc64-ibm-aix"><code>powerpc64-ibm-aix</code></a></h1>
 <p><strong>Tier: 3</strong></p>
 <p>Rust for AIX operating system, currently only 64-bit PowerPC is supported.</p>
-<h2 id="target-maintainers-72"><a class="header" href="#target-maintainers-72">Target maintainers</a></h2>
+<h2 id="target-maintainers-73"><a class="header" href="#target-maintainers-73">Target maintainers</a></h2>
 <p><a href="https://github.com/daltenty">@daltenty</a>
 <a href="https://github.com/gilamn5tr">@gilamn5tr</a>
 <a href="https://github.com/amy-kwan">@amy-kwan</a></p>
-<h2 id="requirements-64"><a class="header" href="#requirements-64">Requirements</a></h2>
+<h2 id="requirements-65"><a class="header" href="#requirements-65">Requirements</a></h2>
 <p>This target supports host tools, std and alloc. This target cannot be cross-compiled as for now, mainly because of the unavailability of system linker on other platforms.</p>
 <p>Binary built for this target is expected to run on Power7 or newer CPU, and AIX 7.2 or newer version.</p>
 <p>Binary format of this platform is <a href="https://www.ibm.com/docs/en/aix/7.2?topic=formats-xcoff-object-file-format">XCOFF</a>. Archive file format is <a href="https://www.ibm.com/docs/en/aix/7.2?topic=formats-ar-file-format-big">‘AIX big format’</a>.</p>
-<h2 id="testing-48"><a class="header" href="#testing-48">Testing</a></h2>
+<h2 id="testing-49"><a class="header" href="#testing-49">Testing</a></h2>
 <p>This target supports running test suites natively, but it’s not available to cross-compile and execute in emulator.</p>
 <h2 id="interoperability-with-c-code"><a class="header" href="#interoperability-with-c-code">Interoperability with C code</a></h2>
 <p>This target supports C code. C code compiled by XL, Open XL and Clang are compatible with Rust. Typical triple of AIX on 64-bit PowerPC of these compilers are also <code>powerpc64-ibm-aix</code>.</p>
@@ -12093,12 +12166,12 @@ this target, you will either need to build Rust with the target enabled (see
 <h1 id="powerpc64-sony-ps3"><a class="header" href="#powerpc64-sony-ps3"><code>powerpc64-sony-ps3</code></a></h1>
 <p><strong>Tier: 3</strong></p>
 <p>Target for the Sony PlayStation 3 (shortened to “PS3”), for the PowerPC Processor Element (PPU) of the <a href="https://ieeexplore.ieee.org/document/5388675">Cell Broadband Engine Architecture (CBEA)</a>.</p>
-<h2 id="target-maintainers-73"><a class="header" href="#target-maintainers-73">Target maintainers</a></h2>
+<h2 id="target-maintainers-74"><a class="header" href="#target-maintainers-74">Target maintainers</a></h2>
 <ul>
 <li><a href="https://github.com/ZephyrCodesStuff">@ZephyrCodesStuff</a> (Primary developer and maintainer)</li>
 <li><a href="https://github.com/RipleyTom">@RipleyTom</a> (Fallback maintainer)</li>
 </ul>
-<h2 id="requirements-65"><a class="header" href="#requirements-65">Requirements</a></h2>
+<h2 id="requirements-66"><a class="header" href="#requirements-66">Requirements</a></h2>
 <p>The target is a <strong>big-endian PowerPC64 ELFv1</strong> platform (the Cell Broadband Engine’s PPE), and intended only for use on Sony PlayStation 3 systems, under the official operating system, “CellOS”.</p>
 <p>The linker must support <strong>Big-Endian PowerPC64 ELFv1</strong>: the recommended and tested linker is <a href="https://github.com/rui314/mold">mold</a>. LLVM’s <code>lld</code> does not correctly handle ELFv1 call relocations in freestanding <code>no_std</code> environments, making it incompatible. (See: <a href="https://github.com/rust-lang/rust/issues/85589">rust-lang/rust#85589</a>, <a href="https://github.com/llvm/llvm-project/issues/27630">llvm/llvm-project#27630</a>)</p>
 <p>Resulting binaries require additional patching after linking to adhere to the PlayStation 3 operating system, in order to be bootable. An open-source patcher is available <a href="https://github.com/ZephyrCodesStuff/rust-ps3/tree/main/moldier">here</a>. Generally, a patcher must perform the following:</p>
@@ -12116,7 +12189,7 @@ this target, you will either need to build Rust with the target enabled (see
 <li>The Rust <code>alloc</code> feature, as the CellOS Lv2 kernel provides virtual memory allocation (<code>sys_memory_allocate</code>) on top of which a heap allocator (such as <a href="https://github.com/SFBdragon/talc">talc</a>) can be implemented.</li>
 <li>AltiVec / VMX SIMD vector extensions (natively supported by LLVM via <code>+altivec</code>)</li>
 </ul>
-<h2 id="building-the-target-43"><a class="header" href="#building-the-target-43">Building the target</a></h2>
+<h2 id="building-the-target-44"><a class="header" href="#building-the-target-44">Building the target</a></h2>
 <p>If <code>rustc</code> is built with this target enabled, no external C cross-compilation toolchain is strictly required to build the compiler host artifacts, but <code>mold</code> must be installed on the host system to perform linking.</p>
 <p>Support for using <code>lld</code> as a linker is unlikely, until support for ELFv1 is implemented on <code>lld</code>.</p>
 <h2 id="building-rust-programs-49"><a class="header" href="#building-rust-programs-49">Building Rust programs</a></h2>
@@ -12151,7 +12224,7 @@ moldier patch target/powerpc64-sony-ps3/release/my_program.ELF
 # (Optional) Sign the binary for official hardware
 make_fself "target/powerpc64-sony-ps3/release/my_program.ELF" "target/powerpc64-sony-ps3/release/my_program.BIN"
 </code></pre>
-<h2 id="testing-49"><a class="header" href="#testing-49">Testing</a></h2>
+<h2 id="testing-50"><a class="header" href="#testing-50">Testing</a></h2>
 <p>The target fully supports running binaries (once they’re patched), both on official hardware and on <a href="https://github.com/rpcs3/rpcs3">open-source emulators</a>.</p>
 <p>As official firmware for the system forbids running unsigned code, the system must first be jailbroken in order to run binaries. This is not optional.</p>
 <p>Emulators do not impose any requirement regarding codesigning, thus testing on emulators is straightforward.</p>
@@ -12163,12 +12236,12 @@ make_fself "target/powerpc64-sony-ps3/release/my_program.ELF" "target/powerpc64-
 <p><strong>Tier: 3</strong></p>
 <p>Target for 64-bit big endian PowerPC Linux programs using the ELFv2 ABI and
 the GNU C library.</p>
-<h2 id="target-maintainers-74"><a class="header" href="#target-maintainers-74">Target maintainers</a></h2>
+<h2 id="target-maintainers-75"><a class="header" href="#target-maintainers-75">Target maintainers</a></h2>
 <p><a href="https://github.com/Gelbpunkt">@Gelbpunkt</a></p>
-<h2 id="requirements-66"><a class="header" href="#requirements-66">Requirements</a></h2>
+<h2 id="requirements-67"><a class="header" href="#requirements-67">Requirements</a></h2>
 <p>Building the target itself requires a 64-bit big endian PowerPC compiler that
 uses the ELFv2 ABI and is supported by <code>cc-rs</code>.</p>
-<h2 id="building-the-target-44"><a class="header" href="#building-the-target-44">Building the target</a></h2>
+<h2 id="building-the-target-45"><a class="header" href="#building-the-target-45">Building the target</a></h2>
 <p>The target can be built by enabling it for a <code>rustc</code> build.</p>
 <pre><code class="language-toml">[build]
 target = ["powerpc64-unknown-linux-gnuelfv2"]
@@ -12187,7 +12260,7 @@ this target, you will first need to build Rust with the target enabled (see
 “Building the target” above).</p>
 <h2 id="cross-compilation-14"><a class="header" href="#cross-compilation-14">Cross-compilation</a></h2>
 <p>This target can be cross-compiled from any host.</p>
-<h2 id="testing-50"><a class="header" href="#testing-50">Testing</a></h2>
+<h2 id="testing-51"><a class="header" href="#testing-51">Testing</a></h2>
 <p>This target can be tested as normal with <code>x.py</code> on a 64-bit big endian PowerPC
 host or via QEMU emulation.</p>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -12197,14 +12270,14 @@ host or via QEMU emulation.</p>
 This target uses the ELF v2 ABI.</p>
 <p>The baseline CPU required is a PowerPC 970, which means AltiVec is required and
 the oldest IBM server CPU supported is therefore POWER6.</p>
-<h2 id="target-maintainers-75"><a class="header" href="#target-maintainers-75">Target maintainers</a></h2>
+<h2 id="target-maintainers-76"><a class="header" href="#target-maintainers-76">Target maintainers</a></h2>
 <p><a href="https://github.com/Gelbpunkt">@Gelbpunkt</a>
 <a href="https://github.com/famfo">@famfo</a>
 <a href="https://github.com/neuschaefer">@neuschaefer</a></p>
-<h2 id="requirements-67"><a class="header" href="#requirements-67">Requirements</a></h2>
+<h2 id="requirements-68"><a class="header" href="#requirements-68">Requirements</a></h2>
 <p>Building the target itself requires a 64-bit big endian PowerPC compiler that
 is supported by <code>cc-rs</code>.</p>
-<h2 id="building-the-target-45"><a class="header" href="#building-the-target-45">Building the target</a></h2>
+<h2 id="building-the-target-46"><a class="header" href="#building-the-target-46">Building the target</a></h2>
 <p>The target can be built by enabling it for a <code>rustc</code> build.</p>
 <pre><code class="language-toml">[build]
 target = ["powerpc64-unknown-linux-musl"]
@@ -12222,20 +12295,20 @@ linker = "powerpc64-linux-musl-gcc"
 special configuration.</p>
 <h2 id="cross-compilation-15"><a class="header" href="#cross-compilation-15">Cross-compilation</a></h2>
 <p>This target can be cross-compiled from any host.</p>
-<h2 id="testing-51"><a class="header" href="#testing-51">Testing</a></h2>
+<h2 id="testing-52"><a class="header" href="#testing-52">Testing</a></h2>
 <p>This target can be tested as normal with <code>x.py</code> on a 64-bit big endian PowerPC
 host or via QEMU emulation.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="powerpc64le-unknown-linux-gnu"><a class="header" href="#powerpc64le-unknown-linux-gnu"><code>powerpc64le-unknown-linux-gnu</code></a></h1>
 <p><strong>Tier: 2</strong></p>
 <p>Target for 64-bit little endian PowerPC Linux programs</p>
-<h2 id="target-maintainers-76"><a class="header" href="#target-maintainers-76">Target maintainers</a></h2>
+<h2 id="target-maintainers-77"><a class="header" href="#target-maintainers-77">Target maintainers</a></h2>
 <p><a href="https://github.com/daltenty">@daltenty</a>
 <a href="https://github.com/gilamn5tr">@gilamn5tr</a>
 <a href="https://github.com/amy-kwan">@amy-kwan</a></p>
-<h2 id="requirements-68"><a class="header" href="#requirements-68">Requirements</a></h2>
+<h2 id="requirements-69"><a class="header" href="#requirements-69">Requirements</a></h2>
 <p>Building the target itself requires a 64-bit little endian PowerPC compiler that is supported by <code>cc-rs</code>.</p>
-<h2 id="building-the-target-46"><a class="header" href="#building-the-target-46">Building the target</a></h2>
+<h2 id="building-the-target-47"><a class="header" href="#building-the-target-47">Building the target</a></h2>
 <p>The target can be built by enabling it for a <code>rustc</code> build.</p>
 <pre><code class="language-toml">[build]
 target = ["powerpc64le-unknown-linux-gnu"]
@@ -12252,20 +12325,20 @@ linker = "powerpc64le-linux-gnu-gcc"
 configuration.</p>
 <h2 id="cross-compilation-16"><a class="header" href="#cross-compilation-16">Cross-compilation</a></h2>
 <p>This target can be cross-compiled from any host.</p>
-<h2 id="testing-52"><a class="header" href="#testing-52">Testing</a></h2>
+<h2 id="testing-53"><a class="header" href="#testing-53">Testing</a></h2>
 <p>This target can be tested as normal with <code>x.py</code> on a 64-bit little endian
 PowerPC host or via QEMU emulation.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="powerpc64le-unknown-linux-musl"><a class="header" href="#powerpc64le-unknown-linux-musl">powerpc64le-unknown-linux-musl</a></h1>
 <p><strong>Tier: 2</strong></p>
 <p>Target for 64-bit little endian PowerPC Linux programs using musl libc.</p>
-<h2 id="target-maintainers-77"><a class="header" href="#target-maintainers-77">Target maintainers</a></h2>
+<h2 id="target-maintainers-78"><a class="header" href="#target-maintainers-78">Target maintainers</a></h2>
 <p><a href="https://github.com/Gelbpunkt">@Gelbpunkt</a>
 <a href="https://github.com/famfo">@famfo</a>
 <a href="https://github.com/neuschaefer">@neuschaefer</a></p>
-<h2 id="requirements-69"><a class="header" href="#requirements-69">Requirements</a></h2>
+<h2 id="requirements-70"><a class="header" href="#requirements-70">Requirements</a></h2>
 <p>Building the target itself requires a 64-bit little endian PowerPC compiler that is supported by <code>cc-rs</code>.</p>
-<h2 id="building-the-target-47"><a class="header" href="#building-the-target-47">Building the target</a></h2>
+<h2 id="building-the-target-48"><a class="header" href="#building-the-target-48">Building the target</a></h2>
 <p>The target can be built by enabling it for a <code>rustc</code> build.</p>
 <pre><code class="language-toml">[build]
 target = ["powerpc64le-unknown-linux-musl"]
@@ -12282,22 +12355,22 @@ linker = "powerpc64le-linux-musl-gcc"
 special configuration.</p>
 <h2 id="cross-compilation-17"><a class="header" href="#cross-compilation-17">Cross-compilation</a></h2>
 <p>This target can be cross-compiled from any host.</p>
-<h2 id="testing-53"><a class="header" href="#testing-53">Testing</a></h2>
+<h2 id="testing-54"><a class="header" href="#testing-54">Testing</a></h2>
 <p>This target can be tested as normal with <code>x.py</code> on a 64-bit little endian
 PowerPC host or via QEMU emulation.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="riscv32eememc-unknown-none-elf"><a class="header" href="#riscv32eememc-unknown-none-elf"><code>riscv32{e,em,emc}-unknown-none-elf</code></a></h1>
 <p><strong>Tier: 3</strong></p>
 <p>Bare-metal target for RISC-V CPUs with the RV32E, RV32EM and RV32EMC ISAs.</p>
-<h2 id="target-maintainers-78"><a class="header" href="#target-maintainers-78">Target maintainers</a></h2>
+<h2 id="target-maintainers-79"><a class="header" href="#target-maintainers-79">Target maintainers</a></h2>
 <p><a href="https://github.com/hegza">@hegza</a></p>
-<h2 id="requirements-70"><a class="header" href="#requirements-70">Requirements</a></h2>
+<h2 id="requirements-71"><a class="header" href="#requirements-71">Requirements</a></h2>
 <p>The target is cross-compiled, and uses static linking. No external toolchain is
 required and the default <code>rust-lld</code> linker works, but you must specify a linker
 script.</p>
-<h2 id="building-the-target-48"><a class="header" href="#building-the-target-48">Building the target</a></h2>
+<h2 id="building-the-target-49"><a class="header" href="#building-the-target-49">Building the target</a></h2>
 <p>This target is included in Rust and can be installed via <code>rustup</code>.</p>
-<h2 id="testing-54"><a class="header" href="#testing-54">Testing</a></h2>
+<h2 id="testing-55"><a class="header" href="#testing-55">Testing</a></h2>
 <p>This is a cross-compiled <code>no-std</code> target, which must be run either in a
 simulator or by programming them onto suitable hardware. It is not possible to
 run the Rust test-suite on this target.</p>
@@ -12318,7 +12391,7 @@ built with <code>+forced-atomics</code>: atomic loads/stores lower to plain load
 it does not trap on a core without the <code>A</code> extension. Compare-and-swap and other
 read-modify-write atomics are disabled (<code>atomic_cas = false</code>); downstream crates
 that need them use a critical-section polyfill (e.g. <code>portable-atomic</code>).</p>
-<h2 id="target-maintainers-79"><a class="header" href="#target-maintainers-79">Target maintainers</a></h2>
+<h2 id="target-maintainers-80"><a class="header" href="#target-maintainers-80">Target maintainers</a></h2>
 <ul>
 <li>Rust Embedded Working Group, <a href="https://github.com/rust-embedded/wg#the-risc-v-team">RISC-V team</a></li>
 </ul>
@@ -12326,14 +12399,14 @@ that need them use a critical-section polyfill (e.g. <code>portable-atomic</code
 <ul>
 <li><a href="https://github.com/sanchuanhehe">@sanchuanhehe</a></li>
 </ul>
-<h2 id="requirements-71"><a class="header" href="#requirements-71">Requirements</a></h2>
+<h2 id="requirements-72"><a class="header" href="#requirements-72">Requirements</a></h2>
 <p>The target is cross-compiled, and uses static linking. No external toolchain
 is required and the default <code>rust-lld</code> linker works, but you must specify
 a linker script. The <a href="https://crates.io/crates/riscv-rt"><code>riscv-rt</code></a> crate provides a suitable one. The
 <a href="https://github.com/riscv-rust/riscv-rust-quickstart"><code>riscv-rust-quickstart</code></a> repository gives an example of an RV32 project.</p>
-<h2 id="building-the-target-49"><a class="header" href="#building-the-target-49">Building the target</a></h2>
+<h2 id="building-the-target-50"><a class="header" href="#building-the-target-50">Building the target</a></h2>
 <p>This target is included in Rust and can be installed via <code>rustup</code>.</p>
-<h2 id="testing-55"><a class="header" href="#testing-55">Testing</a></h2>
+<h2 id="testing-56"><a class="header" href="#testing-56">Testing</a></h2>
 <p>This is a cross-compiled <code>no-std</code> target, which must be run either in a simulator
 or by programming them onto suitable hardware. It is not possible to run the
 Rust test-suite on this target.</p>
@@ -12344,7 +12417,7 @@ Rust test-suite on this target.</p>
 <h1 id="riscv32im-risc0-zkvm-elf"><a class="header" href="#riscv32im-risc0-zkvm-elf"><code>riscv32im-risc0-zkvm-elf</code></a></h1>
 <p><strong>Tier: 3</strong></p>
 <p>RISC Zero’s Zero Knowledge Virtual Machine (zkVM) implementing the RV32IM instruction set.</p>
-<h2 id="target-maintainers-80"><a class="header" href="#target-maintainers-80">Target maintainers</a></h2>
+<h2 id="target-maintainers-81"><a class="header" href="#target-maintainers-81">Target maintainers</a></h2>
 <p><a href="https://github.com/flaub">@flaub</a>
 <a href="https://github.com/jbruestle">@jbruestle</a></p>
 <h2 id="background-1"><a class="header" href="#background-1">Background</a></h2>
@@ -12358,7 +12431,7 @@ no hardware implementation.</p>
 <p>We have a cargo extension called <a href="https://docs.rs/cargo-risczero/latest/cargo_risczero/">cargo-risczero</a> that allow users to generate
 project templates, install tools for improved user experience, build the binary
 using a docker environment and test programs.</p>
-<h2 id="requirements-72"><a class="header" href="#requirements-72">Requirements</a></h2>
+<h2 id="requirements-73"><a class="header" href="#requirements-73">Requirements</a></h2>
 <p>The target only supports cross compilation and no host tools. The target
 supports <code>alloc</code> with a default allocator and has experimental support for
 <code>std</code>. The target expects the binaries to be in ELF.</p>
@@ -12385,7 +12458,7 @@ this target, you will either need to build Rust with the target enabled (see
 “Building the target” above). We do not recommend using <code>build-std</code> as we have
 run into issues building core in the past on our starter template. An alternate
 solution is to download the risc0 tool chain by running <code>cargo risczero install</code>.</p>
-<h2 id="testing-56"><a class="header" href="#testing-56">Testing</a></h2>
+<h2 id="testing-57"><a class="header" href="#testing-57">Testing</a></h2>
 <p>Note: the target is implemented as a software emulator called the zkVM and there
 is no hardware implementation of the target.</p>
 <p>The most practical way to test the target program is to use our starter template
@@ -12405,12 +12478,12 @@ target <code>riscv32-unknown-none</code>.</p>
 <h1 id="riscv32imac-unknown-xous-elf"><a class="header" href="#riscv32imac-unknown-xous-elf">riscv32imac-unknown-xous-elf</a></h1>
 <p><strong>Tier: 3</strong></p>
 <p>Xous microkernel, message-based operating system that powers devices such as Precursor and Betrusted. The operating system is written entirely in Rust, so no additional software is required to compile programs for Xous.</p>
-<h2 id="target-maintainers-81"><a class="header" href="#target-maintainers-81">Target maintainers</a></h2>
+<h2 id="target-maintainers-82"><a class="header" href="#target-maintainers-82">Target maintainers</a></h2>
 <p><a href="https://github.com/xobs">@xobs</a></p>
-<h2 id="requirements-73"><a class="header" href="#requirements-73">Requirements</a></h2>
+<h2 id="requirements-74"><a class="header" href="#requirements-74">Requirements</a></h2>
 <p>Building the target itself requires a RISC-V compiler that is supported by <code>cc-rs</code>. For example, you can use the prebuilt <a href="https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack/releases/latest">xPack</a> toolchain.</p>
 <p>Cross-compiling programs does not require any additional software beyond the toolchain. Prebuilt versions of the toolchain are available <a href="https://github.com/betrusted-io/rust/releases">from Betrusted</a>.</p>
-<h2 id="building-the-target-50"><a class="header" href="#building-the-target-50">Building the target</a></h2>
+<h2 id="building-the-target-51"><a class="header" href="#building-the-target-51">Building the target</a></h2>
 <p>The target can be built by enabling it for a <code>rustc</code> build.</p>
 <pre><code class="language-toml">[build]
 target = ["riscv32imac-unknown-xous-elf"]
@@ -12430,21 +12503,21 @@ this target, you will need to do one of the following:</p>
 </ul>
 <h2 id="cross-compilation-18"><a class="header" href="#cross-compilation-18">Cross-compilation</a></h2>
 <p>This target can be cross-compiled from any host.</p>
-<h2 id="testing-57"><a class="header" href="#testing-57">Testing</a></h2>
+<h2 id="testing-58"><a class="header" href="#testing-58">Testing</a></h2>
 <p>Currently there is no support to run the rustc test suite for this target.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="riscv64im-unknown-none-elf"><a class="header" href="#riscv64im-unknown-none-elf"><code>riscv64im-unknown-none-elf</code></a></h1>
 <p><strong>Tier: 3</strong></p>
 <p>Bare-metal target for RISC-V CPUs with the RV64IM ISA.</p>
-<h2 id="target-maintainers-82"><a class="header" href="#target-maintainers-82">Target maintainers</a></h2>
+<h2 id="target-maintainers-83"><a class="header" href="#target-maintainers-83">Target maintainers</a></h2>
 <ul>
 <li>Rust Embedded Working Group, <a href="https://github.com/rust-embedded/wg#the-risc-v-team">RISC-V team</a></li>
 </ul>
-<h2 id="requirements-74"><a class="header" href="#requirements-74">Requirements</a></h2>
+<h2 id="requirements-75"><a class="header" href="#requirements-75">Requirements</a></h2>
 <p>This target is cross-compiled and uses static linking. The target supports <code>core</code> and <code>alloc</code>, but not <code>std</code>.</p>
 <p>As the RV64IM ISA lacks the “A” (Atomics) extension, atomic operations are emulated using the <code>+forced-atomics</code> feature.</p>
 <p>No external toolchain is required and the default <code>rust-lld</code> linker works, but you must specify a linker script. The <a href="https://crates.io/crates/riscv-rt"><code>riscv-rt</code></a> crate provides suitable linker scripts. The <a href="https://github.com/riscv-rust/riscv-rust-quickstart"><code>riscv-rust-quickstart</code></a> repository gives examples of RISC-V bare-metal projects.</p>
-<h2 id="building-the-target-51"><a class="header" href="#building-the-target-51">Building the target</a></h2>
+<h2 id="building-the-target-52"><a class="header" href="#building-the-target-52">Building the target</a></h2>
 <p>You can build Rust with support for the target by adding it to the <code>target</code> list in <code>bootstrap.toml</code>:</p>
 <pre><code class="language-toml">[build]
 target = ["riscv64im-unknown-none-elf"]
@@ -12454,7 +12527,7 @@ target = ["riscv64im-unknown-none-elf"]
 </code></pre>
 <h2 id="building-rust-programs-56"><a class="header" href="#building-rust-programs-56">Building Rust programs</a></h2>
 <p>Rust does not yet ship pre-compiled artifacts for this target. To compile for this target (see “Building the target” above)</p>
-<h2 id="testing-58"><a class="header" href="#testing-58">Testing</a></h2>
+<h2 id="testing-59"><a class="header" href="#testing-59">Testing</a></h2>
 <p>This is a cross-compiled <code>no-std</code> target, which must be run either in a simulator or by programming onto suitable hardware. It is not possible to run the Rust test-suite on this target.</p>
 <h2 id="cross-compilation-toolchains-and-c-code-29"><a class="header" href="#cross-compilation-toolchains-and-c-code-29">Cross-compilation toolchains and C code</a></h2>
 <p>This target supports C code. If interlinking with C or C++, you may need to use <code>riscv64-unknown-elf-gcc</code> with the appropriate <code>-march=rv64im -mabi=lp64</code> flags as a linker instead of <code>rust-lld</code>.</p>
@@ -12463,18 +12536,18 @@ target = ["riscv64im-unknown-none-elf"]
 <p><strong>Tier: 2 (with Host Tools)</strong></p>
 <p>Linux GNU libc RISC-V target using the <em>RV64I</em> base instruction set with the
 <em>G</em> collection of extensions, as well as the <em>C</em> extension.</p>
-<h2 id="target-maintainers-83"><a class="header" href="#target-maintainers-83">Target maintainers</a></h2>
+<h2 id="target-maintainers-84"><a class="header" href="#target-maintainers-84">Target maintainers</a></h2>
 <p><a href="https://github.com/kito-cheng">@kito-cheng</a>
 <a href="https://github.com/michaelmaitland">@michaelmaitland</a>
 <a href="https://github.com/robin-randhawa-sifive">@robin-randhawa-sifive</a>
 <a href="https://github.com/topperc">@topperc</a></p>
-<h2 id="requirements-75"><a class="header" href="#requirements-75">Requirements</a></h2>
+<h2 id="requirements-76"><a class="header" href="#requirements-76">Requirements</a></h2>
 <p>This target requires:</p>
 <ul>
 <li>Linux Kernel version 4.20 or later</li>
 <li>glibc 2.17 or later</li>
 </ul>
-<h2 id="building-the-target-52"><a class="header" href="#building-the-target-52">Building the target</a></h2>
+<h2 id="building-the-target-53"><a class="header" href="#building-the-target-53">Building the target</a></h2>
 <p>This target is distributed through <code>rustup</code>, and otherwise requires no
 special configuration.</p>
 <p>If you need to build your own Rust for some reason though, the target can be
@@ -12491,7 +12564,7 @@ target should be automatically installed and used by default.</p>
 <p>Then cross compile crates with:</p>
 <pre><code class="language-bash">cargo build --target riscv64gc-unknown-linux-gnu
 </code></pre>
-<h2 id="testing-59"><a class="header" href="#testing-59">Testing</a></h2>
+<h2 id="testing-60"><a class="header" href="#testing-60">Testing</a></h2>
 <p>There are no special requirements for testing and running the target.
 For testing cross builds on the host, please refer to the “Cross-compilation
 toolchains and C code”
@@ -12545,16 +12618,16 @@ to build or run <code>riscv64gc-unknown-linux-gnu</code> binaries.</p>
 <p><strong>Tier: 2 (with Host Tools)</strong></p>
 <p>Linux musl libc RISC-V target using the <em>RV64I</em> base instruction set with the
 <em>G</em> collection of extensions, as well as the <em>C</em> extension.</p>
-<h2 id="target-maintainers-84"><a class="header" href="#target-maintainers-84">Target maintainers</a></h2>
+<h2 id="target-maintainers-85"><a class="header" href="#target-maintainers-85">Target maintainers</a></h2>
 <p><a href="https://github.com/Amanieu">@Amanieu</a>
 <a href="https://github.com/kraj">@kraj</a></p>
-<h2 id="requirements-76"><a class="header" href="#requirements-76">Requirements</a></h2>
+<h2 id="requirements-77"><a class="header" href="#requirements-77">Requirements</a></h2>
 <p>This target requires:</p>
 <ul>
 <li>Linux Kernel version 4.20 or later</li>
 <li>musl libc 1.2.5 or later</li>
 </ul>
-<h2 id="building-the-target-53"><a class="header" href="#building-the-target-53">Building the target</a></h2>
+<h2 id="building-the-target-54"><a class="header" href="#building-the-target-54">Building the target</a></h2>
 <p>This target is distributed through <code>rustup</code>, and otherwise requires no
 special configuration.</p>
 <p>If you need to build your own Rust then the targets can be enabled in
@@ -12571,7 +12644,7 @@ target should be automatically installed and used by default.</p>
 <p>Then cross compile crates with:</p>
 <pre><code class="language-bash">cargo build --target riscv64gc-unknown-linux-musl
 </code></pre>
-<h2 id="testing-60"><a class="header" href="#testing-60">Testing</a></h2>
+<h2 id="testing-61"><a class="header" href="#testing-61">Testing</a></h2>
 <p>The target can be tested as normal with <code>x.py</code> on a RISC-V host or via QEMU
 emulation.</p>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -12579,13 +12652,13 @@ emulation.</p>
 <p><strong>Tier: 2 (without Host Tools)</strong></p>
 <p>RISC-V target using the ratified <a href="https://github.com/riscv/riscv-profiles/blob/main/src/rva23-profile.adoc">RVA23 Profile</a>.
 This target will enable all mandatory features of rva23u64 by default.</p>
-<h2 id="target-maintainers-85"><a class="header" href="#target-maintainers-85">Target maintainers</a></h2>
+<h2 id="target-maintainers-86"><a class="header" href="#target-maintainers-86">Target maintainers</a></h2>
 <p><a href="https://github.com/ZhongyaoChen">@ZhongyaoChen</a>
 <a href="https://github.com/CaiWeiran">@CaiWeiran</a></p>
-<h2 id="requirements-77"><a class="header" href="#requirements-77">Requirements</a></h2>
+<h2 id="requirements-78"><a class="header" href="#requirements-78">Requirements</a></h2>
 <p>This target can be successfully built on the following platform: ubuntu 24.04 (Linux Kernel version 6.8.0, glibc 2.39).</p>
 <p>Other platforms may work, but are not tested. Please contact us if you encounter any issues.</p>
-<h2 id="building-the-target-54"><a class="header" href="#building-the-target-54">Building the target</a></h2>
+<h2 id="building-the-target-55"><a class="header" href="#building-the-target-55">Building the target</a></h2>
 <p>Tier-2 targets are distributed through <code>rustup</code>. Install the target with:</p>
 <pre><code class="language-bash">rustup target add riscv64a23-unknown-linux-gnu
 </code></pre>
@@ -12604,10 +12677,10 @@ RUSTFLAGS="-C linker=riscv64-linux-gnu-gcc" cargo build --target=riscv64a23-unkn
 <h1 id="s390x-unknown-linux-gnu"><a class="header" href="#s390x-unknown-linux-gnu"><code>s390x-unknown-linux-gnu</code></a></h1>
 <p><strong>Tier: 2 (with Host Tools)</strong></p>
 <p>IBM z/Architecture (s390x) targets (including IBM Z and LinuxONE) running Linux.</p>
-<h2 id="target-maintainers-86"><a class="header" href="#target-maintainers-86">Target maintainers</a></h2>
+<h2 id="target-maintainers-87"><a class="header" href="#target-maintainers-87">Target maintainers</a></h2>
 <p><a href="https://github.com/uweigand">@uweigand</a>
 <a href="https://github.com/cuviper">@cuviper</a></p>
-<h2 id="requirements-78"><a class="header" href="#requirements-78">Requirements</a></h2>
+<h2 id="requirements-79"><a class="header" href="#requirements-79">Requirements</a></h2>
 <p>This target requires:</p>
 <ul>
 <li>Linux Kernel version 3.2 or later</li>
@@ -12621,7 +12694,7 @@ of Operation), and is compliant with the s390x ELF ABI.</p>
 <li><a href="https://publibfp.dhe.ibm.com/epubs/pdf/a227832d.pdf">z/Architecture Principles of Operation</a></li>
 <li><a href="https://github.com/IBM/s390x-abi">z/Architecture ELF Application Binary Interface</a></li>
 </ul>
-<h2 id="building-the-target-55"><a class="header" href="#building-the-target-55">Building the target</a></h2>
+<h2 id="building-the-target-56"><a class="header" href="#building-the-target-56">Building the target</a></h2>
 <p>This target is distributed through <code>rustup</code>, and otherwise requires no
 special configuration.</p>
 <p>If you need to build your own Rust for some reason though, the target can be
@@ -12638,7 +12711,7 @@ automatically installed and used by default.</p>
 <p>Then cross compile crates with:</p>
 <pre><code class="language-bash">cargo build --target s390x-unknown-linux-gnu
 </code></pre>
-<h2 id="testing-61"><a class="header" href="#testing-61">Testing</a></h2>
+<h2 id="testing-62"><a class="header" href="#testing-62">Testing</a></h2>
 <p>There are no special requirements for testing and running the target.
 For testing cross builds on the host, please refer to the “Cross-compilation
 toolchains and C code” section below.</p>
@@ -12693,10 +12766,10 @@ runner = "qemu-s390x-static -L /usr/s390x-linux-gnu"
 <h1 id="s390x-unknown-linux-musl"><a class="header" href="#s390x-unknown-linux-musl"><code>s390x-unknown-linux-musl</code></a></h1>
 <p><strong>Tier: 3</strong></p>
 <p>IBM z/Architecture (s390x) targets (including IBM Z and LinuxONE) running Linux.</p>
-<h2 id="target-maintainers-87"><a class="header" href="#target-maintainers-87">Target maintainers</a></h2>
+<h2 id="target-maintainers-88"><a class="header" href="#target-maintainers-88">Target maintainers</a></h2>
 <p><a href="https://github.com/uweigand">@uweigand</a>
 <a href="https://github.com/Gelbpunkt">@Gelbpunkt</a></p>
-<h2 id="requirements-79"><a class="header" href="#requirements-79">Requirements</a></h2>
+<h2 id="requirements-80"><a class="header" href="#requirements-80">Requirements</a></h2>
 <p>This target requires:</p>
 <ul>
 <li>Linux Kernel version 3.2 or later</li>
@@ -12710,7 +12783,7 @@ of Operation), and is compliant with the s390x ELF ABI.</p>
 <li><a href="https://publibfp.dhe.ibm.com/epubs/pdf/a227832d.pdf">z/Architecture Principles of Operation</a></li>
 <li><a href="https://github.com/IBM/s390x-abi">z/Architecture ELF Application Binary Interface</a></li>
 </ul>
-<h2 id="building-the-target-56"><a class="header" href="#building-the-target-56">Building the target</a></h2>
+<h2 id="building-the-target-57"><a class="header" href="#building-the-target-57">Building the target</a></h2>
 <p>Because it is Tier 3, Rust does not yet ship pre-compiled artifacts for this
 target.</p>
 <p>Therefore, you can build Rust with support for the target by adding it to the
@@ -12722,7 +12795,7 @@ target = ["s390x-unknown-linux-musl"]
 <p>Rust does not yet ship pre-compiled artifacts for this target. To compile for
 this target, you will first need to build Rust with the target enabled (see
 “Building the target” above).</p>
-<h2 id="testing-62"><a class="header" href="#testing-62">Testing</a></h2>
+<h2 id="testing-63"><a class="header" href="#testing-63">Testing</a></h2>
 <p>There are no special requirements for testing and running the target.
 For testing cross builds on the host, please refer to the “Cross-compilation
 toolchains and C code” section below.</p>
@@ -12751,10 +12824,10 @@ linker = "/TOOLCHAIN_PATH/bin/s390x-linux-musl-gcc"
 <h1 id="s390x-unknown-none-softfloat"><a class="header" href="#s390x-unknown-none-softfloat"><code>s390x-unknown-none-softfloat</code></a></h1>
 <p><strong>Tier: 2</strong></p>
 <p>IBM z/Architecture (s390x) code in ELF format for kernels, etc.</p>
-<h2 id="target-maintainers-88"><a class="header" href="#target-maintainers-88">Target maintainers</a></h2>
+<h2 id="target-maintainers-89"><a class="header" href="#target-maintainers-89">Target maintainers</a></h2>
 <p><a href="https://github.com/uweigand">@uweigand</a>
 <a href="https://github.com/cuviper">@cuviper</a></p>
-<h2 id="requirements-80"><a class="header" href="#requirements-80">Requirements</a></h2>
+<h2 id="requirements-81"><a class="header" href="#requirements-81">Requirements</a></h2>
 <p>This target is intended for kernel development on s390x only. This target is
 cross-compiled. There is no support for <code>std</code>.There is no default allocator,
 but it’s possible to use <code>alloc</code> by supplying an allocator.</p>
@@ -12777,7 +12850,7 @@ scripts.</p>
 <ul>
 <li><a href="https://publibfp.dhe.ibm.com/epubs/pdf/a227832d.pdf">z/Architecture Principles of Operation</a></li>
 </ul>
-<h2 id="building-the-target-57"><a class="header" href="#building-the-target-57">Building the target</a></h2>
+<h2 id="building-the-target-58"><a class="header" href="#building-the-target-58">Building the target</a></h2>
 <p>You can build Rust with support for the target by adding it to the <code>target</code>
 list in <code>bootstrap.toml</code>:</p>
 <pre><code class="language-toml">[build]
@@ -12786,7 +12859,7 @@ target = ["s390x-unknown-none-softfloat"]
 <h2 id="building-rust-programs-62"><a class="header" href="#building-rust-programs-62">Building Rust programs</a></h2>
 <p>This target is not intended to build stand-alone binaries. You should only use
 it in conjunction with the kernel build toolchain.</p>
-<h2 id="testing-63"><a class="header" href="#testing-63">Testing</a></h2>
+<h2 id="testing-64"><a class="header" href="#testing-64">Testing</a></h2>
 <p>As code generated by this target is intended to always be part of the kernel,
 there are no additional requirements for testing.</p>
 <p>If you want to do native testing but do not have your own s390x
@@ -12819,9 +12892,9 @@ ecosystem - the Rust compiler would certainly qualify.</p>
 </tbody>
 </table>
 </div>
-<h2 id="target-maintainers-89"><a class="header" href="#target-maintainers-89">Target maintainers</a></h2>
+<h2 id="target-maintainers-90"><a class="header" href="#target-maintainers-90">Target maintainers</a></h2>
 <p><a href="https://github.com/jonathanpallant">@jonathanpallant</a></p>
-<h2 id="requirements-81"><a class="header" href="#requirements-81">Requirements</a></h2>
+<h2 id="requirements-82"><a class="header" href="#requirements-82">Requirements</a></h2>
 <p>This target is cross-compiled. There is no support for <code>std</code>. There is no
 default allocator, but it’s possible to use <code>alloc</code> by supplying an allocator.</p>
 <p>By default, code generated with this target should run on any <code>SPARC</code> hardware;
@@ -12839,7 +12912,7 @@ suit the Gaisler Leon3.</p>
 convention</a>.</p>
 <p>This target generates ELF binaries. Any alternate formats or special
 considerations for binary layout will require linker options or linker scripts.</p>
-<h2 id="building-the-target-58"><a class="header" href="#building-the-target-58">Building the target</a></h2>
+<h2 id="building-the-target-59"><a class="header" href="#building-the-target-59">Building the target</a></h2>
 <p>You can build Rust with support for the target by adding it to the <code>target</code>
 list in <code>bootstrap.toml</code>:</p>
 <pre><code class="language-toml">[build]
@@ -12861,7 +12934,7 @@ follows:</p>
 <pre><code class="language-toml">[target.sparc-unknown-none-elf]
 linker = "sparc-custom-elf-gcc"
 </code></pre>
-<h2 id="testing-64"><a class="header" href="#testing-64">Testing</a></h2>
+<h2 id="testing-65"><a class="header" href="#testing-65">Testing</a></h2>
 <p>As <code>sparc-unknown-none-elf</code> supports a variety of different environments and does
 not support <code>std</code>, this target does not support running the Rust test suite.</p>
 <h2 id="cross-compilation-toolchains-and-c-code-33"><a class="header" href="#cross-compilation-toolchains-and-c-code-33">Cross-compilation toolchains and C code</a></h2>
@@ -12969,13 +13042,13 @@ tsim&gt;
 <h1 id="x86_64-pc-solaris"><a class="header" href="#x86_64-pc-solaris">x86_64-pc-solaris</a></h1>
 <p><strong>Tier: 2</strong></p>
 <p>Rust for Solaris operating system.</p>
-<h2 id="target-maintainers-90"><a class="header" href="#target-maintainers-90">Target maintainers</a></h2>
+<h2 id="target-maintainers-91"><a class="header" href="#target-maintainers-91">Target maintainers</a></h2>
 <p><a href="https://github.com/psumbera">@psumbera</a>
 <a href="https://github.com/kulikjak">@kulikjak</a></p>
-<h2 id="requirements-82"><a class="header" href="#requirements-82">Requirements</a></h2>
+<h2 id="requirements-83"><a class="header" href="#requirements-83">Requirements</a></h2>
 <p>The <code>sparcv9-sun-solaris</code> and <code>x86_64-pc-solaris</code> targets are Tier 2 with host tools.</p>
 <p>Binary built for these targets are expected to run on sparcv9 or x86_64, and Solaris 11.4.</p>
-<h2 id="testing-65"><a class="header" href="#testing-65">Testing</a></h2>
+<h2 id="testing-66"><a class="header" href="#testing-66">Testing</a></h2>
 <p>For testing you can download Oracle Solaris 11.4 CBE release from:</p>
 <p>https://www.oracle.com/uk/solaris/solaris11/downloads/solaris-downloads.html</p>
 <p>Solaris CBE release is also available for GitHub CI:</p>
@@ -12990,7 +13063,7 @@ tsim&gt;
 <p>Allows compiling user programs for the <a href="https://www.vexrobotics.com/276-4810.html">VEX V5 Brain</a>, a microcontroller for educational and competitive robotics.</p>
 <p>Rust support for this target is not affiliated with VEX Robotics or IFI, and does not link against any official VEX SDK.</p>
 <p>This target was previously named <code>armv7a-vex-v5</code>.</p>
-<h2 id="target-maintainers-91"><a class="header" href="#target-maintainers-91">Target maintainers</a></h2>
+<h2 id="target-maintainers-92"><a class="header" href="#target-maintainers-92">Target maintainers</a></h2>
 <p>This target is maintained by members of the <a href="https://github.com/vexide">vexide</a> organization:</p>
 <ul>
 <li><a href="https://github.com/lewisfm">@lewisfm</a></li>
@@ -12998,33 +13071,10 @@ tsim&gt;
 <li><a href="https://github.com/Gavin-Niederman">@Gavin-Niederman</a></li>
 <li><a href="https://github.com/max-niederman">@max-niederman</a></li>
 </ul>
-<h2 id="requirements-83"><a class="header" href="#requirements-83">Requirements</a></h2>
+<h2 id="requirements-84"><a class="header" href="#requirements-84">Requirements</a></h2>
 <p>This target is cross-compiled. Dynamic linking is unsupported.</p>
 <p><code>#![no_std]</code> crates can be built using <code>build-std</code> to build <code>core</code> and <code>panic_abort</code> and optionally <code>alloc</code>. Unwinding panics are not yet supported on this target.</p>
-<p><code>std</code> has only partial support due to platform limitations. Notably:</p>
-<ul>
-<li><code>std::process</code> and <code>std::net</code> are unimplemented. <code>std::thread</code> only supports sleeping and yielding, as this is a single-threaded environment.</li>
-<li><code>std::time</code> has full support for <code>Instant</code>, but no support for <code>SystemTime</code>.</li>
-<li><code>std::io</code> has full support for <code>stdin</code>/<code>stdout</code>/<code>stderr</code>. <code>stdout</code> and <code>stderr</code> both write to USB channel 1 on this platform and are not differentiated.</li>
-<li><code>std::fs</code> has limited support for reading or writing to files. The following features are unsupported:
-<ul>
-<li>All directory operations (including <code>mkdir</code> and <code>readdir</code>), although reading directories is possible through <a href="https://docs.rs/vex-sdk/latest/vex_sdk/file/fn.vexFileDirectoryGet.html">third-party crates</a></li>
-<li>Deleting files and directories</li>
-<li>File metadata other than file size and type (that is, file vs. directory)</li>
-<li>Opening files with an uncommon combination of open options, such as read + write at the same time.
-The supported modes for opening files are in read-only mode, append mode, or write mode (with or without truncation).</li>
-</ul>
-</li>
-<li>A global allocator implemented on top of <code>dlmalloc</code> is provided.</li>
-<li>Modules that do not need to interact with the OS beyond allocation, such as <code>std::collections</code>, <code>std::hash</code>, <code>std::future</code>, <code>std::sync</code>, etc., are fully supported.</li>
-<li>Random number generation and hashing is insecure, as there is no reliable source of entropy on this platform.</li>
-</ul>
-<p>When compiling for this target, the “C” calling convention maps to AAPCS with VFP registers (hard float ABI) and the “system” calling convention maps to AAPCS without VFP registers (softfp ABI).</p>
-<p>This target generates binaries in the ELF format that may be uploaded to the brain with external tools.</p>
-<h3 id="platform-sdks"><a class="header" href="#platform-sdks">Platform SDKs</a></h3>
-<p>To use most platform-specific APIs, users must configure a supporting runtime SDK for <code>libstd</code> to link against. Official <em>VEXcode</em> SDKs from VEX can be downloaded and linked via the <a href="https://crates.io/crates/vex-sdk-vexcode"><code>vex-sdk-vexcode</code></a> crate, but they have a restrictive redistribution policy that might not be suitable for all projects. The suggested SDK for open-source projects is the community-supported <a href="https://crates.io/crates/vex-sdk-jumptable"><code>vex-sdk-jumptable</code></a> crate. SDK implementations are generally thin wrappers over system calls, so projects should not expect to see significant differences in behavior depending on which SDK they use.</p>
-<p>Libraries may access symbols from the active VEX SDK without depending on a specific implementation by using the <a href="https://crates.io/crates/vex-sdk"><code>vex-sdk</code></a> crate.</p>
-<h2 id="building-the-target-59"><a class="header" href="#building-the-target-59">Building the target</a></h2>
+<h2 id="building-the-target-60"><a class="header" href="#building-the-target-60">Building the target</a></h2>
 <p>You can build Rust with support for this target by adding it to the <code>target</code> list in <code>bootstrap.toml</code>, and then running <code>./x build --target thumbv7a-vex-v5 compiler</code>.</p>
 <h2 id="building-rust-programs-64"><a class="header" href="#building-rust-programs-64">Building Rust programs</a></h2>
 <p>Rust does not yet ship pre-compiled artifacts for this target. To compile for this target, you will either need to build Rust with the target enabled (see “Building the target” above), or build your own copy of <code>std</code> using <code>build-std</code> or similar.</p>
@@ -13055,7 +13105,60 @@ fn main() {
     println!("Hello, world");
 }
 </code></pre>
-<h2 id="testing-66"><a class="header" href="#testing-66">Testing</a></h2>
+<h2 id="environment"><a class="header" href="#environment">Environment</a></h2>
+<p>The <code>main</code> function is entered on a Zynq 7000’s CPU1 in the <em>System</em> processor mode in <em>Secure</em> state. Programs or runtimes should periodically call <code>std::thread::yield_now</code> to flush buffers and fetch the latest peripheral state.</p>
+<p>Developers writing programs for this target should use a high-level runtime such as <a href="https://vexide.dev">vexide</a> or a lower-level system access crate such as <a href="https://crates.io/crates/vex-sdk"><code>vex-sdk</code></a> to access peripherals such as motors and sensors.</p>
+<p>When compiling for this target, the “C” calling convention maps to AAPCS with VFP registers (hard float ABI) and the “system” calling convention maps to AAPCS without VFP registers (softfp ABI).</p>
+<p>This target generates binaries in the ELF format that may be uploaded to the brain with external tools.</p>
+<p>See Also: <a href="https://internals.vexide.dev/technical/environment">VEX V5 Environment</a>.</p>
+<h3 id="platform-sdks"><a class="header" href="#platform-sdks">Platform SDKs</a></h3>
+<p>To use most platform-specific APIs, users must configure a supporting runtime SDK for <code>libstd</code> to link against. Official <em>VEXcode</em> SDKs from VEX can be downloaded and linked via the <a href="https://crates.io/crates/vex-sdk-vexcode"><code>vex-sdk-vexcode</code></a> crate, but they have a restrictive redistribution policy that might not be suitable for all projects. The suggested SDK for open-source projects is the community-supported <a href="https://crates.io/crates/vex-sdk-jumptable"><code>vex-sdk-jumptable</code></a> crate. SDK implementations are generally thin wrappers over system calls, so projects should not expect to see significant differences in behavior depending on which SDK they use.</p>
+<p>Libraries may access symbols from the active VEX SDK without depending on a specific implementation by using the <a href="https://crates.io/crates/vex-sdk"><code>vex-sdk</code></a> crate.</p>
+<h3 id="standard-library-support-1"><a class="header" href="#standard-library-support-1">Standard Library Support</a></h3>
+<p><code>std</code> has only partial support due to platform limitations. Notably:</p>
+<ul>
+<li><code>std::process</code> and <code>std::net</code> are unimplemented. <code>std::thread</code> only supports sleeping and yielding.</li>
+<li><code>std::time</code> has full support for <code>Instant</code>, but no support for <code>SystemTime</code>.</li>
+<li><code>std::io</code> has full support for <code>stdin</code>/<code>stdout</code>/<code>stderr</code>. <code>stdout</code> and <code>stderr</code> both write to USB channel 1 on this platform and are not differentiated.</li>
+<li><code>std::fs</code> has limited support for reading or writing to files. The following features are unsupported:
+<ul>
+<li>All directory operations (including <code>mkdir</code> and <code>readdir</code>), although reading directories is possible through <a href="https://docs.rs/vex-sdk/latest/vex_sdk/file/fn.vexFileDirectoryGet.html">third-party crates</a></li>
+<li>Deleting files and directories</li>
+<li>File metadata other than file size and type (that is, file vs. directory)</li>
+<li>Opening files with an uncommon combination of open options, such as read + write at the same time.
+The supported modes for opening files are in read-only mode, append mode, or write mode (with or without truncation).</li>
+</ul>
+</li>
+<li>A global allocator implemented on top of <code>dlmalloc</code> is provided.</li>
+<li><code>std::sync</code>’s synchronization primitives assume single-threaded execution.</li>
+<li>Modules that do not need to interact with the OS beyond allocation, such as <code>std::collections</code>, <code>std::hash</code>, <code>std::future</code>, etc., are fully supported.</li>
+<li>Random number generation and hashing is insecure, as there is no reliable source of entropy on this platform.</li>
+</ul>
+<h3 id="thread-safety-and-synchronization"><a class="header" href="#thread-safety-and-synchronization">Thread Safety and Synchronization</a></h3>
+<p><em>This section only applies to programs that use the <code>std</code> crate.</em></p>
+<p>When executing on this target, the <code>std</code> crate only supports one Rust execution context plus any user-installed Armv7-A exception handlers (configured using the <code>VBAR</code> register), provided they properly synchronize access to shared resources. <code>std</code> on this target is not aware of any execution inside a task scheduler, so <code>thread_local</code> globals will always have the same identity.</p>
+<h4 id="vexos-task-scheduler"><a class="header" href="#vexos-task-scheduler">VEXos Task Scheduler</a></h4>
+<p>This target begins execution outside of the context of the builtin <a href="https://internals.vexide.dev/sdk/tasks">VEXos task scheduler</a>. Spawning VEXos Full Tasks through VEX’s undocumented scheduler API (e.g. using the <code>vexTaskAdd</code> function) or using any other stack-switching scheduler (including FreeRTOS) is strictly forbidden on this target and will result in undefined behavior. Rust programs may assume that <code>vexTasksRun</code> and <code>std::thread::yield_now</code> will never switch stacks.</p>
+<p>Code running inside a VEXos Simple Task context (for example, inside a user touchscreen callback) is forbidden from ticking the task scheduler reentrantly. Thus, it is invalid for task code to:</p>
+<ul>
+<li>call <code>vexTasksRun</code>, <code>thread::yield_now</code>, <code>thread::sleep</code>, <code>thread::park</code>, or derivatives,</li>
+<li>or access standard I/O streams via <code>std::io</code>.</li>
+</ul>
+<h4 id="exception-handlers"><a class="header" href="#exception-handlers">Exception Handlers</a></h4>
+<p>Interrupt Service Routines and other ARM exception handlers are the only form of preemptive concurrency allowed on this target. Exception handlers may be installed on this target using unsafe code and are conceptually treated akin to UNIX signal handlers.</p>
+<p>Exception handlers in programs using <code>std</code> <em>must not</em>:</p>
+<ul>
+<li>use the data structures in <code>std::sync</code> to synchronize access to shared state,</li>
+<li>use <code>thread_local!</code> values whatsoever,</li>
+<li>panic, which indirectly accesses thread locals,</li>
+<li>access standard I/O streams via <code>std::io</code>,</li>
+<li>access the filesystem,</li>
+<li>allocate/deallocate using the <code>System</code> allocator,</li>
+<li>or call <code>std::thread::current</code>, which allocates using the <code>System</code> allocator,</li>
+</ul>
+<p>since these features are not synchronized.</p>
+<p>However, exception handlers <em>may</em> use types originating from <code>core::sync</code> and <code>alloc::sync</code>, including atomics, to synchronize state.</p>
+<h2 id="testing-67"><a class="header" href="#testing-67">Testing</a></h2>
 <p>Binaries built for this target can be run in an emulator (such as <a href="https://github.com/vexide/vex-v5-qemu">vex-v5-qemu</a>), or uploaded to a physical device over a USB serial connection.</p>
 <p>The default Rust test runner is not supported.</p>
 <p>The Rust test suite for <code>library/std</code> is not yet supported.</p>
@@ -13126,12 +13229,12 @@ written in Rust.</p>
 <p>In QNX SDP 7.x the run-time environment is based on QNX Neutrino RTOS 7.x, while
 in QNX SDP 8.0 the run-time environment is based on QNX OS 8.0. The name change
 reflects architectural changes in the RTOS, but both use a microkernel design.</p>
-<h2 id="target-maintainers-92"><a class="header" href="#target-maintainers-92">Target maintainers</a></h2>
+<h2 id="target-maintainers-93"><a class="header" href="#target-maintainers-93">Target maintainers</a></h2>
 <p><a href="https://github.com/flba-eb">@flba-eb</a>
 <a href="https://github.com/gh-tr">@gh-tr</a>
 <a href="https://github.com/jonathanpallant">@jonathanpallant</a>
 <a href="https://github.com/japaric">@japaric</a></p>
-<h2 id="requirements-84"><a class="header" href="#requirements-84">Requirements</a></h2>
+<h2 id="requirements-85"><a class="header" href="#requirements-85">Requirements</a></h2>
 <p>The following QNX SDP versions and compilation targets are supported:</p>
 <div class="table-wrapper">
 <table>
@@ -13182,7 +13285,7 @@ the standard library.</p>
 </li>
 <li><code>target_os</code> = <code>"qnx"</code> (for QNX SDP 8.0 or higher)</li>
 </ul>
-<h2 id="building-the-target-60"><a class="header" href="#building-the-target-60">Building the target</a></h2>
+<h2 id="building-the-target-61"><a class="header" href="#building-the-target-61">Building the target</a></h2>
 <ol>
 <li>
 <p>Create a <code>bootstrap.toml</code></p>
@@ -13325,9 +13428,9 @@ disable <code>relro</code> as described above.</p>
 <ul>
 <li><code>x86_64-unikraft-linux-musl</code></li>
 </ul>
-<h2 id="target-maintainers-93"><a class="header" href="#target-maintainers-93">Target maintainers</a></h2>
+<h2 id="target-maintainers-94"><a class="header" href="#target-maintainers-94">Target maintainers</a></h2>
 <p><a href="https://github.com/mkroening">@mkroening</a></p>
-<h2 id="requirements-85"><a class="header" href="#requirements-85">Requirements</a></h2>
+<h2 id="requirements-86"><a class="header" href="#requirements-86">Requirements</a></h2>
 <p>These targets only support cross-compilation.
 The targets do support std.</p>
 <p>Unikraft pretends to behave exactly like Linux.
@@ -13349,7 +13452,7 @@ To compile for these targets, you will either need to build Rust with the target
 (see “Building the targets” above), or build your own copy of <code>core</code> by using <code>build-std</code> or similar.</p>
 <p>Linking requires a <a href="https://github.com/unikraft/kraftkit">KraftKit</a> shim.
 See <a href="https://github.com/unikraft/kraftkit/issues/612">unikraft/kraftkit#612</a> for more information.</p>
-<h2 id="testing-67"><a class="header" href="#testing-67">Testing</a></h2>
+<h2 id="testing-68"><a class="header" href="#testing-68">Testing</a></h2>
 <p>The targets do support running binaries in the form of unikernel images.
 How the unikernel image is run depends on the specific platform (e.g., KVM, Linux user space, and Xen).
 The targets do not support running the Rust test suite.</p>
@@ -13373,11 +13476,11 @@ These targets allow compiling user-space applications, that you can then copy in
 <p>On i686, some portions of native HelenOS libraries run into issues due to vector instructions accessing variables from the stack that seems
 to be misaligned. It is not clear if this is fault of HelenOS or Rust. Most programs work, but for example calling <code>ui_window_create</code> from HelenOS
 libui does not work.</p>
-<h2 id="target-maintainers-94"><a class="header" href="#target-maintainers-94">Target maintainers</a></h2>
+<h2 id="target-maintainers-95"><a class="header" href="#target-maintainers-95">Target maintainers</a></h2>
 <ul>
 <li>Matěj Volf (<a href="https://github.com/mvolfik">@mvolfik</a>)</li>
 </ul>
-<h2 id="requirements-86"><a class="header" href="#requirements-86">Requirements</a></h2>
+<h2 id="requirements-87"><a class="header" href="#requirements-87">Requirements</a></h2>
 <p>These targets only support cross-compilation. The targets will<sup class="footnote-reference" id="fr-helenos-libstd-pending-1"><a href="#footnote-helenos-libstd-pending">1</a></sup> support libstd, although support of some platform features (filesystem, networking) may be limited.</p>
 <p>You need to have a local clone of the HelenOS repository and the HelenOS toolchain set up, no HelenOS-Rust development artifacts are available.</p>
 <h2 id="building-10"><a class="header" href="#building-10">Building</a></h2>
@@ -13390,12 +13493,12 @@ HELENOS_LIB_PATH="$(realpath "$(amd64-helenos-gcc -v -c /tmp/test.c 2&gt;&amp;1 
 # use sparc64-helenos-gcc above for the SPARC toolchain, etc
 cp -P export-dev/lib/* "$HELENOS_LIB_PATH"
 </code></pre>
-<h3 id="building-the-target-61"><a class="header" href="#building-the-target-61">Building the target</a></h3>
+<h3 id="building-the-target-62"><a class="header" href="#building-the-target-62">Building the target</a></h3>
 <p>When you have the HelenOS toolchain set up and installed in your path, you can build the Rust toolchain using the standard procedure. See <a href="https://rustc-dev-guide.rust-lang.org/building/how-to-build-and-run.html">rustc dev guide</a>.</p>
 <p>In the most simple case, this means that you can run <code>./x build library --stage 1 --target x86_64-unknown-linux-gnu,&lt;arch&gt;-unknown-helenos</code> (the first target triple should be your host machine, adjust accordingly). Then run <code>rustup toolchain link mytoolchain build/host/stage1</code> to allow using your toolchain for building Rust programs.</p>
 <h3 id="building-rust-programs-67"><a class="header" href="#building-rust-programs-67">Building Rust programs</a></h3>
 <p>If you linked the toolchain above as <code>mytoolchain</code>, run <code>cargo +mytoolchain build --target &lt;arch&gt;-unknown-helenos</code>.</p>
-<h2 id="testing-68"><a class="header" href="#testing-68">Testing</a></h2>
+<h2 id="testing-69"><a class="header" href="#testing-69">Testing</a></h2>
 <p>After you build a Rust program for HelenOS, you can put it into the <code>dist</code> directory of the HelenOS build, build the ISO image, and then run it either in an emulator, or on real hardware. See HelenOS wiki for further instructions on running the OS.</p>
 <p>Running the Rust testsuite has not been attempted yet due to missing host tools (thus the test suite can’t be run natively) and insufficient networking support (thus we can’t use the <code>remote-test-server</code> tool).</p>
 <h2 id="cross-compilation-toolchains-and-c-code-36"><a class="header" href="#cross-compilation-toolchains-and-c-code-36">Cross-compilation toolchains and C code</a></h2>
@@ -13417,17 +13520,17 @@ cp -P export-dev/lib/* "$HELENOS_LIB_PATH"
 <li><code>aarch64_be-unknown-hermit</code></li>
 <li><code>riscv64gc-unknown-hermit</code></li>
 </ul>
-<h2 id="target-maintainers-95"><a class="header" href="#target-maintainers-95">Target maintainers</a></h2>
+<h2 id="target-maintainers-96"><a class="header" href="#target-maintainers-96">Target maintainers</a></h2>
 <p><a href="https://github.com/stlankes">@stlankes</a>
 <a href="https://github.com/mkroening">@mkroening</a></p>
-<h2 id="requirements-87"><a class="header" href="#requirements-87">Requirements</a></h2>
+<h2 id="requirements-88"><a class="header" href="#requirements-88">Requirements</a></h2>
 <p>These targets only support cross-compilation.
 The targets do support std.</p>
 <p>When building binaries for this target, the Hermit unikernel is built from scratch.
 The application developer themselves specializes the target and sets corresponding expectations.</p>
 <p>The Hermit targets follow Linux’s <code>extern "C"</code> calling convention.</p>
 <p>Hermit binaries have the ELF format.</p>
-<h2 id="building-the-target-62"><a class="header" href="#building-the-target-62">Building the target</a></h2>
+<h2 id="building-the-target-63"><a class="header" href="#building-the-target-63">Building the target</a></h2>
 <p>You can build Rust with support for the targets by adding it to the <code>target</code> list in <code>bootstrap.toml</code>.
 To run the Hermit build scripts, you also have to enable your host target.
 The build scripts rely on <code>llvm-tools</code> and binaries are linked using <code>rust-lld</code>, so those have to be enabled as well.</p>
@@ -13450,7 +13553,7 @@ llvm-tools = true
 To compile for these targets, you will either need to build Rust with the targets enabled
 (see “Building the targets” above), or build your own copy of <code>core</code> by using <code>build-std</code> or similar.</p>
 <p>As all Hermit programs are unikernels, building a Rust program also requires including the operating system code. A guide for doing so is provided in our starter <a href="https://github.com/hermit-os/hermit-rs-template">hermit-rs-template</a>.</p>
-<h2 id="testing-69"><a class="header" href="#testing-69">Testing</a></h2>
+<h2 id="testing-70"><a class="header" href="#testing-70">Testing</a></h2>
 <p>The targets support running binaries in the form of self-contained unikernel images.
 These images can be chainloaded by Hermit’s <a href="https://github.com/hermit-os/loader">loader</a> or hypervisor (<a href="https://github.com/hermit-os/uhyve">Uhyve</a>).
 QEMU can be used to boot Hermit binaries using the loader on any architecture.
@@ -13463,12 +13566,12 @@ The targets do not support running the Rust test suite.</p>
 <p>These targets are used to build guest executables for the
 <a href="https://github.com/hyperlight-dev/hyperlight">Hyperlight</a> sandboxing
 solution.</p>
-<h2 id="target-maintainers-96"><a class="header" href="#target-maintainers-96">Target maintainers</a></h2>
+<h2 id="target-maintainers-97"><a class="header" href="#target-maintainers-97">Target maintainers</a></h2>
 <ul>
 <li><a href="https://github.com/syntactically">@syntactically</a></li>
 <li><a href="https://github.com/yoshuawuyts">@yoshuawuyts</a></li>
 </ul>
-<h2 id="requirements-88"><a class="header" href="#requirements-88">Requirements</a></h2>
+<h2 id="requirements-89"><a class="header" href="#requirements-89">Requirements</a></h2>
 <p>These targets can only be used for cross-compilation.  They should not
 require anything special as host tooling, but the usual way to use
 them is via the
@@ -13482,7 +13585,7 @@ are only expected to work with recent versions of Hyperlight.</p>
 <p>Hyperlight uses the official hardfloat calling convention of each
 architecture for <code>extern "C"</code>.</p>
 <p>Hyperlight guest binaries use the ELF file format.</p>
-<h2 id="building-the-target-63"><a class="header" href="#building-the-target-63">Building the target</a></h2>
+<h2 id="building-the-target-64"><a class="header" href="#building-the-target-64">Building the target</a></h2>
 <p>These targets can be built by adding them to the <code>target</code> list in
 <code>bootstrap.toml</code>.</p>
 <pre><code class="language-toml">[build]
@@ -13501,7 +13604,7 @@ compile for this target, you will either need to build Rust with the
 target enabled (see “Building the target” above), or build your own
 copy of <code>core</code> by using <code>build-std</code> or similar.  When using
 <code>cargo-hyperlight</code>, the tool will manage this automatically.</p>
-<h2 id="testing-70"><a class="header" href="#testing-70">Testing</a></h2>
+<h2 id="testing-71"><a class="header" href="#testing-71">Testing</a></h2>
 <p>Binaries built for this target need to use the
 <a href="https://crates.io/crates/hyperlight-guest-bin"><code>hyperlight-guest-bin</code></a>
 crate.  A given binary can then be loaded by a host process that uses
@@ -13519,10 +13622,10 @@ something that can build targeting Hyperlight.</p>
 <h1 id="-unknown-freebsd"><a class="header" href="#-unknown-freebsd">*-unknown-freebsd</a></h1>
 <p><strong>Tier: 2/3</strong></p>
 <p><a href="https://www.FreeBSD.org/">FreeBSD</a> multi-platform 4.4BSD-based UNIX-like operating system.</p>
-<h2 id="target-maintainers-97"><a class="header" href="#target-maintainers-97">Target maintainers</a></h2>
+<h2 id="target-maintainers-98"><a class="header" href="#target-maintainers-98">Target maintainers</a></h2>
 <p><a href="https://github.com/asomers">@asomers</a>
 <a href="https://github.com/MikaelUrankar">@MikaelUrankar</a></p>
-<h2 id="requirements-89"><a class="header" href="#requirements-89">Requirements</a></h2>
+<h2 id="requirements-90"><a class="header" href="#requirements-90">Requirements</a></h2>
 <p>The <code>x86_64-unknown-freebsd</code> and <code>aarch64-unknown-freebsd</code> targets are Tier 2
 with host tools. <code>i686-unknown-freebsd</code> is Tier 2 without host tools.
 Other targets are Tier 3.
@@ -13556,21 +13659,21 @@ built by the ports system and may be installed with
 code that does not require SSE2, build lang/rust from <a href="https://man.freebsd.org/cgi/man.cgi?query=ports">ports</a> and
 disable the <code>SSE2</code> option at build time.  That will produce non-compliant
 behavior.  See <a href="https://github.com/rust-lang/rust/issues/114479">issue #114479</a>.</p>
-<h2 id="testing-71"><a class="header" href="#testing-71">Testing</a></h2>
+<h2 id="testing-72"><a class="header" href="#testing-72">Testing</a></h2>
 <p>The Rust test suite can be run natively. It can also be run from the FreeBSD
 ports tree with the <code>make test</code> command from within the lang/rust directory.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="-unknown-managarm-mlibc"><a class="header" href="#-unknown-managarm-mlibc"><code>*-unknown-managarm-mlibc</code></a></h1>
 <p><strong>Tier: 3</strong></p>
-<h2 id="target-maintainers-98"><a class="header" href="#target-maintainers-98">Target Maintainers</a></h2>
+<h2 id="target-maintainers-99"><a class="header" href="#target-maintainers-99">Target Maintainers</a></h2>
 <ul>
 <li><a href="https://github.com/no92">@no92</a></li>
 <li><a href="https://github.com/64">@64</a></li>
 <li><a href="https://github.com/Dennisbonke">@Dennisbonke</a></li>
 </ul>
-<h2 id="requirements-90"><a class="header" href="#requirements-90">Requirements</a></h2>
+<h2 id="requirements-91"><a class="header" href="#requirements-91">Requirements</a></h2>
 <p>This target is cross-compiled. There is currently no support for <code>std</code> yet. It generates binaries in the ELF format. Currently, we support the <code>x86_64</code>, <code>aarch64</code> and <code>riscv64gc</code> architectures. The examples below <code>$ARCH</code> should be substituted for one of the supported architectures.</p>
-<h2 id="building-the-target-64"><a class="header" href="#building-the-target-64">Building the target</a></h2>
+<h2 id="building-the-target-65"><a class="header" href="#building-the-target-65">Building the target</a></h2>
 <p>Managarm has upstream support in LLVM since the release of 21.1.0.</p>
 <p>Set up your <code>bootstrap.toml</code> like this:</p>
 <pre><code class="language-toml">change-id = 142379
@@ -13597,16 +13700,16 @@ target = "$ARCH-unknown-managarm-mlibc"
 [target.$ARCH-unknown-managarm-mlibc]
 linker = "/path/to/the/managarm-gcc/bin/$ARCH-managarm-gcc"
 </code></pre>
-<h2 id="testing-72"><a class="header" href="#testing-72">Testing</a></h2>
+<h2 id="testing-73"><a class="header" href="#testing-73">Testing</a></h2>
 <p>This target does not support running the Rust testsuite yet.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="x86_64-unknown-motor"><a class="header" href="#x86_64-unknown-motor"><code>x86_64-unknown-motor</code></a></h1>
 <p><strong>Tier: 3</strong></p>
 <p><a href="https://github.com/moturus/motor-os">Motor OS</a> is a new operating system
 for virtualized environments.</p>
-<h2 id="target-maintainers-99"><a class="header" href="#target-maintainers-99">Target maintainers</a></h2>
+<h2 id="target-maintainers-100"><a class="header" href="#target-maintainers-100">Target maintainers</a></h2>
 <p><a href="https://github.com/lasiotus">@lasiotus</a></p>
-<h2 id="requirements-91"><a class="header" href="#requirements-91">Requirements</a></h2>
+<h2 id="requirements-92"><a class="header" href="#requirements-92">Requirements</a></h2>
 <p>This target is cross-compiled. There are no special requirements for the host.</p>
 <p>Motor OS uses the ELF file format.</p>
 <h2 id="building-the-target-toolchain"><a class="header" href="#building-the-target-toolchain">Building the target toolchain</a></h2>
@@ -13623,7 +13726,7 @@ target = ["x86_64-unknown-linux-gnu", "x86_64-unknown-motor"]
 <h2 id="building-rust-programs-72"><a class="header" href="#building-rust-programs-72">Building Rust programs</a></h2>
 <p>See the <a href="https://github.com/moturus/motor-os/blob/main/docs/recipes/hello-motor-os.md">Hello Motor OS</a>
 example.</p>
-<h2 id="testing-73"><a class="header" href="#testing-73">Testing</a></h2>
+<h2 id="testing-74"><a class="header" href="#testing-74">Testing</a></h2>
 <p>Cross-compiled Rust binaries and test artifacts can be executed in Motor OS VMs,
 as described in the <a href="https://github.com/moturus/motor-os/blob/main/docs/build.md">build doc</a>
 and the
@@ -13665,7 +13768,7 @@ are built for NetBSD 9.x, although some exceptions exist (some are
 built for newer NetBSD versions, due to target becoming usable first
 with newer versions).  <code>x86_64-unknown-netbsd</code> is built for NetBSD
 10.x to access a newer gcc.</p>
-<h2 id="target-maintainers-100"><a class="header" href="#target-maintainers-100">Target Maintainers</a></h2>
+<h2 id="target-maintainers-101"><a class="header" href="#target-maintainers-101">Target Maintainers</a></h2>
 <p><a href="https://github.com/he32">@he32</a>
 <a href="https://github.com/0323pin">@0323pin</a></p>
 <p>Further contacts:</p>
@@ -13676,7 +13779,7 @@ with newer versions).  <code>x86_64-unknown-netbsd</code> is built for NetBSD
 </ul>
 <p>Fallback to pkgsrc-users@NetBSD.org, or fault reporting via NetBSD’s
 bug reporting system.</p>
-<h2 id="requirements-92"><a class="header" href="#requirements-92">Requirements</a></h2>
+<h2 id="requirements-93"><a class="header" href="#requirements-93">Requirements</a></h2>
 <p>The <code>x86_64-unknown-netbsd</code> artifacts is being distributed by the
 rust project.</p>
 <p>The other targets are built by the target maintainers (see above),
@@ -13702,7 +13805,7 @@ fragment</a>.
 It defaults to being set for a few of the above platforms, for
 various reasons (see comments), but is otherwise unset and therefore
 indicates use of the pkgsrc LLVM.</p>
-<h2 id="testing-74"><a class="header" href="#testing-74">Testing</a></h2>
+<h2 id="testing-75"><a class="header" href="#testing-75">Testing</a></h2>
 <p>The Rust testsuite could presumably be run natively.</p>
 <p>For the systems where the maintainer can build natively, the rust
 compiler itself is re-built natively.  This involves the rust compiler
@@ -13741,14 +13844,14 @@ Makefile fragments in the <code>lang/rust</code> package.</p>
 </table>
 </div>
 <p>Note that all OS versions are <em>major</em> even if using X.Y notation (<code>6.8</code> and <code>6.9</code> are different major versions) and could be binary incompatibles (with breaking changes).</p>
-<h2 id="target-maintainers-101"><a class="header" href="#target-maintainers-101">Target Maintainers</a></h2>
+<h2 id="target-maintainers-102"><a class="header" href="#target-maintainers-102">Target Maintainers</a></h2>
 <p><a href="https://github.com/semarie">@semarie</a></p>
 <p>Further contacts:</p>
 <ul>
 <li><a href="https://cvsweb.openbsd.org/cgi-bin/cvsweb/ports/lang/rust/Makefile?rev=HEAD&amp;content-type=text/x-cvsweb-markup">lang/rust</a> maintainer (see MAINTAINER variable)</li>
 </ul>
 <p>Fallback to ports@openbsd.org, OpenBSD third parties public mailing-list (with openbsd developers readers)</p>
-<h2 id="requirements-93"><a class="header" href="#requirements-93">Requirements</a></h2>
+<h2 id="requirements-94"><a class="header" href="#requirements-94">Requirements</a></h2>
 <p>These targets are natively compiled and could be cross-compiled.
 C compiler toolchain is required for the purpose of building Rust and functional binaries.</p>
 <h2 id="building-12"><a class="header" href="#building-12">Building</a></h2>
@@ -13761,7 +13864,7 @@ cc = "$ARCH-openbsd-cc"
 </code></pre>
 <h2 id="cross-compilation-20"><a class="header" href="#cross-compilation-20">Cross-compilation</a></h2>
 <p>These targets can be cross-compiled, but LLVM might not build out-of-box.</p>
-<h2 id="testing-75"><a class="header" href="#testing-75">Testing</a></h2>
+<h2 id="testing-76"><a class="header" href="#testing-76">Testing</a></h2>
 <p>The Rust testsuite could be run natively.</p>
 <h2 id="building-rust-programs-74"><a class="header" href="#building-rust-programs-74">Building Rust programs</a></h2>
 <p>Rust does not yet ship pre-compiled artifacts for these targets.</p>
@@ -13777,14 +13880,14 @@ system.</p>
 <li><code>i586-unknown-redox</code> (tier 3)</li>
 <li><code>riscv64gc-unknown-redox</code> (tier 3)</li>
 </ul>
-<h2 id="target-maintainers-102"><a class="header" href="#target-maintainers-102">Target maintainers</a></h2>
+<h2 id="target-maintainers-103"><a class="header" href="#target-maintainers-103">Target maintainers</a></h2>
 <p><a href="https://github.com/jackpot51">@jackpot51</a></p>
-<h2 id="requirements-94"><a class="header" href="#requirements-94">Requirements</a></h2>
+<h2 id="requirements-95"><a class="header" href="#requirements-95">Requirements</a></h2>
 <p>These targets are natively compiled and can be cross-compiled. Std is fully supported.</p>
 <p>The targets are only expected to work with the latest version of Redox OS as the ABI is not yet stable.</p>
 <p><code>extern "C"</code> uses the official calling convention of the respective architectures.</p>
 <p>Redox OS binaries use ELF as file format.</p>
-<h2 id="building-the-target-65"><a class="header" href="#building-the-target-65">Building the target</a></h2>
+<h2 id="building-the-target-66"><a class="header" href="#building-the-target-66">Building the target</a></h2>
 <p>You can build Rust with support for the targets by adding it to the <code>target</code> list in <code>bootstrap.toml</code>. In addition a copy of <a href="https://gitlab.redox-os.org/redox-os/relibc">relibc</a> needs to be present in the linker search path.</p>
 <pre><code class="language-toml">[build]
 build-stage = 1
@@ -13812,7 +13915,7 @@ and core UEFI binaries.</p>
 <li><code>i686-unknown-uefi</code></li>
 <li><code>x86_64-unknown-uefi</code></li>
 </ul>
-<h2 id="target-maintainers-103"><a class="header" href="#target-maintainers-103">Target maintainers</a></h2>
+<h2 id="target-maintainers-104"><a class="header" href="#target-maintainers-104">Target maintainers</a></h2>
 <ul>
 <li><a href="https://github.com/dvdhrm">@dvdhrm</a></li>
 <li><a href="https://github.com/nicholasbishop">@nicholasbishop</a></li>
@@ -13822,7 +13925,7 @@ and core UEFI binaries.</p>
 </ul>
 </li>
 </ul>
-<h2 id="requirements-95"><a class="header" href="#requirements-95">Requirements</a></h2>
+<h2 id="requirements-96"><a class="header" href="#requirements-96">Requirements</a></h2>
 <p>All UEFI targets can be used as <code>no-std</code> environments via cross-compilation.
 Support for <code>std</code> is present, but incomplete and extremely new. <code>alloc</code> is supported if
 an allocator is provided by the user or if using std. No host tools are supported.</p>
@@ -13883,7 +13986,7 @@ producing applications. To build a driver instead, pass a
 [build]
 rustflags = ["-C", "link-args=/subsystem:efi_runtime_driver"]
 </code></pre>
-<h2 id="testing-76"><a class="header" href="#testing-76">Testing</a></h2>
+<h2 id="testing-77"><a class="header" href="#testing-77">Testing</a></h2>
 <p>UEFI applications can be copied into the ESP on any UEFI system and executed
 via the firmware boot menu. The qemu suite allows emulating UEFI systems and
 executing UEFI applications as well. See its documentation for details.</p>
@@ -14104,14 +14207,14 @@ pub fn main() {
 <ul>
 <li><code>i686-pc-windows-msvc</code>: Windows on 32-bit x86.</li>
 </ul>
-<h2 id="target-maintainers-104"><a class="header" href="#target-maintainers-104">Target maintainers</a></h2>
+<h2 id="target-maintainers-105"><a class="header" href="#target-maintainers-105">Target maintainers</a></h2>
 <p><a href="https://github.com/ChrisDenton">@ChrisDenton</a>
 <a href="https://github.com/dpaoliello">@dpaoliello</a>
 <a href="https://github.com/Fulgen301">@Fulgen301</a>
 <a href="https://github.com/lambdageek">@lambdageek</a>
 <a href="https://github.com/sivadeilra">@sivadeilra</a>
 <a href="https://github.com/wesleywiser">@wesleywiser</a></p>
-<h2 id="requirements-96"><a class="header" href="#requirements-96">Requirements</a></h2>
+<h2 id="requirements-97"><a class="header" href="#requirements-97">Requirements</a></h2>
 <h3 id="os-version-7"><a class="header" href="#os-version-7">OS version</a></h3>
 <p>Windows 10 or higher is required for client installs, Windows Server 2016 or higher is required for server installs.</p>
 <h3 id="host-tooling-1"><a class="header" href="#host-tooling-1">Host tooling</a></h3>
@@ -14130,7 +14233,7 @@ It is <strong>highly</strong> recommended to use the latest version of VS (curre
 <p>or adding the ARM64 target to the active toolchain:</p>
 <pre><code class="language-text">rustup component add aarch64-pc-windows-msvc
 </code></pre>
-<h2 id="testing-77"><a class="header" href="#testing-77">Testing</a></h2>
+<h2 id="testing-78"><a class="header" href="#testing-78">Testing</a></h2>
 <p>There are no special requirements for testing and running this target.</p>
 <h2 id="cross-compilation-toolchains-and-c-code-42"><a class="header" href="#cross-compilation-toolchains-and-c-code-42">Cross-compilation toolchains and C code</a></h2>
 <p>Architectural cross-compilation from one Windows host to a different Windows platform is natively supported by the MSVC toolchain provided the appropriate components are selected when using the VS Installer.</p>
@@ -14139,9 +14242,9 @@ It is <strong>highly</strong> recommended to use the latest version of VS (curre
 <h1 id="x86_64-uwp-windows-msvc-i686-uwp-windows-msvc-thumbv7a-uwp-windows-msvc-and-aarch64-uwp-windows-msvc"><a class="header" href="#x86_64-uwp-windows-msvc-i686-uwp-windows-msvc-thumbv7a-uwp-windows-msvc-and-aarch64-uwp-windows-msvc"><code>x86_64-uwp-windows-msvc</code>, <code>i686-uwp-windows-msvc</code>, <code>thumbv7a-uwp-windows-msvc</code> and <code>aarch64-uwp-windows-msvc</code></a></h1>
 <p><strong>Tier: 3</strong></p>
 <p>Windows targets for Universal Windows Platform (UWP) applications, using MSVC toolchain.</p>
-<h2 id="target-maintainers-105"><a class="header" href="#target-maintainers-105">Target maintainers</a></h2>
+<h2 id="target-maintainers-106"><a class="header" href="#target-maintainers-106">Target maintainers</a></h2>
 <p><a href="https://github.com/bdbai">@bdbai</a></p>
-<h2 id="requirements-97"><a class="header" href="#requirements-97">Requirements</a></h2>
+<h2 id="requirements-98"><a class="header" href="#requirements-98">Requirements</a></h2>
 <p>These targets are cross-compiled with std support. The host requirement and
 binary format are the same as the corresponding non-UWP targets (i.e.
 <code>x86_64-pc-windows-msvc</code>, <code>i686-pc-windows-msvc</code>, <code>thumbv7a-pc-windows-msvc</code>
@@ -14160,7 +14263,7 @@ these targets, you will either need to build Rust with the targets enabled (see
 <p>Example of building a Rust project for x64 UWP using <code>build-std</code>:</p>
 <pre><code class="language-pwsh">cargo build -Z build-std=std,panic_abort --target x86_64-uwp-windows-msvc
 </code></pre>
-<h2 id="testing-78"><a class="header" href="#testing-78">Testing</a></h2>
+<h2 id="testing-79"><a class="header" href="#testing-79">Testing</a></h2>
 <p>Currently there is no support to run the rustc test suite for this target.</p>
 <h2 id="cross-compilation-toolchains-and-c-code-43"><a class="header" href="#cross-compilation-toolchains-and-c-code-43">Cross-compilation toolchains and C code</a></h2>
 <p>In general, the toolchain target should match the corresponding non-UWP
@@ -14186,18 +14289,18 @@ system.</p>
 <li><code>riscv32-wrs-vxworks</code></li>
 <li><code>riscv64-wrs-vxworks</code></li>
 </ul>
-<h2 id="target-maintainers-106"><a class="header" href="#target-maintainers-106">Target maintainers</a></h2>
+<h2 id="target-maintainers-107"><a class="header" href="#target-maintainers-107">Target maintainers</a></h2>
 <p><a href="https://github.com/biabbas">@biabbas</a>
 <a href="https://github.com/hax0kartik">@hax0kartik</a></p>
-<h2 id="requirements-98"><a class="header" href="#requirements-98">Requirements</a></h2>
+<h2 id="requirements-99"><a class="header" href="#requirements-99">Requirements</a></h2>
 <h3 id="os-version-8"><a class="header" href="#os-version-8">OS version</a></h3>
 <p>The minimum supported version is VxWorks 7.</p>
-<h3 id="environment"><a class="header" href="#environment">Environment</a></h3>
+<h3 id="environment-1"><a class="header" href="#environment-1">Environment</a></h3>
 <h4 id="wind_release_id"><a class="header" href="#wind_release_id"><code>WIND_RELEASE_ID</code></a></h4>
 <p>In VxWorks build environment, the environment variable <code>WIND_RELEASE_ID</code> indicates the VxWorks release version used for the build. The <code>WIND_RELEASE_ID</code> can be used to conditionally compile features/code or handle version specific behaviour.</p>
 <h2 id="building-13"><a class="header" href="#building-13">Building</a></h2>
 <p>Rust for each target can be cross-compiled with its specific target vsb configuration. Std support is added but not yet fully tested.</p>
-<h2 id="building-the-target-66"><a class="header" href="#building-the-target-66">Building the target</a></h2>
+<h2 id="building-the-target-67"><a class="header" href="#building-the-target-67">Building the target</a></h2>
 <p>You can build Rust with support for the targets by adding it to the <code>target</code> list in <code>bootstrap.toml</code>. In addition the workbench and wr-cc have to configured and activated.</p>
 <pre><code class="language-toml">[build]
 build-stage = 1
@@ -14247,7 +14350,7 @@ historical context found in old MCPs:</p>
 <li><a href="https://github.com/rust-lang/compiler-team/issues/695">Smooth the renaming transition of wasm32-wasi</a></li>
 </ul>
 </blockquote>
-<h2 id="target-maintainers-107"><a class="header" href="#target-maintainers-107">Target maintainers</a></h2>
+<h2 id="target-maintainers-108"><a class="header" href="#target-maintainers-108">Target maintainers</a></h2>
 <p>When this target was added to the compiler platform-specific documentation here
 was not maintained at that time. This means that the list below is not
 exhaustive and there are more interested parties in this target. That being
@@ -14255,7 +14358,7 @@ said since when this document was last updated those interested in maintaining
 this target are:</p>
 <p><a href="https://github.com/alexcrichton">@alexcrichton</a>
 <a href="https://github.com/loganek">@loganek</a></p>
-<h2 id="requirements-99"><a class="header" href="#requirements-99">Requirements</a></h2>
+<h2 id="requirements-100"><a class="header" href="#requirements-100">Requirements</a></h2>
 <p>This target is cross-compiled. The target includes support for <code>std</code> itself,
 but not all of the standard library works. For example spawning a thread will
 always return an error (see the <code>wasm32-wasip1-threads</code> target for
@@ -14302,7 +14405,7 @@ has. See the documentation above about building the target in rustc for the
 minimum known working version.</p>
 <h2 id="cross-compilation-21"><a class="header" href="#cross-compilation-21">Cross-compilation</a></h2>
 <p>This target can be cross-compiled from any hosts.</p>
-<h2 id="testing-79"><a class="header" href="#testing-79">Testing</a></h2>
+<h2 id="testing-80"><a class="header" href="#testing-80">Testing</a></h2>
 <p>This target is tested in rust-lang/rust CI on all merges. A subset of tests are
 run in the <code>test-various</code> builder such as the UI tests and libcore tests. This
 can be tested locally, for example, with:</p>
@@ -14335,10 +14438,10 @@ with native multi threading capabilities.</p>
 <code>wasm32-wasi-preview1-threads</code>, and even longer before that it was known as
 <code>wasm32-wasi-threads</code>.</p>
 </blockquote>
-<h2 id="target-maintainers-108"><a class="header" href="#target-maintainers-108">Target maintainers</a></h2>
+<h2 id="target-maintainers-109"><a class="header" href="#target-maintainers-109">Target maintainers</a></h2>
 <p><a href="https://github.com/g0djan">@g0djan</a>
 <a href="https://github.com/loganek">@loganek</a></p>
-<h2 id="requirements-100"><a class="header" href="#requirements-100">Requirements</a></h2>
+<h2 id="requirements-101"><a class="header" href="#requirements-101">Requirements</a></h2>
 <p>This target is cross-compiled. The target supports <code>std</code> fully.</p>
 <p>The Rust target definition here is interesting in a few ways. We want to
 serve two use cases here with this target:</p>
@@ -14410,7 +14513,7 @@ flag, for example:</p>
 <li>Wasmtime - <code>--wasi threads</code></li>
 <li><a href="https://github.com/bytecodealliance/wasm-micro-runtime">WAMR</a> - needs to be built with WAMR_BUILD_LIB_WASI_THREADS=1</li>
 </ul>
-<h2 id="building-the-target-67"><a class="header" href="#building-the-target-67">Building the target</a></h2>
+<h2 id="building-the-target-68"><a class="header" href="#building-the-target-68">Building the target</a></h2>
 <p>Users need to install or built wasi-sdk since release 20.0
 https://github.com/WebAssembly/wasi-sdk/releases/tag/wasi-sdk-20
 and specify path to <em>wasi-root</em> <code>bootstrap.toml</code></p>
@@ -14428,7 +14531,7 @@ wasi-root = ".../wasi-libc/sysroot"
 </code></pre>
 <h2 id="cross-compilation-22"><a class="header" href="#cross-compilation-22">Cross-compilation</a></h2>
 <p>This target can be cross-compiled from any hosts.</p>
-<h2 id="testing-80"><a class="header" href="#testing-80">Testing</a></h2>
+<h2 id="testing-81"><a class="header" href="#testing-81">Testing</a></h2>
 <p>Currently testing is not well supported for <code>wasm32-wasip1-threads</code> and the
 Rust project doesn’t run any tests for this target. However the UI testsuite can be run
 manually following this instructions:</p>
@@ -14471,10 +14574,10 @@ originally known as <code>wasm32-wasi</code>. It is the next evolution in the de
 wasi (the <a href="https://wasi.dev">WebAssembly System Interface</a>) that uses the WebAssembly
 <a href="https://github.com/WebAssembly/component-model">component model</a> to allow for a standardized set of syscalls that are intended to empower
 WebAssembly binaries with native host capabilities.</p>
-<h2 id="target-maintainers-109"><a class="header" href="#target-maintainers-109">Target maintainers</a></h2>
+<h2 id="target-maintainers-110"><a class="header" href="#target-maintainers-110">Target maintainers</a></h2>
 <p><a href="https://github.com/alexcrichton">@alexcrichton</a>
 <a href="https://github.com/rylev">@rylev</a></p>
-<h2 id="requirements-101"><a class="header" href="#requirements-101">Requirements</a></h2>
+<h2 id="requirements-102"><a class="header" href="#requirements-102">Requirements</a></h2>
 <p>This target is cross-compiled. The target supports <code>std</code> fully.</p>
 <h2 id="platform-requirements-1"><a class="header" href="#platform-requirements-1">Platform requirements</a></h2>
 <p>The WebAssembly runtime should support the wasi preview 2 API set. Runtimes also
@@ -14490,7 +14593,7 @@ minimum version required.</p>
 <p>For more information see the documentation <a href="#building-rust-programs-79"><code>wasm32-wasip1</code>
 target</a>. Replace <code>wasm32-wasip1</code>
 target strings with <code>wasm32-wasip2</code>, however.</p>
-<h2 id="testing-81"><a class="header" href="#testing-81">Testing</a></h2>
+<h2 id="testing-82"><a class="header" href="#testing-82">Testing</a></h2>
 <p>This target is not tested in CI at this time. Locally it can be tested with a
 <code>wasmtime</code> binary in <code>PATH</code> like so:</p>
 <pre><code class="language-text">./x.py test --target wasm32-wasip2 tests/ui
@@ -14533,10 +14636,10 @@ complete before the end of the year. Before that time spawning a thread via
 <code>std::thread</code> will return an error. Note though that this support can be
 tested through the <a href="#testing-cooperative-multithreading">instructions below</a>.</p>
 </blockquote>
-<h2 id="target-maintainers-110"><a class="header" href="#target-maintainers-110">Target maintainers</a></h2>
+<h2 id="target-maintainers-111"><a class="header" href="#target-maintainers-111">Target maintainers</a></h2>
 <p><a href="https://github.com/alexcrichton">@alexcrichton</a>
 <a href="https://github.com/yoshuawuyts">@yoshuawuyts</a></p>
-<h2 id="requirements-102"><a class="header" href="#requirements-102">Requirements</a></h2>
+<h2 id="requirements-103"><a class="header" href="#requirements-103">Requirements</a></h2>
 <p>This target is cross-compiled. The target supports <code>std</code> fully. This target
 requires LLVM 23 to be used and additionally requires <code>wasi-sdk-34</code>-or-later if
 you’re building it locally or linking with this externally.</p>
@@ -14544,7 +14647,7 @@ you’re building it locally or linking with this externally.</p>
 <p>WebAssembly runtimes that want to execute components compiled for this target
 must support WASI 0.3.0 and the requisite required component model features
 (notably async). Two example runtimes for WASIp3 are <a href="https://wasmtime.dev/">Wasmtime</a> and <a href="https://github.com/bytecodealliance/jco">Jco</a>.</p>
-<h2 id="building-the-target-68"><a class="header" href="#building-the-target-68">Building the target</a></h2>
+<h2 id="building-the-target-69"><a class="header" href="#building-the-target-69">Building the target</a></h2>
 <p>To build this target first acquire a copy of
 <a href="https://github.com/WebAssembly/wasi-sdk/"><code>wasi-sdk</code></a>. At this time version 34
 is the minimum needed.</p>
@@ -14556,7 +14659,7 @@ is installed. For example:</p>
 driver for LLD is required when linking WebAssembly code together. Rust’s build
 system will automatically pick up any necessary binaries and programs from
 <code>WASI_SDK_PATH</code>.</p>
-<h2 id="testing-82"><a class="header" href="#testing-82">Testing</a></h2>
+<h2 id="testing-83"><a class="header" href="#testing-83">Testing</a></h2>
 <p>This target is not tested in CI at this time. Locally it can be tested with a
 <code>wasmtime</code> binary in <code>PATH</code> like so:</p>
 <pre><code class="language-text">./x.py test --target wasm32-wasip3 tests/ui
@@ -14639,9 +14742,9 @@ since working with threads should “just work”.</p>
 <p>WebAssembly targets that use the <a href="https://github.com/arjunr2/WALI">WebAssembly Linux Interface (WALI)</a> with 32-bit memory. The latest status of the WALI specification and support are documented within the repo.</p>
 <p>WALI offers seamless targetability of traditional Linux applications to Wasm by exposing Linux syscalls strategically into the sandbox. Numerous applications and build system work unmodified over WALI, including complex low-level system libraries – a list of applications are included in the research paper linked in the main repo.</p>
 <p>From the wider Wasm ecosystem perspective, implementing WALI within engines allows layering of high-level security policies (e.g. WASI) above it, arming the latter’s implementations with sandboxing and portability.</p>
-<h2 id="target-maintainers-111"><a class="header" href="#target-maintainers-111">Target maintainers</a></h2>
+<h2 id="target-maintainers-112"><a class="header" href="#target-maintainers-112">Target maintainers</a></h2>
 <p><a href="https://github.com/arjunr2">@arjunr2</a></p>
-<h2 id="requirements-103"><a class="header" href="#requirements-103">Requirements</a></h2>
+<h2 id="requirements-104"><a class="header" href="#requirements-104">Requirements</a></h2>
 <h3 id="compilation"><a class="header" href="#compilation">Compilation</a></h3>
 <p>This target is cross-compiled and requires an installation of the <a href="https://github.com/Wasm-Thin-Kernel-Interfaces/WALI.git">WALI sysroot</a>. This produces standard <code>wasm32</code> binaries with the WALI interface methods as module imports that need to be implemented by a supported engine (see the  “Execution” section below).</p>
 <p><code>wali</code> targets <em>minimally require</em> the following LLVM feature flags:</p>
@@ -14662,7 +14765,7 @@ since working with threads should “just work”.</p>
 <blockquote>
 <p><strong>Note</strong>: WALI is still somewhat experimental and bugs may exist in the Rust support, WALI toolchain, or the LLVM compiler. The former can be filed in Rust repos while the latter two in the WALI repo.</p>
 </blockquote>
-<h2 id="building-the-target-69"><a class="header" href="#building-the-target-69">Building the target</a></h2>
+<h2 id="building-the-target-70"><a class="header" href="#building-the-target-70">Building the target</a></h2>
 <p>You can build Rust with support for the target by adding it to the <code>target</code>
 list in <code>bootstrap.toml</code>, and pointing to the toolchain artifacts from the previous section (“Requirements-&gt;Compilation”). A sample <code>bootstrap.toml</code> for the <code>musl</code> environment will look like this, where <code>&lt;WALI-root&gt;</code> is the absolute path to the root directory of the <a href="https://github.com/arjunr2/WALI">WALI repo</a>:</p>
 <pre><code class="language-toml">[build]
@@ -14692,7 +14795,7 @@ this target, you will either need to build Rust with the target enabled (see
 </ul>
 <h3 id="restrictions"><a class="header" href="#restrictions">Restrictions</a></h3>
 <p>Hardware or platform-specific support, besides <code>syscall</code> is mostly unsupported in WALI for ISA portability (these tend to be uncommon).</p>
-<h2 id="testing-83"><a class="header" href="#testing-83">Testing</a></h2>
+<h2 id="testing-84"><a class="header" href="#testing-84">Testing</a></h2>
 <p>Currently testing is not supported for <code>wali</code> targets and the Rust project doesn’t run any tests for this target.</p>
 <p>However, standard ISA-agnostic tests for Linux should be thereotically reusable for WALI targets and minor changes. Testing integration will be continually incorporated as support evolves.</p>
 <h2 id="cross-compilation-toolchains-and-c-code-45"><a class="header" href="#cross-compilation-toolchains-and-c-code-45">Cross-compilation toolchains and C code</a></h2>
@@ -14729,10 +14832,10 @@ different hosts (web and non-web), WASI has no standard way of accessing web
 APIs, whereas Emscripten has the ability to run arbitrary JS from WASM and
 access many web APIs.  If you are only targeting the web and need to access web
 APIs, the <code>wasm32-unknown-emscripten</code> target may be preferable.</p>
-<h2 id="target-maintainers-112"><a class="header" href="#target-maintainers-112">Target maintainers</a></h2>
+<h2 id="target-maintainers-113"><a class="header" href="#target-maintainers-113">Target maintainers</a></h2>
 <p><a href="https://github.com/hoodmane">@hoodmane</a>
 <a href="https://github.com/juntyr">@juntyr</a></p>
-<h2 id="requirements-104"><a class="header" href="#requirements-104">Requirements</a></h2>
+<h2 id="requirements-105"><a class="header" href="#requirements-105">Requirements</a></h2>
 <p>This target is cross-compiled. The Emscripten compiler toolchain <code>emcc</code> must be
 installed to link WASM binaries for this target. Emscripten 4.0.0 or newer is
 required. You can install <code>emcc</code> using:</p>
@@ -14743,7 +14846,7 @@ source ./emsdk/emsdk_env.sh
 </code></pre>
 <p>Please refer to <a href="https://emscripten.org/docs/getting_started/downloads.html">https://emscripten.org/docs/getting_started/downloads.html</a> for
 further details and instructions.</p>
-<h2 id="building-the-target-70"><a class="header" href="#building-the-target-70">Building the target</a></h2>
+<h2 id="building-the-target-71"><a class="header" href="#building-the-target-71">Building the target</a></h2>
 <p>Building this target can be done by:</p>
 <ul>
 <li>Configure the <code>wasm32-unknown-emscripten</code> target to get built.</li>
@@ -14783,7 +14886,7 @@ library with your local Emscripten version and settings using:</p>
 <p>If you still want to use the pre-compiled <code>std</code> from rustup, you should ensure
 that your local Emscripten matches the version used by Rust and be careful about
 any <code>-C link-arg</code>s that you compiled your Rust code with.</p>
-<h2 id="testing-84"><a class="header" href="#testing-84">Testing</a></h2>
+<h2 id="testing-85"><a class="header" href="#testing-85">Testing</a></h2>
 <p>This target is not extensively tested in CI for the rust-lang/rust repository. It
 can be tested locally, for example, with:</p>
 <pre><code class="language-sh">EMCC_CFLAGS="-s MAXIMUM_MEMORY=2GB" ./x.py test --target wasm32-unknown-emscripten --skip src/tools/linkchecker
@@ -14844,13 +14947,13 @@ hash maps are not randomized like they are on other platforms.</p>
 too) is the <a href="https://github.com/rustwasm/wasm-bindgen"><code>wasm-bindgen</code> project</a>
 which facilitates Rust code interoperating with JavaScript code. Note, though,
 that not all uses of <code>wasm32-unknown-unknown</code> are using JavaScript and the web.</p>
-<h2 id="target-maintainers-113"><a class="header" href="#target-maintainers-113">Target maintainers</a></h2>
+<h2 id="target-maintainers-114"><a class="header" href="#target-maintainers-114">Target maintainers</a></h2>
 <p>When this target was added to the compiler, platform-specific documentation here
 was not maintained at that time. This means that the list below is not
 exhaustive, and there are more interested parties in this target. That being
 said, those interested in maintaining this target are:</p>
 <p><a href="https://github.com/alexcrichton">@alexcrichton</a></p>
-<h2 id="requirements-105"><a class="header" href="#requirements-105">Requirements</a></h2>
+<h2 id="requirements-106"><a class="header" href="#requirements-106">Requirements</a></h2>
 <p>This target is cross-compiled. The target includes support for <code>std</code> itself,
 but as mentioned above many pieces of functionality that require an operating
 system do not work and will return errors.</p>
@@ -14868,7 +14971,7 @@ must be either chosen or reimplemented.</li>
 <p>This target has no build requirements beyond what’s in-tree in the Rust
 repository. Linking binaries requires LLD to be enabled for the <code>wasm-ld</code>
 driver. This target uses the <code>dlmalloc</code> crate as the default global allocator.</p>
-<h2 id="building-the-target-71"><a class="header" href="#building-the-target-71">Building the target</a></h2>
+<h2 id="building-the-target-72"><a class="header" href="#building-the-target-72">Building the target</a></h2>
 <p>Building this target can be done by:</p>
 <ul>
 <li>Configure the <code>wasm32-unknown-unknown</code> target to get built.</li>
@@ -14887,7 +14990,7 @@ $ file foo.wasm
 </code></pre>
 <h2 id="cross-compilation-24"><a class="header" href="#cross-compilation-24">Cross-compilation</a></h2>
 <p>This target can be cross-compiled from any host.</p>
-<h2 id="testing-85"><a class="header" href="#testing-85">Testing</a></h2>
+<h2 id="testing-86"><a class="header" href="#testing-86">Testing</a></h2>
 <p>This target is not tested in CI for the rust-lang/rust repository. Many tests
 must be disabled to run on this target and failures are non-obvious because
 <code>println!</code> doesn’t work in the standard library. It’s recommended to test the
@@ -15049,10 +15152,10 @@ linked.</p>
 <li>Enabling the <a href="https://github.com/WebAssembly/mutable-global">Import/Export of Mutable Globals</a> proposal (i.e. the <code>+mutable-globals</code> LLVM target feature flag)</li>
 <li>Not compiling the <code>std</code> library at all, rather than compiling it with stubs.</li>
 </ul>
-<h2 id="target-maintainers-114"><a class="header" href="#target-maintainers-114">Target maintainers</a></h2>
+<h2 id="target-maintainers-115"><a class="header" href="#target-maintainers-115">Target maintainers</a></h2>
 <p><a href="https://github.com/alexcrichton">@alexcrichton</a>
 <a href="https://github.com/graydon">@graydon</a></p>
-<h2 id="requirements-106"><a class="header" href="#requirements-106">Requirements</a></h2>
+<h2 id="requirements-107"><a class="header" href="#requirements-107">Requirements</a></h2>
 <p>This target is cross-compiled. It does not support <code>std</code>, only <code>core</code> and <code>alloc</code>. Since it imports nothing from its environment, any <code>std</code> parts that use OS facilities would be stubbed out with functions-that-fail anyways, and the experience of working with the stub <code>std</code> in the <code>wasm32-unknown-unknown</code> target was deemed not something worth repeating here.</p>
 <p>Everything else about this target’s requirements, building, usage and testing is the same as what’s described in the <a href="#wasm32-unknown-unknown"><code>wasm32-unknown-unknown</code> document</a>, just using the target string <code>wasm32v1-none</code> in place of <code>wasm32-unknown-unknown</code>.</p>
 <h2 id="conditionally-compiling-code-6"><a class="header" href="#conditionally-compiling-code-6">Conditionally compiling code</a></h2>
@@ -15123,9 +15226,9 @@ using <code>-Cpanic=unwind</code> see the <a href="#unwinding-2">documentation o
 <p><strong>Tier: 3</strong></p>
 <p>WebAssembly target which uses 64-bit memories, relying on the <a href="https://github.com/webassembly/memory64">memory64</a>
 WebAssembly proposal.</p>
-<h2 id="target-maintainers-115"><a class="header" href="#target-maintainers-115">Target maintainers</a></h2>
+<h2 id="target-maintainers-116"><a class="header" href="#target-maintainers-116">Target maintainers</a></h2>
 <p><a href="https://github.com/alexcrichton">@alexcrichton</a></p>
-<h2 id="requirements-107"><a class="header" href="#requirements-107">Requirements</a></h2>
+<h2 id="requirements-108"><a class="header" href="#requirements-108">Requirements</a></h2>
 <p>This target is cross-compiled. The target supports <code>std</code> in the same manner as
 the <code>wasm32-unknown-unknown</code> target which is to say that it comes with the
 standard library but many I/O functions such as <code>std::fs</code> and <code>std::net</code> will
@@ -15164,7 +15267,7 @@ found it’s recommended to open an issue either with rust-lang/rust or ideally
 with LLVM itself.</p>
 </blockquote>
 <p>This target does not support <code>panic=unwind</code> at this time.</p>
-<h2 id="building-the-target-72"><a class="header" href="#building-the-target-72">Building the target</a></h2>
+<h2 id="building-the-target-73"><a class="header" href="#building-the-target-73">Building the target</a></h2>
 <p>You can build Rust with support for the target by adding it to the <code>target</code>
 list in <code>bootstrap.toml</code>, and the target also requires <code>lld</code> to be built to work.</p>
 <pre><code class="language-toml">[build]
@@ -15183,7 +15286,7 @@ this target, you will either need to build Rust with the target enabled (see
 <li><code>cfg(target_arch = "wasm64")</code></li>
 <li><code>cfg(target_family = "wasm")</code></li>
 </ul>
-<h2 id="testing-86"><a class="header" href="#testing-86">Testing</a></h2>
+<h2 id="testing-87"><a class="header" href="#testing-87">Testing</a></h2>
 <p>Currently testing is not well supported for <code>wasm64-unknown-unknown</code> and the
 Rust project doesn’t run any tests for this target. Testing support sort of
 works but without <code>println!</code> it’s not the most exciting tests to run.</p>
@@ -15206,12 +15309,12 @@ effectively cannot be done.</p>
 <ul>
 <li><code>i686-pc-windows-gnu</code></li>
 </ul>
-<h2 id="target-maintainers-116"><a class="header" href="#target-maintainers-116">Target maintainers</a></h2>
+<h2 id="target-maintainers-117"><a class="header" href="#target-maintainers-117">Target maintainers</a></h2>
 <p><strong>⚠️ These targets do not have any maintainers and are not properly maintained. ⚠️</strong></p>
 <p>If you are using this target, consider signing up to become a target maintainer.
 See the target tier policy for details.
 Without maintainers, these targets may be demoted in the future.</p>
-<h2 id="requirements-108"><a class="header" href="#requirements-108">Requirements</a></h2>
+<h2 id="requirements-109"><a class="header" href="#requirements-109">Requirements</a></h2>
 <p>These targets support std and host tools.</p>
 <p>Unlike their MSVC counterparts, windows-gnu targets support cross-compilation and are free of all MSVC licensing implications.</p>
 <p>They follow Windows calling convention for <code>extern "C"</code>.</p>
@@ -15245,17 +15348,17 @@ GCC/Binutils.</p>
 <ul>
 <li><code>i686-pc-windows-gnullvm</code></li>
 </ul>
-<h2 id="target-maintainers-117"><a class="header" href="#target-maintainers-117">Target maintainers</a></h2>
+<h2 id="target-maintainers-118"><a class="header" href="#target-maintainers-118">Target maintainers</a></h2>
 <p><a href="https://github.com/mati865">@mati865</a>
 <a href="https://github.com/thomcc">@thomcc</a></p>
-<h2 id="requirements-109"><a class="header" href="#requirements-109">Requirements</a></h2>
+<h2 id="requirements-110"><a class="header" href="#requirements-110">Requirements</a></h2>
 <p>Building those targets requires an LLVM-based C toolchain, for example, <a href="https://github.com/mstorsjo/llvm-mingw">llvm-mingw</a> or <a href="https://www.msys2.org/docs/environments">MSYS2</a> with CLANG*
 environment, with static libunwind library available.</p>
 <p>Binaries for this target should be at least on par with <code>*-windows-gnu</code> in terms of requirements and functionality,
 except for implicit self-contained mode (explained in <a href="#building-rust-programs-87">the section below</a>).</p>
 <p>Those targets follow Windows calling convention for <code>extern "C"</code>.</p>
 <p>Like with any other Windows target, created binaries are in PE format.</p>
-<h2 id="building-the-target-73"><a class="header" href="#building-the-target-73">Building the target</a></h2>
+<h2 id="building-the-target-74"><a class="header" href="#building-the-target-74">Building the target</a></h2>
 <p>Both native and cross-compilation builds are supported and function similarly to other Rust targets.</p>
 <h2 id="building-rust-programs-87"><a class="header" href="#building-rust-programs-87">Building Rust programs</a></h2>
 <p>Rust ships both std and host tools for those targets. That allows using them as both the host and the target.</p>
@@ -15263,7 +15366,7 @@ except for implicit self-contained mode (explained in <a href="#building-rust-pr
 The only requirements are to install <code>rust-mingw</code> component and to set <code>rust-lld</code> as the linker.
 Otherwise, you will need to install the C toolchain mentioned previously.
 There is no automatic fallback to <code>rust-lld</code> when the C toolchain is missing yet, but it may be added in the future.</p>
-<h2 id="testing-87"><a class="header" href="#testing-87">Testing</a></h2>
+<h2 id="testing-88"><a class="header" href="#testing-88">Testing</a></h2>
 <p>Created binaries work fine on Windows and Linux with Wine using native hardware.
 Testing AArch64 on x86_64 is problematic, though, and requires launching a whole AArch64 system with QEMU.</p>
 <p>Most of the x86_64 testsuite does pass, but because it isn’t run on CI, different failures are expected over time.</p>
@@ -15283,14 +15386,14 @@ Testing AArch64 on x86_64 is problematic, though, and requires launching a whole
 <li><code>i686-win7-windows-gnu</code></li>
 <li><code>x86_64-win7-windows-gnu</code></li>
 </ul>
-<h2 id="target-maintainers-118"><a class="header" href="#target-maintainers-118">Target maintainers</a></h2>
+<h2 id="target-maintainers-119"><a class="header" href="#target-maintainers-119">Target maintainers</a></h2>
 <p><a href="https://github.com/tbu-">@tbu-</a></p>
-<h2 id="requirements-110"><a class="header" href="#requirements-110">Requirements</a></h2>
+<h2 id="requirements-111"><a class="header" href="#requirements-111">Requirements</a></h2>
 <p>This target supports all of core, alloc, std and test. Host
 tools may also work, though those are not currently tested.</p>
 <p>Those targets follow Windows calling convention for extern “C”.</p>
 <p>Like any other Windows target, the created binaries are in PE format.</p>
-<h2 id="building-the-target-74"><a class="header" href="#building-the-target-74">Building the target</a></h2>
+<h2 id="building-the-target-75"><a class="header" href="#building-the-target-75">Building the target</a></h2>
 <p>You can build Rust with support for the targets by adding it to the target list in bootstrap.toml:</p>
 <pre><code class="language-toml">[build]
 build-stage = 1
@@ -15301,7 +15404,7 @@ target = ["x86_64-win7-windows-gnu"]
 target, you will either need to build Rust with the target enabled (see
 “Building the target” above), or build your own copy by using <code>build-std</code> or
 similar.</p>
-<h2 id="testing-88"><a class="header" href="#testing-88">Testing</a></h2>
+<h2 id="testing-89"><a class="header" href="#testing-89">Testing</a></h2>
 <p>Created binaries work fine on Windows or Wine using native hardware. Remote
 testing is possible using the <code>remote-test-server</code> described <a href="https://rustc-dev-guide.rust-lang.org/tests/running.html#running-tests-on-a-remote-machine">here</a>.</p>
 <h2 id="cross-compilation-toolchains-and-c-code-48"><a class="header" href="#cross-compilation-toolchains-and-c-code-48">Cross-compilation toolchains and C code</a></h2>
@@ -15315,16 +15418,16 @@ testing is possible using the <code>remote-test-server</code> described <a href=
 <li><code>i686-win7-windows-msvc</code></li>
 <li><code>x86_64-win7-windows-msvc</code></li>
 </ul>
-<h2 id="target-maintainers-119"><a class="header" href="#target-maintainers-119">Target maintainers</a></h2>
+<h2 id="target-maintainers-120"><a class="header" href="#target-maintainers-120">Target maintainers</a></h2>
 <p><a href="https://github.com/roblabla">@roblabla</a></p>
-<h2 id="requirements-111"><a class="header" href="#requirements-111">Requirements</a></h2>
+<h2 id="requirements-112"><a class="header" href="#requirements-112">Requirements</a></h2>
 <p>This target supports all of core, alloc, std and test. This is automatically
 tested every night on private infrastructure hosted by the maintainer. Host
 tools may also work, though it is not guaranteed. Last known success built
 version of rustc with host tools (x86_64) is 1.91.0.</p>
 <p>Those targets follow Windows calling convention for extern “C”.</p>
 <p>Like any other Windows target, the created binaries are in PE format.</p>
-<h2 id="building-the-target-75"><a class="header" href="#building-the-target-75">Building the target</a></h2>
+<h2 id="building-the-target-76"><a class="header" href="#building-the-target-76">Building the target</a></h2>
 <p>You can build Rust with support for the targets by adding it to the target list in bootstrap.toml:</p>
 <pre><code class="language-toml">[build]
 build-stage = 1
@@ -15335,7 +15438,7 @@ target = ["x86_64-win7-windows-msvc"]
 target, you will either need to build Rust with the target enabled (see
 “Building the target” above), or build your own copy by using <code>build-std</code> or
 similar.</p>
-<h2 id="testing-89"><a class="header" href="#testing-89">Testing</a></h2>
+<h2 id="testing-90"><a class="header" href="#testing-90">Testing</a></h2>
 <p>Created binaries work fine on Windows or Wine using native hardware. Remote
 testing is possible using the <code>remote-test-server</code> described <a href="https://rustc-dev-guide.rust-lang.org/tests/running.html#running-tests-on-a-remote-machine">here</a>.</p>
 <h2 id="cross-compilation-toolchains-and-c-code-49"><a class="header" href="#cross-compilation-toolchains-and-c-code-49">Cross-compilation toolchains and C code</a></h2>
@@ -15385,13 +15488,13 @@ cc = "path/to/xwin-clang-cl"
 (SGX)</a>
 based on the ABI defined by Fortanix for the <a href="https://edp.fortanix.com/">Enclave Development Platform
 (EDP)</a>.</p>
-<h2 id="target-maintainers-120"><a class="header" href="#target-maintainers-120">Target maintainers</a></h2>
+<h2 id="target-maintainers-121"><a class="header" href="#target-maintainers-121">Target maintainers</a></h2>
 <p><a href="https://github.com/jethrogb">@jethrogb</a>
 <a href="https://github.com/raoulstrackx">@raoulstrackx</a>
 <a href="https://github.com/aditijannu">@aditijannu</a></p>
 <p>Further contacts:</p>
 <p>The <a href="mailto:edp.maintainers@fortanix.com">EDP team</a> at Fortanix.</p>
-<h2 id="requirements-112"><a class="header" href="#requirements-112">Requirements</a></h2>
+<h2 id="requirements-113"><a class="header" href="#requirements-113">Requirements</a></h2>
 <p>The target supports <code>std</code> with a default allocator. Only cross compilation is
 supported.</p>
 <p>Binaries support all CPUs that include Intel SGX. Only 64-bit mode is supported.</p>
@@ -15409,7 +15512,7 @@ compatible runner, such as
 <p>See the <a href="https://edp.fortanix.com/docs/installation/guide/">EDP installation
 guide</a> for recommendations
 on how to setup a development and runtime environment.</p>
-<h2 id="building-the-target-76"><a class="header" href="#building-the-target-76">Building the target</a></h2>
+<h2 id="building-the-target-77"><a class="header" href="#building-the-target-77">Building the target</a></h2>
 <p>As a tier 2 target, the target is built by the Rust project.</p>
 <p>You can configure bootstrap like so:</p>
 <pre><code class="language-toml">[build]
@@ -15418,7 +15521,7 @@ target = ["x86_64-fortanix-unknown-sgx"]
 </code></pre>
 <h2 id="building-rust-programs-90"><a class="header" href="#building-rust-programs-90">Building Rust programs</a></h2>
 <p>Standard build flows using <code>cargo</code> or <code>rustc</code> should work.</p>
-<h2 id="testing-90"><a class="header" href="#testing-90">Testing</a></h2>
+<h2 id="testing-91"><a class="header" href="#testing-91">Testing</a></h2>
 <p>The Rust test suite as well as custom unit and integration tests will run on
 hardware that has Intel SGX enabled if a cargo runner is configured correctly,
 see the requirements section.</p>
@@ -15434,12 +15537,12 @@ that’s known to work with this target.</p>
 The <code>*-cygwin</code> targets are <strong>not</strong> intended as native target for applications,
 a developer writing Windows applications should use the <code>*-pc-windows-*</code> targets instead, which are <em>native</em> Windows.</p>
 <p>Cygwin is only intended as an emulation layer for Unix-only programs which do not support the native Windows targets.</p>
-<h2 id="target-maintainers-121"><a class="header" href="#target-maintainers-121">Target maintainers</a></h2>
+<h2 id="target-maintainers-122"><a class="header" href="#target-maintainers-122">Target maintainers</a></h2>
 <p><a href="https://github.com/Berrysoft">@Berrysoft</a></p>
-<h2 id="requirements-113"><a class="header" href="#requirements-113">Requirements</a></h2>
+<h2 id="requirements-114"><a class="header" href="#requirements-114">Requirements</a></h2>
 <p>This target is cross compiled. It needs <code>x86_64-pc-cygwin-gcc</code> as linker.</p>
 <p>The <code>target_os</code> of the target is <code>cygwin</code>, and it is <code>unix</code>.</p>
-<h2 id="building-the-target-77"><a class="header" href="#building-the-target-77">Building the target</a></h2>
+<h2 id="building-the-target-78"><a class="header" href="#building-the-target-78">Building the target</a></h2>
 <p>For cross-compilation you want LLVM at least 20.1.0-rc1.
 No native builds on Cygwin now.
 The tracking issue for host tools on Cygwin is <a href="https://github.com/rust-lang/rust/issues/137819">#137819</a>.</p>
@@ -15448,7 +15551,7 @@ The tracking issue for host tools on Cygwin is <a href="https://github.com/rust-
 this target, you will either need to build Rust with the target enabled (see
 “Building the target” above), or build your own copy of <code>core</code> by using
 <code>build-std</code> or similar.</p>
-<h2 id="testing-91"><a class="header" href="#testing-91">Testing</a></h2>
+<h2 id="testing-92"><a class="header" href="#testing-92">Testing</a></h2>
 <p>Created binaries work fine on Windows with Cygwin.</p>
 <h2 id="cross-compilation-toolchains-and-c-code-51"><a class="header" href="#cross-compilation-toolchains-and-c-code-51">Cross-compilation toolchains and C code</a></h2>
 <p>Compatible C code can be built with GCC shipped with Cygwin. Clang is untested.</p>
@@ -15456,16 +15559,16 @@ this target, you will either need to build Rust with the target enabled (see
 <h1 id="x86_64-unknown-linux-none"><a class="header" href="#x86_64-unknown-linux-none"><code>x86_64-unknown-linux-none</code></a></h1>
 <p><strong>Tier: 3</strong></p>
 <p>Freestanding x86-64 linux binary with no dependency on libc.</p>
-<h2 id="target-maintainers-122"><a class="header" href="#target-maintainers-122">Target maintainers</a></h2>
+<h2 id="target-maintainers-123"><a class="header" href="#target-maintainers-123">Target maintainers</a></h2>
 <p><a href="https://github.com/rosymati">@rosymati</a></p>
-<h2 id="requirements-114"><a class="header" href="#requirements-114">Requirements</a></h2>
+<h2 id="requirements-115"><a class="header" href="#requirements-115">Requirements</a></h2>
 <p>This target is cross compiled and can be built from any host.</p>
 <p>This target has no support for host tools, std, or alloc.</p>
 <p>One of the primary motivations of the target is to write a dynamic linker and libc in Rust.
 For that, the target defaults to position-independent code and position-independent executables (PIE) by default.
 PIE binaries need relocation at runtime. This is usually done by the dynamic linker or libc.
 You can use <code>-Crelocation-model=static</code> to create a position-dependent binary that does not need relocation at runtime.</p>
-<h2 id="building-the-target-78"><a class="header" href="#building-the-target-78">Building the target</a></h2>
+<h2 id="building-the-target-79"><a class="header" href="#building-the-target-79">Building the target</a></h2>
 <p>The target can be built by enabling it for a <code>rustc</code> build:</p>
 <pre><code class="language-toml">[build]
 build-stage = 1
@@ -15476,7 +15579,7 @@ target = ["x86_64-unknown-linux-none"]
 this target, you will either need to build Rust with the target enabled (see
 “Building the target” above), or build your own copy of <code>core</code> by using
 <code>build-std</code> or similar.</p>
-<h2 id="testing-92"><a class="header" href="#testing-92">Testing</a></h2>
+<h2 id="testing-93"><a class="header" href="#testing-93">Testing</a></h2>
 <p>Created binaries will run on linux without any external requirements</p>
 <h2 id="cross-compilation-toolchains-and-c-code-52"><a class="header" href="#cross-compilation-toolchains-and-c-code-52">Cross-compilation toolchains and C code</a></h2>
 <p>Support for C code is currently untested</p>
@@ -15484,10 +15587,10 @@ this target, you will either need to build Rust with the target enabled (see
 <h1 id="x86_64-unknown-none"><a class="header" href="#x86_64-unknown-none"><code>x86_64-unknown-none</code></a></h1>
 <p><strong>Tier: 2</strong></p>
 <p>Freestanding/bare-metal x86-64 binaries in ELF format: firmware, kernels, etc.</p>
-<h2 id="target-maintainers-123"><a class="header" href="#target-maintainers-123">Target maintainers</a></h2>
+<h2 id="target-maintainers-124"><a class="header" href="#target-maintainers-124">Target maintainers</a></h2>
 <p><a href="https://github.com/haraldh">@haraldh</a>
 <a href="https://github.com/mikeleany">@mikeleany</a></p>
-<h2 id="requirements-115"><a class="header" href="#requirements-115">Requirements</a></h2>
+<h2 id="requirements-116"><a class="header" href="#requirements-116">Requirements</a></h2>
 <p>This target is cross-compiled. There is no support for <code>std</code>. There is no
 default allocator, but it’s possible to use <code>alloc</code> by supplying an allocator.</p>
 <p>By default, Rust code generated for this target does not use any vector or
@@ -15507,7 +15610,7 @@ convention</a>, without red zones.</p>
 <p>This target generates binaries in the ELF format. Any alternate formats or
 special considerations for binary layout will require linker options or linker
 scripts.</p>
-<h2 id="building-the-target-79"><a class="header" href="#building-the-target-79">Building the target</a></h2>
+<h2 id="building-the-target-80"><a class="header" href="#building-the-target-80">Building the target</a></h2>
 <p>You can build Rust with support for the target by adding it to the <code>target</code>
 list in <code>bootstrap.toml</code>:</p>
 <pre><code class="language-toml">[build]
@@ -15521,7 +15624,7 @@ rustup target add x86_64-unknown-none
 # target flag may be used with any cargo or rustc command
 cargo build --target x86_64-unknown-none
 </code></pre>
-<h2 id="testing-93"><a class="header" href="#testing-93">Testing</a></h2>
+<h2 id="testing-94"><a class="header" href="#testing-94">Testing</a></h2>
 <p>As <code>x86_64-unknown-none</code> supports a variety of different environments and does
 not support <code>std</code>, this target does not support running the Rust test suite.</p>
 <h2 id="cross-compilation-toolchains-and-c-code-53"><a class="header" href="#cross-compilation-toolchains-and-c-code-53">Cross-compilation toolchains and C code</a></h2>
@@ -15545,18 +15648,18 @@ The goal of this target is to allow shipping ASAN-instrumented standard
 libraries through rustup, enabling a fully instrumented binary without requiring
 nightly features (build-std).
 Once build-std stabilizes, this target is no longer needed and will be removed.</p>
-<h2 id="target-maintainers-124"><a class="header" href="#target-maintainers-124">Target maintainers</a></h2>
+<h2 id="target-maintainers-125"><a class="header" href="#target-maintainers-125">Target maintainers</a></h2>
 <ul>
 <li><a href="https://github.com/jakos-sec">@jakos-sec</a></li>
 <li><a href="https://github.com/1c3t3a">@1c3t3a</a></li>
 <li>[@rust-lang/project-exploit-mitigations][project-exploit-mitigations]</li>
 </ul>
-<h2 id="requirements-116"><a class="header" href="#requirements-116">Requirements</a></h2>
+<h2 id="requirements-117"><a class="header" href="#requirements-117">Requirements</a></h2>
 <p>The target is for cross-compilation only. Host tools are not supported, since
 there is no need to have the host tools instrumented with ASAN. std is fully
 supported.</p>
 <p>In all other aspects the target is equivalent to <code>x86_64-unknown-linux-gnu</code>.</p>
-<h2 id="building-the-target-80"><a class="header" href="#building-the-target-80">Building the target</a></h2>
+<h2 id="building-the-target-81"><a class="header" href="#building-the-target-81">Building the target</a></h2>
 <p>The target can be built by enabling it for a rustc build:</p>
 <pre><code class="language-toml">[build]
 target = ["x86_64-unknown-linux-gnuasan"]
@@ -15568,7 +15671,7 @@ target = ["x86_64-unknown-linux-gnuasan"]
 <p>and then compiling with the target:</p>
 <pre><code class="language-sh">$ rustc foo.rs --target x86_64-unknown-linux-gnuasan
 </code></pre>
-<h2 id="testing-94"><a class="header" href="#testing-94">Testing</a></h2>
+<h2 id="testing-95"><a class="header" href="#testing-95">Testing</a></h2>
 <p>Created binaries will run on Linux without any external requirements.</p>
 <h2 id="cross-compilation-toolchains-and-c-code-54"><a class="header" href="#cross-compilation-toolchains-and-c-code-54">Cross-compilation toolchains and C code</a></h2>
 <p>The target supports C code and should use the same toolchain target as
@@ -15582,18 +15685,18 @@ The goal of this target is to allow shipping MSAN-instrumented standard
 libraries through rustup, enabling a fully instrumented binary without requiring
 nightly features (build-std).
 Once build-std stabilizes, this target is no longer needed and will be removed.</p>
-<h2 id="target-maintainers-125"><a class="header" href="#target-maintainers-125">Target maintainers</a></h2>
+<h2 id="target-maintainers-126"><a class="header" href="#target-maintainers-126">Target maintainers</a></h2>
 <ul>
 <li><a href="https://github.com/jakos-sec">@jakos-sec</a></li>
 <li><a href="https://github.com/1c3t3a">@1c3t3a</a></li>
 <li>[@rust-lang/project-exploit-mitigations][project-exploit-mitigations]</li>
 </ul>
-<h2 id="requirements-117"><a class="header" href="#requirements-117">Requirements</a></h2>
+<h2 id="requirements-118"><a class="header" href="#requirements-118">Requirements</a></h2>
 <p>The target is for cross-compilation only. Host tools are not supported, since
 there is no need to have the host tools instrumented with MSAN. std is fully
 supported.</p>
 <p>In all other aspects the target is equivalent to <code>x86_64-unknown-linux-gnu</code>.</p>
-<h2 id="building-the-target-81"><a class="header" href="#building-the-target-81">Building the target</a></h2>
+<h2 id="building-the-target-82"><a class="header" href="#building-the-target-82">Building the target</a></h2>
 <p>The target can be built by enabling it for a rustc build:</p>
 <pre><code class="language-toml">[build]
 target = ["x86_64-unknown-linux-gnumsan"]
@@ -15605,7 +15708,7 @@ target = ["x86_64-unknown-linux-gnumsan"]
 <p>and then compiling with the target:</p>
 <pre><code class="language-sh">$ rustc foo.rs --target x86_64-unknown-linux-gnumsan
 </code></pre>
-<h2 id="testing-95"><a class="header" href="#testing-95">Testing</a></h2>
+<h2 id="testing-96"><a class="header" href="#testing-96">Testing</a></h2>
 <p>Created binaries will run on Linux without any external requirements.</p>
 <h2 id="cross-compilation-toolchains-and-c-code-55"><a class="header" href="#cross-compilation-toolchains-and-c-code-55">Cross-compilation toolchains and C code</a></h2>
 <p>The target supports C code and should use the same toolchain target as
@@ -15619,18 +15722,18 @@ The goal of this target is to allow shipping TSAN-instrumented standard
 libraries through rustup, enabling a fully instrumented binary without requiring
 nightly features (build-std).
 Once build-std stabilizes, this target is no longer needed and will be removed.</p>
-<h2 id="target-maintainers-126"><a class="header" href="#target-maintainers-126">Target maintainers</a></h2>
+<h2 id="target-maintainers-127"><a class="header" href="#target-maintainers-127">Target maintainers</a></h2>
 <ul>
 <li><a href="https://github.com/jakos-sec">@jakos-sec</a></li>
 <li><a href="https://github.com/1c3t3a">@1c3t3a</a></li>
 <li>[@rust-lang/project-exploit-mitigations][project-exploit-mitigations]</li>
 </ul>
-<h2 id="requirements-118"><a class="header" href="#requirements-118">Requirements</a></h2>
+<h2 id="requirements-119"><a class="header" href="#requirements-119">Requirements</a></h2>
 <p>The target is for cross-compilation only. Host tools are not supported, since
 there is no need to have the host tools instrumented with TSAN. std is fully
 supported.</p>
 <p>In all other aspects the target is equivalent to <code>x86_64-unknown-linux-gnu</code>.</p>
-<h2 id="building-the-target-82"><a class="header" href="#building-the-target-82">Building the target</a></h2>
+<h2 id="building-the-target-83"><a class="header" href="#building-the-target-83">Building the target</a></h2>
 <p>The target can be built by enabling it for a rustc build:</p>
 <pre><code class="language-toml">[build]
 target = ["x86_64-unknown-linux-gnutsan"]
@@ -15642,7 +15745,7 @@ target = ["x86_64-unknown-linux-gnutsan"]
 <p>and then compiling with the target:</p>
 <pre><code class="language-sh">$ rustc foo.rs --target x86_64-unknown-linux-gnutsan
 </code></pre>
-<h2 id="testing-96"><a class="header" href="#testing-96">Testing</a></h2>
+<h2 id="testing-97"><a class="header" href="#testing-97">Testing</a></h2>
 <p>Created binaries will run on Linux without any external requirements.</p>
 <h2 id="cross-compilation-toolchains-and-c-code-56"><a class="header" href="#cross-compilation-toolchains-and-c-code-56">Cross-compilation toolchains and C code</a></h2>
 <p>The target supports C code and should use the same toolchain target as
@@ -15651,10 +15754,10 @@ target = ["x86_64-unknown-linux-gnutsan"]
 <h1 id="xtensa--none-elf"><a class="header" href="#xtensa--none-elf"><code>xtensa-*-none-elf</code></a></h1>
 <p><strong>Tier: 3</strong></p>
 <p>Targets for Xtensa CPUs.</p>
-<h2 id="target-maintainers-127"><a class="header" href="#target-maintainers-127">Target maintainers</a></h2>
+<h2 id="target-maintainers-128"><a class="header" href="#target-maintainers-128">Target maintainers</a></h2>
 <p><a href="https://github.com/MabezDev">@MabezDev</a>
 <a href="https://github.com/SergioGasquez">@SergioGasquez</a></p>
-<h2 id="requirements-119"><a class="header" href="#requirements-119">Requirements</a></h2>
+<h2 id="requirements-120"><a class="header" href="#requirements-120">Requirements</a></h2>
 <p>The target names follow this format: <code>xtensa-$CPU</code>, where <code>$CPU</code> specifies the target chip. The following targets are currently defined:</p>
 <div class="table-wrapper">
 <table>
@@ -15678,9 +15781,9 @@ target = ["x86_64-unknown-linux-gnutsan"]
 <p>Apache NuttX is a real-time operating system (RTOS) with an emphasis on standards compliance and small footprint. It is scalable from 8-bit to 64-bit microcontroller environments. The primary governing standards in NuttX are POSIX and ANSI standards.</p>
 <p>NuttX adopts additional standard APIs from Unix and other common RTOSs, such as VxWorks. These APIs are used for functionality not available under the POSIX and ANSI standards. However, some APIs, like fork(), are not appropriate for deeply-embedded environments and are not implemented in NuttX.</p>
 <p>For brevity, many parts of the documentation will refer to Apache NuttX as simply NuttX.</p>
-<h2 id="target-maintainers-128"><a class="header" href="#target-maintainers-128">Target maintainers</a></h2>
+<h2 id="target-maintainers-129"><a class="header" href="#target-maintainers-129">Target maintainers</a></h2>
 <p><a href="https://github.com/no1wudi">@no1wudi</a></p>
-<h2 id="requirements-120"><a class="header" href="#requirements-120">Requirements</a></h2>
+<h2 id="requirements-121"><a class="header" href="#requirements-121">Requirements</a></h2>
 <p>The target name follow this format: <code>ARCH[-VENDOR]-nuttx-ABI</code>, where <code>ARCH</code> is the target architecture, <code>VENDOR</code> is the vendor name, and <code>ABI</code> is the ABI used.</p>
 <p>The following target names are defined:</p>
 <ul>
@@ -15702,7 +15805,7 @@ target = ["x86_64-unknown-linux-gnutsan"]
 <li><code>riscv64imac-unknown-nuttx-elf</code></li>
 <li><code>riscv64gc-unknown-nuttx-elf</code></li>
 </ul>
-<h2 id="building-the-target-83"><a class="header" href="#building-the-target-83">Building the target</a></h2>
+<h2 id="building-the-target-84"><a class="header" href="#building-the-target-84">Building the target</a></h2>
 <p>The target can be built by enabling it in the <code>rustc</code> build:</p>
 <pre><code class="language-toml">[build]
 target = "riscv32imc-unknown-nuttx-elf"
@@ -15711,7 +15814,7 @@ target = "riscv32imc-unknown-nuttx-elf"
 linker = "riscv-none-elf-gcc"
 </code></pre>
 <p>The toolchain for the target can be found in <a href="https://nuttx.apache.org/docs/latest/quickstart/install.html">NuttX’s quick start guide</a>.</p>
-<h2 id="testing-97"><a class="header" href="#testing-97">Testing</a></h2>
+<h2 id="testing-98"><a class="header" href="#testing-98">Testing</a></h2>
 <p>This is a cross-compiled <code>no-std</code> target, which must be run either in a simulator
 or by programming them onto suitable hardware. It is not possible to run the
 Rust test-suite on this target.</p>
