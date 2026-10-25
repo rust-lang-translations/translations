@@ -93,7 +93,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-285a3e11.js";
+            window.path_to_searchindex_js = "../searchindex-3b5e8e18.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-ebf7fde9.js"></script>
@@ -250,10 +250,9 @@ elements that have been initialized.</p>
 compiler will give us too strict variance. So a <code>&amp;Vec&lt;&amp;'static str&gt;</code>
 couldn’t be used where a <code>&amp;Vec&lt;&amp;'a str&gt;</code> was expected. See <a href="../ownership.html">the chapter
 on ownership and lifetimes</a> for all the details on variance.</p>
-<p>As we saw in the ownership chapter, the standard library uses <code>Unique&lt;T&gt;</code> in place of
-<code>*mut T</code> when it has a raw pointer to an allocation that it owns. Unique is unstable,
-so we’d like to not use it if possible, though.</p>
-<p>As a recap, Unique is a wrapper around a raw pointer that declares that:</p>
+<p>As we saw in the ownership chapter, when the standard library has a raw pointer
+to an allocation that it owns, it wants that pointer to declare more than a bare
+<code>*mut T</code> does:</p>
 <ul>
 <li>We are covariant over <code>T</code></li>
 <li>We may own a value of type <code>T</code> (this is not relevant for our example here, but see
@@ -261,11 +260,10 @@ so we’d like to not use it if possible, though.</p>
 <li>We are Send/Sync if <code>T</code> is Send/Sync</li>
 <li>Our pointer is never null (so <code>Option&lt;Vec&lt;T&gt;&gt;</code> is null-pointer-optimized)</li>
 </ul>
-<p>We can implement all of the above requirements in stable Rust. To do this, instead
-of using <code>Unique&lt;T&gt;</code> we will use <a href="../../std/ptr/struct.NonNull.html"><code>NonNull&lt;T&gt;</code></a>, another wrapper around a
-raw pointer, which gives us two of the above properties, namely it is covariant
-over <code>T</code> and is declared to never be null. By implementing Send/Sync if <code>T</code> is,
-we get the same results as using <code>Unique&lt;T&gt;</code>:</p>
+<p>We can implement all of the above requirements in stable Rust. To do this, we will
+use <a href="../../std/ptr/struct.NonNull.html"><code>NonNull&lt;T&gt;</code></a>, a wrapper around a raw pointer which gives us two of
+the above properties, namely it is covariant over <code>T</code> and is declared to never be
+null. By implementing Send/Sync if <code>T</code> is, we get the rest of what we need:</p>
 <pre class="playground"><code class="language-rust edition2024">use std::ptr::NonNull;
 
 pub struct Vec&lt;T&gt; {

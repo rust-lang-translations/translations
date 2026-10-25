@@ -93,7 +93,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-285a3e11.js";
+            window.path_to_searchindex_js = "searchindex-3b5e8e18.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-ebf7fde9.js"></script>
@@ -252,42 +252,39 @@ be implemented at all!</p>
 Drop, Rust will prevent you from e.g. moving fields out of self. For most types,
 this is totally fine.</p>
 <p>For instance, a custom implementation of <code>Box</code> might write <code>Drop</code> like this:</p>
-<pre class="playground"><code class="language-rust edition2024">#![feature(ptr_internals, allocator_api)]
-
-use std::alloc::{Allocator, Global, GlobalAlloc, Layout};
+<pre class="playground"><code class="language-rust edition2024">use std::alloc::{Allocator, Global, GlobalAlloc, Layout};
+use std::marker::PhantomData;
 use std::mem;
-use std::ptr::{drop_in_place, NonNull, Unique};
+use std::ptr::{drop_in_place, NonNull};
 
-struct Box&lt;T&gt;{ ptr: Unique&lt;T&gt; }
+struct Box&lt;T&gt;{ ptr: NonNull&lt;T&gt;, _marker: PhantomData&lt;T&gt; }
 
 impl&lt;T&gt; Drop for Box&lt;T&gt; {
     fn drop(&amp;mut self) {
         unsafe {
             drop_in_place(self.ptr.as_ptr());
-            let c: NonNull&lt;T&gt; = self.ptr.into();
-            Global.deallocate(c.cast(), Layout::new::&lt;T&gt;())
+            Global.deallocate(self.ptr.cast(), Layout::new::&lt;T&gt;())
         }
     }
 }
 <span class="boring">fn main() {}</span></code></pre>
-<p>and this works fine because when Rust goes to drop the <code>ptr</code> field it just sees
-a <a href="phantom-data.html">Unique</a> that has no actual <code>Drop</code> implementation. Similarly nothing can
-use-after-free the <code>ptr</code> because when drop exits, it becomes inaccessible.</p>
+<p>and this works fine because when Rust goes to drop the fields it just sees a
+<a href="../std/ptr/struct.NonNull.html"><code>NonNull</code></a> and a <a href="phantom-data.html"><code>PhantomData</code></a>, neither of which has an actual <code>Drop</code>
+implementation. Similarly nothing can use-after-free the <code>ptr</code> because when drop
+exits, it becomes inaccessible.</p>
 <p>However this wouldn’t work:</p>
-<pre class="playground"><code class="language-rust edition2024">#![feature(allocator_api, ptr_internals)]
-
-use std::alloc::{Allocator, Global, GlobalAlloc, Layout};
-use std::ptr::{drop_in_place, Unique, NonNull};
+<pre class="playground"><code class="language-rust edition2024">use std::alloc::{Allocator, Global, GlobalAlloc, Layout};
+use std::marker::PhantomData;
+use std::ptr::{drop_in_place, NonNull};
 use std::mem;
 
-struct Box&lt;T&gt;{ ptr: Unique&lt;T&gt; }
+struct Box&lt;T&gt;{ ptr: NonNull&lt;T&gt;, _marker: PhantomData&lt;T&gt; }
 
 impl&lt;T&gt; Drop for Box&lt;T&gt; {
     fn drop(&amp;mut self) {
         unsafe {
             drop_in_place(self.ptr.as_ptr());
-            let c: NonNull&lt;T&gt; = self.ptr.into();
-            Global.deallocate(c.cast(), Layout::new::&lt;T&gt;());
+            Global.deallocate(self.ptr.cast(), Layout::new::&lt;T&gt;());
         }
     }
 }
@@ -299,8 +296,7 @@ impl&lt;T&gt; Drop for SuperBox&lt;T&gt; {
         unsafe {
             // Hyper-optimized: deallocate the box's contents for it
             // without `drop`ing the contents
-            let c: NonNull&lt;T&gt; = self.my_box.ptr.into();
-            Global.deallocate(c.cast::&lt;u8&gt;(), Layout::new::&lt;T&gt;());
+            Global.deallocate(self.my_box.ptr.cast::&lt;u8&gt;(), Layout::new::&lt;T&gt;());
         }
     }
 }
@@ -337,20 +333,18 @@ certainly many valid use cases for needing to do trickier things with
 destructors.</p>
 <p>The classic safe solution to overriding recursive drop and allowing moving out
 of Self during <code>drop</code> is to use an Option:</p>
-<pre class="playground"><code class="language-rust edition2024">#![feature(allocator_api, ptr_internals)]
-
-use std::alloc::{Allocator, GlobalAlloc, Global, Layout};
-use std::ptr::{drop_in_place, Unique, NonNull};
+<pre class="playground"><code class="language-rust edition2024">use std::alloc::{Allocator, GlobalAlloc, Global, Layout};
+use std::marker::PhantomData;
+use std::ptr::{drop_in_place, NonNull};
 use std::mem;
 
-struct Box&lt;T&gt;{ ptr: Unique&lt;T&gt; }
+struct Box&lt;T&gt;{ ptr: NonNull&lt;T&gt;, _marker: PhantomData&lt;T&gt; }
 
 impl&lt;T&gt; Drop for Box&lt;T&gt; {
     fn drop(&amp;mut self) {
         unsafe {
             drop_in_place(self.ptr.as_ptr());
-            let c: NonNull&lt;T&gt; = self.ptr.into();
-            Global.deallocate(c.cast(), Layout::new::&lt;T&gt;());
+            Global.deallocate(self.ptr.cast(), Layout::new::&lt;T&gt;());
         }
     }
 }
@@ -364,8 +358,7 @@ impl&lt;T&gt; Drop for SuperBox&lt;T&gt; {
             // without `drop`ing the contents. Need to set the `box`
             // field as `None` to prevent Rust from trying to Drop it.
             let my_box = self.my_box.take().unwrap();
-            let c: NonNull&lt;T&gt; = my_box.ptr.into();
-            Global.deallocate(c.cast(), Layout::new::&lt;T&gt;());
+            Global.deallocate(my_box.ptr.cast(), Layout::new::&lt;T&gt;());
             mem::forget(my_box);
         }
     }
