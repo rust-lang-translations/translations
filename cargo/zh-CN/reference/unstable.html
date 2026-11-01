@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Unstable Features - The Cargo Book</title>
+        <title>不稳定特性 - The Cargo Book</title>
 
 
         <!-- Custom HTML head -->
@@ -97,10 +97,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-24a63ce7.js";
+            window.path_to_searchindex_js = "../searchindex-30f42398.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-d4808052.js"></script>
+        <script src="../toc-670503bf.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -242,7 +242,7 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="unstable-features"><a class="header" href="#unstable-features">Unstable Features</a></h1>
+                        <h1 id="不稳定特性"><a class="header" href="#不稳定特性">不稳定特性</a></h1>
 <p>Experimental Cargo features are only available on the <a href="../../book/appendix-07-nightly-rust.html">nightly channel</a>. You are encouraged to experiment with these features to see if they meet your needs, and if there are any issues or problems. Check the linked tracking issues listed below for more information on the feature, and click the GitHub subscribe button if you want future updates.</p>
 <p>After some period of time, if the feature does not have any major concerns, it can be <a href="https://doc.crates.io/contrib/process/unstable.html#stabilization">stabilized</a>, which will make it available on stable once the current nightly release reaches the stable channel (anywhere from 6 to 12 weeks).</p>
 <p>There are three different ways that unstable features can be enabled based on how the feature works:</p>
@@ -362,12 +362,12 @@ build-std = ["core", "alloc"]
 <li><a href="#rustc-unicode"><code>rustc-unicode</code></a> — Enables <code>rustc</code>’s unicode error format in Cargo’s error messages</li>
 </ul>
 </li>
-<li>Configuration
+<li>配置
 <ul>
 <li><a href="#cargo-config"><code>cargo config</code></a> — Adds a new subcommand for viewing config files.</li>
 </ul>
 </li>
-<li>Registries
+<li>注册表（Registries）
 <ul>
 <li><a href="#publish-timeout">publish-timeout</a> — Controls the timeout between uploading the crate and being available in the index</li>
 </ul>
@@ -896,6 +896,36 @@ hint-mostly-unused = true
 mostly-unused = true
 </code></pre>
 <p>This will cause the crate to default to hint-mostly-unused, unless overridden via <code>profile</code>, which takes precedence, and which can only be specified in the top-level crate being built.</p>
+<h3 id="documentation-updates"><a class="header" href="#documentation-updates">Documentation updates</a></h3>
+<h4 id="hint-mostly-unused"><a class="header" href="#hint-mostly-unused">hint-mostly-unused</a></h4>
+<p><em>as a new <a href="./profiles.html#profile-settings">“Profile settings” entry</a></em></p>
+<p>The <code>hint-mostly-unused</code> setting controls the <a href="../../unstable-book/compiler-flags/hint-mostly-unused.html"><code>-Zhint-mostly-unused</code> flag</a> which indicates that most of a crate’s API surface will go unused by anything depending on it. This hint can speed up the build by attempting to minimize compilation time for items that aren’t used at all. Misapplication to crates that don’t fit that criteria can slow down the build rather than speeding it up.</p>
+<p>The valid options are:</p>
+<ul>
+<li><code>true</code>: enabled</li>
+<li><code>false</code>: disabled</li>
+</ul>
+<p>The default is the crate’s <a href="#mostly-unused"><code>mostly-unused</code> hint</a>, or <code>false</code> if the crate does not set the hint.</p>
+<p>This is primarily useful to enable for specific dependencies:</p>
+<pre><code class="language-toml">[profile.dev.package.huge-mostly-unused-dependency]
+hint-mostly-unused = true
+</code></pre>
+<p>The <a href="lints.html#blanket_hint_mostly_unused"><code>blanket_hint_mostly_unused</code></a> lint warns when this setting is applied to all dependencies.</p>
+<h4 id="mostly-unused"><a class="header" href="#mostly-unused"><code>mostly-unused</code></a></h4>
+<p><em>as a new subsection of <a href="./manifest.html#the-hints-section">“The <code>[hints]</code> section”</a>, which would gain one subsection per hint</em></p>
+<p>The <code>mostly-unused</code> hint indicates that most of this crate’s API surface will go unused by anything depending on it. A crate can provide this hint automatically for crates that depend on it:</p>
+<pre><code class="language-toml"># In example-dependency's Cargo.toml
+[hints]
+mostly-unused = true
+</code></pre>
+<p>This will cause the crate to default to <a href="#hint-mostly-unused"><code>hint-mostly-unused</code></a>. A <code>hint-mostly-unused</code> setting in a <a href="profiles.html">profile</a> takes precedence over the hint. Only the workspace root <code>Cargo.toml</code> and <a href="config.html#profile">Cargo configuration</a> can set profiles:</p>
+<pre><code class="language-toml"># This package uses most of `example-dependency`, so the hint does not apply.
+[profile.dev.package.example-dependency]
+hint-mostly-unused = false
+</code></pre>
+<p>The valid values are <code>true</code> and <code>false</code>. Cargo warns about and ignores any other value.</p>
+<p>A hint only applies to the package that sets it, not to its dependencies.</p>
+<p>Only use this hint when you expect most dependents to use a small part of the crate. Otherwise, the hint may slow down their builds.</p>
 <h2 id="package-min-opt-level-hint"><a class="header" href="#package-min-opt-level-hint">Package <code>min-opt-level</code> hint</a></h2>
 <ul>
 <li>Tracking Issue: <a href="https://github.com/rust-lang/cargo/issues/17334">#17334</a></li>
@@ -906,7 +936,7 @@ mostly-unused = true
 min-opt-level = 2
 </code></pre>
 <p>To enable this feature, pass <code>-Zhint-min-opt-level</code>. Without the flag, Cargo warns and ignores the hint. Versions of Cargo prior to the introduction of this feature will give an “unused manifest key” warning, but will otherwise function without erroring. This means using the hint does not change the package’s MSRV.</p>
-<h3 id="documentation-updates"><a class="header" href="#documentation-updates">Documentation updates</a></h3>
+<h3 id="documentation-updates-1"><a class="header" href="#documentation-updates-1">Documentation updates</a></h3>
 <h4 id="min-opt-level"><a class="header" href="#min-opt-level"><code>min-opt-level</code></a></h4>
 <p><em>as a new subsection of <a href="./manifest.html#the-hints-section">“The <code>[hints]</code> section”</a>, which would gain one subsection per hint</em></p>
 <p>The <code>min-opt-level</code> hint sets the lowest <a href="profiles.html#opt-level"><code>opt-level</code></a> that Cargo will use to build this package. Some packages are very slow without optimization, or take longer to build without it. Such a package can ask for a minimum optimization level:</p>
@@ -1272,7 +1302,7 @@ fn main() {
 <li><code>cargo &lt;path&gt;</code> is at a verbosity level below the normal default.  Pass <code>-v</code> to get normal output.</li>
 </ul>
 <p>When running a package with an embedded manifest, <a href="https://doc.rust-lang.org/std/os/unix/process/trait.CommandExt.html#tymethod.arg0"><code>arg0</code></a> will be the scripts path. To get the executable’s path, see <a href="https://doc.rust-lang.org/std/env/fn.current_exe.html"><code>current_exe</code></a>.</p>
-<h3 id="documentation-updates-1"><a class="header" href="#documentation-updates-1">Documentation Updates</a></h3>
+<h3 id="documentation-updates-2"><a class="header" href="#documentation-updates-2">Documentation Updates</a></h3>
 <h2 id="gc"><a class="header" href="#gc">gc</a></h2>
 <ul>
 <li>Tracking Issue: <a href="https://github.com/rust-lang/cargo/issues/12633">#12633</a></li>
@@ -1610,7 +1640,7 @@ core = { builtin = true}
 <p>Specifying profiles in Cargo config files and environment variables has been stabilized in the 1.43 release. See the <a href="config.html#profile">config <code>[profile]</code> table</a> for more information about specifying <a href="profiles.html">profiles</a> in config files.</p>
 <h2 id="crate-versions"><a class="header" href="#crate-versions">crate-versions</a></h2>
 <p>The <code>-Z crate-versions</code> flag has been stabilized in the 1.47 release. The crate version is now automatically included in the <a href="../commands/cargo-doc.html"><code>cargo doc</code></a> documentation sidebar.</p>
-<h2 id="features"><a class="header" href="#features">Features</a></h2>
+<h2 id="特性features"><a class="header" href="#特性features">特性（Features）</a></h2>
 <p>The <code>-Z features</code> flag has been stabilized in the 1.51 release. See <a href="features.html#feature-resolver-version-2">feature resolver version 2</a> for more information on using the new feature resolver.</p>
 <h2 id="package-features"><a class="header" href="#package-features">package-features</a></h2>
 <p>The <code>-Z package-features</code> flag has been stabilized in the 1.51 release. See the <a href="features.html#resolver-version-2-command-line-flags">resolver version 2 command-line flags</a> for more information on using the features CLI options.</p>
@@ -1630,7 +1660,7 @@ core = { builtin = true}
 <p>Custom named profiles have been stabilized in the 1.57 release. See the <a href="profiles.html#custom-profiles">profiles chapter</a> for more information.</p>
 <h2 id="profile-strip-option"><a class="header" href="#profile-strip-option">Profile <code>strip</code> option</a></h2>
 <p>The profile <code>strip</code> option has been stabilized in the 1.59 release. See the <a href="profiles.html#strip">profiles chapter</a> for more information.</p>
-<h2 id="future-incompat-report"><a class="header" href="#future-incompat-report">Future incompat report</a></h2>
+<h2 id="未来不兼容报告"><a class="header" href="#未来不兼容报告">未来不兼容报告</a></h2>
 <p>Support for generating a future-incompat report has been stabilized in the 1.59 release. See the <a href="future-incompat-report.html">future incompat report chapter</a> for more information.</p>
 <h2 id="namespaced-features"><a class="header" href="#namespaced-features">Namespaced features</a></h2>
 <p>Namespaced features has been stabilized in the 1.60 release. See the <a href="features.html#optional-dependencies">Features chapter</a> for more information.</p>
