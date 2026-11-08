@@ -94,7 +94,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d6daf9d1.js";
+            window.path_to_searchindex_js = "searchindex-b6534b3e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-20da6b24.js"></script>
@@ -21533,6 +21533,7 @@ assert_eq!(dot7, 56.0);
 <li><a href="#the-link_section-attribute"><code>link_section</code></a></li>
 <li><a href="#the-must_use-attribute"><code>must_use</code></a></li>
 <li><a href="#the-no_mangle-attribute"><code>no_mangle</code></a></li>
+<li><a href="#r-attributes.codegen.optimize"><code>optimize</code></a></li>
 <li><a href="#lint-check-attributes">Lint check attributes</a></li>
 <li><a href="#r-macro.proc.attribute">Procedural macro attributes</a></li>
 <li><a href="#테스팅-속성">Testing attributes</a></li>
@@ -31783,6 +31784,7 @@ pub fn f() {}
 <li><a href="#the-cold-attribute"><code>cold</code></a> — 함수가 거의 호출되지 않을 것임을 나타내는 힌트입니다.</li>
 <li><a href="#the-naked-attribute"><code>naked</code></a> — Prevent the compiler from emitting a function prologue and epilogue.</li>
 <li><a href="#the-no_builtins-attribute"><code>no_builtins</code></a> — 특정 내장 함수들의 사용을 비활성화합니다.</li>
+<li><a href="#r-attributes.codegen.optimize"><code>optimize</code></a> — Suggest an optimization goal for a function: size, speed, or none.</li>
 <li><a href="#the-target_feature-attribute"><code>target_feature</code></a> — 플랫폼별 코드 생성을 구성합니다.</li>
 <li><a href="#the-track_caller-attribute"><code>track_caller</code></a> — 부모 호출 위치를 <code>std::panic::Location::caller()</code> 로 전달합니다.</li>
 <li><a href="#the-instruction_set-attribute"><code>instruction_set</code></a> — Specify the instruction set used to generate a function’s code.</li>
@@ -33595,6 +33597,25 @@ let f = #[inline] || (); // 오류
 </div>
 
 <p>The <code>inline</code> attribute is ignored if the function is externally exported with <a href="#r-abi.no_mangle"><code>no_mangle</code></a> or <a href="#r-abi.export_name"><code>export_name</code></a>.</p>
+<div class="rule" id="r-attributes.codegen.inline.optimize"><a class="rule-link" href="#r-attributes.codegen.inline.optimize" title="attributes.codegen.inline.optimize"><span>[attributes<wbr>.codegen<wbr>.inline<wbr>.optimize]</span></a>
+</div>
+
+<p><code>#[inline]</code> and <code>#[inline(always)]</code> may not be used with <code>#[optimize(none)]</code> on the same function. (See <a href="#r-attributes.codegen.optimize.inline">attributes.codegen.optimize.inline</a>.)</p>
+<pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[optimize(none)]
+#[inline] // ERROR: Not allowed.
+fn f() {}
+<span class="boring">}</span></code></pre>
+<p><code>#[inline]</code> and <code>#[inline(always)]</code> may still be used on a closure or async block that inherits <code>optimize(none)</code>. (See <a href="#r-attributes.codegen.optimize.closures">attributes.codegen.optimize.closures</a>.)</p>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[optimize(none)]
+pub fn f() {
+    #[inline] || (); // Inherits `optimize(none)`.
+    #[inline(always)] async {}; // Inherits `optimize(none)`.
+}
+<span class="boring">}</span></code></pre>
 <!-- template:attributes -->
 <div class="rule" id="r-attributes.codegen.cold"><a class="rule-link" href="#r-attributes.codegen.cold" title="attributes.codegen.cold"><span>[attributes<wbr>.codegen<wbr>.cold]</span></a>
 </div>
@@ -33778,6 +33799,19 @@ pub extern "sysv64" fn add_n(number: u64) -&gt; u64 {
 </div>
 
 <p>The <a href="#r-attributes.codegen.target_feature"><code>target_feature</code> attribute</a> cannot be applied to a naked function.</p>
+<div class="rule" id="r-attributes.codegen.naked.optimize"><a class="rule-link" href="#r-attributes.codegen.naked.optimize" title="attributes.codegen.naked.optimize"><span>[attributes<wbr>.codegen<wbr>.naked<wbr>.optimize]</span></a>
+</div>
+
+<p>The <a href="#r-attributes.codegen.optimize"><code>optimize</code> attribute</a> cannot be applied to a naked function. (See <a href="#r-attributes.codegen.optimize.naked">attributes.codegen.optimize.naked</a>.)</p>
+<pre class="playground"><code class="language-rust compile_fail E0736 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use core::arch::naked_asm;
+</span>#[optimize(size)] // ERROR: Not allowed on a naked function.
+#[unsafe(naked)]
+pub extern "C" fn f() {
+    naked_asm!("ret")
+}
+<span class="boring">}</span></code></pre>
 <!-- TODO: Reflexive rules? -->
 <div class="rule" id="r-attributes.codegen.naked.abi"><a class="rule-link" href="#r-attributes.codegen.naked.abi" title="attributes.codegen.naked.abi"><span>[attributes<wbr>.codegen<wbr>.naked<wbr>.abi]</span></a>
 </div>
@@ -33824,6 +33858,277 @@ pub extern "sysv64" fn add_n(number: u64) -&gt; u64 {
 </blockquote>
 </div>
 
+<!-- template:attributes -->
+<div class="rule" id="r-attributes.codegen.optimize"><a class="rule-link" href="#r-attributes.codegen.optimize" title="attributes.codegen.optimize"><span>[attributes<wbr>.codegen<wbr>.optimize]</span></a>
+</div>
+
+<h2 id="the-optimize-attribute"><a class="header" href="#the-optimize-attribute">The <code>optimize</code> attribute</a></h2>
+<div class="rule" id="r-attributes.codegen.optimize.intro"><a class="rule-link" href="#r-attributes.codegen.optimize.intro" title="attributes.codegen.optimize.intro"><span>[attributes<wbr>.codegen<wbr>.optimize<wbr>.intro]</span></a>
+</div>
+
+<p>The <em><code>optimize</code> <a href="#속성-1">attribute</a></em> suggests an optimization goal for the attributed function: size, speed, or none.</p>
+<div class="alert alert-example">
+<blockquote>
+<p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"></path></svg>Example</p>
+
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[optimize(size)]
+pub fn example1() {}
+
+#[optimize(speed)]
+pub fn example2() {}
+
+#[optimize(none)]
+pub fn example3() {}
+<span class="boring">}</span></code></pre>
+</blockquote>
+</div>
+
+<div class="alert alert-note">
+<blockquote>
+<p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+
+<p>For <code>rustc</code>, <code>-C opt-level=0</code> (the default) disables LLVM optimizations for the entire crate, and <code>optimize(size)</code> and <code>optimize(speed)</code> do not enable them for the attributed function. <code>rustc</code> still applies its own optimizations, other than inlining, to such a function.</p>
+</blockquote>
+</div>
+
+<div class="rule" id="r-attributes.codegen.optimize.syntax"><a class="rule-link" href="#r-attributes.codegen.optimize.syntax" title="attributes.codegen.optimize.syntax"><span>[attributes<wbr>.codegen<wbr>.optimize<wbr>.syntax]</span></a>
+</div>
+
+<p>The syntax for the <code>optimize</code> attribute is:</p>
+<div class="grammar-container">
+<p><strong><sup>Syntax</sup></strong> <br> <span class="grammar-text grammar-production" id="grammar-OptimizeAttribute" onclick="show_railroad()"><a href="#railroad-OptimizeAttribute">OptimizeAttribute</a></span> →<br>    <span class="grammar-literal">optimize</span> <span class="grammar-literal">(</span> ( <span class="grammar-literal">size</span> | <span class="grammar-literal">speed</span> | <span class="grammar-literal">none</span> ) <span class="grammar-literal">)</span></p>
+<p><button class="grammar-toggle-railroad" type="button" title="Toggle railroad display" onclick="toggle_railroad()">Show Railroad</button></p>
+</div>
+
+<div class="grammar-railroad grammar-hidden">
+<div style="width: 348px; height: auto; max-width: 100%; max-height: 100%" class="railroad-production" id="railroad-OptimizeAttribute"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" class="railroad" viewbox="0 0 348 140">
+<rect width="100%" height="100%" class="railroad_canvas" />
+<g class="verticalgrid">
+<a xlink:href="#grammar-OptimizeAttribute" class="link">
+<text class="comment" x="74" y="25">
+OptimizeAttribute</text>
+</a>
+<g class="sequence">
+<path d=" M 10 53 a 5 5 0 0 1 5 -5 a 5 5 0 0 1 5 5 a 5 5 0 0 1 -5 5 a 5 5 0 0 1 -5 -5 m 10 0 h 5" />
+<g class="sequence">
+<g class="terminal">
+<rect x="35" y="42" height="22" width="84" rx="10" ry="10" />
+<text x="77" y="58">
+optimize</text>
+</g>
+<g class="terminal">
+<rect x="129" y="42" height="22" width="28" rx="10" ry="10" />
+<text x="143" y="58">
+(</text>
+</g>
+<g class="multichoice">
+<path d=" M 167 53 h 24" />
+<path d=" M 167 53 a 12 12 0 0 1 12 12" />
+<path d=" M 179 65 v 9" />
+<path d=" M 179 74 v 33" />
+<g class="terminal">
+<rect x="191" y="42" height="22" width="52" rx="10" ry="10" />
+<text x="217" y="58">
+size</text>
+</g>
+<path d=" M 243 53 h 32" />
+<path d=" M 179 74 a 12 12 0 0 0 12 12 h 0" />
+<g class="terminal">
+<rect x="191" y="75" height="22" width="60" rx="10" ry="10" />
+<text x="221" y="91">
+speed</text>
+</g>
+<path d=" M 251 86 h 0 a 12 12 0 0 0 12 -12" />
+<path d=" M 179 107 a 12 12 0 0 0 12 12 h 0" />
+<g class="terminal">
+<rect x="191" y="108" height="22" width="52" rx="10" ry="10" />
+<text x="217" y="124">
+none</text>
+</g>
+<path d=" M 243 119 h 8 a 12 12 0 0 0 12 -12" />
+<path d=" M 263 107 v -33" />
+<path d=" M 263 74 v -9 a 12 12 0 0 1 12 -12" />
+</g>
+<g class="terminal">
+<rect x="285" y="42" height="22" width="28" rx="10" ry="10" />
+<text x="299" y="58">
+)</text>
+</g>
+<path d=" M 119 53 h 10" />
+<path d=" M 157 53 h 10" />
+<path d=" M 275 53 h 10" />
+</g>
+<path d=" M 323 53 h 5 a 5 5 0 0 1 5 -5 a 5 5 0 0 1 5 5 a 5 5 0 0 1 -5 5 a 5 5 0 0 1 -5 -5" />
+<path d=" M 25 53 h 10" />
+<path d=" M 313 53 h 10" />
+</g>
+</g>
+</svg>
+</div>
+
+</div>
+
+<div class="rule" id="r-attributes.codegen.optimize.allowed-positions"><a class="rule-link" href="#r-attributes.codegen.optimize.allowed-positions" title="attributes.codegen.optimize.allowed-positions"><span>[attributes<wbr>.codegen<wbr>.optimize<wbr>.allowed-positions]</span></a>
+</div>
+
+<p>The <code>optimize</code> attribute may only be applied to functions with <a href="#r-items.fn.body">bodies</a> — <a href="#r-expr.closure">closures</a>, <a href="#r-expr.block.async">async blocks</a>, <a href="#r-items.fn">free functions</a>, <a href="#r-items.associated.fn">associated functions</a> in an <a href="#r-items.impl.inherent">inherent impl</a> or <a href="#r-items.impl.trait">trait impl</a>, and associated functions in a <a href="#r-items.traits">trait definition</a> when those functions have a <a href="#r-items.traits.associated-item-decls">default definition</a>.</p>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// A free function.
+#[optimize(size)]
+pub fn f() {
+    #[optimize(speed)] || (); // A closure.
+    #[optimize(none)] async {}; // An async block.
+}
+   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
+pub struct S;
+impl S {
+    // An associated function in an inherent impl.
+    #[optimize(size)]
+    pub fn f(&amp;self) {}
+}
+   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
+pub trait Tr {
+    // An associated function in a trait with a default definition.
+    #[optimize(speed)]
+    fn f(&amp;self) {}
+}
+   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
+impl Tr for S {
+    // An associated function in a trait impl.
+    #[optimize(none)]
+    fn f(&amp;self) {}
+}
+<span class="boring">}</span></code></pre>
+<p>The attribute is rejected on a function without a body.</p>
+<pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>trait Tr {
+    #[optimize(size)] // ERROR: Not allowed without a body.
+    fn f();
+}
+   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
+unsafe extern "C" {
+    #[optimize(size)] // ERROR: Not allowed without a body.
+    fn g();
+}
+<span class="boring">}</span></code></pre>
+<div class="rule" id="r-attributes.codegen.optimize.duplicates"><a class="rule-link" href="#r-attributes.codegen.optimize.duplicates" title="attributes.codegen.optimize.duplicates"><span>[attributes<wbr>.codegen<wbr>.optimize<wbr>.duplicates]</span></a>
+</div>
+
+<p>The <code>optimize</code> attribute may be used only once on a function.</p>
+<pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[optimize(size)]
+#[optimize(speed)] // ERROR: Multiple `optimize` attributes.
+fn f() {}
+<span class="boring">}</span></code></pre>
+<div class="rule" id="r-attributes.codegen.optimize.modes"><a class="rule-link" href="#r-attributes.codegen.optimize.modes" title="attributes.codegen.optimize.modes"><span>[attributes<wbr>.codegen<wbr>.optimize<wbr>.modes]</span></a>
+</div>
+
+<p>The <code>optimize</code> attribute supports these modes:</p>
+<ul>
+<li><code>#[optimize(size)]</code> suggests optimizing for smaller code, even at the cost of execution speed.</li>
+<li><code>#[optimize(speed)]</code> suggests optimizing for faster execution, even at the cost of code size.</li>
+<li><code>#[optimize(none)]</code> suggests compiling the function as though no optimization had been requested for it, disregarding what was requested for the crate as a whole.</li>
+</ul>
+<div class="alert alert-note">
+<blockquote>
+<p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+
+<p>In every form the attribute is a hint. The compiler may ignore it.</p>
+</blockquote>
+</div>
+
+<div class="alert alert-warning">
+<blockquote>
+<p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
+
+<p><code>#[optimize(none)]</code> does not make the function opaque to the optimizer. In addition to ignoring the attribute, the compiler may still optimize the function’s callers using what it knows about the function and may still change the function itself in other ways, so the attribute cannot be relied on to keep a computation from being optimized away.</p>
+</blockquote>
+</div>
+
+<div class="alert alert-note">
+<blockquote>
+<p class="alert-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+
+<p><code>rustc</code> currently optimizes a function with <code>#[optimize(none)]</code> much as it would at <code>-C opt-level=0</code>, regardless of the crate’s optimization level, and does not inline it into its callers.</p>
+<p>Settings that base their defaults on the optimization level, such as debug assertions and overflow checks, ignore this attribute and use the crate’s optimization level.</p>
+</blockquote>
+</div>
+
+<div class="rule" id="r-attributes.codegen.optimize.inline"><a class="rule-link" href="#r-attributes.codegen.optimize.inline" title="attributes.codegen.optimize.inline"><span>[attributes<wbr>.codegen<wbr>.optimize<wbr>.inline]</span></a>
+</div>
+
+<p><code>#[optimize(none)]</code> may not be used with <code>#[inline]</code> or <code>#[inline(always)]</code> on the same function. It may be used with <code>#[inline(never)]</code>. (See <a href="#r-attributes.codegen.inline.optimize">attributes.codegen.inline.optimize</a>.)</p>
+<pre class="playground"><code class="language-rust compile_fail edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[optimize(none)]
+#[inline] // ERROR: Not allowed.
+fn f() {}
+<span class="boring">}</span></code></pre>
+<p>A closure or async block that inherits <code>optimize(none)</code> may still be marked with <code>#[inline]</code> or <code>#[inline(always)]</code>. (See <a href="#r-attributes.codegen.optimize.closures">attributes.codegen.optimize.closures</a>.)</p>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[optimize(none)]
+pub fn f() {
+    #[inline] || (); // Inherits `optimize(none)`.
+    #[inline(always)] async {}; // Inherits `optimize(none)`.
+}
+<span class="boring">}</span></code></pre>
+<div class="rule" id="r-attributes.codegen.optimize.naked"><a class="rule-link" href="#r-attributes.codegen.optimize.naked" title="attributes.codegen.optimize.naked"><span>[attributes<wbr>.codegen<wbr>.optimize<wbr>.naked]</span></a>
+</div>
+
+<p>The <code>optimize</code> attribute cannot be applied to a <a href="#r-attributes.codegen.naked">naked function</a>. (See <a href="#r-attributes.codegen.naked.optimize">attributes.codegen.naked.optimize</a>.)</p>
+<pre class="playground"><code class="language-rust compile_fail E0736 edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">use core::arch::naked_asm;
+</span>#[optimize(size)] // ERROR: Not allowed on a naked function.
+#[unsafe(naked)]
+pub extern "C" fn f() {
+    naked_asm!("ret")
+}
+<span class="boring">}</span></code></pre>
+<div class="rule" id="r-attributes.codegen.optimize.closures"><a class="rule-link" href="#r-attributes.codegen.optimize.closures" title="attributes.codegen.optimize.closures"><span>[attributes<wbr>.codegen<wbr>.optimize<wbr>.closures]</span></a>
+</div>
+
+<p>Closures and <a href="#r-expr.block.async">async blocks</a> without an <code>optimize</code> attribute of their own inherit the attribute in effect on the innermost enclosing function, closure, or async block, which may itself be one inherited rather than one written directly. The body of an <a href="#r-items.fn.async">async function</a> inherits the attribute in effect on the function, and the body of an <a href="#r-expr.closure.async">async closure</a> inherits the attribute in effect on the closure. Items and <a href="#r-expr.block.const">const blocks</a> within a function do not inherit the attribute in effect on the function, nor do the closures and async blocks within them.</p>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[optimize(none)]
+pub fn f() {
+    // This closure has no `optimize` attribute of its own, so its
+    // body inherits `optimize(none)` from `f`.
+    let c = || 1 + 2;
+    c();
+}
+   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
+#[optimize(size)]
+pub async fn g() {
+    // This body inherits `optimize(size)` from `g`.
+}
+<span class="boring">}</span></code></pre>
+<div class="rule" id="r-attributes.codegen.optimize.trait"><a class="rule-link" href="#r-attributes.codegen.optimize.trait" title="attributes.codegen.optimize.trait"><span>[attributes<wbr>.codegen<wbr>.optimize<wbr>.trait]</span></a>
+</div>
+
+<p>When <code>optimize</code> is applied to a function in a <a href="#r-items.traits">trait</a>, it applies only to the code of the <a href="#r-items.traits.associated-item-decls">default definition</a>.</p>
+<pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub trait Tr {
+    // The default definition is optimized for size.
+    #[optimize(size)]
+    fn f(&amp;self) {}
+}
+   [식별자](../identifiers.md) `:` [_타입_](../types.md#type-expressions)
+pub struct S;
+impl Tr for S {
+    // This implementation of `Tr::f` does not inherit the trait's
+    // `optimize(size)`; it uses the crate's optimization level.
+    fn f(&amp;self) {}
+}
+<span class="boring">}</span></code></pre>
 <div class="rule" id="r-attributes.codegen.target_feature"><a class="rule-link" href="#r-attributes.codegen.target_feature" title="attributes.codegen.target_feature"><span>[attributes<wbr>.codegen<wbr>.target_feature]</span></a>
 </div>
 
@@ -65442,6 +65747,22 @@ const RESOLVED_STATIC: &amp;dyn Fn(&amp;Foo, &amp;Bar) -&gt; &amp;Baz = &amp;som
 </div>
 
 <p>또한 내부 가변성을 가진 타입을 가진 <a href="#정적-아이템"><code>static</code> 아이템</a> 이 읽기 전용으로 표시된 메모리에 배치되지 않도록 보장합니다.</p>
+<div class="rule" id="r-lang-types.maybe-uninit"><a class="rule-link" href="#r-lang-types.maybe-uninit" title="lang-types.maybe-uninit"><span>[lang-types<wbr>.maybe-uninit]</span></a>
+</div>
+
+<h2 id="maybeuninitt"><a class="header" href="#maybeuninitt"><code>MaybeUninit&lt;T&gt;</code></a></h2>
+<div class="rule" id="r-lang-types.maybe-uninit.intro"><a class="rule-link" href="#r-lang-types.maybe-uninit.intro" title="lang-types.maybe-uninit.intro"><span>[lang-types<wbr>.maybe-uninit<wbr>.intro]</span></a>
+</div>
+
+<p><a href="../core/mem/maybe_uninit/union.MaybeUninit.html"><code>MaybeUninit&lt;T&gt;</code></a> is a type for values that are laid out like a <code>T</code> but need not be a valid <code>T</code>. This is useful when allocating and writing to memory intended for <code>T</code> values before that memory holds a valid <code>T</code>, as when initializing such values in place.</p>
+<div class="rule" id="r-lang-types.maybe-uninit.validity"><a class="rule-link" href="#r-lang-types.maybe-uninit.validity" title="lang-types.maybe-uninit.validity"><span>[lang-types<wbr>.maybe-uninit<wbr>.validity]</span></a>
+</div>
+
+<p>A value of type <a href="../core/mem/maybe_uninit/union.MaybeUninit.html"><code>MaybeUninit&lt;T&gt;</code></a> is always <a href="#r-undefined.validity">valid</a>, regardless of any validity requirements for a value of type <code>T</code>.</p>
+<div class="rule" id="r-lang-types.maybe-uninit.layout"><a class="rule-link" href="#r-lang-types.maybe-uninit.layout" title="lang-types.maybe-uninit.layout"><span>[lang-types<wbr>.maybe-uninit<wbr>.layout]</span></a>
+</div>
+
+<p><a href="../core/mem/maybe_uninit/union.MaybeUninit.html"><code>MaybeUninit&lt;T&gt;</code></a> is guaranteed to have the same <a href="#r-layout.properties.size">size</a>, <a href="#r-layout.properties.align">alignment</a>, and <a href="#r-glossary.abi">ABI</a> as <code>T</code>.</p>
 <div class="rule" id="r-lang-types.phantom-data"><a class="rule-link" href="#r-lang-types.phantom-data" title="lang-types.phantom-data"><span>[lang-types<wbr>.phantom-data]</span></a>
 </div>
 
@@ -74105,6 +74426,12 @@ These rules apply to <em>all</em> references and <code>Box&lt;T&gt;</code>, incl
 <ul>
 <li>For a <code>union</code>, the exact validity requirements are not decided yet. Obviously, all values that can be created entirely in safe code are valid. If the union has a <a href="#r-glossary.zst">zero-sized</a> field, then every possible value is valid. Further details are <a href="https://github.com/rust-lang/unsafe-code-guidelines/issues/438">still being debated</a>.</li>
 </ul>
+<div class="rule" id="r-undefined.validity.maybe-uninit"><a class="rule-link" href="#r-undefined.validity.maybe-uninit" title="undefined.validity.maybe-uninit"><span>[undefined<wbr>.validity<wbr>.maybe-uninit]</span></a>
+</div>
+
+<ul>
+<li>A <a href="../core/mem/maybe_uninit/union.MaybeUninit.html"><code>MaybeUninit&lt;T&gt;</code></a> is always valid (see <a href="#r-lang-types.maybe-uninit.validity">lang-types.maybe-uninit.validity</a>).</li>
+</ul>
 <div class="rule" id="r-undefined.validity.reference-box"><a class="rule-link" href="#r-undefined.validity.reference-box" title="undefined.validity.reference-box"><span>[undefined<wbr>.validity<wbr>.reference-box]</span></a>
 </div>
 
@@ -75305,6 +75632,7 @@ fill-opacity: .1;
 <h2 id="attributes-summary"><a class="header" href="#attributes-summary">Attributes summary</a></h2>
 <div class="grammar-container">
 <p><strong><sup>Syntax</sup></strong> <br> <span class="grammar-text grammar-production" id="grammar-summary-InlineAttribute" onclick="show_railroad()"><a href="#railroad-summary-InlineAttribute">InlineAttribute</a></span> →<br>      <span class="grammar-literal">inline</span> <span class="grammar-literal">(</span> <span class="grammar-literal">always</span> <span class="grammar-literal">)</span><br>    | <span class="grammar-literal">inline</span> <span class="grammar-literal">(</span> <span class="grammar-literal">never</span> <span class="grammar-literal">)</span><br>    | <span class="grammar-literal">inline</span></p>
+<p><span class="grammar-text grammar-production" id="grammar-summary-OptimizeAttribute" onclick="show_railroad()"><a href="#railroad-summary-OptimizeAttribute">OptimizeAttribute</a></span> →<br>    <span class="grammar-literal">optimize</span> <span class="grammar-literal">(</span> ( <span class="grammar-literal">size</span> | <span class="grammar-literal">speed</span> | <span class="grammar-literal">none</span> ) <span class="grammar-literal">)</span></p>
 <p><span class="grammar-text grammar-production" id="grammar-summary-CollapseDebuginfoAttribute" onclick="show_railroad()"><a href="#railroad-summary-CollapseDebuginfoAttribute">CollapseDebuginfoAttribute</a></span> → <span class="grammar-literal">collapse_debuginfo</span> <span class="grammar-literal">(</span> <span class="grammar-text"><a href="#grammar-summary-CollapseDebuginfoOption">CollapseDebuginfoOption</a></span> <span class="grammar-literal">)</span></p>
 <p><span class="grammar-text grammar-production" id="grammar-summary-CollapseDebuginfoOption" onclick="show_railroad()"><a href="#railroad-summary-CollapseDebuginfoOption">CollapseDebuginfoOption</a></span> →<br>      <span class="grammar-literal">yes</span><br>    | <span class="grammar-literal">no</span><br>    | <span class="grammar-literal">external</span></p>
 <p><span class="grammar-text grammar-production" id="grammar-summary-InnerAttribute" onclick="show_railroad()"><a href="#railroad-summary-InnerAttribute">InnerAttribute</a></span> → <span class="grammar-literal">#</span> <span class="grammar-literal">!</span> <span class="grammar-literal">[</span> <span class="grammar-text"><a href="#grammar-summary-Attr">Attr</a></span> <span class="grammar-literal">]</span></p>
@@ -75406,6 +75734,71 @@ inline</text>
 <path d=" M 315 53 h 5 a 5 5 0 0 1 5 -5 a 5 5 0 0 1 5 5 a 5 5 0 0 1 -5 5 a 5 5 0 0 1 -5 -5" />
 <path d=" M 25 53 h 10" />
 <path d=" M 305 53 h 10" />
+</g>
+</g>
+</svg>
+</div>
+
+<div style="width: 348px; height: auto; max-width: 100%; max-height: 100%" class="railroad-production" id="railroad-summary-OptimizeAttribute"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" class="railroad" viewbox="0 0 348 140">
+<rect width="100%" height="100%" class="railroad_canvas" />
+<g class="verticalgrid">
+<a xlink:href="#grammar-summary-OptimizeAttribute" class="link">
+<text class="comment" x="74" y="25">
+OptimizeAttribute</text>
+</a>
+<g class="sequence">
+<path d=" M 10 53 a 5 5 0 0 1 5 -5 a 5 5 0 0 1 5 5 a 5 5 0 0 1 -5 5 a 5 5 0 0 1 -5 -5 m 10 0 h 5" />
+<g class="sequence">
+<g class="terminal">
+<rect x="35" y="42" height="22" width="84" rx="10" ry="10" />
+<text x="77" y="58">
+optimize</text>
+</g>
+<g class="terminal">
+<rect x="129" y="42" height="22" width="28" rx="10" ry="10" />
+<text x="143" y="58">
+(</text>
+</g>
+<g class="multichoice">
+<path d=" M 167 53 h 24" />
+<path d=" M 167 53 a 12 12 0 0 1 12 12" />
+<path d=" M 179 65 v 9" />
+<path d=" M 179 74 v 33" />
+<g class="terminal">
+<rect x="191" y="42" height="22" width="52" rx="10" ry="10" />
+<text x="217" y="58">
+size</text>
+</g>
+<path d=" M 243 53 h 32" />
+<path d=" M 179 74 a 12 12 0 0 0 12 12 h 0" />
+<g class="terminal">
+<rect x="191" y="75" height="22" width="60" rx="10" ry="10" />
+<text x="221" y="91">
+speed</text>
+</g>
+<path d=" M 251 86 h 0 a 12 12 0 0 0 12 -12" />
+<path d=" M 179 107 a 12 12 0 0 0 12 12 h 0" />
+<g class="terminal">
+<rect x="191" y="108" height="22" width="52" rx="10" ry="10" />
+<text x="217" y="124">
+none</text>
+</g>
+<path d=" M 243 119 h 8 a 12 12 0 0 0 12 -12" />
+<path d=" M 263 107 v -33" />
+<path d=" M 263 74 v -9 a 12 12 0 0 1 12 -12" />
+</g>
+<g class="terminal">
+<rect x="285" y="42" height="22" width="28" rx="10" ry="10" />
+<text x="299" y="58">
+)</text>
+</g>
+<path d=" M 119 53 h 10" />
+<path d=" M 157 53 h 10" />
+<path d=" M 275 53 h 10" />
+</g>
+<path d=" M 323 53 h 5 a 5 5 0 0 1 5 -5 a 5 5 0 0 1 5 5 a 5 5 0 0 1 -5 5 a 5 5 0 0 1 -5 -5" />
+<path d=" M 25 53 h 10" />
+<path d=" M 313 53 h 10" />
 </g>
 </g>
 </svg>
@@ -104384,11 +104777,11 @@ Uncovered rules
 
 <tr>
 <td><a href="#코드-생성-속성">      7.4. Code generation</a></td>
-<td>74</td>
+<td>86</td>
 <td>0</td>
 <td>
 <div class="popup-container">
-<a href="javascript:void(0)" onclick="spec_toggle_uncovered(35);">74</a>
+<a href="javascript:void(0)" onclick="spec_toggle_uncovered(35);">86</a>
 <div id="uncovered-35" class="uncovered-rules-popup popup-hidden">
 Uncovered rules
                         
@@ -104422,6 +104815,8 @@ Uncovered rules
 <li><a href="#r-attributes.codegen.inline.intro">attributes.codegen.inline.intro</a></li>
 
 <li><a href="#r-attributes.codegen.inline.modes">attributes.codegen.inline.modes</a></li>
+
+<li><a href="#r-attributes.codegen.inline.optimize">attributes.codegen.inline.optimize</a></li>
 
 <li><a href="#r-attributes.codegen.inline.syntax">attributes.codegen.inline.syntax</a></li>
 
@@ -104463,6 +104858,8 @@ Uncovered rules
 
 <li><a href="#r-attributes.codegen.naked.no-duplication">attributes.codegen.naked.no-duplication</a></li>
 
+<li><a href="#r-attributes.codegen.naked.optimize">attributes.codegen.naked.optimize</a></li>
+
 <li><a href="#r-attributes.codegen.naked.prologue-epilogue">attributes.codegen.naked.prologue-epilogue</a></li>
 
 <li><a href="#r-attributes.codegen.naked.syntax">attributes.codegen.naked.syntax</a></li>
@@ -104486,6 +104883,26 @@ Uncovered rules
 <li><a href="#r-attributes.codegen.no_builtins.intro">attributes.codegen.no_builtins.intro</a></li>
 
 <li><a href="#r-attributes.codegen.no_builtins.syntax">attributes.codegen.no_builtins.syntax</a></li>
+
+<li><a href="#r-attributes.codegen.optimize">attributes.codegen.optimize</a></li>
+
+<li><a href="#r-attributes.codegen.optimize.allowed-positions">attributes.codegen.optimize.allowed-positions</a></li>
+
+<li><a href="#r-attributes.codegen.optimize.closures">attributes.codegen.optimize.closures</a></li>
+
+<li><a href="#r-attributes.codegen.optimize.duplicates">attributes.codegen.optimize.duplicates</a></li>
+
+<li><a href="#r-attributes.codegen.optimize.inline">attributes.codegen.optimize.inline</a></li>
+
+<li><a href="#r-attributes.codegen.optimize.intro">attributes.codegen.optimize.intro</a></li>
+
+<li><a href="#r-attributes.codegen.optimize.modes">attributes.codegen.optimize.modes</a></li>
+
+<li><a href="#r-attributes.codegen.optimize.naked">attributes.codegen.optimize.naked</a></li>
+
+<li><a href="#r-attributes.codegen.optimize.syntax">attributes.codegen.optimize.syntax</a></li>
+
+<li><a href="#r-attributes.codegen.optimize.trait">attributes.codegen.optimize.trait</a></li>
 
 <li><a href="#r-attributes.codegen.target_feature">attributes.codegen.target_feature</a></li>
 
@@ -108014,11 +108431,11 @@ Uncovered rules
 
 <tr>
 <td><a href="#특수-타입과-트레잇">11. Special types and traits</a></td>
-<td>56</td>
+<td>60</td>
 <td>0</td>
 <td>
 <div class="popup-container">
-<a href="javascript:void(0)" onclick="spec_toggle_uncovered(92);">56</a>
+<a href="javascript:void(0)" onclick="spec_toggle_uncovered(92);">60</a>
 <div id="uncovered-92" class="uncovered-rules-popup popup-hidden">
 Uncovered rules
                         
@@ -108094,6 +108511,14 @@ Uncovered rules
 <li><a href="#r-lang-types.drop">lang-types.drop</a></li>
 
 <li><a href="#r-lang-types.intro">lang-types.intro</a></li>
+
+<li><a href="#r-lang-types.maybe-uninit">lang-types.maybe-uninit</a></li>
+
+<li><a href="#r-lang-types.maybe-uninit.intro">lang-types.maybe-uninit.intro</a></li>
+
+<li><a href="#r-lang-types.maybe-uninit.layout">lang-types.maybe-uninit.layout</a></li>
+
+<li><a href="#r-lang-types.maybe-uninit.validity">lang-types.maybe-uninit.validity</a></li>
 
 <li><a href="#r-lang-types.ops">lang-types.ops</a></li>
 
@@ -109280,11 +109705,11 @@ Uncovered rules
 
 <tr>
 <td><a href="#정의되지-않은-동작으로-간주되는-경우">      17.2. Behavior considered undefined</a></td>
-<td>39</td>
+<td>40</td>
 <td>0</td>
 <td>
 <div class="popup-container">
-<a href="javascript:void(0)" onclick="spec_toggle_uncovered(108);">39</a>
+<a href="javascript:void(0)" onclick="spec_toggle_uncovered(108);">40</a>
 <div id="uncovered-108" class="uncovered-rules-popup popup-hidden">
 Uncovered rules
                         
@@ -109348,6 +109773,8 @@ Uncovered rules
 <li><a href="#r-undefined.validity.enum">undefined.validity.enum</a></li>
 
 <li><a href="#r-undefined.validity.fn-pointer">undefined.validity.fn-pointer</a></li>
+
+<li><a href="#r-undefined.validity.maybe-uninit">undefined.validity.maybe-uninit</a></li>
 
 <li><a href="#r-undefined.validity.never">undefined.validity.never</a></li>
 
@@ -109800,9 +110227,9 @@ Uncovered rules
 
 <tr>
 <td><b>Total:</b></td>
-<td>3017</td>
+<td>3034</td>
 <td>0</td>
-<td>3017</td>
+<td>3034</td>
 <td>0.0%</td>
 </tr>
 
@@ -109886,11 +110313,12 @@ Uncovered rules
 <li><code>repr(transparent)</code> <a href="#구조체">structs</a> with no fields or where all fields are 1-ZSTs (see <a href="#r-layout.repr.transparent.layout-abi">layout.repr.transparent.layout-abi</a>).</li>
 <li><a href="#r-type.array">Arrays</a> of 1-ZSTs (see <a href="#r-layout.array">layout.array</a>).</li>
 <li><a href="#r-lang-types.phantom-data"><code>PhantomData&lt;T&gt;</code></a> for any type <code>T</code> (see <a href="#r-lang-types.phantom-data">lang-types.phantom-data</a>).</li>
+<li><a href="#r-lang-types.maybe-uninit"><code>MaybeUninit&lt;T&gt;</code></a> for a type <code>T</code> that is itself a 1-ZST (see <a href="#r-lang-types.maybe-uninit.layout">lang-types.maybe-uninit.layout</a>).</li>
 </ul>
 <pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use core::marker::PhantomData;
-</span><span class="boring">use core::mem::{align_of, size_of};
+</span><span class="boring">use core::mem::{MaybeUninit, align_of, size_of};
 </span>#[repr(C)]
 struct C1 {}
 #[repr(C)]
@@ -109920,6 +110348,7 @@ assert!(is_1_zst::&lt;T1&gt;());
 assert!(is_1_zst::&lt;T2&gt;());
 assert!(is_1_zst::&lt;PhantomData&lt;()&gt;&gt;());
 assert!(is_1_zst::&lt;PhantomData&lt;u16&gt;&gt;());
+assert!(is_1_zst::&lt;MaybeUninit&lt;[(); 2]&gt;&gt;());
 <span class="boring">}</span></code></pre>
 <h3 id="이름-1"><a class="header" href="#이름-1">이름</a></h3>
 <p><a href="#이름"><em>이름</em></a> 은 <a href="#entity">엔티티</a> 를 참조하는 <a href="#식별자">식별자</a> 또는 <a href="#lifetimes-and-loop-labels">라이프타임 또는 루프 레이블</a> 입니다. <em>이름 바인딩</em> 은 엔티티 선언이 해당 엔티티와 연관된 식별자 또는 레이블을 도입할 때입니다. <a href="#경로">경로</a>, 식별자 및 레이블은 엔티티를 참조하는 데 사용됩니다.</p>
@@ -110004,11 +110433,12 @@ let vec = [1, 2, 3].iter().map(|n| n * 2).collect::&lt;Vec&lt;_&gt;&gt;();
 <li><a href="#r-type.array">Arrays</a> of length zero (see <a href="#r-layout.array">layout.array</a>).</li>
 <li><a href="#공용체">Unions</a> of zero-sized types (see <a href="#r-items.union.common-storage">items.union.common-storage</a>).</li>
 <li><a href="#r-lang-types.phantom-data"><code>PhantomData&lt;T&gt;</code></a> for any type <code>T</code> (see <a href="#r-lang-types.phantom-data">lang-types.phantom-data</a>).</li>
+<li><a href="#r-lang-types.maybe-uninit"><code>MaybeUninit&lt;T&gt;</code></a> for a type <code>T</code> that is itself a zero-sized type (see <a href="#r-lang-types.maybe-uninit.layout">lang-types.maybe-uninit.layout</a>).</li>
 </ul>
 <pre class="playground"><code class="language-rust edition2024"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">use core::marker::PhantomData;
-</span><span class="boring">use core::mem::{size_of, size_of_val};
+</span><span class="boring">use core::mem::{MaybeUninit, size_of, size_of_val};
 </span>fn f() {}
 struct S(u8);
 enum E { V(u8) }
@@ -110091,6 +110521,7 @@ assert_eq!(0, size_of::&lt;E7&gt;());
 </span>assert_eq!(0, size_of::&lt;PhantomData&lt;()&gt;&gt;());
 <span class="boring">// `PhantomData` for a type that is not a ZST.
 </span>assert_eq!(0, size_of::&lt;PhantomData&lt;u16&gt;&gt;());
+assert_eq!(0, size_of::&lt;MaybeUninit&lt;[(); 2]&gt;&gt;());
 <span class="boring">}</span></code></pre>
 
                     </main>
