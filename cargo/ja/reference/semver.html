@@ -97,7 +97,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b3175ff3.js";
+            window.path_to_searchindex_js = "../searchindex-f0983271.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-eaea3cac.js"></script>
@@ -632,7 +632,7 @@ fn main() {
     c();
 }</code></pre>
 <h4 id="repr-align-add"><a class="header" href="#repr-align-add">Major: Adding <code>repr(align)</code> to a struct, union, or enum</a></h4>
-<p>It is a breaking change to add <code>repr(align)</code> to a struct, union, or enum. Making a type <code>repr(align)</code> would break any use of that type in a <code>repr(packed)</code> type because that combination is not allowed.</p>
+<p>It is a breaking change to add <code>repr(align)</code> to a struct, union, or enum. Raising a type’s alignment above <code>N</code> of an <code>repr(packed(N))</code> type containing it would make references to that field unaligned, which is not allowed.</p>
 <!-- TODO: This seems like it should be extraordinarily rare. Should there be any exceptions carved out for this? -->
 <pre><code class="language-rust ignore">// MAJOR CHANGE
 
@@ -653,8 +653,8 @@ pub struct Aligned {
 // Example usage that will break.
 use updated_crate::Aligned;
 
-#[repr(packed)]
-pub struct Packed { // Error: packed type cannot transitively contain a `#[repr(align)]` type
+#[repr(packed(4))]
+pub struct Packed {
     f1: Aligned,
 }
 
@@ -662,6 +662,7 @@ fn main() {
     let p = Packed {
         f1: Aligned { a: 123 },
     };
+    let f1 = &amp;p.f1; // Error: reference to field of packed struct is unaligned
 }</code></pre>
 <h4 id="repr-packed-remove"><a class="header" href="#repr-packed-remove">Major: Removing <code>repr(packed)</code> from a struct or union</a></h4>
 <p>It is a breaking change to remove <code>repr(packed)</code> from a struct or union. This may change the alignment or layout that extern crates are relying on.</p>

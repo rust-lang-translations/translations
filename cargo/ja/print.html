@@ -98,7 +98,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b3175ff3.js";
+            window.path_to_searchindex_js = "searchindex-f0983271.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-eaea3cac.js"></script>
@@ -1033,35 +1033,26 @@ $ cargo owner --remove github:rust-lang:owners
 </ul>
 <h3 id="reduce-amount-of-generated-debug-information"><a class="header" href="#reduce-amount-of-generated-debug-information">Reduce amount of generated debug information</a></h3>
 <p>Recommendation: Add to your <code>Cargo.toml</code> or <code>.cargo/config.toml</code>:</p>
-<pre><code class="language-toml">[profile.dev]
-debug = "line-tables-only"
-
-[profile.dev.package."*"]
+<pre><code class="language-toml">[profile.dev.package."*"]
 debug = false
-
-[profile.debugging]
-inherits = "dev"
-debug = true
 </code></pre>
 <p>This will:</p>
 <ul>
 <li>Change the <a href="#dev"><code>dev</code> profile</a> (default for development commands) to:
 <ul>
-<li>Limit <a href="#debug">debug information</a> for workspace members to what is needed for useful panic backtraces</li>
-<li>Avoid generating any debug information for dependencies</li>
+<li>Avoid generating any <a href="#debug">debug information</a> for dependencies</li>
 </ul>
 </li>
 <li>Provide an opt-in for when debugging via <a href="#custom-profiles"><code>--profile debugging</code></a></li>
 </ul>
 <blockquote>
-<p><strong>Note:</strong> re-evaluating the <code>dev</code> profile is being tracked in <a href="https://github.com/rust-lang/cargo/issues/15931">#15931</a>.</p>
+<p><strong>Note:</strong>  The <code>dev</code> profile defaults to what is needed for useful panic backtraces</p>
 </blockquote>
 <p>Trade-offs:</p>
 <ul>
 <li>✅ Faster code generation (<code>cargo build</code>)</li>
 <li>✅ Faster link times</li>
 <li>✅ Smaller disk usage of the <code>target</code> directory</li>
-<li>❌ Requires a full rebuild to have a high-quality debugger experience</li>
 </ul>
 <h3 id="use-an-alternative-codegen-backend"><a class="header" href="#use-an-alternative-codegen-backend">Use an alternative codegen backend</a></h3>
 <p>Recommendation:</p>
@@ -3414,7 +3405,7 @@ strip = "debuginfo"
 <p>The default settings for the <code>dev</code> profile are:</p>
 <pre><code class="language-toml">[profile.dev]
 opt-level = 0
-debug = true
+debug = "line-tables-only"
 split-debuginfo = '...'  # Platform-specific.
 strip = "none"
 debug-assertions = true
@@ -3431,6 +3422,7 @@ trim-paths = "none"
 <p>The default settings for the <code>debug</code> profile are:</p>
 <pre><code class="language-toml">[profile.debug]
 inherits = "dev"
+debug = true
 </code></pre>
 <h3 id="release"><a class="header" href="#release">release</a></h3>
 <p>The <code>release</code> profile is intended for optimized artifacts used for releases and in production. This profile is used when the <code>--release</code> flag is used, and is the default for <a href="#cargo-install1"><code>cargo install</code></a>.</p>
@@ -4418,7 +4410,7 @@ known-hosts = [
 </ul>
 <p>See the <a href="#publish-age">resolver</a> chapter for more details.</p>
 <blockquote>
-<p><strong>MSRV:</strong> Respected as of 1.100+</p>
+<p><strong>MSRV:</strong> Respected as of 1.100</p>
 </blockquote>
 <h3 id="registries"><a class="header" href="#registries"><code>[registries]</code></a></h3>
 <p>The <code>[registries]</code> table is used for specifying additional <a href="#registries-1">registries</a>. It consists of a sub-table for each named registry.</p>
@@ -4462,7 +4454,7 @@ known-hosts = [
 </ul>
 <p>Generally, <code>"0"</code>, <code>"N days"</code>, and <code>"N weeks"</code> will be used.</p>
 <blockquote>
-<p><strong>MSRV:</strong> Respected as of 1.100+</p>
+<p><strong>MSRV:</strong> Respected as of 1.100</p>
 </blockquote>
 <h4 id="registriescrates-ioprotocol"><a class="header" href="#registriescrates-ioprotocol"><code>registries.crates-io.protocol</code></a></h4>
 <ul>
@@ -4526,7 +4518,7 @@ known-hosts = [
 </ul>
 <p>Generally, <code>"0"</code>, <code>"N days"</code>, and <code>"N weeks"</code> will be used.</p>
 <blockquote>
-<p><strong>MSRV:</strong> Respected as of 1.100+</p>
+<p><strong>MSRV:</strong> Respected as of 1.100</p>
 </blockquote>
 <h3 id="source"><a class="header" href="#source"><code>[source]</code></a></h3>
 <p>The <code>[source]</code> table defines the registry sources available. See <a href="#source-replacement">Source Replacement</a> for more information. It consists of a sub-table for each named source. A source should only define one kind (directory, registry, local-registry, or git).</p>
@@ -7192,7 +7184,7 @@ fn main() {
     c();
 }</code></pre>
 <h4 id="repr-align-add"><a class="header" href="#repr-align-add">Major: Adding <code>repr(align)</code> to a struct, union, or enum</a></h4>
-<p>It is a breaking change to add <code>repr(align)</code> to a struct, union, or enum. Making a type <code>repr(align)</code> would break any use of that type in a <code>repr(packed)</code> type because that combination is not allowed.</p>
+<p>It is a breaking change to add <code>repr(align)</code> to a struct, union, or enum. Raising a type’s alignment above <code>N</code> of an <code>repr(packed(N))</code> type containing it would make references to that field unaligned, which is not allowed.</p>
 <!-- TODO: This seems like it should be extraordinarily rare. Should there be any exceptions carved out for this? -->
 <pre><code class="language-rust ignore">// MAJOR CHANGE
 
@@ -7213,8 +7205,8 @@ pub struct Aligned {
 // Example usage that will break.
 use updated_crate::Aligned;
 
-#[repr(packed)]
-pub struct Packed { // Error: packed type cannot transitively contain a `#[repr(align)]` type
+#[repr(packed(4))]
+pub struct Packed {
     f1: Aligned,
 }
 
@@ -7222,6 +7214,7 @@ fn main() {
     let p = Packed {
         f1: Aligned { a: 123 },
     };
+    let f1 = &amp;p.f1; // Error: reference to field of packed struct is unaligned
 }</code></pre>
 <h4 id="repr-packed-remove"><a class="header" href="#repr-packed-remove">Major: Removing <code>repr(packed)</code> from a struct or union</a></h4>
 <p>It is a breaking change to remove <code>repr(packed)</code> from a struct or union. This may change the alignment or layout that extern crates are relying on.</p>
@@ -9066,6 +9059,7 @@ build-std = ["core", "alloc"]
 <li><a href="#rustc---print"><code>cargo rustc --print</code></a> — Calls rustc with <code>--print</code> to display information from rustc.</li>
 <li><a href="#build-analysis">Build analysis</a> — Record and persist detailed build metrics across runs, with new commands to query past builds.</li>
 <li><a href="#rustc-unicode"><code>rustc-unicode</code></a> — Enables <code>rustc</code>’s unicode error format in Cargo’s error messages</li>
+<li><a href="#term-graphics"><code>term-graphics</code></a> — Controls  graphics in its terminal output</li>
 </ul>
 </li>
 <li>Configuration
@@ -10321,6 +10315,18 @@ core = { builtin = true}
 </code></pre>
 <p>Specifying builtin dependencies explicitly pairs well with <code>-Zbuild-std</code> and is also useful for <code>#[no_std]</code> crates. See the RFC for further details.</p>
 <p>The Package ID specification can refer to builtin packages using the form <code>builtin://.#&lt;name&gt;</code>. For example, <code>builtin://.#core</code> identifies the builtin core package, distinguishing it from packages named “core” from other sources.</p>
+<h2 id="term-graphics"><a class="header" href="#term-graphics">term-graphics</a></h2>
+<ul>
+<li>Tracking Issue: <a href="https://github.com/rust-lang/rust/issues/165164">rust-lang/rust#165164</a></li>
+</ul>
+<p>The <code>-Z term-graphics</code> enables the <code>term.graphics</code> configuration option to control whether Cargo and <code>rustc</code> use graphical decorations and source snippets in their diagnostic output. If the <code>-Z term-graphics</code> unstable flag is not enabled, then the <code>term.term-graphics</code> configuration will be ignored.</p>
+<h3 id="added-to-configuration"><a class="header" href="#added-to-configuration">Added to Configuration</a></h3>
+<ul>
+<li>Type: boolean</li>
+<li>Default: auto-detect</li>
+<li>Environment: <code>CARGO_TERM_GRAPHICS</code></li>
+</ul>
+<p>Controls the use of graphical decorations and source snippets in diagnostic output. The output when this is <code>false</code>, was primarily designed to be usable by users relying on Text-To-Speech and Braille displays.</p>
 <h1 id="stabilized-and-removed-features"><a class="header" href="#stabilized-and-removed-features">Stabilized and removed features</a></h1>
 <h2 id="compile-progress"><a class="header" href="#compile-progress">Compile progress</a></h2>
 <p>The compile-progress feature has been stabilized in the 1.30 release. Progress bars are now enabled by default. See <a href="#termprogresswhen"><code>term.progress</code></a> for more information about controlling this feature.</p>
